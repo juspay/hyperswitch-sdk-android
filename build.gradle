@@ -1,0 +1,114 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    ext {
+        buildToolsVersion = '33.0.0'
+        minSdkVersion = 21
+        compileSdkVersion = 33
+        targetSdkVersion = 33
+
+        // We use NDK 23 which has both M1 support and is the side-by-side NDK version from AGP.
+        ndkVersion = '23.1.7779620'
+        kotlinVersion = '1.8.0'
+        kotlin_version = '1.8.0'
+        androidXBrowser = '1.5.0'
+    }
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url "https://maven.hyperswitch.io/release/production/android/maven/1.0.0"
+        }
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.4.1'
+        //classpath 'com.google.gms:google-services:4.3.3'
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.facebook.react:react-native-gradle-plugin:0.72.11'
+    }
+}
+
+rootProject.allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url("$rootDir/maven/")
+        }
+        maven {
+            url "https://maven.hyperswitch.io/release/production/android/maven/1.0.0"
+        }
+        maven {
+            url 'https://x.klarnacdn.net/mobile-sdk/'
+        }
+        maven {
+            url 'https://cardinalcommerceprod.jfrog.io/artifactory/android'
+            credentials {
+                username 'braintree_team_sdk'
+                password 'AKCp8jQcoDy2hxSWhDAUQKXLDPDx6NYRkqrgFLRc3qDrayg6rrCbJpsKKyMwaykVL8FWusJpp'
+            }
+        }
+    }
+}
+
+apply plugin:'maven-publish'
+
+def runtimeDeps = [
+        'react-native-code-push',
+        'react-native-gesture-handler',
+        'react-native-inappbrowser-reborn',
+        'react-native-pager-view',
+        'react-native-safe-area-context',
+        'react-native-screens',
+        'react-native-svg',
+        'sentry_react-native',
+]
+
+def runtimeDepsExcluded = []
+
+def runtimeDepsOptional = [
+        'react-native-reanimated',
+        'react-native-hyperswitch-kount',
+        'react-native-hyperswitch-paypal',
+        'react-native-klarna-inapp-sdk',
+        'react-native-hyperswitch-scancard'
+]
+
+subprojects {
+    tasks.findByPath(':react-native-klarna-inapp-sdk:androidJavadocs').enabled = false
+    tasks.findByPath(':react-native-klarna-inapp-sdk:testDebugUnitTest').enabled = false
+    tasks.findByPath(':react-native-klarna-inapp-sdk:testReleaseUnitTest').enabled = false
+    tasks.findByPath(':react-native-hyperswitch-paypal:lintDebug').enabled = false
+
+    publishing {
+        publications {
+            if (!runtimeDepsExcluded.contains(project.name)) {
+                "$project.name"(MavenPublication) {
+                    groupId project.group
+                    artifactId(project.name == 'app' ? 'hyperswitch-android' : project.name)
+                    version(project.name == 'app' ? project.version : '0.0.1')
+                    artifact "$buildDir/outputs/aar/$project.name-release.aar"
+                    pom.withXml {
+                        def dependencies = asNode().appendNode('dependencies')
+                        configurations.getByName('releaseCompileClasspath').getResolvedConfiguration().getFirstLevelModuleDependencies().each {
+                            if (!runtimeDepsOptional.contains(it.moduleName)) {
+                                def dependency = dependencies.appendNode('dependency')
+                                dependency.appendNode('groupId', it.moduleGroup)
+                                dependency.appendNode('artifactId', it.moduleName)
+                                dependency.appendNode('version', (runtimeDeps.contains(it.moduleName) ? '0.0.1' : it.moduleVersion))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        repositories {
+            maven {
+                url("${project.rootDir}/maven")
+            }
+        }
+    }
+}

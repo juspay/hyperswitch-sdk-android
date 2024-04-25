@@ -1,0 +1,10 @@
+rootProject.name = 'io.hyperswitch'
+
+//auto-linking after React native 0.60+
+apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle");
+applyNativeModulesSettingsGradle(settings)
+//End of auto-linking after React native 0.60+
+
+include ':app', ':react-native-code-push'
+includeBuild('../node_modules/@react-native/gradle-plugin')
+project(':react-native-code-push').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-code-push/android/app')
