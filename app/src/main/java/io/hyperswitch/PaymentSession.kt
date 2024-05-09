@@ -98,14 +98,14 @@ class PaymentSession(val activity: Activity, val paymentIntentClientSecret: Stri
     private fun parseGetPaymentMethodData(readableMap: ReadableMap): Any? {
 
         val tag = try {
-            readableMap.getInt("TAG")
+            readableMap.getString("TAG")
         } catch (ex: Exception) {
-            -1
+            ""
         }
         val dataObject = readableMap.getMap("_0")
 
         return when (tag) {
-            0 -> {
+            "SAVEDLISTCARD" -> {
                 dataObject?.let {
                     Card(
                         isDefaultPaymentMethod = it.getBoolean("isDefaultPaymentMethod"),
@@ -119,7 +119,7 @@ class PaymentSession(val activity: Activity, val paymentIntentClientSecret: Stri
                     )
                 }
             }
-            1 -> {
+            "SAVEDLISTWALLET" -> {
                 dataObject?.let {
                     Wallet(
                         isDefaultPaymentMethod = it.getBoolean("isDefaultPaymentMethod"),
