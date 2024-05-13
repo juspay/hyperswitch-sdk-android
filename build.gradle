@@ -78,10 +78,10 @@ def runtimeDepsOptional = [
 ]
 
 subprojects {
-    tasks.findByPath(':react-native-klarna-inapp-sdk:androidJavadocs').enabled = false
-    tasks.findByPath(':react-native-klarna-inapp-sdk:testDebugUnitTest').enabled = false
-    tasks.findByPath(':react-native-klarna-inapp-sdk:testReleaseUnitTest').enabled = false
-    tasks.findByPath(':react-native-hyperswitch-paypal:lintDebug').enabled = false
+    // tasks.findByPath(':react-native-klarna-inapp-sdk:androidJavadocs').enabled = false
+    // tasks.findByPath(':react-native-klarna-inapp-sdk:testDebugUnitTest').enabled = false
+    // tasks.findByPath(':react-native-klarna-inapp-sdk:testReleaseUnitTest').enabled = false
+    // tasks.findByPath(':react-native-hyperswitch-paypal:lintDebug').enabled = false
 
     publishing {
         publications {
