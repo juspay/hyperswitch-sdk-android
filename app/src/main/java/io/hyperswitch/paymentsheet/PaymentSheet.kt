@@ -632,61 +632,61 @@ class PaymentSheet internal constructor(
          * The scale factor for all fonts in PaymentSheet, the default value is 1.0.
          * When this value increases fonts will increase in size and decrease when this value is lowered.
          */
-        val sizeScaleFactor: Float,
+        val sizeScaleFactor: Float?=null,
 
         /**
          * The size adjustment factor for all the Heading texts in PaymentSheet.
          * When this value increases the heading type fonts will increase in size from their default size.
          */
-        val headingTextSizeAdjust: Float,
+        val headingTextSizeAdjust: Float?=null,
 
         /**
          * The size adjustment factor for all the SubHeading texts in PaymentSheet.
          * When this value increases the sub heading text type fonts will increase in size from their default size.
          */
-        val subHeadingTextSizeAdjust: Float,
+        val subHeadingTextSizeAdjust: Float?=null,
 
         /**
          * The size adjustment factor for all the placeholder texts in PaymentSheet.
          * When this value increases the placeholder text type fonts will increase in size from their default size.
          */
-        val placeholderTextSizeAdjust: Float,
+        val placeholderTextSizeAdjust: Float?=null,
 
         /**
          * The size adjustment factor for all the Button texts in PaymentSheet.
          * When this value increases the button text type fonts will increase in size from their default size.
          */
-        val buttonTextSizeAdjust: Float,
+        val buttonTextSizeAdjust: Float?=null,
 
         /**
          * The size adjustment factor for all the Error texts in PaymentSheet.
          * When this value increases the error text type fonts will increase in size from their default size.
          */
-        val errorTextSizeAdjust: Float,
+        val errorTextSizeAdjust: Float?=null,
 
         /**
          * The size adjustment factor for all the Link texts in PaymentSheet.
          * When this value increases the link text type fonts will increase in size from their default size.
          */
-        val linkTextSizeAdjust: Float,
+        val linkTextSizeAdjust: Float?=null,
 
         /**
          * The size adjustment factor for all the Modal texts in PaymentSheet.
          * When this value increases the modal text type fonts will increase in size from their default size.
          */
-        val modalTextSizeAdjust: Float,
+        val modalTextSizeAdjust: Float?=null,
 
         /**
          * The size adjustment factor for all the Card texts in PaymentSheet.
          * When this value increases the card text type fonts will increase in size from their default size.
          */
-        val cardTextSizeAdjust: Float,
+        val cardTextSizeAdjust: Float?=null,
 
         /**
          * The font used in text. This should be a resource ID value.
          */
         @FontRes
-        val fontResId: Int?
+        val fontResId: Int?=null
     ) : Parcelable {
         fun getMap(): Map<String, Any?> {
             return mapOf(
