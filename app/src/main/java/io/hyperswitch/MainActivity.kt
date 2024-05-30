@@ -33,7 +33,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
          *
          * */
 
-        val primaryButtonShape = PaymentSheet.PrimaryButtonShape(0f, 0f)
+        val primaryButtonShape = PaymentSheet.PrimaryButtonShape(32f, 0f)
         val address = PaymentSheet.Address.Builder()
             .city("city")
             .country("US")
@@ -60,44 +60,36 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             0
         )
         val primaryButton = PaymentSheet.PrimaryButton(
-            primaryButtonColorsLight,
-            primaryButtonColorsDark,
-            primaryButtonShape,
-            null
+//            primaryButtonColorsLight,
+//            primaryButtonColorsDark,
+            shape = primaryButtonShape,
+//            null
         )
         val color1: PaymentSheet.Colors = PaymentSheet.Colors(
-            primary= Color.BLACK,
-            surface= Color.WHITE,
-            component= Color.WHITE,
-            componentBorder= Color.BLUE,
-            componentDivider= Color.BLACK,
-            onComponent= Color.BLACK,
-            subtitle= Color.BLACK,
-            onSurface= Color.BLACK,
-            placeholderText= Color.GRAY,
-            appBarIcon= Color.BLACK,
-            error= Color.RED,
+            primary = Color.parseColor("#8DBD00"),
+            surface = Color.parseColor("#F5F8F9"),
         )
 
         val color2: PaymentSheet.Colors = PaymentSheet.Colors(
-            primary= Color.WHITE,
-            surface= Color.DKGRAY,
-            component= Color.BLUE,
-            componentBorder= Color.BLUE,
-            componentDivider= Color.WHITE,
-            onComponent= Color.WHITE,
-            subtitle= Color.WHITE,
-            onSurface= Color.WHITE,
-            placeholderText= Color.GRAY,
-            appBarIcon= Color.WHITE,
-            error= Color.RED,
+            primary = Color.parseColor("#8DBD00"),
+            surface = Color.parseColor("#F5F8F9"),
+//            surface= Color.DKGRAY,
+//            component= Color.BLUE,
+//            componentBorder= Color.BLUE,
+//            componentDivider= Color.WHITE,
+//            onComponent= Color.WHITE,
+//            subtitle= Color.WHITE,
+//            onSurface= Color.WHITE,
+//            placeholderText= Color.GRAY,
+//            appBarIcon= Color.WHITE,
+//            error= Color.RED,
         )
 
         val appearance: PaymentSheet.Appearance = PaymentSheet.Appearance(
-            shapes = shapes,
-            typography = null,
-            primaryButton = null,
-            locale = "en",
+//            shapes = shapes,
+            typography = PaymentSheet.Typography(sizeScaleFactor = 1f, fontResId = R.font.montserrat),
+            primaryButton = primaryButton,
+//            locale = "en",
             colorsLight = color1,
             colorsDark = color2
         )
@@ -109,7 +101,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
         )
 
         configuration = PaymentSheet.Configuration.Builder("Example, Inc.")
-//            .appearance(appearance)
+            .appearance(appearance)
             .defaultBillingDetails(billingDetails)
             .googlePay(
                 PaymentSheet.GooglePayConfiguration(
@@ -118,15 +110,15 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                     "dollar"
                 )
             )
-            .primaryButtonLabel("Add Payment Method")
-            .paymentSheetHeaderLabel("Add a new Payment Method")
-            .savedPaymentSheetHeaderLabel("Saved Payment Method")
+            .primaryButtonLabel("Purchase ($2.00)")
+            .paymentSheetHeaderLabel("Select payment method")
+            .savedPaymentSheetHeaderLabel("Payment methods")
             .shippingDetails(shippingDetails)
             .allowsPaymentMethodsRequiringShippingAddress(false)
             .allowsDelayedPaymentMethods(true)
             .displaySavedPaymentMethodsCheckbox(true)
             .displaySavedPaymentMethods(true)
-            .placeHolder(placeHolder)
+//            .placeHolder(placeHolder)
             .disableBranding(true)
             .build()
     }
