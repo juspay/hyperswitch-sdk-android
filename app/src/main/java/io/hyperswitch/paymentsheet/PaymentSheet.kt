@@ -194,6 +194,10 @@ class PaymentSheet internal constructor(
         val primaryButtonLabel: String? = null,
         val paymentSheetHeaderLabel: String? = null,
         val savedPaymentSheetHeaderLabel: String? = null,
+        /**
+         * Api key used to invoke netcetera sdk for redirection-less 3DS authentication.
+         */
+        val netceteraSDKApiKey: String? = null,
         val themes: String? = null,
         val disableBranding: Boolean? = null,
         val defaultView: Boolean? = null,
@@ -221,7 +225,7 @@ class PaymentSheet internal constructor(
             private var defaultView: Boolean? = null
             private var paymentSheetHeaderLabel: String? = null
             private var savedPaymentSheetHeaderLabel: String? = null
-
+            private var netceteraSDKApiKey: String? = null
             fun merchantDisplayName(merchantDisplayName: String) =
                 apply { this.merchantDisplayName = merchantDisplayName }
 
@@ -284,6 +288,9 @@ class PaymentSheet internal constructor(
             fun paymentSheetHeaderLabel(paymentSheetHeaderLabel: String) =
                 apply { this.paymentSheetHeaderLabel = paymentSheetHeaderLabel }
 
+            fun netceteraSDKApiKey(netceteraSDKApiKey: String?) = apply {
+                this.netceteraSDKApiKey = netceteraSDKApiKey
+            }
             fun savedPaymentSheetHeaderLabel(savedPaymentSheetHeaderLabel: String) =
                 apply { this.savedPaymentSheetHeaderLabel = savedPaymentSheetHeaderLabel }
 
@@ -303,6 +310,7 @@ class PaymentSheet internal constructor(
                 primaryButtonLabel,
                 paymentSheetHeaderLabel,
                 savedPaymentSheetHeaderLabel,
+                netceteraSDKApiKey,
             )
         }
 
@@ -321,6 +329,7 @@ class PaymentSheet internal constructor(
                 "primaryButtonLabel" to primaryButtonLabel,
                 "paymentSheetHeaderLabel" to paymentSheetHeaderLabel,
                 "savedPaymentSheetHeaderLabel" to savedPaymentSheetHeaderLabel,
+                "netceteraSDKApiKey" to netceteraSDKApiKey,
                 "allowsPaymentMethodsRequiringShippingAddress" to allowsPaymentMethodsRequiringShippingAddress
             )
         }
