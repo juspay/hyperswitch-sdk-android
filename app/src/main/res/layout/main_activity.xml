@@ -7,6 +7,11 @@
     android:padding="20dp"
     tools:context=".MainActivity">
 
+        <FrameLayout
+            android:id="@+id/container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
         <Button
             android:id="@+id/reloadButton"
             android:layout_width="match_parent"
