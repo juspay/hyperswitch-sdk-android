@@ -3,13 +3,11 @@ package io.hyperswitch
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
+import androidx.fragment.app.Fragment
+import android.view.LayoutInflater
 import android.view.View
-import android.widget.TextView
-import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.FragmentManager
-import androidx.fragment.app.FragmentTransaction
-import com.github.kittinunf.fuel.Fuel.reset
+import android.view.ViewGroup
+import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.paymentsheet.AddressDetails
@@ -18,16 +16,33 @@ import io.hyperswitch.paymentsheet.PaymentSheetResult
 import org.json.JSONException
 import org.json.JSONObject
 
-
-class MainActivity : AppCompatActivity(), HyperInterface {
+class MainFragment : Fragment() {
 
     private var paymentIntentClientSecret: String = "clientSecret"
     private var publishKey: String = ""
 
-    lateinit var ctx: AppCompatActivity;
-
     private lateinit var paymentSheet: PaymentSheet
     private var configuration: PaymentSheet.Configuration? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        /**
+         *
+         * Initialise Payment Sheet
+         *
+         * */
+
+        paymentSheet = PaymentSheet(this, ::onPaymentSheetResult)
+        getCL()
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        return inflater.inflate(R.layout.fragment_main, container, false)
+    }
 
     private fun setCustomisations() {
         /**
@@ -45,7 +60,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             .postalCode("560060")
             .state("California")
             .build()
-        val billingDetails: PaymentSheet.BillingDetails? = PaymentSheet.BillingDetails.Builder()
+        val billingDetails: PaymentSheet.BillingDetails = PaymentSheet.BillingDetails.Builder()
             .address(address)
             .email("email.com")
             .name("John Doe")
@@ -63,10 +78,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             0
         )
         val primaryButton = PaymentSheet.PrimaryButton(
-//            primaryButtonColorsLight,
-//            primaryButtonColorsDark,
             shape = primaryButtonShape,
-//            null
         )
         val color1: PaymentSheet.Colors = PaymentSheet.Colors(
             primary = Color.parseColor("#8DBD00"),
@@ -76,23 +88,11 @@ class MainActivity : AppCompatActivity(), HyperInterface {
         val color2: PaymentSheet.Colors = PaymentSheet.Colors(
             primary = Color.parseColor("#8DBD00"),
             surface = Color.parseColor("#F5F8F9"),
-//            surface= Color.DKGRAY,
-//            component= Color.BLUE,
-//            componentBorder= Color.BLUE,
-//            componentDivider= Color.WHITE,
-//            onComponent= Color.WHITE,
-//            subtitle= Color.WHITE,
-//            onSurface= Color.WHITE,
-//            placeholderText= Color.GRAY,
-//            appBarIcon= Color.WHITE,
-//            error= Color.RED,
         )
 
         val appearance: PaymentSheet.Appearance = PaymentSheet.Appearance(
-//            shapes = shapes,
             typography = PaymentSheet.Typography(sizeScaleFactor = 1f, fontResId = R.font.montserrat),
             primaryButton = primaryButton,
-//            locale = "en",
             colorsLight = color1,
             colorsDark = color2
         )
@@ -121,19 +121,14 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             .allowsDelayedPaymentMethods(true)
             .displaySavedPaymentMethodsCheckbox(true)
             .displaySavedPaymentMethods(true)
-//            .placeHolder(placeHolder)
             .disableBranding(true)
             .netceteraSDKApiKey("YOUR_NETCETERA_API_KEY")
             .build()
     }
 
-
     private fun getCL() {
 
-        ctx.findViewById<View>(R.id.reloadButton).isEnabled = false;
-        ctx.findViewById<View>(R.id.launchButton).isEnabled = false;
-
-        reset().get("http://10.0.2.2:5252/create-payment-intent", null)
+        Fuel.reset().get("http://10.0.2.2:5252/create-payment-intent", null)
             .responseString(object : Handler<String?> {
                 override fun success(value: String?) {
                     try {
@@ -151,12 +146,10 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                              *
                              * */
 
-                            PaymentConfiguration.init(applicationContext, publishKey)
+                            PaymentConfiguration.init(requireContext(), publishKey)
 
-                            ctx.runOnUiThread {
-                                ctx.findViewById<View>(R.id.reloadButton).isEnabled = true
-                                ctx.findViewById<View>(R.id.launchButton).isEnabled = true
-                            }
+                            paymentSheet.presentWithPaymentIntent(paymentIntentClientSecret, configuration)
+
                         }
                     } catch (e: JSONException) {
                         Log.d("Backend Response", e.toString())
@@ -169,58 +162,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             })
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.main_activity)
-
-        ctx = this
-
-        /**
-         *
-         * Merchant API call to get Client Secret
-         *
-         * */
-        getCL()
-        findViewById<View>(R.id.reloadButton).setOnClickListener { getCL() }
-
-        /**
-         *
-         * Initialise Payment Sheet
-         *
-         * */
-
-        paymentSheet = PaymentSheet(this, ::onPaymentSheetResult)
-
-
-        /**
-         *
-         * Launch Payment Sheet
-         *
-         * */
-
-
-        findViewById<View>(R.id.launchButton).setOnClickListener {
-            if (paymentIntentClientSecret == "clientSecret") {
-                Toast.makeText(ctx, "Please wait ... \nFetching Client Secret ...", Toast.LENGTH_SHORT).show()
-            } else {
-                paymentSheet.presentWithPaymentIntent(paymentIntentClientSecret, configuration)
-            }
-        }
-
-
-//        val manager: FragmentManager = supportFragmentManager
-//        val transaction: FragmentTransaction = manager.beginTransaction()
-//        transaction.add(R.id.container, MainFragment(), "YOUR_FRAGMENT_STRING_TAG")
-//        transaction.addToBackStack(null)
-//        transaction.commit()
-
-    }
-
-    private fun setStatus(status: String, error: String) {
-        runOnUiThread {
-            findViewById<TextView>(R.id.resultText).text = error
-        }
-    }
+    private fun setStatus(status: String, error: String) {}
 
     private fun onPaymentSheetResult(paymentSheetResult: PaymentSheetResult) {
         when(paymentSheetResult) {

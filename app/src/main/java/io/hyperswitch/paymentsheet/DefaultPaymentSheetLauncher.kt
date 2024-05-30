@@ -28,6 +28,7 @@ internal class DefaultPaymentSheetLauncher(
 
     companion object {
         lateinit var context : AppCompatActivity
+        var fragment1: Fragment? = null
         lateinit var onPaymentSheetResult: PaymentSheetResultCallback
         @JvmStatic lateinit var googlePayCallback: Callback
 
@@ -82,7 +83,11 @@ internal class DefaultPaymentSheetLauncher(
             callback.onPaymentSheetResult(it)
         },
         fragment.requireActivity().application
-    )
+    ) {
+        fragment1 = fragment
+        context = fragment.requireActivity() as AppCompatActivity
+        onPaymentSheetResult = callback
+    }
 
     override fun presentWithPaymentIntent(
         paymentIntentClientSecret: String,
@@ -109,9 +114,11 @@ internal class DefaultPaymentSheetLauncher(
         configuration: PaymentSheet.Configuration?,
         sheetType: String?
     ) {
-        context.onBackPressedDispatcher.addCallback(context) {
-            isEnabled = Utils.onBackPressed()
-            if(!isEnabled) context.onBackPressedDispatcher.onBackPressed()
+        context.runOnUiThread {
+            context.onBackPressedDispatcher.addCallback(context) {
+                isEnabled = Utils.onBackPressed()
+                if (!isEnabled) context.onBackPressedDispatcher.onBackPressed()
+            }
         }
 
         configuration?.appearance?.typography?.let {
@@ -130,7 +137,7 @@ internal class DefaultPaymentSheetLauncher(
             "customParams" to PaymentConfiguration.cParams,
             "configuration" to configuration?.getMap()
         )
-        Utils.openReactView(context, map, sheetType ?: "payment", null)
+        Utils.openReactView(context, map, sheetType ?: "payment", fragment1?.id)
     }
 
     private fun presentWithParams(
