@@ -10,6 +10,7 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.facebook.react.bridge.Callback
+import com.facebook.react.views.text.ReactFontManager
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.payments.gpay.GooglePayActivity
 import io.hyperswitch.react.Utils
@@ -112,6 +113,13 @@ internal class DefaultPaymentSheetLauncher(
             isEnabled = Utils.onBackPressed()
             if(!isEnabled) context.onBackPressedDispatcher.onBackPressed()
         }
+
+        configuration?.appearance?.typography?.let {
+            it.fontResId?.let { fontResId ->
+                ReactFontManager.getInstance().addCustomFont(context, it.getMap()["fontResId"].toString(), fontResId)
+            }
+        }
+
         val map = mapOf(
             "publishableKey" to PaymentConfiguration.pkKey,
             "clientSecret" to clientSecret,

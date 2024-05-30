@@ -14,10 +14,13 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="tiramisu">
         <activity
+            android:name=".WidgetActivity"
+            android:exported="false" />
+        <activity
             android:name=".react.RedirectActivity"
             android:exported="true"
             android:launchMode="singleTask"
-            android:theme="@style/TransparentTheme">
+            android:theme="@style/HyperTransparentTheme">
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
 

@@ -1159,8 +1159,8 @@ class PaymentSheet internal constructor(
         fun resetCustomer(context: Context) {
 //            CookieStore(context).clear()
         }
-        fun getRGBAHex(color: Int?): String {
-            if(color == null) return ""
+        fun getRGBAHex(color: Int?): String? {
+            if(color == null) return null
             val s = String.format("#%08X", (color))
             return "#" + s.substring(3) + s.substring(1,3)
         }
