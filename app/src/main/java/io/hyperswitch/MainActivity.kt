@@ -40,7 +40,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             .line1("US")
             .line2("line2")
             .postalCode("560060")
-            .state("state")
+            .state("California")
             .build()
         val billingDetails: PaymentSheet.BillingDetails? = PaymentSheet.BillingDetails.Builder()
             .address(address)
@@ -128,6 +128,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             .displaySavedPaymentMethods(true)
             .placeHolder(placeHolder)
             .disableBranding(true)
+            .netceteraSDKApiKey("YOUR_NETCETERA_API_KEY")
             .build()
     }
 
