@@ -17,7 +17,7 @@ buildscript {
         google()
         mavenCentral()
         maven {
-            url "https://maven.hyperswitch.io/release/production/android/maven/1.1.5"
+            url "https://maven.hyperswitch.io/release/production/android/maven/1.1.6"
         }
     }
     dependencies {
@@ -42,7 +42,7 @@ rootProject.allprojects {
             url "https://jitpack.io"
         }
         maven {
-            url "https://maven.hyperswitch.io/release/production/android/maven/1.1.5"
+            url "https://maven.hyperswitch.io/release/production/android/maven/1.1.6"
         }
         maven {
             url 'https://x.klarnacdn.net/mobile-sdk/'

@@ -2,18 +2,18 @@ package io.hyperswitch.paymentsheet
 
 import android.app.Application
 import android.content.Intent
-import android.os.Build
-import android.os.Bundle
+import android.os.Parcelable
 import androidx.activity.addCallback
 import androidx.activity.result.ActivityResultLauncher
-import androidx.annotation.RequiresApi
-import androidx.appcompat.app.AppCompatActivity
+import androidx.annotation.FontRes
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import com.facebook.react.bridge.Callback
 import com.facebook.react.views.text.ReactFontManager
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.payments.gpay.GooglePayActivity
 import io.hyperswitch.react.Utils
+import kotlinx.parcelize.Parcelize
 import org.json.JSONObject
 
 
@@ -27,8 +27,7 @@ internal class DefaultPaymentSheetLauncher(
 ) : PaymentSheetLauncher {
 
     companion object {
-        lateinit var context : AppCompatActivity
-        var fragment1: Fragment? = null
+        lateinit var context : FragmentActivity
         lateinit var onPaymentSheetResult: PaymentSheetResultCallback
         @JvmStatic lateinit var googlePayCallback: Callback
 
@@ -46,7 +45,6 @@ internal class DefaultPaymentSheetLauncher(
             }
         }
 
-        @RequiresApi(Build.VERSION_CODES.N)
         fun gPayWalletCall(gPayRequest: String, callback: Callback) {
             googlePayCallback = callback
             val myIntent = Intent(
@@ -56,10 +54,16 @@ internal class DefaultPaymentSheetLauncher(
             myIntent.putExtra("gPayRequest", gPayRequest)
             context.startActivity(myIntent)
         }
+
+        fun getRGBAHex(color: Int?): String? {
+            if(color == null) return null
+            val s = String.format("#%08X", (color))
+            return "#" + s.substring(3) + s.substring(1,3)
+        }
     }
 
     constructor(
-        activity: AppCompatActivity,
+        activity: FragmentActivity,
         callback: PaymentSheetResultCallback
     ) : this(
         activity.registerForActivityResult(
@@ -84,9 +88,30 @@ internal class DefaultPaymentSheetLauncher(
         },
         fragment.requireActivity().application
     ) {
-        fragment1 = fragment
-        context = fragment.requireActivity() as AppCompatActivity
+        context = fragment.requireActivity()
         onPaymentSheetResult = callback
+    }
+
+    @Parcelize
+    data class Typography(
+        /**
+         * The scale factor for all fonts in PaymentSheet, the default value is 1.0.
+         * When this value increases fonts will increase in size and decrease when this value is lowered.
+         */
+        val sizeScaleFactor: Float?=null,
+
+        /**
+         * The font used in text. This should be a resource ID value.
+         */
+        @FontRes
+        val fontResId: Int?=null
+    ) : Parcelable {
+        fun getMap(): Map<String, Any?> {
+            return mapOf(
+                "sizeScaleFactor" to sizeScaleFactor,
+                "fontResId" to fontResId?.let { context.resources.getResourceName(it).toString().split("/")[1] }
+            )
+        }
     }
 
     override fun presentWithPaymentIntent(
@@ -137,7 +162,7 @@ internal class DefaultPaymentSheetLauncher(
             "customParams" to PaymentConfiguration.cParams,
             "configuration" to configuration?.getMap()
         )
-        Utils.openReactView(context, map, sheetType ?: "payment", fragment1?.id)
+        Utils.openReactView(context, map, sheetType ?: "payment", null)
     }
 
     private fun presentWithParams(
