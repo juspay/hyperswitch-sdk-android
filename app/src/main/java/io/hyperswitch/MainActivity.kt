@@ -113,18 +113,21 @@ class MainActivity : AppCompatActivity(), HyperInterface {
 
                             paymentSession.initPaymentSession(paymentIntentClientSecret)
 
-                            paymentSession.getCustomerSavedPaymentMethods { handler ->
-                                when (val data = handler.getCustomerSavedPaymentMethodData()[0]) {
-                                    is PaymentMethod.Card -> handler.confirmWithCustomerPaymentToken(data.paymentToken) {
-                                        print(data)
-                                        println(it)
-                                    }
-                                    is PaymentMethod.Wallet -> handler.confirmWithCustomerPaymentToken(data.paymentToken) {
-                                        println(it)
-                                    }
-                                    is PaymentMethod.Error -> {}
-                                }
-                            }
+//                            paymentSession.getCustomerSavedPaymentMethods { handler ->
+//                                when (val data = handler.getCustomerLastUsedPaymentMethodData()) {
+//                                    is PaymentMethod.Card -> handler.confirmWithCustomerLastUsedPaymentMethod {
+//                                        println(">>>>>>>>>>>>>>>>>")
+//                                        println(data)
+//                                        println(it)
+//                                    }
+//                                    is PaymentMethod.Wallet -> handler.confirmWithCustomerLastUsedPaymentMethod {
+//                                        println(">>>>>>>>>>>>>>>>>")
+//                                        println(data)
+//                                        println(it)
+//                                    }
+//                                    is PaymentMethod.Error -> {}
+//                                }
+//                            }
 
                             ctx.runOnUiThread {
                                 ctx.findViewById<View>(R.id.reloadButton).isEnabled = true
@@ -172,7 +175,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
          * */
 
         findViewById<View>(R.id.launchButton).setOnClickListener {
-            paymentSession.presentPaymentSheet(::onPaymentSheetResult)
+            paymentSession.presentPaymentSheet(getCustomisations(), ::onPaymentSheetResult)
         }
 
     }

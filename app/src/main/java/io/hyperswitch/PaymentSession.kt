@@ -20,7 +20,6 @@ import io.hyperswitch.paymentsheet.PaymentSheetResult
 import io.hyperswitch.react.Utils
 
 class PaymentSession {
-    private var configuration: PaymentSheet.Configuration? = null
     private var paymentSheet: PaymentSheet? = null
     private var sheetCompletion: ((PaymentSheetResult) -> Unit)? = null
     private var reactInstanceManager: ReactInstanceManager? = null
@@ -104,13 +103,16 @@ class PaymentSession {
     }
 
     fun initPaymentSession(
-        paymentIntentClientSecret: String, configuration: PaymentSheet.Configuration? = null
+        paymentIntentClientSecret: String
     ) {
         Companion.paymentIntentClientSecret = paymentIntentClientSecret
-        this.configuration = configuration
     }
 
     fun presentPaymentSheet(resultCallback: (PaymentSheetResult) -> Unit) {
+        presentPaymentSheet(null, resultCallback)
+    }
+
+    fun presentPaymentSheet(configuration: PaymentSheet.Configuration? = null, resultCallback: (PaymentSheetResult) -> Unit) {
         try {
             activity as FragmentActivity
             sheetCompletion = resultCallback
@@ -137,7 +139,7 @@ class PaymentSession {
             val reactContext = reactInstanceManager!!.currentReactContext
 
             activity.runOnUiThread {
-                if (reactContext == null) {
+                if (reactContext == null || !reactContext.hasCatalystInstance()) {
                     reactInstanceManager!!.createReactContextInBackground()
                 } else {
                     reactInstanceManager!!.recreateReactContextInBackground()
@@ -156,9 +158,15 @@ class PaymentSession {
 
         fun getPaymentSession(
             getPaymentMethodData: ReadableMap,
+            getPaymentMethodData2: ReadableMap,
             getPaymentMethodDataArray: ReadableArray,
             callback: Callback
         ) {
+
+            println(">>>>>>>>>>>>>>>>>")
+            println(getPaymentMethodData)
+            println(getPaymentMethodData2)
+
 
             val handler = object : PaymentSessionHandler {
                 override fun getCustomerDefaultSavedPaymentMethodData(): PaymentMethod {
@@ -166,7 +174,9 @@ class PaymentSession {
                 }
 
                 override fun getCustomerLastUsedPaymentMethodData(): PaymentMethod {
-                    return parseGetPaymentMethodData(getPaymentMethodData)
+                    println(">>>>>>>>>>>>>>>>>111")
+
+                    return parseGetPaymentMethodData(getPaymentMethodData2)
                 }
 
                 override fun getCustomerSavedPaymentMethodData(): Array<PaymentMethod> {
@@ -180,33 +190,15 @@ class PaymentSession {
                 override fun confirmWithCustomerDefaultPaymentMethod(
                     cvc: String?, resultHandler: (PaymentResult) -> Unit
                 ) {
-                    try {
-                        headlessCompletion = resultHandler
-                        val map = Arguments.createMap()
-                        map.putString("type", "default")
-                        map.putString("cvc", cvc)
-                        callback.invoke(map)
-                    } catch (ex: Exception) {
-                        val throwable = Throwable("Not Initialised")
-                        throwable.initCause(Throwable("Not Initialised"))
-                        resultHandler(PaymentResult.Failed(throwable))
-                    }
+                    getPaymentMethodData.getMap("_0")?.getString("payment_token")
+                        ?.let { confirmWithCustomerPaymentToken(it, cvc, resultHandler) }
                 }
 
                 override fun confirmWithCustomerLastUsedPaymentMethod(
                     cvc: String?, resultHandler: (PaymentResult) -> Unit
                 ) {
-                    try {
-                        headlessCompletion = resultHandler
-                        val map = Arguments.createMap()
-                        map.putString("type", "lastUsed")
-                        map.putString("cvc", cvc)
-                        callback.invoke(map)
-                    } catch (ex: Exception) {
-                        val throwable = Throwable("Not Initialised")
-                        throwable.initCause(Throwable("Not Initialised"))
-                        resultHandler(PaymentResult.Failed(throwable))
-                    }
+                    getPaymentMethodData2.getMap("_0")?.getString("payment_token")
+                        ?.let { confirmWithCustomerPaymentToken(it, cvc, resultHandler) }
                 }
 
                 override fun confirmWithCustomerPaymentToken(
@@ -215,7 +207,6 @@ class PaymentSession {
                     try {
                         headlessCompletion = resultHandler
                         val map = Arguments.createMap()
-                        map.putString("type", "token")
                         map.putString("paymentToken", paymentToken)
                         map.putString("cvc", cvc)
                         callback.invoke(map)
