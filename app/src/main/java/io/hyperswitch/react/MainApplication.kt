@@ -11,7 +11,7 @@ import com.facebook.soloader.SoLoader
 import com.microsoft.codepush.react.CodePush
 import io.hyperswitch.BuildConfig
 
-class MainApplication : Application(), ReactApplication {
+open class MainApplication : Application(), ReactApplication {
 
     // Initialize ReactNativeHost with DefaultReactNativeHost
     private val mReactNativeHost: ReactNativeHost =

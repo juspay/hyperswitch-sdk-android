@@ -1,12 +1,11 @@
 package io.hyperswitch.paymentsheet
 
-import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.FragmentActivity
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.react.Utils
 
 class DefaultFlowController(
-    var activity: AppCompatActivity,
+    var activity: FragmentActivity,
     override var shippingDetails: AddressDetails?,
     override var paymentIntentClientSecret: String,
     override var configuration: PaymentSheet.Configuration?

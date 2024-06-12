@@ -22,16 +22,15 @@ class GooglePayActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val intent = intent
         val gPayRequest = JSONObject(intent.getStringExtra("gPayRequest").toString())
-        var isGpayAvailable = false
         var isReadyToPayJson: JSONObject? = null
         var environment = "TEST" // Default Value is TEST in capitals
-        if (gPayRequest.has("isReadyToPayRequest") and gPayRequest.has("environment")) {
-            isReadyToPayJson = gPayRequest.getJSONObject("isReadyToPayRequest")
+        if (gPayRequest.has("paymentDataRequest") and gPayRequest.has("environment")) {
+            isReadyToPayJson = gPayRequest.getJSONObject("paymentDataRequest")
             environment = gPayRequest.getString("environment").uppercase()
         }
 
         if (isReadyToPayJson != null) {
-            isGpayAvailable = model.fetchCanUseGooglePay(isReadyToPayJson, environment)
+            model.fetchCanUseGooglePay(isReadyToPayJson, environment)
         }
 
         if (gPayRequest.has("paymentDataRequest")) {

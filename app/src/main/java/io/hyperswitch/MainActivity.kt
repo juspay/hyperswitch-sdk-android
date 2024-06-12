@@ -5,10 +5,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.FragmentManager
-import androidx.fragment.app.FragmentTransaction
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
@@ -21,15 +18,12 @@ import org.json.JSONObject
 
 class MainActivity : AppCompatActivity(), HyperInterface {
 
+    lateinit var ctx: AppCompatActivity;
     private var paymentIntentClientSecret: String = "clientSecret"
     private var publishKey: String = ""
+    private lateinit var paymentSession: PaymentSession
 
-    lateinit var ctx: AppCompatActivity;
-
-    private lateinit var paymentSheet: PaymentSheet
-    private var configuration: PaymentSheet.Configuration? = null
-
-    private fun setCustomisations() {
+    private fun getCustomisations(): PaymentSheet.Configuration {
         /**
          *
          * Customisations
@@ -45,28 +39,15 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             .postalCode("560060")
             .state("California")
             .build()
-        val billingDetails: PaymentSheet.BillingDetails? = PaymentSheet.BillingDetails.Builder()
+        val billingDetails: PaymentSheet.BillingDetails = PaymentSheet.BillingDetails.Builder()
             .address(address)
             .email("email.com")
             .name("John Doe")
             .phone("1234123443").build()
         val shippingDetails = AddressDetails("Shipping Inc.", address, "6205007614", true)
-        val shapes = PaymentSheet.Shapes(10f, 1f, null)
-        val primaryButtonColorsLight = PaymentSheet.PrimaryButtonColors(
-            Color.BLACK,
-            Color.WHITE,
-            0
-        )
-        val primaryButtonColorsDark = PaymentSheet.PrimaryButtonColors(
-            Color.WHITE,
-            Color.BLACK,
-            0
-        )
+
         val primaryButton = PaymentSheet.PrimaryButton(
-//            primaryButtonColorsLight,
-//            primaryButtonColorsDark,
             shape = primaryButtonShape,
-//            null
         )
         val color1: PaymentSheet.Colors = PaymentSheet.Colors(
             primary = Color.parseColor("#8DBD00"),
@@ -76,34 +57,16 @@ class MainActivity : AppCompatActivity(), HyperInterface {
         val color2: PaymentSheet.Colors = PaymentSheet.Colors(
             primary = Color.parseColor("#8DBD00"),
             surface = Color.parseColor("#F5F8F9"),
-//            surface= Color.DKGRAY,
-//            component= Color.BLUE,
-//            componentBorder= Color.BLUE,
-//            componentDivider= Color.WHITE,
-//            onComponent= Color.WHITE,
-//            subtitle= Color.WHITE,
-//            onSurface= Color.WHITE,
-//            placeholderText= Color.GRAY,
-//            appBarIcon= Color.WHITE,
-//            error= Color.RED,
         )
 
         val appearance: PaymentSheet.Appearance = PaymentSheet.Appearance(
-//            shapes = shapes,
             typography = PaymentSheet.Typography(sizeScaleFactor = 1f, fontResId = R.font.montserrat),
             primaryButton = primaryButton,
-//            locale = "en",
             colorsLight = color1,
             colorsDark = color2
         )
 
-        val placeHolder = PaymentSheet.PlaceHolder(
-            cardNumber = "**** **** **** 4242",
-            expiryDate = "12/25",
-            cvv = "***"
-        )
-
-        configuration = PaymentSheet.Configuration.Builder("Example, Inc.")
+        return PaymentSheet.Configuration.Builder("Example, Inc.")
             .appearance(appearance)
             .defaultBillingDetails(billingDetails)
             .googlePay(
@@ -121,9 +84,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             .allowsDelayedPaymentMethods(true)
             .displaySavedPaymentMethodsCheckbox(true)
             .displaySavedPaymentMethods(true)
-//            .placeHolder(placeHolder)
             .disableBranding(true)
-            .netceteraSDKApiKey("YOUR_NETCETERA_API_KEY")
             .build()
     }
 
@@ -143,7 +104,6 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                         if (result != null) {
                             paymentIntentClientSecret = result.getString("clientSecret")
                             publishKey =  result.getString("publishableKey")
-                            setCustomisations()
 
                             /**
                              *
@@ -151,7 +111,23 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                              *
                              * */
 
-                            PaymentConfiguration.init(applicationContext, publishKey)
+                            paymentSession.initPaymentSession(paymentIntentClientSecret)
+
+//                            paymentSession.getCustomerSavedPaymentMethods { handler ->
+//                                when (val data = handler.getCustomerLastUsedPaymentMethodData()) {
+//                                    is PaymentMethod.Card -> handler.confirmWithCustomerLastUsedPaymentMethod {
+//                                        println(">>>>>>>>>>>>>>>>>")
+//                                        println(data)
+//                                        println(it)
+//                                    }
+//                                    is PaymentMethod.Wallet -> handler.confirmWithCustomerLastUsedPaymentMethod {
+//                                        println(">>>>>>>>>>>>>>>>>")
+//                                        println(data)
+//                                        println(it)
+//                                    }
+//                                    is PaymentMethod.Error -> {}
+//                                }
+//                            }
 
                             ctx.runOnUiThread {
                                 ctx.findViewById<View>(R.id.reloadButton).isEnabled = true
@@ -177,20 +153,20 @@ class MainActivity : AppCompatActivity(), HyperInterface {
 
         /**
          *
-         * Merchant API call to get Client Secret
+         * Initialise Payment Session
          *
          * */
-        getCL()
-        findViewById<View>(R.id.reloadButton).setOnClickListener { getCL() }
+
+        paymentSession = PaymentSession(this, publishKey)
 
         /**
          *
-         * Initialise Payment Sheet
+         * Merchant API call to get Client Secret
          *
          * */
 
-        paymentSheet = PaymentSheet(this, ::onPaymentSheetResult)
-
+        getCL()
+        findViewById<View>(R.id.reloadButton).setOnClickListener { getCL() }
 
         /**
          *
@@ -198,25 +174,13 @@ class MainActivity : AppCompatActivity(), HyperInterface {
          *
          * */
 
-
         findViewById<View>(R.id.launchButton).setOnClickListener {
-            if (paymentIntentClientSecret == "clientSecret") {
-                Toast.makeText(ctx, "Please wait ... \nFetching Client Secret ...", Toast.LENGTH_SHORT).show()
-            } else {
-                paymentSheet.presentWithPaymentIntent(paymentIntentClientSecret, configuration)
-            }
+            paymentSession.presentPaymentSheet(getCustomisations(), ::onPaymentSheetResult)
         }
-
-
-//        val manager: FragmentManager = supportFragmentManager
-//        val transaction: FragmentTransaction = manager.beginTransaction()
-//        transaction.add(R.id.container, MainFragment(), "YOUR_FRAGMENT_STRING_TAG")
-//        transaction.addToBackStack(null)
-//        transaction.commit()
 
     }
 
-    private fun setStatus(status: String, error: String) {
+    private fun setStatus(error: String) {
         runOnUiThread {
             findViewById<TextView>(R.id.resultText).text = error
         }
@@ -225,13 +189,13 @@ class MainActivity : AppCompatActivity(), HyperInterface {
     private fun onPaymentSheetResult(paymentSheetResult: PaymentSheetResult) {
         when(paymentSheetResult) {
             is PaymentSheetResult.Canceled -> {
-                setStatus("Cancelled", paymentSheetResult.data)
+                setStatus(paymentSheetResult.data)
             }
             is PaymentSheetResult.Failed -> {
-                setStatus("Failed", paymentSheetResult.error.message ?: "")
+                setStatus(paymentSheetResult.error.message ?: "")
             }
             is PaymentSheetResult.Completed -> {
-                setStatus("Completed", paymentSheetResult.data)
+                setStatus(paymentSheetResult.data)
             }
         }
     }

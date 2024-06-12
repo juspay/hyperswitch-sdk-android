@@ -7,7 +7,7 @@ import android.os.Bundle
 import android.os.Parcelable
 import android.view.WindowManager
 import android.webkit.WebSettings
-import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.FragmentActivity
 import com.facebook.react.ReactFragment
 import io.hyperswitch.BuildConfig
 import java.util.Locale
@@ -18,11 +18,11 @@ class Utils {
     @JvmStatic var reactNativeFragmentSheet: ReactFragment? = null
     @JvmStatic var lastRequest: Bundle? = null
     @JvmStatic var flags: Int = 0
-    @JvmStatic var oldContext: AppCompatActivity? = null
+    @JvmStatic var oldContext: FragmentActivity? = null
 
     // Open React view method
     fun openReactView(
-      context: AppCompatActivity,
+      context: FragmentActivity,
       request: Map<String, Any?>,
       message: String,
       id: Int?
@@ -78,7 +78,7 @@ class Utils {
     }
 
     // Check if bundles are not equal
-    private fun areBundlesNotEqual(bundle1: Bundle?, bundle2: Bundle?, context: AppCompatActivity): Boolean {
+    private fun areBundlesNotEqual(bundle1: Bundle?, bundle2: Bundle?, context: FragmentActivity): Boolean {
       if (bundle1 == null || bundle2 == null || (oldContext !== null && oldContext !== context)) {
         return true
       }
@@ -112,7 +112,7 @@ class Utils {
     }
 
     // Get launch options for React Native fragment
-    private fun getLaunchOptions(request: Bundle, message: String, context: AppCompatActivity): Bundle {
+    private fun getLaunchOptions(request: Bundle, message: String, context: FragmentActivity): Bundle {
       request.putString("type", message)
 
       val hyperParams = request.getBundle("hyperParams") ?: Bundle()
@@ -121,6 +121,7 @@ class Utils {
       hyperParams.putString("user-agent", getUserAgent(context))
       hyperParams.putString("ip", getDeviceIPAddress(context))
       hyperParams.putDouble("launchTime", getCurrentTime())
+      hyperParams.putString("sdkVersion", BuildConfig.VERSION_NAME)
 
       request.putBundle("hyperParams", hyperParams)
 
@@ -130,7 +131,7 @@ class Utils {
     }
 
     // Hide React fragment
-    fun hideFragment(context: AppCompatActivity, reset: Boolean) {
+    fun hideFragment(context: FragmentActivity, reset: Boolean) {
       if (reactNativeFragmentSheet != null) {
         context.supportFragmentManager
           .beginTransaction()

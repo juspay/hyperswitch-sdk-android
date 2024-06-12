@@ -1,22 +1,22 @@
 package io.hyperswitch.paymentsheet
 
-import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 
 internal class FlowControllerFactory() {
 
-    lateinit var activity2: AppCompatActivity
-    lateinit var paymentOptionCallback2: PaymentOptionCallback
-    lateinit var paymentResultCallback2: PaymentSheetResultCallback
+    private lateinit var activity: FragmentActivity
+    private lateinit var paymentOptionCallback: PaymentOptionCallback
+    private lateinit var paymentResultCallback: PaymentSheetResultCallback
 
     constructor(
-        activity: AppCompatActivity,
+        activity: FragmentActivity,
         paymentOptionCallback: PaymentOptionCallback,
         paymentResultCallback: PaymentSheetResultCallback
     ) : this() {
-        activity2 = activity
-        paymentOptionCallback2 = paymentOptionCallback
-        paymentResultCallback2 = paymentResultCallback
+        this.activity = activity
+        this.paymentOptionCallback = paymentOptionCallback
+        this.paymentResultCallback = paymentResultCallback
     }
 
     constructor(
@@ -25,5 +25,5 @@ internal class FlowControllerFactory() {
         paymentResultCallback: PaymentSheetResultCallback
     ) : this()
 
-    fun create(): PaymentSheet.FlowController = DefaultFlowController(activity2, null,"",null)
+    fun create(): PaymentSheet.FlowController = DefaultFlowController(activity, null,"",null)
 }
