@@ -1,17 +1,15 @@
 package io.hyperswitch.paymentsheet
 
-import android.content.Context
 import android.content.res.ColorStateList
 import android.os.Parcelable
 import androidx.annotation.ColorInt
 import androidx.annotation.FontRes
-import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.fragment.app.Fragment
-import io.hyperswitch.paymentsheet.*
+import androidx.fragment.app.FragmentActivity
+import io.hyperswitch.paymentsheet.DefaultPaymentSheetLauncher.Companion.getRGBAHex
 import kotlinx.parcelize.Parcelize
-import java.util.*
 
 /**
  * A drop-in class that presents a bottom sheet to collect and process a customer's payment.
@@ -27,13 +25,11 @@ class PaymentSheet internal constructor(
      * @param callback  called with the result of the payment after the payment sheet is dismissed.
      */
     constructor(
-        activity: AppCompatActivity,
+        activity: FragmentActivity,
         callback: PaymentSheetResultCallback
     ) : this(
         DefaultPaymentSheetLauncher(activity, callback)
-    ) {
-        context = activity
-    }
+    )
 
     /**
      * Constructor to be used when launching the payment sheet from a Fragment.
@@ -634,7 +630,6 @@ class PaymentSheet internal constructor(
         }
     }
 
-
     @Parcelize
     data class Typography(
         /**
@@ -650,10 +645,7 @@ class PaymentSheet internal constructor(
         val fontResId: Int?=null
     ) : Parcelable {
         fun getMap(): Map<String, Any?> {
-            return mapOf(
-                "sizeScaleFactor" to sizeScaleFactor,
-                "fontResId" to fontResId?.let { context.resources.getResourceName(it).toString().split("/")[1] }
-            )
+            return DefaultPaymentSheetLauncher.Typography(sizeScaleFactor, fontResId).getMap()
         }
     }
 
@@ -1054,7 +1046,7 @@ class PaymentSheet internal constructor(
              */
             @JvmStatic
             fun create(
-                activity: AppCompatActivity,
+                activity: FragmentActivity,
                 paymentOptionCallback: PaymentOptionCallback,
                 paymentResultCallback: PaymentSheetResultCallback
             ): FlowController {
@@ -1084,29 +1076,6 @@ class PaymentSheet internal constructor(
 //                    paymentResultCallback
 //                ).create()
             }
-        }
-    }
-
-    companion object {
-
-        lateinit var context: AppCompatActivity
-
-        /**
-         * Deletes all persisted authentication state associated with a customer.
-         *
-         * You must call this method when the user logs out from your app.
-         * This will ensure that any persisted authentication state in PaymentSheet, such as
-         * authentication cookies, is also cleared during logout.
-         *
-         * @param context the Application [Context].
-         */
-        fun resetCustomer(context: Context) {
-//            CookieStore(context).clear()
-        }
-        fun getRGBAHex(color: Int?): String? {
-            if(color == null) return null
-            val s = String.format("#%08X", (color))
-            return "#" + s.substring(3) + s.substring(1,3)
         }
     }
 }

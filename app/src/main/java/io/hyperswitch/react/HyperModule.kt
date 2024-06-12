@@ -1,8 +1,10 @@
 package io.hyperswitch.react
 
-import android.os.Build
-import androidx.annotation.RequiresApi
-import com.facebook.react.bridge.*
+import com.facebook.react.bridge.Callback
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import io.hyperswitch.payments.expresscheckoutlauncher.ExpressCheckoutLauncher
 import io.hyperswitch.payments.paymentlauncher.PaymentLauncher
@@ -64,7 +66,7 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
 
     // Method to handle messages from React Native
     @ReactMethod
-    fun sendMessageToNative(rnMessage: String?) {
+    fun sendMessageToNative(rnMessage: String) {
         val jsonObject = JSONObject(rnMessage)
         if(jsonObject.getBoolean("isReady")) {
             reactContext = rct
@@ -77,7 +79,6 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     }
 
     // Method to launch Google Pay payment
-    @RequiresApi(Build.VERSION_CODES.N)
     @ReactMethod
     fun launchGPay(gPayRequest: String, callBack: Callback) {
         DefaultPaymentSheetLauncher.gPayWalletCall(gPayRequest, callBack)
