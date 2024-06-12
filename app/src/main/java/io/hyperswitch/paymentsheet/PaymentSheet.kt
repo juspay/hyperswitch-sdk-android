@@ -197,6 +197,7 @@ class PaymentSheet internal constructor(
         val themes: String? = null,
         val disableBranding: Boolean? = null,
         val defaultView: Boolean? = null,
+        val displayDefaultSavedPaymentIcon: Boolean? = null,
     ) : Parcelable {
         /**
          * [Configuration] builder for cleaner object creation from Java.
@@ -219,6 +220,7 @@ class PaymentSheet internal constructor(
             private var themes: String? = null
             private var disableBranding: Boolean? = null
             private var defaultView: Boolean? = null
+            private var displayDefaultSavedPaymentIcon: Boolean? = null
             private var paymentSheetHeaderLabel: String? = null
             private var savedPaymentSheetHeaderLabel: String? = null
             private var netceteraSDKApiKey: String? = null
@@ -280,6 +282,9 @@ class PaymentSheet internal constructor(
 
             fun defaultView(defaultView: Boolean) =
                 apply { this.defaultView = defaultView }
+
+            fun displayDefaultSavedPaymentIcon(displayDefaultSavedPaymentIcon: Boolean) =
+                apply { this.displayDefaultSavedPaymentIcon = displayDefaultSavedPaymentIcon }
 
             fun paymentSheetHeaderLabel(paymentSheetHeaderLabel: String) =
                 apply { this.paymentSheetHeaderLabel = paymentSheetHeaderLabel }
