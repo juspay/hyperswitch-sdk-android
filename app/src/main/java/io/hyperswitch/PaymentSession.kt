@@ -23,6 +23,7 @@ class PaymentSession {
     private var paymentSheet: PaymentSheet? = null
     private var sheetCompletion: ((PaymentSheetResult) -> Unit)? = null
     private var reactInstanceManager: ReactInstanceManager? = null
+    private var illegalState: IllegalStateException? = null
 
     constructor(
         activity: Activity,
@@ -85,20 +86,21 @@ class PaymentSession {
                 try {
                     paymentSheet =
                         PaymentSheet(activity as FragmentActivity, ::onPaymentSheetResult)
+                    illegalState = null
                 } catch (ex: ClassCastException) {
                     Log.w(
                         "Hyperswitch Warning",
                         "Please initialise PaymentSession in androidx activity.",
                     )
+                } catch (ex: IllegalStateException) {
+                    illegalState = ex
                 }
             } else {
                 PaymentSheet(fragment, ::onPaymentSheetResult)
             }
 
         } catch (ex: IllegalStateException) {
-            throw IllegalStateException(
-                "Please initialise PaymentSession in onCreate method of activity.", ex
-            )
+            ex.printStackTrace()
         }
     }
 
@@ -114,9 +116,15 @@ class PaymentSession {
 
     fun presentPaymentSheet(configuration: PaymentSheet.Configuration? = null, resultCallback: (PaymentSheetResult) -> Unit) {
         try {
-            activity as FragmentActivity
-            sheetCompletion = resultCallback
-            paymentSheet?.presentWithPaymentIntent(paymentIntentClientSecret ?: "", configuration)
+            if(illegalState == null) {
+                activity as FragmentActivity
+                sheetCompletion = resultCallback
+                paymentSheet?.presentWithPaymentIntent(paymentIntentClientSecret ?: "", configuration)
+            } else {
+                throw IllegalStateException(
+                    "Please initialise PaymentSession in onCreate method of activity."
+                )
+            }
         } catch (ex: ClassCastException) {
             throw ClassCastException(
                 "Please initialise PaymentSession in androidx activity."
@@ -162,20 +170,12 @@ class PaymentSession {
             getPaymentMethodDataArray: ReadableArray,
             callback: Callback
         ) {
-
-            println(">>>>>>>>>>>>>>>>>")
-            println(getPaymentMethodData)
-            println(getPaymentMethodData2)
-
-
             val handler = object : PaymentSessionHandler {
                 override fun getCustomerDefaultSavedPaymentMethodData(): PaymentMethod {
                     return parseGetPaymentMethodData(getPaymentMethodData)
                 }
 
                 override fun getCustomerLastUsedPaymentMethodData(): PaymentMethod {
-                    println(">>>>>>>>>>>>>>>>>111")
-
                     return parseGetPaymentMethodData(getPaymentMethodData2)
                 }
 
