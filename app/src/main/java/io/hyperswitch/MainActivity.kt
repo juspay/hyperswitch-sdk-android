@@ -113,21 +113,6 @@ class MainActivity : AppCompatActivity(), HyperInterface {
 
                             paymentSession.initPaymentSession(paymentIntentClientSecret)
 
-//                            paymentSession.getCustomerSavedPaymentMethods { handler ->
-//                                when (val data = handler.getCustomerLastUsedPaymentMethodData()) {
-//                                    is PaymentMethod.Card -> handler.confirmWithCustomerLastUsedPaymentMethod {
-//                                        println(">>>>>>>>>>>>>>>>>")
-//                                        println(data)
-//                                        println(it)
-//                                    }
-//                                    is PaymentMethod.Wallet -> handler.confirmWithCustomerLastUsedPaymentMethod {
-//                                        println(">>>>>>>>>>>>>>>>>")
-//                                        println(data)
-//                                        println(it)
-//                                    }
-//                                    is PaymentMethod.Error -> {}
-//                                }
-//                            }
 
                             ctx.runOnUiThread {
                                 ctx.findViewById<View>(R.id.reloadButton).isEnabled = true

@@ -146,6 +146,11 @@ android {
             pseudoLocalesEnabled false
             zipAlignEnabled true
         }
+        buildTypes.all { buildType ->
+            if (!['debug', 'release'].contains(buildType.name)) {
+                buildType.matchingFallbacks = ['debug', 'release']
+            }
+        }
     }
     // applicationVariants are e.g. debug, release
     applicationVariants.all { variant ->
