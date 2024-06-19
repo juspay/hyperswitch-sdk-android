@@ -1,11 +1,8 @@
 package io.hyperswitch.react
 
-import android.annotation.SuppressLint
 import com.facebook.react.bridge.*
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.PaymentSession
-import io.hyperswitch.PaymentSessionHandler
-import io.hyperswitch.payments.paymentlauncher.PaymentResult
 
 class HyperHeadlessModule internal constructor(rct: ReactApplicationContext) : ReactContextBaseJavaModule(rct) {
 
@@ -40,7 +37,7 @@ class HyperHeadlessModule internal constructor(rct: ReactApplicationContext) : R
 
     // Method to exit the headless mode
     @ReactMethod
-    fun exitHeadless(status: ReadableMap) {
+    fun exitHeadless(status: String) {
         // Call the exitHeadless method from PaymentSession singleton
         PaymentSession.exitHeadless(status)
     }

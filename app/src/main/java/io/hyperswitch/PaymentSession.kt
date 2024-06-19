@@ -18,6 +18,7 @@ import io.hyperswitch.payments.paymentlauncher.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
 import io.hyperswitch.react.Utils
+import org.json.JSONObject
 
 class PaymentSession {
     private var paymentSheet: PaymentSheet? = null
@@ -96,7 +97,7 @@ class PaymentSession {
                     illegalState = ex
                 }
             } else {
-                PaymentSheet(fragment, ::onPaymentSheetResult)
+                paymentSheet = PaymentSheet(fragment, ::onPaymentSheetResult)
             }
 
         } catch (ex: IllegalStateException) {
@@ -120,6 +121,24 @@ class PaymentSession {
                 activity as FragmentActivity
                 sheetCompletion = resultCallback
                 paymentSheet?.presentWithPaymentIntent(paymentIntentClientSecret ?: "", configuration)
+            } else {
+                throw IllegalStateException(
+                    "Please initialise PaymentSession in onCreate method of activity."
+                )
+            }
+        } catch (ex: ClassCastException) {
+            throw ClassCastException(
+                "Please initialise PaymentSession in androidx activity."
+            )
+        }
+    }
+
+    fun presentPaymentSheet(map: Map<String, Any?>, resultCallback: (PaymentSheetResult) -> Unit) {
+        try {
+            if(illegalState == null) {
+                activity as FragmentActivity
+                sheetCompletion = resultCallback
+                paymentSheet?.presentWithPaymentIntentAndParams(map)
             } else {
                 throw IllegalStateException(
                     "Please initialise PaymentSession in onCreate method of activity."
@@ -286,7 +305,8 @@ class PaymentSession {
 
 
         @SuppressLint("VisibleForTests")
-        fun exitHeadless(message: ReadableMap) {
+        fun exitHeadless(paymentResult: String) {
+            val message = JSONObject(paymentResult)
             when (val status = message.getString("status")) {
                 "cancelled" -> headlessCompletion?.let { it(PaymentResult.Canceled(status)) }
                 "failed", "requires_payment_method" -> {
