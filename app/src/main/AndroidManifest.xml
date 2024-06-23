@@ -43,7 +43,10 @@
             android:name=".payments.gpay.GooglePayActivity"
             android:exported="false"
             android:theme="@style/TransparentTheme" />
-
+        <activity
+            android:name=".react.HyperActivity"
+            android:exported="false"
+            android:theme="@style/TransparentTheme" />
         <meta-data
             android:name="com.google.android.gms.wallet.api.enabled"
             android:value="true" />

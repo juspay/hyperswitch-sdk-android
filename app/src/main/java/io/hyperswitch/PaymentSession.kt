@@ -2,6 +2,7 @@ package io.hyperswitch
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -17,12 +18,12 @@ import com.facebook.react.bridge.WritableMap
 import io.hyperswitch.payments.paymentlauncher.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
+import io.hyperswitch.react.HyperActivity
 import io.hyperswitch.react.Utils
 import org.json.JSONObject
 
 class PaymentSession {
     private var paymentSheet: PaymentSheet? = null
-    private var sheetCompletion: ((PaymentSheetResult) -> Unit)? = null
     private var reactInstanceManager: ReactInstanceManager? = null
     private var illegalState: IllegalStateException? = null
 
@@ -117,14 +118,13 @@ class PaymentSession {
 
     fun presentPaymentSheet(configuration: PaymentSheet.Configuration? = null, resultCallback: (PaymentSheetResult) -> Unit) {
         try {
+            sheetCompletion = resultCallback
+            Companion.configuration = configuration
             if(illegalState == null) {
                 activity as FragmentActivity
-                sheetCompletion = resultCallback
                 paymentSheet?.presentWithPaymentIntent(paymentIntentClientSecret ?: "", configuration)
             } else {
-                throw IllegalStateException(
-                    "Please initialise PaymentSession in onCreate method of activity."
-                )
+                activity.startActivity(Intent(activity.applicationContext, HyperActivity::class.java).putExtra("flow", 1))
             }
         } catch (ex: ClassCastException) {
             throw ClassCastException(
@@ -135,14 +135,13 @@ class PaymentSession {
 
     fun presentPaymentSheet(map: Map<String, Any?>, resultCallback: (PaymentSheetResult) -> Unit) {
         try {
+            sheetCompletion = resultCallback
+            configurationMap = map
             if(illegalState == null) {
                 activity as FragmentActivity
-                sheetCompletion = resultCallback
                 paymentSheet?.presentWithPaymentIntentAndParams(map)
             } else {
-                throw IllegalStateException(
-                    "Please initialise PaymentSession in onCreate method of activity."
-                )
+                activity.startActivity(Intent(activity.applicationContext, HyperActivity::class.java).putExtra("flow", 2))
             }
         } catch (ex: ClassCastException) {
             throw ClassCastException(
@@ -182,6 +181,9 @@ class PaymentSession {
         var paymentIntentClientSecret: String? = null
         var completion: ((PaymentSessionHandler) -> Unit)? = null
         var headlessCompletion: ((PaymentResult) -> Unit)? = null
+        var sheetCompletion: ((PaymentSheetResult) -> Unit)? = null
+        var configuration: PaymentSheet.Configuration? = null
+        var configurationMap: Map<String, Any?>? = null
 
         fun getPaymentSession(
             getPaymentMethodData: ReadableMap,
