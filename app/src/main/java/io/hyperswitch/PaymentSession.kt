@@ -5,7 +5,6 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import com.facebook.react.ReactApplication
@@ -16,6 +15,7 @@ import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.WritableMap
 import io.hyperswitch.payments.paymentlauncher.PaymentResult
+import io.hyperswitch.paymentsheet.DefaultPaymentSheetLauncher
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
 import io.hyperswitch.react.HyperActivity
@@ -25,7 +25,7 @@ import org.json.JSONObject
 class PaymentSession {
     private var paymentSheet: PaymentSheet? = null
     private var reactInstanceManager: ReactInstanceManager? = null
-    private var illegalState: IllegalStateException? = null
+    private var illegalState: Exception? = null
 
     constructor(
         activity: Activity,
@@ -84,21 +84,18 @@ class PaymentSession {
                 )
             }
 
-            if (fragment == null) {
-                try {
+            try {
+                if (fragment == null) {
+                    DefaultPaymentSheetLauncher.context = activity as FragmentActivity
                     paymentSheet =
-                        PaymentSheet(activity as FragmentActivity, ::onPaymentSheetResult)
+                        PaymentSheet(activity, ::onPaymentSheetResult)
                     illegalState = null
-                } catch (ex: ClassCastException) {
-                    Log.w(
-                        "Hyperswitch Warning",
-                        "Please initialise PaymentSession in androidx activity.",
-                    )
-                } catch (ex: IllegalStateException) {
-                    illegalState = ex
+                } else {
+                    paymentSheet = PaymentSheet(fragment, ::onPaymentSheetResult)
+                    illegalState = null
                 }
-            } else {
-                paymentSheet = PaymentSheet(fragment, ::onPaymentSheetResult)
+            } catch (ex: Exception) {
+                illegalState = ex
             }
 
         } catch (ex: IllegalStateException) {
@@ -116,36 +113,36 @@ class PaymentSession {
         presentPaymentSheet(null, resultCallback)
     }
 
-    fun presentPaymentSheet(configuration: PaymentSheet.Configuration? = null, resultCallback: (PaymentSheetResult) -> Unit) {
-        try {
-            sheetCompletion = resultCallback
-            Companion.configuration = configuration
-            if(illegalState == null) {
-                activity as FragmentActivity
-                paymentSheet?.presentWithPaymentIntent(paymentIntentClientSecret ?: "", configuration)
-            } else {
-                activity.startActivity(Intent(activity.applicationContext, HyperActivity::class.java).putExtra("flow", 1))
-            }
-        } catch (ex: ClassCastException) {
-            throw ClassCastException(
-                "Please initialise PaymentSession in androidx activity."
+    fun presentPaymentSheet(
+        configuration: PaymentSheet.Configuration? = null,
+        resultCallback: (PaymentSheetResult) -> Unit
+    ) {
+        sheetCompletion = resultCallback
+        Companion.configuration = configuration
+        if (illegalState == null) {
+            paymentSheet?.presentWithPaymentIntent(paymentIntentClientSecret ?: "", configuration)
+        } else {
+            activity.startActivity(
+                Intent(
+                    activity.applicationContext,
+                    HyperActivity::class.java
+                ).putExtra("flow", 1)
             )
         }
     }
 
     fun presentPaymentSheet(map: Map<String, Any?>, resultCallback: (PaymentSheetResult) -> Unit) {
-        try {
-            sheetCompletion = resultCallback
-            configurationMap = map
-            if(illegalState == null) {
-                activity as FragmentActivity
-                paymentSheet?.presentWithPaymentIntentAndParams(map)
-            } else {
-                activity.startActivity(Intent(activity.applicationContext, HyperActivity::class.java).putExtra("flow", 2))
-            }
-        } catch (ex: ClassCastException) {
-            throw ClassCastException(
-                "Please initialise PaymentSession in androidx activity."
+        sheetCompletion = resultCallback
+        configurationMap = map
+        if (illegalState == null) {
+            activity as FragmentActivity
+            paymentSheet?.presentWithPaymentIntentAndParams(map)
+        } else {
+            activity.startActivity(
+                Intent(
+                    activity.applicationContext,
+                    HyperActivity::class.java
+                ).putExtra("flow", 2)
             )
         }
     }
