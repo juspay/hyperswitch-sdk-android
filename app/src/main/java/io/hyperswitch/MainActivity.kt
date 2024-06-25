@@ -107,7 +107,15 @@ class MainActivity : AppCompatActivity(), HyperInterface {
 
                             /**
                              *
-                             * Initialise Payment Configuration
+                             * Create Payment Session Object
+                             *
+                             * */
+
+                            paymentSession = PaymentSession(ctx, publishKey)
+
+                            /**
+                             *
+                             * Initialise Payment Session
                              *
                              * */
 
@@ -135,14 +143,6 @@ class MainActivity : AppCompatActivity(), HyperInterface {
         setContentView(R.layout.main_activity)
 
         ctx = this
-
-        /**
-         *
-         * Initialise Payment Session
-         *
-         * */
-
-        paymentSession = PaymentSession(this, publishKey)
 
         /**
          *
