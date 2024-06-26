@@ -190,6 +190,7 @@ class PaymentSheet internal constructor(
         val primaryButtonLabel: String? = null,
         val paymentSheetHeaderLabel: String? = null,
         val savedPaymentSheetHeaderLabel: String? = null,
+        val displayDefaultSavedPaymentIcon: Boolean? = null,
         /**
          * Api key used to invoke netcetera sdk for redirection-less 3DS authentication.
          */
@@ -197,7 +198,6 @@ class PaymentSheet internal constructor(
         val themes: String? = null,
         val disableBranding: Boolean? = null,
         val defaultView: Boolean? = null,
-        val displayDefaultSavedPaymentIcon: Boolean? = null,
     ) : Parcelable {
         /**
          * [Configuration] builder for cleaner object creation from Java.
@@ -311,6 +311,7 @@ class PaymentSheet internal constructor(
                 primaryButtonLabel,
                 paymentSheetHeaderLabel,
                 savedPaymentSheetHeaderLabel,
+                displayDefaultSavedPaymentIcon,
                 netceteraSDKApiKey,
             )
         }
@@ -331,7 +332,8 @@ class PaymentSheet internal constructor(
                 "paymentSheetHeaderLabel" to paymentSheetHeaderLabel,
                 "savedPaymentSheetHeaderLabel" to savedPaymentSheetHeaderLabel,
                 "netceteraSDKApiKey" to netceteraSDKApiKey,
-                "allowsPaymentMethodsRequiringShippingAddress" to allowsPaymentMethodsRequiringShippingAddress
+                "allowsPaymentMethodsRequiringShippingAddress" to allowsPaymentMethodsRequiringShippingAddress,
+                "displayDefaultSavedPaymentIcon" to displayDefaultSavedPaymentIcon
             )
         }
     }
