@@ -91,7 +91,7 @@ subprojects {
             if (!runtimeDepsExcluded.contains(project.name)) {
                 "$project.name"(MavenPublication) {
                     groupId project.group
-                    artifactId(project.name == 'app' ? 'hyperswitch-android' : project.name)
+                    artifactId(project.name == 'app' ? 'hyperswitch-sdk-android' : project.name)
                     version(project.name == 'app' ? project.version : '0.0.1')
                     artifact "$buildDir/outputs/aar/$project.name-release.aar"
                     pom.withXml {
