@@ -6,4 +6,27 @@
   <artifactId>camera-core-release</artifactId>
   <version>1.0.0</version>
   <packaging>aar</packaging>
+  <name>Hyperswitch SDK for Android</name>
+  <description>This is the Hyperswitch SDK for Android, providing seamless integration with the Hyperswitch platform.</description>
+  <url>http://www.hyperswitch.io</url>
+  <licenses>
+      <license>
+          <name>The Apache License, Version 2.0</name>
+          <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+          <distribution>repo</distribution>
+      </license>
+  </licenses>
+  <scm>
+      <url>https://github.com/hyperswitch/hyperswitch-sdk-android</url>
+      <connection>scm:git:git://github.com/juspay/hyperswitch-sdk-android.git</connection>
+      <developerConnection>scm:git:ssh://git@github.com:juspay/hyperswitch-sdk-android.git</developerConnection>
+      <tag>HEAD</tag>
+  </scm>
+  <developers>
+      <developer>
+          <id>sh-iv-am</id>
+          <name>Shivam</name>
+          <email>shivam.shashank@juspay.in</email>
+      </developer>
+  </developers>
 </project>
