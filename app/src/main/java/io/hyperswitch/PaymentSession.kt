@@ -176,7 +176,7 @@ class PaymentSession {
 
     companion object {
         @SuppressLint("StaticFieldLeak")
-        private lateinit var activity: Activity
+        lateinit var activity: Activity
 
         var paymentIntentClientSecret: String? = null
         var completion: ((PaymentSessionHandler) -> Unit)? = null
