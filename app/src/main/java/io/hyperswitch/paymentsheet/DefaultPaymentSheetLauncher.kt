@@ -11,6 +11,7 @@ import androidx.fragment.app.FragmentActivity
 import com.facebook.react.bridge.Callback
 import com.facebook.react.views.text.ReactFontManager
 import io.hyperswitch.PaymentConfiguration
+import io.hyperswitch.PaymentSession
 import io.hyperswitch.payments.gpay.GooglePayActivity
 import io.hyperswitch.react.Utils
 import kotlinx.parcelize.Parcelize
@@ -47,12 +48,19 @@ internal class DefaultPaymentSheetLauncher(
 
         fun gPayWalletCall(gPayRequest: String, callback: Callback) {
             googlePayCallback = callback
+
+            val appContext = if (this::context.isInitialized) {
+                context
+            } else {
+                PaymentSession.activity.applicationContext
+            }
+
             val myIntent = Intent(
-                context,
+                appContext,
                 GooglePayActivity::class.java
             )
             myIntent.putExtra("gPayRequest", gPayRequest)
-            context.startActivity(myIntent)
+            appContext.startActivity(myIntent)
         }
 
         fun getRGBAHex(color: Int?): String? {
