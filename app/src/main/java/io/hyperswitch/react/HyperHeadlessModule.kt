@@ -3,6 +3,7 @@ package io.hyperswitch.react
 import com.facebook.react.bridge.*
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.PaymentSession
+import io.hyperswitch.PaymentSession.Companion.isPresented
 
 class HyperHeadlessModule internal constructor(rct: ReactApplicationContext) : ReactContextBaseJavaModule(rct) {
 
@@ -14,7 +15,7 @@ class HyperHeadlessModule internal constructor(rct: ReactApplicationContext) : R
     @ReactMethod
     fun initialisePaymentSession(callback: Callback) {
         // Check if a payment session is already initialised
-        if (PaymentSession.completion != null) {
+        if (PaymentSession.completion != null || !isPresented) {
             // Create a map to store payment session details
             val map = Arguments.createMap()
             // Add publishable key to the map

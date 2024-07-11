@@ -117,6 +117,7 @@ class PaymentSession {
         configuration: PaymentSheet.Configuration? = null,
         resultCallback: (PaymentSheetResult) -> Unit
     ) {
+        isPresented = true
         sheetCompletion = resultCallback
         Companion.configuration = configuration
         if (illegalState == null) {
@@ -132,6 +133,7 @@ class PaymentSession {
     }
 
     fun presentPaymentSheet(map: Map<String, Any?>, resultCallback: (PaymentSheetResult) -> Unit) {
+        isPresented = true
         sheetCompletion = resultCallback
         configurationMap = map
         if (illegalState == null) {
@@ -155,6 +157,7 @@ class PaymentSession {
     fun getCustomerSavedPaymentMethods(
         func: ((PaymentSessionHandler) -> Unit),
     ) {
+        isPresented = false
         completion = func
         if (reactInstanceManager == null) {
             throw Exception("Payment Session Initialisation Failed")
@@ -181,6 +184,7 @@ class PaymentSession {
         var sheetCompletion: ((PaymentSheetResult) -> Unit)? = null
         var configuration: PaymentSheet.Configuration? = null
         var configurationMap: Map<String, Any?>? = null
+        var isPresented: Boolean = false
 
         fun getPaymentSession(
             getPaymentMethodData: ReadableMap,
