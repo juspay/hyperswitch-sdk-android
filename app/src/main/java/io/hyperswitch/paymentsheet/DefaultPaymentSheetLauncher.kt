@@ -60,6 +60,7 @@ internal class DefaultPaymentSheetLauncher(
                 GooglePayActivity::class.java
             )
             myIntent.putExtra("gPayRequest", gPayRequest)
+            myIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             appContext.startActivity(myIntent)
         }
 
