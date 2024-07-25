@@ -1,13 +1,12 @@
 package io.hyperswitch.react
 
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
-import io.hyperswitch.HyperInterface
+import com.facebook.react.ReactActivity
 import io.hyperswitch.PaymentSession
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
 
-class HyperActivity : AppCompatActivity(), HyperInterface {
+class HyperActivity : ReactActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,6 +22,10 @@ class HyperActivity : AppCompatActivity(), HyperInterface {
             )
         }
 
+    }
+
+    override fun invokeDefaultOnBackPressed() {
+        super.onBackPressed()
     }
 
     private fun onPaymentSheetResult(paymentSheetResult: PaymentSheetResult) {
