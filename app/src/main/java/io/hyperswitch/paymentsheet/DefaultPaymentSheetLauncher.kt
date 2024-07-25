@@ -150,7 +150,7 @@ internal class DefaultPaymentSheetLauncher(
     ) {
         context.runOnUiThread {
             context.onBackPressedDispatcher.addCallback(context) {
-                isEnabled = Utils.onBackPressed()
+                isEnabled = Utils.onBackPressed(context)
                 if (!isEnabled) context.onBackPressedDispatcher.onBackPressed()
             }
         }
@@ -179,7 +179,7 @@ internal class DefaultPaymentSheetLauncher(
         sheetType: String?
     ) {
         context.onBackPressedDispatcher.addCallback(context) {
-            isEnabled = Utils.onBackPressed()
+            isEnabled = Utils.onBackPressed(context)
             if(!isEnabled) context.onBackPressedDispatcher.onBackPressed()
         }
         Utils.openReactView(context, map, sheetType ?: "payment", null)

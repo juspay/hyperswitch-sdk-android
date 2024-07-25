@@ -53,7 +53,7 @@ class ExpressCheckoutLauncher() {
                 context.onBackPressedDispatcher.addCallback(
                     context
                 ) {
-                    isEnabled = Utils.onBackPressed()
+                    isEnabled = Utils.onBackPressed(context)
                     if (!isEnabled) context.onBackPressedDispatcher.onBackPressed()
                 }
                 val map = mapOf(

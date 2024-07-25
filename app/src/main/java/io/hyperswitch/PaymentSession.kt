@@ -6,7 +6,6 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentActivity
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactInstanceManager
 import com.facebook.react.bridge.Arguments
@@ -15,7 +14,6 @@ import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.WritableMap
 import io.hyperswitch.payments.paymentlauncher.PaymentResult
-import io.hyperswitch.paymentsheet.DefaultPaymentSheetLauncher
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
 import io.hyperswitch.react.HyperActivity
@@ -23,9 +21,7 @@ import io.hyperswitch.react.Utils
 import org.json.JSONObject
 
 class PaymentSession {
-    private var paymentSheet: PaymentSheet? = null
     private var reactInstanceManager: ReactInstanceManager? = null
-    private var illegalState: Exception? = null
 
     constructor(
         activity: Activity,
@@ -34,7 +30,7 @@ class PaymentSession {
         customParams: Bundle? = null,
         customLogUrl: String? = null
     ) {
-        init(activity, null, publishableKey, customBackendUrl, customParams, customLogUrl)
+        init(activity, publishableKey, customBackendUrl, customParams, customLogUrl)
     }
 
     constructor(
@@ -46,7 +42,6 @@ class PaymentSession {
     ) {
         init(
             fragment.requireActivity(),
-            fragment,
             publishableKey,
             customBackendUrl,
             customParams,
@@ -56,7 +51,6 @@ class PaymentSession {
 
     private fun init(
         activity: Activity,
-        fragment: Fragment?,
         publishableKey: String? = null,
         customBackendUrl: String? = null,
         customParams: Bundle? = null,
@@ -64,15 +58,6 @@ class PaymentSession {
     ) {
         try {
             Companion.activity = activity
-            try {
-                val application = activity.application as ReactApplication
-                reactInstanceManager = application.reactNativeHost.reactInstanceManager
-            } catch (ex: RuntimeException) {
-                throw RuntimeException(
-                    "Please remove \"android:name\" from application tag in AndroidManifest.xml", ex
-                )
-            }
-
             if (publishableKey != null) {
                 PaymentConfiguration.init(
                     activity.applicationContext,
@@ -83,21 +68,14 @@ class PaymentSession {
                     customLogUrl
                 )
             }
-
             try {
-                if (fragment == null) {
-                    DefaultPaymentSheetLauncher.context = activity as FragmentActivity
-                    paymentSheet =
-                        PaymentSheet(activity, ::onPaymentSheetResult)
-                    illegalState = null
-                } else {
-                    paymentSheet = PaymentSheet(fragment, ::onPaymentSheetResult)
-                    illegalState = null
-                }
-            } catch (ex: Exception) {
-                illegalState = ex
+                val application = activity.application as ReactApplication
+                reactInstanceManager = application.reactNativeHost.reactInstanceManager
+            } catch (ex: RuntimeException) {
+                throw RuntimeException(
+                    "Please remove \"android:name\" from application tag in AndroidManifest.xml", ex
+                )
             }
-
         } catch (ex: IllegalStateException) {
             ex.printStackTrace()
         }
@@ -120,33 +98,24 @@ class PaymentSession {
         isPresented = true
         sheetCompletion = resultCallback
         Companion.configuration = configuration
-        if (illegalState == null) {
-            paymentSheet?.presentWithPaymentIntent(paymentIntentClientSecret ?: "", configuration)
-        } else {
-            activity.startActivity(
-                Intent(
-                    activity.applicationContext,
-                    HyperActivity::class.java
-                ).putExtra("flow", 1)
-            )
-        }
+        activity.startActivity(
+            Intent(
+                activity.applicationContext,
+                HyperActivity::class.java
+            ).putExtra("flow", 1)
+        )
     }
 
     fun presentPaymentSheet(map: Map<String, Any?>, resultCallback: (PaymentSheetResult) -> Unit) {
         isPresented = true
         sheetCompletion = resultCallback
         configurationMap = map
-        if (illegalState == null) {
-            activity as FragmentActivity
-            paymentSheet?.presentWithPaymentIntentAndParams(map)
-        } else {
-            activity.startActivity(
-                Intent(
-                    activity.applicationContext,
-                    HyperActivity::class.java
-                ).putExtra("flow", 2)
-            )
-        }
+        activity.startActivity(
+            Intent(
+                activity.applicationContext,
+                HyperActivity::class.java
+            ).putExtra("flow", 2)
+        )
     }
 
     private fun onPaymentSheetResult(paymentSheetResult: PaymentSheetResult) {

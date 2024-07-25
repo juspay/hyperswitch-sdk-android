@@ -1,11 +1,9 @@
 package io.hyperswitch.react
 
 import android.content.Context
-import android.content.pm.ActivityInfo
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.os.Parcelable
-import android.view.WindowManager
 import android.webkit.WebSettings
 import androidx.fragment.app.FragmentActivity
 import com.facebook.react.ReactFragment
@@ -14,10 +12,7 @@ import java.util.Locale
 
 class Utils {
   companion object {
-    @JvmStatic lateinit var reactNativeFragmentCard: ReactFragment
-    @JvmStatic var reactNativeFragmentSheet: ReactFragment? = null
     @JvmStatic var lastRequest: Bundle? = null
-    @JvmStatic var flags: Int = 0
     @JvmStatic var oldContext: FragmentActivity? = null
 
     // Open React view method
@@ -33,47 +28,31 @@ class Utils {
         val transaction = context.supportFragmentManager.beginTransaction()
         val requestMap = convertMapToBundle(request)
 
-        // Lock screen orientation
-        context.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LOCKED
-
         // Check message type and set window flags accordingly
         if (arrayOf("card", "google_pay", "paypal", "expressCheckout").indexOf(message) < 0) {
-          flags = context.window.attributes.flags
-          if (message != "unifiedCheckout") {
-            context.window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-            context.window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
-          } else {
-            context.window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-            context.window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
-          }
+
+          val reactNativeFragmentSheet = context.supportFragmentManager.findFragmentByTag("paymentSheet")
 
           // Check if React Native fragment exists or if request has changed
           if (reactNativeFragmentSheet == null || areBundlesNotEqual(requestMap, lastRequest, context)) {
             lastRequest = requestMap
-            reactNativeFragmentSheet = HyperswitchFragment.Builder()
+            val newReactNativeFragmentSheet = ReactFragment.Builder()
               .setComponentName("hyperSwitch")
               .setLaunchOptions(getLaunchOptions(requestMap, message, context))
               .setFabricEnabled(BuildConfig.IS_NEW_ARCHITECTURE_ENABLED)
               .build()
-            transaction.replace(android.R.id.content, reactNativeFragmentSheet!!).commit()
+            transaction.replace(android.R.id.content, newReactNativeFragmentSheet, "paymentSheet").commitAllowingStateLoss()
           } else {
-            transaction.show(reactNativeFragmentSheet!!).commit()
+            transaction.show(reactNativeFragmentSheet).commitAllowingStateLoss()
           }
         } else {
-          flags = 0
-          reactNativeFragmentCard = HyperswitchFragment.Builder()
+          val reactNativeFragmentCard = ReactFragment.Builder()
             .setComponentName("hyperSwitch")
             .setLaunchOptions(getLaunchOptions(requestMap, message, context))
             .setFabricEnabled(BuildConfig.IS_NEW_ARCHITECTURE_ENABLED)
             .build()
-          transaction.add(id ?: android.R.id.content, reactNativeFragmentCard).commit()
+          transaction.add(id ?: android.R.id.content, reactNativeFragmentCard, "cardForm").commitAllowingStateLoss()
         }
-
-        // Unregister saved state provider
-        context.supportFragmentManager
-          .addFragmentOnAttachListener { _, _ ->
-            context.savedStateRegistry.unregisterSavedStateProvider("android:support:fragments")
-          }
       }
     }
 
@@ -132,31 +111,24 @@ class Utils {
 
     // Hide React fragment
     fun hideFragment(context: FragmentActivity, reset: Boolean) {
+      val reactNativeFragmentSheet = context.supportFragmentManager.findFragmentByTag("paymentSheet")
       if (reactNativeFragmentSheet != null) {
-        context.supportFragmentManager
-          .beginTransaction()
-          .hide(reactNativeFragmentSheet!!)
-          .commit()
-      }
-      context.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-      if (flags != 0) {
-        context.runOnUiThread {
-          context.window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-          context.window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
-          context.window.addFlags(flags)
-        }
-      }
-      if (reset) {
-        reactNativeFragmentSheet = null
+        try {
+          context.supportFragmentManager
+            .beginTransaction()
+            .hide(reactNativeFragmentSheet)
+            .commitAllowingStateLoss()
+        } catch(_: Exception) {}
       }
     }
 
     // Handle back press for React fragment
-    fun onBackPressed(): Boolean {
-      return if (reactNativeFragmentSheet == null || reactNativeFragmentSheet!!.isHidden) {
+    fun onBackPressed(context: FragmentActivity): Boolean {
+      val reactNativeFragmentSheet = context.supportFragmentManager.findFragmentByTag("paymentSheet") as? ReactFragment
+      return if (reactNativeFragmentSheet == null || reactNativeFragmentSheet.isHidden) {
         false
       } else {
-        reactNativeFragmentSheet!!.onBackPressed()
+        reactNativeFragmentSheet.onBackPressed()
         true
       }
     }
