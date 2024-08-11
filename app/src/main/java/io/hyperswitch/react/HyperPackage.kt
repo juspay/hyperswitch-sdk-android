@@ -7,10 +7,10 @@ import com.facebook.react.uimanager.ViewManager
 
 class HyperPackage : ReactPackage {
     override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
-        return emptyList()
+        return listOf(GooglePayButtonManager())
     }
 
     override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-        return listOf(HyperModule(reactContext))
+        return listOf(HyperModule(reactContext), HyperHeadlessModule(reactContext))
     }
 }
