@@ -23,7 +23,6 @@ open class MainApplication : Application(), ReactApplication {
                 val packages = PackageList(this).packages
                 // Add custom packages
                 packages.add(HyperPackage())
-                packages.add(HyperHeadlessPackage())
                 return packages
             }
 
