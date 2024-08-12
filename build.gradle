@@ -65,7 +65,6 @@ def runtimeDeps = [
         'react-native-inappbrowser-reborn',
         'react-native-pager-view',
         'react-native-safe-area-context',
-        'react-native-hyperswitch-scancard',
         'react-native-screens',
         'react-native-svg',
         'sentry_react-native',
@@ -78,6 +77,8 @@ def runtimeDepsOptional = [
         'react-native-hyperswitch-kount',
         'react-native-hyperswitch-paypal',
         'react-native-klarna-inapp-sdk',
+        'react-native-hyperswitch-scancard',
+        'react-native-hyperswitch-netcetera-3ds',
 ]
 
 subprojects {
