@@ -42,13 +42,13 @@
         <activity
             android:name=".payments.gpay.GooglePayActivity"
             android:exported="false"
-            android:theme="@style/TransparentTheme" />
+            android:theme="@style/HyperTransparentTheme" />
         <activity
             android:name=".react.HyperActivity"
             android:exported="false"
             android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|density|layoutDirection|colorMode"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/TransparentTheme" />
+            android:theme="@style/HyperTransparentTheme" />
         <meta-data
             android:name="com.google.android.gms.wallet.api.enabled"
             android:value="true" />
