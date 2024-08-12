@@ -35,8 +35,8 @@ class GooglePayButtonManager : SimpleViewManager<GooglePayButtonView>() {
         }
     }
 
-    @ReactProp(name = "theme")
-    fun theme(view: GooglePayButtonView, theme: String?) {
+    @ReactProp(name = "buttonStyle")
+    fun buttonStyle(view: GooglePayButtonView, theme: String?) {
         view.theme = when (theme) {
             "light" -> ButtonConstants.ButtonTheme.LIGHT
             else -> ButtonConstants.ButtonTheme.DARK
