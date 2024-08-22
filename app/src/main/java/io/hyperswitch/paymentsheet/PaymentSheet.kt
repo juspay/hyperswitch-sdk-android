@@ -195,7 +195,6 @@ class PaymentSheet internal constructor(
          * Api key used to invoke netcetera sdk for redirection-less 3DS authentication.
          */
         val netceteraSDKApiKey: String? = null,
-        val themes: String? = null,
         val disableBranding: Boolean? = null,
         val defaultView: Boolean? = null,
     ) : Parcelable {
@@ -217,7 +216,6 @@ class PaymentSheet internal constructor(
             private var allowsPaymentMethodsRequiringShippingAddress: Boolean = false
             private var appearance: Appearance? = null
             private var primaryButtonLabel: String? = null
-            private var themes: String? = null
             private var disableBranding: Boolean? = null
             private var defaultView: Boolean? = null
             private var displayDefaultSavedPaymentIcon: Boolean? = null
@@ -273,9 +271,6 @@ class PaymentSheet internal constructor(
 
             fun primaryButtonLabel(primaryButtonLabel: String) =
                 apply { this.primaryButtonLabel = primaryButtonLabel }
-
-            fun themes(themes: String) =
-                apply { this.themes = themes }
 
             fun disableBranding(disableBranding: Boolean) =
                 apply { this.disableBranding = disableBranding }
@@ -367,13 +362,13 @@ class PaymentSheet internal constructor(
 
         val locale: String?= null,
 
-        val themes: Themes?= null
+        val theme: Theme?= null
     ) : Parcelable {
         class Builder {
             private var colorsLight: Colors?= null
             private var colorsDark: Colors?= null
             private var shapes: Shapes?= null
-            private var themes: Themes?= null
+            private var theme: Theme?= null
             private var typography: Typography?= null
             private var locale: String?= null
             private var primaryButton: PrimaryButton?= null
@@ -381,7 +376,7 @@ class PaymentSheet internal constructor(
             fun colorsLight(colors: Colors) = apply { this.colorsLight = colors }
             fun colorsDark(colors: Colors) = apply { this.colorsDark = colors }
             fun shapes(shapes: Shapes) = apply { this.shapes = shapes }
-            fun themes(themes: Themes) = apply { this.themes = themes }
+            fun theme(theme: Theme) = apply { this.theme = theme }
             fun locale(locale: String) = apply { this.locale = locale }
             fun typography(typography: Typography) = apply { this.typography = typography }
             fun primaryButton(primaryButton: PrimaryButton) = apply { this.primaryButton = primaryButton }
@@ -393,16 +388,9 @@ class PaymentSheet internal constructor(
                 typography,
                 primaryButton,
                 locale,
-                themes,
+                theme,
             )
 
-        }
-
-        enum class Themes {
-            Light,
-            Dark,
-            FlatMinimal,
-            Minimal
         }
 
         fun getMap(): Map<String, Any?> {
@@ -410,13 +398,12 @@ class PaymentSheet internal constructor(
                 "colorsLight" to colorsLight?.getMap(),
                 "colorsDark" to colorsDark?.getMap(),
                 "shapes" to shapes?.getMap(),
-                "themes" to themes.toString(),
+                "theme" to theme.toString(),
                 "locale" to locale,
                 "typography" to typography?.getMap(),
                 "primaryButton" to primaryButton?.getMap()
             )
         }
-
     }
 
 
@@ -487,7 +474,19 @@ class PaymentSheet internal constructor(
          * A color used to indicate errors or destructive actions in PaymentSheet.
          */
         @ColorInt
-        val error: Int? = null
+        val error: Int? = null,
+
+        /**
+         * A color used to indicate Loader Background color in PaymentSheet.
+         */
+        @ColorInt
+        val loaderBackground: Int? = null,
+
+        /**
+         * A color used to indicate Loader Foreground color in PaymentSheet.
+         */
+        @ColorInt
+        val loaderForeground: Int? = null
     ) : Parcelable {
         constructor(
             primary: Color? = null,
@@ -500,7 +499,9 @@ class PaymentSheet internal constructor(
             placeholderText: Color? = null,
             onSurface: Color? = null,
             appBarIcon: Color? = null,
-            error: Color? = null
+            error: Color? = null,
+            loaderBackground: Color?,
+            loaderForeground: Color?,
         ) : this(
             primary = primary?.toArgb(),
             surface = surface?.toArgb(),
@@ -512,7 +513,9 @@ class PaymentSheet internal constructor(
             placeholderText = placeholderText?.toArgb(),
             onSurface = onSurface?.toArgb(),
             appBarIcon = appBarIcon?.toArgb(),
-            error = error?.toArgb()
+            error = error?.toArgb(),
+            loaderBackground = loaderBackground?.toArgb(),
+            loaderForeground = loaderForeground?.toArgb(),
         )
         class Builder() {
             @ColorInt var primary: Int?= null
@@ -526,6 +529,8 @@ class PaymentSheet internal constructor(
             @ColorInt var placeholderText: Int? = null
             @ColorInt var appBarIcon: Int? = null
             @ColorInt var error: Int? = null
+            @ColorInt var loaderBackground: Int? = null
+            @ColorInt var loaderForeground: Int? = null
 
             fun primary(primary: Int?) =
                 apply { this.primary = primary }
@@ -550,6 +555,12 @@ class PaymentSheet internal constructor(
             fun error(error: Int?) =
                 apply { this.error = error }
 
+            fun loaderBackground(loaderBackground: Int?) =
+                apply { this.loaderBackground = loaderBackground }
+
+            fun loaderForeground(loaderForeground: Int?) =
+                apply { this.loaderForeground = loaderForeground }
+
             fun build() = Colors(
                 primary,
                 surface,
@@ -562,6 +573,8 @@ class PaymentSheet internal constructor(
                 placeholderText,
                 appBarIcon,
                 error,
+                loaderBackground,
+                loaderForeground,
             )
         }
 
@@ -577,7 +590,9 @@ class PaymentSheet internal constructor(
             "placeholderText" to getRGBAHex(placeholderText),
             "onSurface" to getRGBAHex(onSurface),
             "appBarIcon" to getRGBAHex(appBarIcon),
-            "error" to getRGBAHex(error)
+            "error" to getRGBAHex(error),
+            "loaderBackground" to getRGBAHex(loaderBackground),
+            "loaderForeground" to getRGBAHex(loaderForeground),
             )
         }
 
@@ -1085,4 +1100,12 @@ class PaymentSheet internal constructor(
             }
         }
     }
+}
+
+enum class Theme {
+    Light,
+    Dark,
+    FlatMinimal,
+    Minimal,
+    Default,
 }

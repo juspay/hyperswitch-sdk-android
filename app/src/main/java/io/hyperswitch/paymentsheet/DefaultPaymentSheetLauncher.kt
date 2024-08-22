@@ -167,7 +167,7 @@ internal class DefaultPaymentSheetLauncher(
             "customBackendUrl" to PaymentConfiguration.cbUrl,
             "customLogUrl" to PaymentConfiguration.logUrl,
             "hyperParams" to mapOf("disableBranding" to configuration?.disableBranding, "defaultView" to configuration?.defaultView),
-            "themes" to configuration?.themes,
+            "theme" to configuration?.appearance?.theme,
             "customParams" to PaymentConfiguration.cParams,
             "configuration" to configuration?.getMap()
         )
