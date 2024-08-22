@@ -65,7 +65,7 @@ class ExpressCheckoutLauncher() {
                         "disableBranding" to config?.disableBranding,
                         "defaultView" to config?.defaultView
                     ),
-                    "themes" to config?.themes,
+                    "theme" to config?.appearance?.theme,
                     "customParams" to PaymentConfiguration.cParams,
                     "configuration" to config?.getMap()
                 )
