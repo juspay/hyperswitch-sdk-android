@@ -93,7 +93,7 @@ subprojects {
                 "$project.name"(MavenPublication) {
                     groupId project.group
                     artifactId(project.name == 'app' ? 'hyperswitch-sdk-android' : project.name)
-                    version(project.name == 'app' ? project.version : '0.0.1')
+                    version(project.name == 'app' ? project.version : '0.0.2')
                     artifact "$buildDir/outputs/aar/$project.name-release.aar"
                     pom.withXml {
                         def dependencies = asNode().appendNode('dependencies')
@@ -102,7 +102,7 @@ subprojects {
                                 def dependency = dependencies.appendNode('dependency')
                                 dependency.appendNode('groupId', it.moduleGroup)
                                 dependency.appendNode('artifactId', it.moduleName)
-                                dependency.appendNode('version', (runtimeDeps.contains(it.moduleName) ? '0.0.1' : it.moduleVersion))
+                                dependency.appendNode('version', (runtimeDeps.contains(it.moduleName) ? '0.0.2' : it.moduleVersion))
                             }
                         }
                     }
