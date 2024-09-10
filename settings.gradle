@@ -1,9 +1,12 @@
-rootProject.name = 'io.hyperswitch'
+pluginManagement {
+    includeBuild('../node_modules/@react-native/gradle-plugin')
+}
+plugins {
+    id("io.hyperswitch.settings") version "0.75.2"
+}
+extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
 
-//auto-linking after React native 0.60+
-apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle");
-applyNativeModulesSettingsGradle(settings)
-//End of auto-linking after React native 0.60+
+rootProject.name = 'io.hyperswitch'
 
 include ':app', ':react-native-code-push'
 includeBuild('../node_modules/@react-native/gradle-plugin')

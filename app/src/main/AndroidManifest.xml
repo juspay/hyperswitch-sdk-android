@@ -11,11 +11,9 @@
         android:enableOnBackInvokedCallback="true"
         android:extractNativeLibs="true"
         android:theme="@style/AppTheme"
+        android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         tools:targetApi="tiramisu">
-        <activity
-            android:name=".WidgetActivity"
-            android:exported="false" />
         <activity
             android:name=".react.RedirectActivity"
             android:exported="true"

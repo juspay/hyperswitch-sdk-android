@@ -1,14 +1,14 @@
 diff --git a/app/build.gradle b/app/build.gradle
-index c249250..cd880dc 100644
+index 66394e7..18fd9a4 100644
 --- a/app/build.gradle
 +++ b/app/build.gradle
 @@ -1,4 +1,4 @@
 -apply plugin: 'com.android.application'
 +apply plugin: 'com.android.library'
- apply plugin: 'kotlin-android'
+ apply plugin: "org.jetbrains.kotlin.android"
  apply plugin: 'kotlin-parcelize'
- apply plugin: 'com.facebook.react'
-@@ -66,7 +66,7 @@ def enableSeparateBuildPerCPUArchitecture = true
+ apply plugin: 'io.hyperswitch.react'
+@@ -67,7 +67,7 @@ def enableSeparateBuildPerCPUArchitecture = true
  /**
   * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
   */
@@ -17,7 +17,7 @@ index c249250..cd880dc 100644
  
  /**
   * The preferred build flavor of JavaScriptCore (JSC)
-@@ -99,7 +99,6 @@ android {
+@@ -100,7 +100,6 @@ android {
      namespace 'io.hyperswitch'
  
      defaultConfig {
@@ -25,7 +25,7 @@ index c249250..cd880dc 100644
          minSdkVersion rootProject.ext.minSdkVersion
          targetSdkVersion rootProject.ext.targetSdkVersion
          versionCode 1
-@@ -148,7 +147,7 @@ android {
+@@ -154,7 +153,7 @@ android {
          }
      }
      // applicationVariants are e.g. debug, release
@@ -34,7 +34,7 @@ index c249250..cd880dc 100644
          variant.outputs.each { output ->
              // For each separate APK per architecture, set a unique version code as described here:
              // https://developer.android.com/studio/build/configure-apk-splits.html
-@@ -180,14 +179,15 @@ dependencies {
+@@ -186,14 +185,16 @@ dependencies {
      implementation 'androidx.activity:activity-ktx:1.6.1'
      implementation 'org.greenrobot:eventbus:3.3.1'
  
@@ -45,38 +45,33 @@ index c249250..cd880dc 100644
 -
  }
  
- apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
- applyNativeModulesAppBuildGradle(project)
+ //apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
+ //applyNativeModulesAppBuildGradle(project)
  //apply from: "../../node_modules/react-native/react.gradle"
  //apply from: file("../../node_modules/react-native-code-push/android/codepush.gradle")
 +
 +def appProject = rootProject.allprojects.find { it.plugins.hasPlugin('com.android.application') }
 +try {
 +    appProject.android.buildTypes.debug.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
++    appProject.android.buildTypes.profile.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
 +    appProject.android.buildTypes.release.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
 +} catch (ignored) {}
 \ No newline at end of file
 diff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml
-index db7186e..3040185 100644
+index 9ada947..031940a 100644
 --- a/app/src/main/AndroidManifest.xml
 +++ b/app/src/main/AndroidManifest.xml
-@@ -7,14 +7,10 @@
- 
+@@ -9,8 +9,7 @@
      <application
          android:name=".react.MainApplication"
-+        tools:replace="android:name"
          android:enableOnBackInvokedCallback="true"
 -        android:extractNativeLibs="true"
 -        android:theme="@style/AppTheme"
++        tools:replace="android:name"
+         android:supportsRtl="true"
          android:usesCleartextTraffic="true"
          tools:targetApi="tiramisu">
--        <activity
--            android:name=".WidgetActivity"
--            android:exported="false" />
-         <activity
-             android:name=".react.RedirectActivity"
-             android:exported="true"
-@@ -29,15 +25,6 @@
+@@ -28,15 +27,6 @@
                  <data android:scheme="${applicationId}.hyperswitch" />
              </intent-filter>
          </activity>
