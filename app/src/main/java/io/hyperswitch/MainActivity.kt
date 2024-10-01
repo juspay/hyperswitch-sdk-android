@@ -23,6 +23,28 @@ class MainActivity : AppCompatActivity(), HyperInterface {
     private var publishKey: String = ""
     private lateinit var paymentSession: PaymentSession
 
+    private fun fetchData(url: String, onSuccess: (JSONObject) -> Unit, onFailure: () -> Unit = {}) {
+        reset().get(url, null).responseString(object : Handler<String?> {
+            override fun success(value: String?) {
+                try {
+                    Log.d("Backend Response", value.toString())
+
+                    val result = value?.let { JSONObject(it) }
+                    if (result != null) {
+                        onSuccess(result)
+                    }
+                } catch (e: JSONException) {
+                    Log.d("Backend Response", e.toString())
+                }
+            }
+
+            override fun failure(error: FuelError) {
+                Log.d("Backend Response", error.toString())
+                onFailure()
+            }
+        })
+    }
+
     private fun getCustomisations(): PaymentSheet.Configuration {
         /**
          *
@@ -88,54 +110,83 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             .build()
     }
 
-
     private fun getCL() {
 
         ctx.findViewById<View>(R.id.reloadButton).isEnabled = false;
         ctx.findViewById<View>(R.id.launchButton).isEnabled = false;
 
-        reset().get("http://10.0.2.2:5252/create-payment-intent", null)
-            .responseString(object : Handler<String?> {
-                override fun success(value: String?) {
-                    try {
-                        Log.d("Backend Response", value.toString())
+        fetchData("http://10.0.2.2:5252/create-payment-intent", onSuccess = { result ->
+            paymentIntentClientSecret = result.getString("clientSecret")
+            publishKey = result.getString("publishableKey")
 
-                        val result = value?.let { JSONObject(it) }
-                        if (result != null) {
-                            paymentIntentClientSecret = result.getString("clientSecret")
-                            publishKey =  result.getString("publishableKey")
+            /**
+             *
+             * Create Payment Session Object
+             *
+             * */
 
-                            /**
-                             *
-                             * Create Payment Session Object
-                             *
-                             * */
+            paymentSession = PaymentSession(ctx, publishKey)
 
-                            paymentSession = PaymentSession(ctx, publishKey)
+            /**
+             *
+             * Initialise Payment Session
+             *
+             * */
 
-                            /**
-                             *
-                             * Initialise Payment Session
-                             *
-                             * */
+            paymentSession.initPaymentSession(paymentIntentClientSecret)
 
-                            paymentSession.initPaymentSession(paymentIntentClientSecret)
+            ctx.runOnUiThread {
+                ctx.findViewById<View>(R.id.reloadButton).isEnabled = true
+                ctx.findViewById<View>(R.id.launchButton).isEnabled = true
+            }
+        })
 
+    }
 
-                            ctx.runOnUiThread {
-                                ctx.findViewById<View>(R.id.reloadButton).isEnabled = true
-                                ctx.findViewById<View>(R.id.launchButton).isEnabled = true
-                            }
-                        }
-                    } catch (e: JSONException) {
-                        Log.d("Backend Response", e.toString())
-                    }
-                }
+    private fun getEK() {
 
-                override fun failure(error: FuelError) {
-                    Log.d("Backend Response", error.toString())
-                }
-            })
+        ctx.findViewById<View>(R.id.pmmButton).isEnabled = false;
+
+        /**
+         *
+         * Fetch publishableKey
+         *
+         * */
+
+        fetchData("http://10.0.2.2:5252/create-payment-intent", onSuccess = { result ->
+            publishKey = result.getString("publishableKey")
+
+            /**
+             *
+             * Create Payment Session Object
+             *
+             * */
+
+            paymentSession = PaymentSession(ctx, publishKey)
+        })
+
+        /**
+         *
+         * Fetch ephemeralKey
+         *
+         * */
+
+        fetchData("http://10.0.2.2:5252/create-ephemeral-key", onSuccess = { result ->
+            val ephemeralKey = result.getString("ephemeralKey")
+
+            /**
+             *
+             * Initialise Payment Management Session
+             *
+             * */
+
+            paymentSession.initPaymentManagementSession(ephemeralKey)
+
+            ctx.runOnUiThread {
+                ctx.findViewById<View>(R.id.pmmButton).isEnabled = true
+            }
+        })
+
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -146,12 +197,16 @@ class MainActivity : AppCompatActivity(), HyperInterface {
 
         /**
          *
-         * Merchant API call to get Client Secret
+         * Merchant API call to get Client Secret & Ephemeral Key
          *
          * */
 
         getCL()
-        findViewById<View>(R.id.reloadButton).setOnClickListener { getCL() }
+        getEK()
+        findViewById<View>(R.id.reloadButton).setOnClickListener {
+            getCL()
+            getEK()
+        }
 
         /**
          *
@@ -163,6 +218,15 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             paymentSession.presentPaymentSheet(getCustomisations(), ::onPaymentSheetResult)
         }
 
+        /**
+         *
+         * Launch Payment Methods Management Sheet
+         *
+         * */
+
+        findViewById<View>(R.id.pmmButton).setOnClickListener {
+            paymentSession.presentPaymentMethodsManagementSheet()
+        }
     }
 
     private fun setStatus(error: String) {

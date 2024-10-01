@@ -87,6 +87,12 @@ class PaymentSession {
         Companion.paymentIntentClientSecret = paymentIntentClientSecret
     }
 
+    fun initPaymentManagementSession(
+        ephemeralKey: String
+    ) {
+        Companion.ephemeralKey = ephemeralKey
+    }
+
     fun presentPaymentSheet(resultCallback: (PaymentSheetResult) -> Unit) {
         presentPaymentSheet(null, resultCallback)
     }
@@ -115,6 +121,15 @@ class PaymentSession {
                 activity.applicationContext,
                 HyperActivity::class.java
             ).putExtra("flow", 2)
+        )
+    }
+
+    fun presentPaymentMethodsManagementSheet() {
+        activity.startActivity(
+            Intent(
+                activity.applicationContext,
+                HyperActivity::class.java
+            ).putExtra("flow", 3)
         )
     }
 
@@ -148,6 +163,7 @@ class PaymentSession {
         lateinit var activity: Activity
 
         var paymentIntentClientSecret: String? = null
+        var ephemeralKey: String? = null
         var completion: ((PaymentSessionHandler) -> Unit)? = null
         var headlessCompletion: ((PaymentResult) -> Unit)? = null
         var sheetCompletion: ((PaymentSheetResult) -> Unit)? = null
