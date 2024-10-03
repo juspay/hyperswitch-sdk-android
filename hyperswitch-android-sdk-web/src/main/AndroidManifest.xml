@@ -7,14 +7,13 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
     <application
-        android:name=".react.MainApplication"
         android:enableOnBackInvokedCallback="true"
         tools:replace="android:name"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         tools:targetApi="tiramisu">
         <activity
-            android:name=".react.RedirectActivity"
+            android:name=".hyperswitch_android_sdk_web.react.RedirectActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:theme="@style/HyperTransparentTheme">
@@ -28,14 +27,13 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".payments.gpay.GooglePayActivity"
+            android:name=".hyperswitch_android_sdk_web.payments.gpay.GooglePayActivity"
             android:exported="false"
             android:theme="@style/HyperTransparentTheme" />
         <activity
-            android:name=".react.HyperActivity"
+            android:name=".hyperswitch_android_sdk_web.react.HyperActivity"
             android:exported="false"
-            android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
-            android:launchMode="singleTask"
+            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|density|layoutDirection|colorMode"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/HyperTransparentTheme" />
         <meta-data
