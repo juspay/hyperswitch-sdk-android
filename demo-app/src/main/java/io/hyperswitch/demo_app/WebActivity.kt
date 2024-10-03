@@ -1,6 +1,5 @@
 package io.hyperswitch.demo_app
 
-import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
@@ -10,15 +9,15 @@ import androidx.appcompat.app.AppCompatActivity
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
-import io.hyperswitch.PaymentSession
-import io.hyperswitch.paymentsheet.AddressDetails
-import io.hyperswitch.paymentsheet.PaymentSheet
-import io.hyperswitch.paymentsheet.PaymentSheetResult
+import io.hyperswitch.lite.PaymentSession
+import io.hyperswitch.lite.paymentsheet.AddressDetails
+import io.hyperswitch.lite.paymentsheet.PaymentSheet
+import io.hyperswitch.lite.paymentsheet.PaymentSheetResult
 import org.json.JSONException
 import org.json.JSONObject
 
 
-class MainActivity : AppCompatActivity() {
+class WebActivity : AppCompatActivity() {
 
     lateinit var ctx: AppCompatActivity;
     private var paymentIntentClientSecret: String = "clientSecret"
@@ -94,7 +93,7 @@ class MainActivity : AppCompatActivity() {
     private fun getCL() {
 
         ctx.findViewById<View>(R.id.reloadButton).isEnabled = false;
-        ctx.findViewById<View>(R.id.launchButton).isEnabled = false;
+        ctx.findViewById<View>(R.id.launchWebButton).isEnabled = false;
 
         reset().get("http://10.0.2.2:5252/create-payment-intent", null)
             .responseString(object : Handler<String?> {
@@ -126,7 +125,7 @@ class MainActivity : AppCompatActivity() {
 
                             ctx.runOnUiThread {
                                 ctx.findViewById<View>(R.id.reloadButton).isEnabled = true
-                                ctx.findViewById<View>(R.id.launchButton).isEnabled = true
+                                ctx.findViewById<View>(R.id.launchWebButton).isEnabled = true
                             }
                         }
                     } catch (e: JSONException) {
@@ -161,12 +160,11 @@ class MainActivity : AppCompatActivity() {
          *
          * */
 
-        findViewById<View>(R.id.launchButton).setOnClickListener {
-            paymentSession.presentPaymentSheet(getCustomisations(), ::onPaymentSheetResult)
-        }
+        findViewById<View>(R.id.launchButton).visibility = View.GONE
+        findViewById<View>(R.id.launchWebButton).visibility = View.VISIBLE
 
         findViewById<View>(R.id.launchWebButton).setOnClickListener {
-            startActivity(Intent(applicationContext, WebActivity::class.java))
+            paymentSession.presentPaymentSheet(getCustomisations(), ::onPaymentSheetResult)
         }
 
     }

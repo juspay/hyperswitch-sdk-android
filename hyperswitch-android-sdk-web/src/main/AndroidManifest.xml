@@ -1,19 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="io.hyperswitch">
+    package="io.hyperswitch.lite">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
     <application
         android:enableOnBackInvokedCallback="true"
-        tools:replace="android:name"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         tools:targetApi="tiramisu">
         <activity
-            android:name=".hyperswitch_android_sdk_web.react.RedirectActivity"
+            android:name=".react.RedirectActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:theme="@style/HyperTransparentTheme">
@@ -27,11 +26,11 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".hyperswitch_android_sdk_web.payments.gpay.GooglePayActivity"
+            android:name=".payments.gpay.GooglePayActivity"
             android:exported="false"
             android:theme="@style/HyperTransparentTheme" />
         <activity
-            android:name=".hyperswitch_android_sdk_web.react.HyperActivity"
+            android:name=".react.HyperActivity"
             android:exported="false"
             android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|density|layoutDirection|colorMode"
             android:windowSoftInputMode="adjustResize"
