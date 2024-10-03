@@ -1,0 +1,93 @@
+apply plugin: "com.android.library"
+apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "kotlin-parcelize"
+
+/**
+ * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
+ */
+def enableProguardInReleaseBuilds = false
+
+android {
+    ndkVersion rootProject.ext.ndkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+    compileSdk rootProject.ext.compileSdkVersion
+
+    namespace 'io.hyperswitch.lite'
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName version
+        resConfigs "en"
+    }
+    signingConfigs {
+        release {
+            if (project.hasProperty('sign')) {
+                storeFile file(sign)
+                storePassword sign
+                keyAlias sign
+                keyPassword sign
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled enableProguardInReleaseBuilds
+            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            signingConfig signingConfigs.release
+
+            debuggable false
+            jniDebuggable false
+            renderscriptDebuggable false
+            pseudoLocalesEnabled false
+            zipAlignEnabled true
+        }
+        buildTypes.all { buildType ->
+            if (!['debug', 'release'].contains(buildType.name)) {
+                buildType.matchingFallbacks = ['debug', 'release']
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation("androidx.appcompat:appcompat")
+    implementation("androidx.activity:activity-ktx")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("com.google.android.material:material")
+    implementation("com.google.android.gms:play-services-wallet")
+    implementation("org.greenrobot:eventbus")
+
+    constraints {
+        implementation("androidx.appcompat:appcompat") {
+            version {
+                prefer '1.6.1'
+            }
+        }
+        implementation("androidx.activity:activity-ktx") {
+            version {
+                prefer '1.6.1'
+            }
+        }
+        implementation("androidx.compose.ui:ui-graphics") {
+            version {
+                prefer '1.4.3'
+            }
+        }
+        implementation("com.google.android.material:material") {
+            version {
+                prefer '1.9.0'
+            }
+        }
+        implementation("com.google.android.gms:play-services-wallet") {
+            version {
+                prefer '19.2.1'
+            }
+        }
+        implementation("org.greenrobot:eventbus") {
+            version {
+                prefer '3.3.1'
+            }
+        }
+    }
+}

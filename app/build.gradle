@@ -1,9 +1,7 @@
-apply plugin: 'com.android.application'
+apply plugin: "com.android.library"
 apply plugin: "org.jetbrains.kotlin.android"
-apply plugin: 'kotlin-parcelize'
-apply plugin: 'io.hyperswitch.react'
-
-import com.android.build.OutputFile
+apply plugin: "kotlin-parcelize"
+apply plugin: "io.hyperswitch.react"
 
 /**
  * This is the configuration block to customize your React Native Android app.
@@ -53,21 +51,15 @@ react {
     //
     //   The list of flags to pass to the Hermes compiler. By default is "-O", "-output-source-map"
     // hermesFlags = ["-O", "-output-source-map"]
+
+    /* Autolinking */
     autolinkLibrariesWithApp()
 }
 
 /**
- * Set this to true to create four separate APKs instead of one,
- * one for each native architecture. This is useful if you don't
- * use App Bundles (https://developer.android.com/guide/app-bundle/)
- * and want to have separate APKs to upload to the Play Store.
- */
-def enableSeparateBuildPerCPUArchitecture = true
-
-/**
  * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
  */
-def enableProguardInReleaseBuilds = true
+def enableProguardInReleaseBuilds = false
 
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
@@ -82,25 +74,13 @@ def enableProguardInReleaseBuilds = true
  */
 def jscFlavor = 'org.webkit:android-jsc:+'
 
-/**
- * Private function to get the list of Native Architectures you want to build.
- * This reads the value from reactNativeArchitectures in your gradle.properties
- * file and works together with the --active-arch-only flag of react-native run-android.
- */
-def reactNativeArchitectures() {
-    def value = project.getProperties().get("reactNativeArchitectures")
-    return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
-}
-
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace 'io.hyperswitch'
-
     defaultConfig {
-        applicationId "io.hyperswitch"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -110,19 +90,6 @@ android {
         buildConfigField "String", "VERSION_NAME", "\"${version}\""
         buildConfigField "boolean", "IS_HERMES_ENABLED", hermesEnabled
         buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", newArchEnabled
-    }
-    splits {
-        /*density {
-            enable true
-            exclude("ldpi", "mdpi", "hdpi" , "xhdpi", "xxhdpi", "xxxhdpi")
-            compatibleScreens("normal")
-        }*/
-        abi {
-            reset()
-            enable enableSeparateBuildPerCPUArchitecture
-            universalApk false  // If true, also generate a universal APK
-            include (*reactNativeArchitectures())
-        }
     }
     signingConfigs {
         release {
@@ -137,8 +104,7 @@ android {
     buildTypes {
         release {
             minifyEnabled enableProguardInReleaseBuilds
-            shrinkResources enableProguardInReleaseBuilds
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             signingConfig signingConfigs.release
 
             debuggable false
@@ -153,47 +119,62 @@ android {
             }
         }
     }
-    // applicationVariants are e.g. debug, release
-    applicationVariants.all { variant ->
-        variant.outputs.each { output ->
-            // For each separate APK per architecture, set a unique version code as described here:
-            // https://developer.android.com/studio/build/configure-apk-splits.html
-            // Example: versionCode 1 will generate 1001 for armeabi-v7a, 1002 for x86, etc.
-            def versionCodes = ["armeabi-v7a": 1, "x86": 2, "arm64-v8a": 3, "x86_64": 4]
-            def abi = output.getFilter(OutputFile.ABI)
-            if (abi != null) {  // null for the universal-debug, universal-release variants
-                output.versionCodeOverride =
-                        defaultConfig.versionCode * 1000 + versionCodes.get(abi)
-            }
-
-        }
-    }
 }
-dependencies {
 
+dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
     }
 
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.9.0'
-    implementation 'androidx.compose.ui:ui-graphics:1.4.3'
-    implementation 'com.google.android.gms:play-services-wallet:19.2.1'
-    implementation 'androidx.activity:activity-ktx:1.6.1'
-    implementation 'org.greenrobot:eventbus:3.3.1'
+    implementation("androidx.appcompat:appcompat")
+    implementation("androidx.activity:activity-ktx")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("com.google.android.material:material")
+    implementation("com.google.android.gms:play-services-wallet")
+    implementation("org.greenrobot:eventbus")
 
-    //Debug Dependencies
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'com.github.kittinunf.fuel:fuel:2.3.1'
-    implementation 'com.github.kittinunf.fuel:fuel-json:2.3.1'
-
+    constraints {
+        implementation("androidx.appcompat:appcompat") {
+            version {
+                prefer '1.6.1'
+            }
+        }
+        implementation("androidx.activity:activity-ktx") {
+            version {
+                prefer '1.6.1'
+            }
+        }
+        implementation("androidx.compose.ui:ui-graphics") {
+            version {
+                prefer '1.4.3'
+            }
+        }
+        implementation("com.google.android.material:material") {
+            version {
+                prefer '1.9.0'
+            }
+        }
+        implementation("com.google.android.gms:play-services-wallet") {
+            version {
+                prefer '19.2.1'
+            }
+        }
+        implementation("org.greenrobot:eventbus") {
+            version {
+                prefer '3.3.1'
+            }
+        }
+    }
 }
 
-//apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
-//applyNativeModulesAppBuildGradle(project)
-//apply from: "../../node_modules/react-native/react.gradle"
-//apply from: file("../../node_modules/react-native-code-push/android/codepush.gradle")
+def appProject = rootProject.allprojects.find { it.plugins.hasPlugin('com.android.application') }
+try {
+    appProject.android.buildTypes.debug.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
+    appProject.android.buildTypes.profile.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
+    appProject.android.buildTypes.release.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
+} catch (ignored) {}
