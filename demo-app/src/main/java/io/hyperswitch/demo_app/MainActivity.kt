@@ -1,4 +1,4 @@
-package io.hyperswitch
+package io.hyperswitch.demo_app
 
 import android.graphics.Color
 import android.os.Bundle
@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
+import io.hyperswitch.PaymentSession
 import io.hyperswitch.paymentsheet.AddressDetails
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
@@ -16,7 +17,7 @@ import org.json.JSONException
 import org.json.JSONObject
 
 
-class MainActivity : AppCompatActivity(), HyperInterface {
+class MainActivity : AppCompatActivity() {
 
     lateinit var ctx: AppCompatActivity;
     private var paymentIntentClientSecret: String = "clientSecret"
