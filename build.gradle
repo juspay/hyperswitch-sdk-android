@@ -102,7 +102,7 @@ subprojects {
                                 def dependency = dependencies.appendNode('dependency')
                                 dependency.appendNode('groupId', it.moduleGroup)
                                 dependency.appendNode('artifactId', it.moduleName)
-                                dependency.appendNode('version', (runtimeDeps.contains(it.moduleName) ? '0.0.1' : it.moduleVersion))
+                                dependency.appendNode('version', (runtimeDeps.contains(it.moduleName) ? '0.0.2' : it.moduleVersion))
                             }
                         }
                     }
