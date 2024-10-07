@@ -9,16 +9,16 @@ cd node_modules/@react-native/gradle-plugin
 ./gradlew build
 ./gradlew publish
 
-echo "Applying LibraryCreation Patch."
+# echo "Applying LibraryCreation Patch."
 
 # Navigate to the Android folder and apply the patch
 cd ../../../android
-git apply libraryCreation.patch
+# git apply libraryCreation.patch
 
 # Remove unnecessary files
-rm app/src/main/java/io/hyperswitch/MainActivity.kt
-rm app/src/main/res/layout/main_activity.xml
-rm app/src/main/res/values/styles.xml
+# rm app/src/main/java/io/hyperswitch/MainActivity.kt
+# rm app/src/main/res/layout/main_activity.xml
+# rm app/src/main/res/values/styles.xml
 
 echo "Generating artifacts for Hyperswitch Android SDK."
 

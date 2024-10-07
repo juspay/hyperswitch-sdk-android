@@ -56,7 +56,9 @@ def runtimeDeps = [
         'sentry_react-native',
 ]
 
-def runtimeDepsExcluded = []
+def runtimeDepsExcluded = [
+    'demo-app'
+]
 
 def runtimeDepsOptional = [
         'react-native-reanimated',
