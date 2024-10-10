@@ -9,7 +9,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Iohyperswitch">
         <activity
-            android:name=".MainActivity"
+            android:name="io.hyperswitch.demoapp.MainActivity"
             android:exported="true"
             android:label="@string/title_activity_main"
             android:theme="@style/Theme.Iohyperswitch">
