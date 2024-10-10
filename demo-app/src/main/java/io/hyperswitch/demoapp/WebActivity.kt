@@ -1,4 +1,4 @@
-package io.hyperswitch.demo_app
+package io.hyperswitch.demoapp
 
 import android.graphics.Color
 import android.os.Bundle
