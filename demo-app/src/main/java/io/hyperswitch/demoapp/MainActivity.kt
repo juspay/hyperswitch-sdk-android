@@ -1,5 +1,6 @@
-package io.hyperswitch.demo_app
+package io.hyperswitch.demoapp
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
@@ -162,6 +163,10 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<View>(R.id.launchButton).setOnClickListener {
             paymentSession.presentPaymentSheet(getCustomisations(), ::onPaymentSheetResult)
+        }
+
+        findViewById<View>(R.id.launchWebButton).setOnClickListener {
+            startActivity(Intent(applicationContext, WebActivity::class.java))
         }
 
     }
