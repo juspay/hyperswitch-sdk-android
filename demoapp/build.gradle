@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace 'io.hyperswitch.demo_app'
+    namespace 'io.hyperswitch.demoapp'
     compileSdk 34
 
     defaultConfig {
-        applicationId "io.hyperswitch.demo_app"
+        applicationId "io.hyperswitch.demoapp"
         minSdk 23
         targetSdk 34
         versionCode 1
