@@ -57,7 +57,7 @@ def runtimeDeps = [
 ]
 
 def runtimeDepsExcluded = [
-    'demo-app'
+    'demoapp'
 ]
 
 def runtimeDepsOptional = [
