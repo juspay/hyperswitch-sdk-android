@@ -91,21 +91,10 @@ android {
         buildConfigField "boolean", "IS_HERMES_ENABLED", hermesEnabled
         buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", newArchEnabled
     }
-    signingConfigs {
-        release {
-            if (project.hasProperty('sign')) {
-                storeFile file(sign)
-                storePassword sign
-                keyAlias sign
-                keyPassword sign
-            }
-        }
-    }
     buildTypes {
         release {
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
-            signingConfig signingConfigs.release
 
             debuggable false
             jniDebuggable false
