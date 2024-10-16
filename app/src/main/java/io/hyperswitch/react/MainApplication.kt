@@ -32,6 +32,7 @@ open class MainApplication : Application(), ReactApplication {
             override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
 
             override fun getJSBundleFile(): String {
+                CodePush.overrideAppVersion(BuildConfig.VERSION_NAME)
                 return CodePush.getJSBundleFile("hyperswitch.bundle")
             }
         }

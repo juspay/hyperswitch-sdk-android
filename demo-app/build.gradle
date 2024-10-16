@@ -1,0 +1,57 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'io.hyperswitch.demoapp'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "io.hyperswitch.demoapp"
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    signingConfigs {
+        release {
+            if (project.hasProperty('sign')) {
+                storeFile file('/Users/shivam.shashank/Documents/'+sign)
+                storePassword sign
+                keyAlias sign
+                keyPassword sign
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            signingConfig signingConfigs.release
+
+            debuggable false
+            jniDebuggable false
+            renderscriptDebuggable false
+            pseudoLocalesEnabled false
+            zipAlignEnabled true
+        }
+        buildTypes.all { buildType ->
+            if (!['debug', 'release'].contains(buildType.name)) {
+                buildType.matchingFallbacks = ['debug', 'release']
+            }
+        }
+    }
+}
+
+dependencies {
+
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'com.github.kittinunf.fuel:fuel:2.3.1'
+    implementation 'com.github.kittinunf.fuel:fuel-json:2.3.1'
+    implementation project(':app')
+    implementation project(':hyperswitch-android-sdk-web')
+}

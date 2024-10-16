@@ -11,8 +11,8 @@
         <item name="android:windowDisablePreview">true</item>
         <item name="colorSurface">#ffffff</item>
         <item name="actionMenuTextColor">#FFFFFF</item>
-        <item name="android:windowTranslucentStatus">true</item>
-        <item name="android:windowTranslucentNavigation">true</item>
+<!--        <item name="android:windowTranslucentStatus">true</item>-->
+<!--        <item name="android:windowTranslucentNavigation">true</item>-->
         <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
 </resources>

@@ -4,14 +4,13 @@
     package="io.hyperswitch">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
     <application
         android:name=".react.MainApplication"
-        android:enableOnBackInvokedCallback="true"
         tools:replace="android:name"
+        android:enableOnBackInvokedCallback="true"
         android:supportsRtl="true"
-        android:usesCleartextTraffic="true"
+        android:extractNativeLibs="true"
         tools:targetApi="tiramisu">
         <activity
             android:name=".react.RedirectActivity"
