@@ -17,12 +17,12 @@ android {
 
     signingConfigs {
         release {
-            if (project.hasProperty('sign')) {
-                storeFile file('/Users/shivam.shashank/Documents/'+sign)
-                storePassword sign
-                keyAlias sign
-                keyPassword sign
-            }
+//            if (project.hasProperty('sign')) {
+//                storeFile file(sign)
+//                storePassword sign
+//                keyAlias sign
+//                keyPassword sign
+//            }
         }
     }
 
@@ -53,5 +53,5 @@ dependencies {
     implementation 'com.github.kittinunf.fuel:fuel:2.3.1'
     implementation 'com.github.kittinunf.fuel:fuel-json:2.3.1'
     implementation project(':app')
-    implementation project(':hyperswitch-android-sdk-web')
+    implementation project(':hyperswitch-android-sdk-lite')
 }
