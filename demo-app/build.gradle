@@ -17,12 +17,12 @@ android {
 
     signingConfigs {
         release {
-            if (project.hasProperty('sign')) {
-                storeFile file('/Users/shivam.shashank/Documents/'+sign)
-                storePassword sign
-                keyAlias sign
-                keyPassword sign
-            }
+//            if (project.hasProperty('sign')) {
+//                storeFile file(sign)
+//                storePassword sign
+//                keyAlias sign
+//                keyPassword sign
+//            }
         }
     }
 
