@@ -1,10 +1,14 @@
+//plugins {
+//    id 'com.vanniktech.maven.publish' version "0.30.0"
+//}
 apply plugin: "com.android.library"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "kotlin-parcelize"
-
+//apply plugin: 'com.vanniktech.maven.publish'
 /**
  * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
  */
+
 def enableProguardInReleaseBuilds = false
 
 android {
@@ -58,6 +62,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-wallet")
     implementation("org.greenrobot:eventbus")
 
+
     constraints {
         implementation("androidx.appcompat:appcompat") {
             version {
@@ -91,3 +96,4 @@ dependencies {
         }
     }
 }
+
