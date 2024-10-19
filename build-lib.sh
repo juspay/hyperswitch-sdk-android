@@ -43,15 +43,30 @@ process_version_directory() {
         gpg --armor --output "${file}.asc" --detach-sign "$file"
     done
 
-    # Create the ZIP bundle
-    local base_name
-    base_name=$(basename "$base_dir")
-    local zip_name="${base_name}-$(basename "$version_dir")-bundle.zip"
+    # # Create the ZIP bundle
+    # local base_name
+    # base_name=$(basename "$base_dir")
+    # local zip_name="${base_name}-$(basename "$version_dir")-bundle.zip"
 
-    echo "Creating ZIP bundle for $zip_name..."
-    zip -r "$zip_name" *.{aar,pom,jar,module} *-sources.jar *-javadoc.jar *.asc
+    # echo "Creating ZIP bundle for $zip_name..."
+    # zip -r "$zip_name" *.{aar,pom,jar,module} *-sources.jar *-javadoc.jar *.asc
 
     cd ..
+}
+
+upload_to_sonatype() {
+    local zip_file="$1"
+    local sonatype_url="https://central.sonatype.com/api/v1/publisher/upload"
+    local authorization_token="Bearer <INSERT KEY>"
+
+    echo "Uploading $zip_file to Sonatype Central..."
+
+    # Perform the CURL upload
+    curl --request POST \
+         --verbose \
+         --header "Authorization: $authorization_token" \
+         --form bundle=@"$zip_file" \
+         $sonatype_url
 }
 
 # Process each library directory
@@ -67,5 +82,13 @@ for library_dir in */; do
     
     cd ..
 done
+
+ # Create the ZIP bundle
+cd ../../
+local zip_name="hyperswitch-sdk-bundle.zip"
+echo "Creating ZIP bundle for $zip_name..."
+zip -r "hyperswitch-sdk-bundle.zip" ./*
+
+upload_to_sonatype "hyperswitch-sdk-bundle.zip"
 
 echo "Processing completed."
