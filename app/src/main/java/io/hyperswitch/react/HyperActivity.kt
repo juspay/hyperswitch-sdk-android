@@ -2,34 +2,26 @@ package io.hyperswitch.react
 
 import android.os.Bundle
 import com.facebook.react.ReactActivity
-import io.hyperswitch.PaymentSession
-import io.hyperswitch.paymentsheet.PaymentSheet
-import io.hyperswitch.paymentsheet.PaymentSheetResult
+import com.facebook.react.ReactActivityDelegate
+import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
+import com.facebook.react.defaults.DefaultReactActivityDelegate
 
 class HyperActivity : ReactActivity() {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    /**
+     * Returns the name of the main component registered from JavaScript. This is used to schedule
+     * rendering of the component.
+     */
+    override fun getMainComponentName(): String = "hyperSwitch"
 
-        val paymentSheet = PaymentSheet(this, ::onPaymentSheetResult)
-
-        when (intent.getIntExtra("flow", 0)) {
-            1 -> paymentSheet.presentWithPaymentIntent(
-                PaymentSession.paymentIntentClientSecret ?: "", PaymentSession.configuration
-            )
-            2 -> paymentSheet.presentWithPaymentIntentAndParams(
-                PaymentSession.configurationMap ?: HashMap()
-            )
+    /**
+     * Returns the instance of the [ReactActivityDelegate]. We use [DefaultReactActivityDelegate]
+     * which allows you to enable New Architecture with a single boolean flags [fabricEnabled]
+     */
+    override fun createReactActivityDelegate(): ReactActivityDelegate {
+        return object : DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled) {
+            override fun getLaunchOptions(): Bundle = intent.getBundleExtra("configuration")!!
         }
-
     }
 
-    override fun invokeDefaultOnBackPressed() {
-        super.onBackPressed()
-    }
-
-    private fun onPaymentSheetResult(paymentSheetResult: PaymentSheetResult) {
-        PaymentSession.sheetCompletion?.let { it(paymentSheetResult) }
-        finish()
-    }
 }

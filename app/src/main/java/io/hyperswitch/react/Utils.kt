@@ -18,7 +18,7 @@ class Utils {
     // Open React view method
     fun openReactView(
       context: FragmentActivity,
-      request: Map<String, Any?>,
+      request: Bundle,
       message: String,
       id: Int?
     ) {
@@ -26,7 +26,6 @@ class Utils {
       context.runOnUiThread {
         // Begin fragment transaction
         val transaction = context.supportFragmentManager.beginTransaction()
-        val requestMap = convertMapToBundle(request)
 
         // Check message type and set window flags accordingly
         if (arrayOf("card", "google_pay", "paypal", "expressCheckout").indexOf(message) < 0) {
@@ -34,11 +33,11 @@ class Utils {
           val reactNativeFragmentSheet = context.supportFragmentManager.findFragmentByTag("paymentSheet")
 
           // Check if React Native fragment exists or if request has changed
-          if (reactNativeFragmentSheet == null || areBundlesNotEqual(requestMap, lastRequest, context)) {
-            lastRequest = requestMap
+          if (reactNativeFragmentSheet == null || areBundlesNotEqual(request, lastRequest, context)) {
+            lastRequest = request
             val newReactNativeFragmentSheet = ReactFragment.Builder()
               .setComponentName("hyperSwitch")
-              .setLaunchOptions(getLaunchOptions(requestMap, message, context))
+              .setLaunchOptions(getLaunchOptions(request, message, context))
               .setFabricEnabled(BuildConfig.IS_NEW_ARCHITECTURE_ENABLED)
               .build()
             transaction.replace(android.R.id.content, newReactNativeFragmentSheet, "paymentSheet").commitAllowingStateLoss()
@@ -48,7 +47,7 @@ class Utils {
         } else {
           val reactNativeFragmentCard = ReactFragment.Builder()
             .setComponentName("hyperSwitch")
-            .setLaunchOptions(getLaunchOptions(requestMap, message, context))
+            .setLaunchOptions(getLaunchOptions(request, message, context))
             .setFabricEnabled(BuildConfig.IS_NEW_ARCHITECTURE_ENABLED)
             .build()
           transaction.add(id ?: android.R.id.content, reactNativeFragmentCard, "cardForm").commitAllowingStateLoss()
@@ -134,7 +133,7 @@ class Utils {
     }
 
     // Convert Map to Bundle
-    private fun convertMapToBundle(input: Map<String, Any?>): Bundle {
+    fun convertMapToBundle(input: Map<String, Any?>): Bundle {
       val bundle = Bundle()
 
       for ((key, value) in input) {

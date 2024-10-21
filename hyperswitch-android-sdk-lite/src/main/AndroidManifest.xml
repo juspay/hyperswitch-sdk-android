@@ -12,28 +12,8 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="tiramisu">
         <activity
-            android:name=".react.RedirectActivity"
-            android:exported="true"
-            android:launchMode="singleTask"
-            android:theme="@style/HyperTransparentTheme">
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data android:scheme="${applicationId}.hyperswitch" />
-            </intent-filter>
-        </activity>
-        <activity
-            android:name=".payments.gpay.GooglePayActivity"
+            android:name="io.hyperswitch.payments.googlepaylauncher.GooglePayActivity"
             android:exported="false"
-            android:theme="@style/HyperTransparentTheme" />
-        <activity
-            android:name=".react.HyperActivity"
-            android:exported="false"
-            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|density|layoutDirection|colorMode"
-            android:windowSoftInputMode="adjustResize"
             android:theme="@style/HyperTransparentTheme" />
         <meta-data
             android:name="com.google.android.gms.wallet.api.enabled"

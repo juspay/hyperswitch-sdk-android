@@ -4,7 +4,7 @@ pluginManagement {
 plugins {
     id("io.hyperswitch.settings") version "0.75.2"
 }
-extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex -> ex.autolinkLibrariesFromCommand() }
 
 rootProject.name = 'io.hyperswitch'
 
