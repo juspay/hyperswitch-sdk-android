@@ -10,6 +10,8 @@ import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.PaymentSession
+import io.hyperswitch.payments.paymentlauncher.PaymentResult
+import io.hyperswitch.paymentsession.PaymentMethod
 import io.hyperswitch.paymentsheet.AddressDetails
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
@@ -92,6 +94,7 @@ class MainActivity : AppCompatActivity() {
         ctx.findViewById<View>(R.id.reloadButton).isEnabled = false;
         ctx.findViewById<View>(R.id.launchButton).isEnabled = false;
         ctx.findViewById<View>(R.id.launchWebButton).isEnabled = false;
+        ctx.findViewById<View>(R.id.confirmButton).isEnabled = false;
 
         reset().get("http://10.0.2.2:5252/create-payment-intent", null)
             .responseString(object : Handler<String?> {
@@ -122,15 +125,31 @@ class MainActivity : AppCompatActivity() {
                             paymentSession.initPaymentSession(paymentIntentClientSecret)
                             paymentSessionLite.initPaymentSession(paymentIntentClientSecret)
 
-                            /**
-                            paymentSession.getCustomerSavedPaymentMethods {
-                            println(it.getCustomerLastUsedPaymentMethodData())
-                            println(it.confirmWithCustomerLastUsedPaymentMethod { itt ->
-                            println(itt)
-                            })
-                            }
-                             * */
+                            paymentSession.getCustomerSavedPaymentMethods { it ->
 
+                                val text =
+                                    when (val data = it.getCustomerLastUsedPaymentMethodData()) {
+                                        is PaymentMethod.Card -> arrayOf(
+                                            data.cardScheme + " - " + data.cardNumber,
+                                            true
+                                        )
+
+                                        is PaymentMethod.Wallet -> arrayOf(data.walletType, true)
+                                        is PaymentMethod.Error -> arrayOf(data.message, false)
+                                    }
+
+                                setStatus("Last Used PM: " + text[0])
+
+                                ctx.runOnUiThread {
+                                    ctx.findViewById<View>(R.id.confirmButton).isEnabled = true
+                                    ctx.findViewById<View>(R.id.confirmButton)
+                                        .setOnClickListener { _ ->
+                                            it.confirmWithCustomerLastUsedPaymentMethod {
+                                                onPaymentResult(it)
+                                            }
+                                        }
+                                }
+                            }
 
                             ctx.runOnUiThread {
                                 ctx.findViewById<View>(R.id.reloadButton).isEnabled = true
@@ -201,6 +220,22 @@ class MainActivity : AppCompatActivity() {
 
             is PaymentSheetResult.Completed -> {
                 setStatus(paymentSheetResult.data)
+            }
+        }
+    }
+
+    private fun onPaymentResult(paymentResult: PaymentResult) {
+        when (paymentResult) {
+            is PaymentResult.Canceled -> {
+                setStatus(paymentResult.data)
+            }
+
+            is PaymentResult.Failed -> {
+                setStatus(paymentResult.throwable.message ?: "")
+            }
+
+            is PaymentResult.Completed -> {
+                setStatus(paymentResult.data)
             }
         }
     }

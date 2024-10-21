@@ -4,6 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_marginTop="48dp"
+    android:layout_marginBottom="48dp"
     android:padding="20dp"
     tools:context=".MainActivity">
 
@@ -11,58 +13,73 @@
         android:id="@+id/reloadButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/launchButton"
-        android:text="Reload Client Secret"
-        android:textAllCaps="false"
-        android:textSize="20sp"
         android:layout_marginTop="20dp"
         android:background="@drawable/rounded_button"
-        android:textColor="#FFFFFF" />
+        android:text="Reload Client Secret"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        app:layout_constraintBottom_toTopOf="@+id/launchButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 
     <Button
         android:id="@+id/launchButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/reloadButton"
-        app:layout_constraintBottom_toTopOf="@+id/launchWebButton"
-        android:text="Launch Payment Sheet"
-        android:textAllCaps="false"
-        android:textSize="20sp"
         android:layout_marginTop="20dp"
         android:background="@drawable/rounded_button"
-        android:textColor="#FFFFFF" />
+        android:text="Launch Payment Sheet"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        app:layout_constraintBottom_toTopOf="@+id/launchWebButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/reloadButton" />
 
     <Button
         android:id="@+id/launchWebButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/launchButton"
-        app:layout_constraintBottom_toTopOf="@+id/resultText"
-        android:text="Launch Web Payment Sheet"
-        android:textAllCaps="false"
-        android:textSize="20sp"
         android:layout_marginTop="20dp"
         android:background="@drawable/rounded_button"
-        android:textColor="#FFFFFF" />
+        android:text="Launch Web Payment Sheet"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        app:layout_constraintBottom_toTopOf="@+id/resultText"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/launchButton" />
 
     <TextView
         android:id="@+id/resultText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/launchButton"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:textSize="20sp"
+        android:layout_marginTop="20dp"
         android:gravity="center"
-        android:layout_marginTop="20dp" />
+        android:textSize="20sp"
+        app:layout_constraintBottom_toTopOf="@+id/confirmButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/launchWebButton" />
+
+    <Button
+        android:id="@+id/confirmButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:background="@drawable/rounded_button"
+        android:text="Confirm with Last Used PM"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/resultText" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
