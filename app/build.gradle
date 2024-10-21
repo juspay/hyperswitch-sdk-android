@@ -109,6 +109,10 @@ android {
         }
     }
     packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+
         // exclude "lib/**/libhermes.so"
         // exclude "lib/**/libreactnativejni.so"
         // exclude "lib/**/libfolly_runtime.so"
@@ -187,7 +191,7 @@ dependencies {
     implementation("com.google.android.material:material")
     implementation("com.google.android.gms:play-services-wallet")
     implementation("org.greenrobot:eventbus")
-    implementation project(':hyperswitch-android-sdk-lite')
+    implementation project(':hyperswitch-sdk-android-lite')
 
     constraints {
         implementation("androidx.appcompat:appcompat") {
@@ -228,5 +232,44 @@ try {
     appProject.android.buildTypes.debug.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
     appProject.android.buildTypes.profile.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
     appProject.android.buildTypes.release.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
+
+    appProject.android.packagingOptions.jniLibs.useLegacyPackaging = true
+
+    appProject.android.packagingOptions.exclude "lib/**/libfabricjni.so"
+    appProject.android.packagingOptions.exclude "lib/**/libreact_codegen_rncore.so"
+    appProject.android.packagingOptions.exclude "lib/**/librninstance.so"
+    appProject.android.packagingOptions.exclude "lib/**/librrc_view.so"
+    appProject.android.packagingOptions.exclude "lib/**/libreact_nativemodule_dom.so"
+    appProject.android.packagingOptions.exclude "lib/**/librrc_textinput.so"
+    appProject.android.packagingOptions.exclude "lib/**/libreact_nativemodule_core.so"
+    appProject.android.packagingOptions.exclude "lib/**/libreact_render_core.so"
+    appProject.android.packagingOptions.exclude "lib/**/libreact_render_uimanager_consistency.so"
+    appProject.android.packagingOptions.exclude "lib/**/libnative-imagetranscoder.so"
+    appProject.android.packagingOptions.exclude "lib/**/librrc_image.so"
+    appProject.android.packagingOptions.exclude "lib/**/libeb90.so"
+    appProject.android.packagingOptions.exclude "lib/**/libhermesinstancejni.so"
+    appProject.android.packagingOptions.exclude "lib/**/libreact_newarchdefaults.so"
+    appProject.android.packagingOptions.exclude "lib/**/libturbomodulejsijni.so"
+    appProject.android.packagingOptions.exclude "lib/**/libreact_render_componentregistry.so"
+    appProject.android.packagingOptions.exclude "lib/**/libjscexecutor.so"
+    appProject.android.packagingOptions.exclude "lib/**/libuimanagerjni.so"
+    appProject.android.packagingOptions.exclude "lib/**/libreact_nativemodule_defaults.so"
+    appProject.android.packagingOptions.exclude "lib/**/libreact_performance_timeline.so"
+    appProject.android.packagingOptions.exclude "lib/**/libmapbufferjni.so"
+    appProject.android.packagingOptions.exclude "lib/**/librrc_legacyviewmanagerinterop.so"
+    appProject.android.packagingOptions.exclude "lib/**/libjscinstance.so"
+    appProject.android.packagingOptions.exclude "lib/**/libreact_nativemodule_featureflags.so"
+    appProject.android.packagingOptions.exclude "lib/**/libreact_nativemodule_microtasks.so"
+    appProject.android.packagingOptions.exclude "lib/**/libreact_render_mapbuffer.so"
+    appProject.android.packagingOptions.exclude "lib/**/libreact_render_observers_events.so"
+    appProject.android.packagingOptions.exclude "lib/**/libreact_render_imagemanager.so"
+    appProject.android.packagingOptions.exclude "lib/**/libreact_render_graphics.so"
+    appProject.android.packagingOptions.exclude "lib/**/libreact_render_element.so"
+    appProject.android.packagingOptions.exclude "lib/**/libjsijniprofiler.so"
+    appProject.android.packagingOptions.exclude "lib/**/libnative-filters.so"
+    appProject.android.packagingOptions.exclude "lib/**/libimagepipeline.so"
+
+    appProject.android.packagingOptions.exclude "lib/**/libsentry.so"
+    appProject.android.packagingOptions.exclude "lib/**/libsentry-android.so"
 } catch (ignored) {
 }

@@ -33,7 +33,7 @@ plugins {
 
 apply plugin: "io.hyperswitch.rootproject"
 apply plugin: 'maven-publish'
-apply plugin: 'signing'
+//apply plugin: 'signing'
 
 rootProject.allprojects {
     // apply plugin: 'com.vanniktech.maven.publish'
@@ -140,7 +140,7 @@ subprojects {
 
                     groupId project.group
                     artifactId(project.name == 'app' ? 'hyperswitch-sdk-android' : project.name)
-                    version(project.name == 'app' ? project.version : '0.0.3')
+                    version((project.name == 'app' || project.name == 'hyperswitch-sdk-android-lite') ? project.version : '0.0.4')
                     artifact "$buildDir/outputs/aar/$project.name-release.aar"
                     pom.withXml {
                         def root = asNode()
@@ -183,6 +183,6 @@ subprojects {
     }
 }
 
-signing {
-    sign publishing.publications
-}
+//signing {
+//    sign publishing.publications
+//}
