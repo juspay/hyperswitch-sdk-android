@@ -44,6 +44,68 @@ android {
             }
         }
     }
+
+    packagingOptions {
+        // exclude "lib/**/libhermes.so"
+        // ̵exclude "lib/**/libreactnativejni.so"
+        // exclude "lib/**/libfolly_runtime.so"
+        // exclude "lib/**/libc++_shared.so"
+        // exclude "lib/**/libjsinspector.so"
+        // exclude "lib/**/libhermes_executor.so"
+        // exclude "lib/**/libyoga.so"
+        // exclude "lib/**/libreact_devsupportjni.so"
+        // exclude "lib/**/libfbjni.so"
+        // exclude "lib/**/libglog.so"
+        // exclude "lib/**/libreact_render_debug.so"
+        // exclude "lib/**/libjsi.so"
+        // exclude "lib/**/libreact_featureflagsjni.so"
+        // exclude "lib/**/libreactnativeblob.so"
+        // exclude "lib/**/libreact_featureflags.so"
+        // exclude "lib/**/libreact_utils.so"
+        // exclude "lib/**/libreact_debug.so"
+        // exclude "lib/**/libruntimeexecutor.so"
+        // exclude "lib/**/libreact_render_consistency.so"
+
+        exclude "lib/**/libfabricjni.so"
+        exclude "lib/**/libreact_codegen_rncore.so"
+        exclude "lib/**/librninstance.so"
+        exclude "lib/**/librrc_view.so"
+        exclude "lib/**/libreact_nativemodule_dom.so"
+        exclude "lib/**/librrc_textinput.so"
+        exclude "lib/**/libreact_nativemodule_core.so"
+        exclude "lib/**/libreact_render_core.so"
+        exclude "lib/**/libreact_render_uimanager_consistency.so"
+        exclude "lib/**/libnative-imagetranscoder.so"
+        exclude "lib/**/librrc_image.so"
+        exclude "lib/**/libeb90.so"
+        exclude "lib/**/libhermesinstancejni.so"
+        exclude "lib/**/libreact_newarchdefaults.so"
+        exclude "lib/**/libturbomodulejsijni.so"
+        exclude "lib/**/libreact_render_componentregistry.so"
+        exclude "lib/**/libjscexecutor.so"
+        exclude "lib/**/libuimanagerjni.so"
+        exclude "lib/**/libreact_nativemodule_defaults.so"
+        exclude "lib/**/libreact_performance_timeline.so"
+        exclude "lib/**/libmapbufferjni.so"
+        exclude "lib/**/librrc_legacyviewmanagerinterop.so"
+        exclude "lib/**/libjscinstance.so"
+        exclude "lib/**/libreact_nativemodule_featureflags.so"
+        exclude "lib/**/libreact_nativemodule_microtasks.so"
+        exclude "lib/**/libreact_render_mapbuffer.so"
+        exclude "lib/**/libreact_render_observers_events.so"
+        exclude "lib/**/libreact_render_imagemanager.so"
+        exclude "lib/**/libreact_render_graphics.so"
+        exclude "lib/**/libreact_render_element.so"
+        exclude "lib/**/libjsijniprofiler.so"
+        exclude "lib/**/libnative-filters.so"
+        exclude "lib/**/libimagepipeline.so"
+
+        // exclude "lib/**/libtensorflowlite_jni.so"
+
+        exclude "lib/**/libsentry.so"
+        exclude "lib/**/libsentry-android.so"
+
+    }
 }
 
 dependencies {

@@ -7,10 +7,10 @@
 
     <application
         android:name=".react.MainApplication"
-        tools:replace="android:name"
         android:enableOnBackInvokedCallback="true"
-        android:supportsRtl="true"
         android:extractNativeLibs="true"
+        android:supportsRtl="true"
+        tools:replace="android:name"
         tools:targetApi="tiramisu">
         <activity
             android:name=".react.RedirectActivity"
@@ -27,16 +27,13 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".payments.gpay.GooglePayActivity"
-            android:exported="false"
-            android:theme="@style/HyperTransparentTheme" />
-        <activity
             android:name=".react.HyperActivity"
-            android:exported="false"
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
+            android:exported="false"
             android:launchMode="singleTask"
-            android:windowSoftInputMode="adjustResize"
-            android:theme="@style/HyperTransparentTheme" />
+            android:theme="@style/HyperTransparentTheme"
+            android:windowSoftInputMode="adjustPan" />
+
         <meta-data
             android:name="com.google.android.gms.wallet.api.enabled"
             android:value="true" />

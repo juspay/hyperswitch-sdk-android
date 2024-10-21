@@ -21,19 +21,19 @@ buildscript {
         classpath("io.hyperswitch:react-native-gradle-plugin:0.75.2.1")
     }
     gradle.startParameter.excludedTaskNames.addAll(
-        gradle.startParameter.taskNames.findAll { it.contains("testClasses") }
+            gradle.startParameter.taskNames.findAll { it.contains("testClasses") }
     )
 }
 
-// plugins {
-//     id 'com.vanniktech.maven.publish' version "0.30.0"
-// }
+/*
+plugins {
+    id 'com.vanniktech.maven.publish' version "0.30.0"
+}
+*/
 
 apply plugin: "io.hyperswitch.rootproject"
-
-// def excludedLibs=[
-//         'react-native-inappbrowser-reborn'
-// ]
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
 
 rootProject.allprojects {
     // apply plugin: 'com.vanniktech.maven.publish'
@@ -50,56 +50,53 @@ rootProject.allprojects {
             url 'https://x.klarnacdn.net/mobile-sdk/'
         }
     }
+    /*
+    afterEvaluate { project ->
+        if (tasks.findByPath(':react-native-klarna-inapp-sdk:compileDebugUnitTestJavaWithJavac')) {
+            tasks.findByPath(':react-native-klarna-inapp-sdk:compileDebugUnitTestJavaWithJavac').enabled = false
+        }
+        if (tasks.findByPath(':react-native-klarna-inapp-sdk:compileReleaseUnitTestJavaWithJavac')) {
+            tasks.findByPath(':react-native-klarna-inapp-sdk:compileReleaseUnitTestJavaWithJavac').enabled = false
+        }
+        if (project.plugins.hasPlugin('com.android.library') && !excludedLibs.contains(project.name)) {
+            println("PRO1 [$project]")
 
-//     afterEvaluate { project ->
-//         println("PRO [$project]")
-// //    gradle.projectsEvaluated {
-//         if(tasks.findByPath(':react-native-klarna-inapp-sdk:compileDebugUnitTestJavaWithJavac')) {
-//             tasks.findByPath(':react-native-klarna-inapp-sdk:compileDebugUnitTestJavaWithJavac').enabled = false
-//         }
-//         if(tasks.findByPath(':react-native-klarna-inapp-sdk:compileReleaseUnitTestJavaWithJavac')) {
-//             tasks.findByPath(':react-native-klarna-inapp-sdk:compileReleaseUnitTestJavaWithJavac').enabled = false
-//         }
-//         if (project.plugins.hasPlugin('com.android.library') && !excludedLibs.contains(project.name)) {
-//             println("PRO1 [$project]")
+            mavenPublishing {
+                // configure(new com.vanniktech.maven.publish.AndroidSingleVariantLibrary("release", false, false))
 
-//             mavenPublishing {
-// //                configure(new com.vanniktech.maven.publish.AndroidSingleVariantLibrary("release", false, false))
+                publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
+                signAllPublications()
 
-//                 publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
-//                 signAllPublications()
+                coordinates("io.hyperswitch.${project.name}", project.name, project.version)
 
-//                 coordinates("io.hyperswitch.${project.name}", project.name, project.version)
-
-//                 pom {
-//                     name = project.name
-//                     description = 'Your project description'
-//                     url = 'http://www.hyperswitch.io'
-//                     licenses {
-//                         license {
-//                             name = 'The Apache License, Version 2.0'
-//                             url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-//                         }
-//                     }
-//                     developers {
-//                         developer {
-//                             id = 'ChiragKV-Juspay'
-//                             name = 'Chirag KV'
-//                             email = 'chirag.kv@juspay.in'
-//                         }
-//                     }
-//                     scm {
-//                         connection = 'scm:git:git://github.com/juspay/hyperswitch-sdk-android.git'
-//                         developerConnection = 'scm:git:ssh://git@github.com:juspay/hyperswitch-sdk-android.git'
-//                         url = 'https://github.com/hyperswitch/hyperswitch-sdk-android'
-//                     }
-//                 }
-//             }
-//         }
-//     }
+                pom {
+                    name = project.name
+                    description = 'Your project description'
+                    url = 'http://www.hyperswitch.io'
+                    licenses {
+                        license {
+                            name = 'The Apache License, Version 2.0'
+                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'ChiragKV-Juspay'
+                            name = 'Chirag KV'
+                            email = 'chirag.kv@juspay.in'
+                        }
+                    }
+                    scm {
+                        connection = 'scm:git:git://github.com/juspay/hyperswitch-sdk-android.git'
+                        developerConnection = 'scm:git:ssh://git@github.com:juspay/hyperswitch-sdk-android.git'
+                        url = 'https://github.com/hyperswitch/hyperswitch-sdk-android'
+                    }
+                }
+            }
+        }
+    }
+     */
 }
-apply plugin:'maven-publish'
-apply plugin:'signing'
 
 def runtimeDeps = [
         'react-native-code-push',
@@ -113,7 +110,7 @@ def runtimeDeps = [
 ]
 
 def runtimeDepsExcluded = [
-    'demo-app'
+        'demo-app'
 ]
 
 def runtimeDepsOptional = [
@@ -127,64 +124,65 @@ def runtimeDepsOptional = [
 
 subprojects {
 
-   if(tasks.findByPath(':react-native-klarna-inapp-sdk:compileDebugUnitTestJavaWithJavac')) {
-       tasks.findByPath(':react-native-klarna-inapp-sdk:compileDebugUnitTestJavaWithJavac').enabled = false
-   }
-   if(tasks.findByPath(':react-native-klarna-inapp-sdk:compileReleaseUnitTestJavaWithJavac')) {
-       tasks.findByPath(':react-native-klarna-inapp-sdk:compileReleaseUnitTestJavaWithJavac').enabled = false
-   }
-   // tasks.findByPath(':react-native-klarna-inapp-sdk:testReleaseUnitTest').enabled = false
-   // tasks.findByPath(':react-native-hyperswitch-paypal:lintDebug').enabled = false
+    if (tasks.findByPath(':react-native-klarna-inapp-sdk:compileDebugUnitTestJavaWithJavac')) {
+        tasks.findByPath(':react-native-klarna-inapp-sdk:compileDebugUnitTestJavaWithJavac').enabled = false
+    }
+    if (tasks.findByPath(':react-native-klarna-inapp-sdk:compileReleaseUnitTestJavaWithJavac')) {
+        tasks.findByPath(':react-native-klarna-inapp-sdk:compileReleaseUnitTestJavaWithJavac').enabled = false
+    }
+    // tasks.findByPath(':react-native-klarna-inapp-sdk:testReleaseUnitTest').enabled = false
+    // tasks.findByPath(':react-native-hyperswitch-paypal:lintDebug').enabled = false
 
-   publishing {
-       publications {
-           if (!runtimeDepsExcluded.contains(project.name)) {
-               "$project.name"(MavenPublication) {
+    publishing {
+        publications {
+            if (!runtimeDepsExcluded.contains(project.name)) {
+                "$project.name"(MavenPublication) {
 
-                   groupId project.group
-                   artifactId(project.name == 'app' ? 'hyperswitch-sdk-android' : project.name)
-                   version(project.name == 'app' ? project.version : '0.0.3')
-                   artifact "$buildDir/outputs/aar/$project.name-release.aar"
-                   pom.withXml {
-                       def root = asNode()
-                       root.appendNode('name', 'Hyperswitch SDK for Android')
-                       root.appendNode('description', 'This is the Hyperswitch SDK for Android, providing seamless integration with the Hyperswitch platform.')
-                       root.appendNode('url', 'http://www.hyperswitch.io')
-                       def licensesNode = root.appendNode('licenses')
-                       def licenseNode = licensesNode.appendNode('license')
-                       licenseNode.appendNode('name', 'The Apache License, Version 2.0')
-                       licenseNode.appendNode('url', 'http://www.apache.org/licenses/LICENSE-2.0.txt')
-                       licenseNode.appendNode('distribution', 'repo')
-                       def scmNode = root.appendNode('scm')
-                       scmNode.appendNode('url', 'https://github.com/hyperswitch/hyperswitch-sdk-android')
-                       scmNode.appendNode('connection', 'scm:git:git://github.com/juspay/hyperswitch-sdk-android.git')
-                       scmNode.appendNode('developerConnection', 'scm:git:ssh://git@github.com:juspay/hyperswitch-sdk-android.git')
-                       scmNode.appendNode('tag', 'HEAD')
-                       def developersNode = root.appendNode('developers')
-                       def developerNode = developersNode.appendNode('developer')
-                       developerNode.appendNode('id', 'sh-iv-am')
-                       developerNode.appendNode('name', 'Shivam')
-                       developerNode.appendNode('email', 'shivam.shashank@juspay.in')
-                       def dependencies = root.appendNode('dependencies')
-                       configurations.getByName('releaseCompileClasspath').getResolvedConfiguration().getFirstLevelModuleDependencies().each {
-                           if (!runtimeDepsOptional.contains(it.moduleName)) {
-                               def dependency = dependencies.appendNode('dependency')
-                               dependency.appendNode('groupId', it.moduleGroup)
-                               dependency.appendNode('artifactId', it.moduleName)
-                               dependency.appendNode('version', (runtimeDeps.contains(it.moduleName) ? '0.0.3' : it.moduleVersion))
-                           }
-                       }
-                   }
-               }
-           }
-       }
-       repositories {
-           maven {
-               url("${project.rootDir}/maven")
-           }
-       }
-   }
+                    groupId project.group
+                    artifactId(project.name == 'app' ? 'hyperswitch-sdk-android' : project.name)
+                    version(project.name == 'app' ? project.version : '0.0.3')
+                    artifact "$buildDir/outputs/aar/$project.name-release.aar"
+                    pom.withXml {
+                        def root = asNode()
+                        root.appendNode('name', 'Hyperswitch SDK for Android')
+                        root.appendNode('description', 'This is the Hyperswitch SDK for Android, providing seamless integration with the Hyperswitch platform.')
+                        root.appendNode('url', 'http://www.hyperswitch.io')
+                        def licensesNode = root.appendNode('licenses')
+                        def licenseNode = licensesNode.appendNode('license')
+                        licenseNode.appendNode('name', 'The Apache License, Version 2.0')
+                        licenseNode.appendNode('url', 'http://www.apache.org/licenses/LICENSE-2.0.txt')
+                        licenseNode.appendNode('distribution', 'repo')
+                        def scmNode = root.appendNode('scm')
+                        scmNode.appendNode('url', 'https://github.com/hyperswitch/hyperswitch-sdk-android')
+                        scmNode.appendNode('connection', 'scm:git:git://github.com/juspay/hyperswitch-sdk-android.git')
+                        scmNode.appendNode('developerConnection', 'scm:git:ssh://git@github.com:juspay/hyperswitch-sdk-android.git')
+                        scmNode.appendNode('tag', 'HEAD')
+                        def developersNode = root.appendNode('developers')
+                        def developerNode = developersNode.appendNode('developer')
+                        developerNode.appendNode('id', 'sh-iv-am')
+                        developerNode.appendNode('name', 'Shivam')
+                        developerNode.appendNode('email', 'shivam.shashank@juspay.in')
+                        def dependencies = root.appendNode('dependencies')
+                        configurations.getByName('releaseCompileClasspath').getResolvedConfiguration().getFirstLevelModuleDependencies().each {
+                            if (!runtimeDepsOptional.contains(it.moduleName)) {
+                                def dependency = dependencies.appendNode('dependency')
+                                dependency.appendNode('groupId', it.moduleGroup)
+                                dependency.appendNode('artifactId', it.moduleName)
+                                dependency.appendNode('version', (runtimeDeps.contains(it.moduleName) ? '0.0.3' : it.moduleVersion))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        repositories {
+            maven {
+                url("${project.rootDir}/maven")
+            }
+        }
+    }
 }
-//signing {
-//   sign publishing.publications
-//}
+
+signing {
+    sign publishing.publications
+}

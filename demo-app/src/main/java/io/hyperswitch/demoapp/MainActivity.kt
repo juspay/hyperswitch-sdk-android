@@ -1,6 +1,5 @@
 package io.hyperswitch.demoapp
 
-import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
@@ -16,6 +15,7 @@ import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
 import org.json.JSONException
 import org.json.JSONObject
+import io.hyperswitch.lite.PaymentSession as PaymentSessionLite
 
 
 class MainActivity : AppCompatActivity() {
@@ -24,6 +24,7 @@ class MainActivity : AppCompatActivity() {
     private var paymentIntentClientSecret: String = "clientSecret"
     private var publishKey: String = ""
     private lateinit var paymentSession: PaymentSession
+    private lateinit var paymentSessionLite: PaymentSessionLite
 
     private fun getCustomisations(): PaymentSheet.Configuration {
         /**
@@ -62,7 +63,10 @@ class MainActivity : AppCompatActivity() {
         )
 
         val appearance: PaymentSheet.Appearance = PaymentSheet.Appearance(
-            typography = PaymentSheet.Typography(sizeScaleFactor = 1f, fontResId = R.font.montserrat),
+            typography = PaymentSheet.Typography(
+                sizeScaleFactor = 1f,
+                fontResId = R.font.montserrat
+            ),
             primaryButton = primaryButton,
             colorsLight = color1,
             colorsDark = color2
@@ -71,13 +75,6 @@ class MainActivity : AppCompatActivity() {
         return PaymentSheet.Configuration.Builder("Example, Inc.")
             .appearance(appearance)
             .defaultBillingDetails(billingDetails)
-            .googlePay(
-                PaymentSheet.GooglePayConfiguration(
-                    PaymentSheet.GooglePayConfiguration.Environment.Test,
-                    "usa",
-                    "dollar"
-                )
-            )
             .primaryButtonLabel("Purchase ($2.00)")
             .paymentSheetHeaderLabel("Select payment method")
             .savedPaymentSheetHeaderLabel("Payment methods")
@@ -90,11 +87,11 @@ class MainActivity : AppCompatActivity() {
             .build()
     }
 
-
     private fun getCL() {
 
         ctx.findViewById<View>(R.id.reloadButton).isEnabled = false;
         ctx.findViewById<View>(R.id.launchButton).isEnabled = false;
+        ctx.findViewById<View>(R.id.launchWebButton).isEnabled = false;
 
         reset().get("http://10.0.2.2:5252/create-payment-intent", null)
             .responseString(object : Handler<String?> {
@@ -105,7 +102,7 @@ class MainActivity : AppCompatActivity() {
                         val result = value?.let { JSONObject(it) }
                         if (result != null) {
                             paymentIntentClientSecret = result.getString("clientSecret")
-                            publishKey =  result.getString("publishableKey")
+                            publishKey = result.getString("publishableKey")
 
                             /**
                              *
@@ -114,6 +111,7 @@ class MainActivity : AppCompatActivity() {
                              * */
 
                             paymentSession = PaymentSession(ctx, publishKey)
+                            paymentSessionLite = PaymentSessionLite(ctx, publishKey)
 
                             /**
                              *
@@ -122,11 +120,22 @@ class MainActivity : AppCompatActivity() {
                              * */
 
                             paymentSession.initPaymentSession(paymentIntentClientSecret)
+                            paymentSessionLite.initPaymentSession(paymentIntentClientSecret)
+
+                            /**
+                            paymentSession.getCustomerSavedPaymentMethods {
+                            println(it.getCustomerLastUsedPaymentMethodData())
+                            println(it.confirmWithCustomerLastUsedPaymentMethod { itt ->
+                            println(itt)
+                            })
+                            }
+                             * */
 
 
                             ctx.runOnUiThread {
                                 ctx.findViewById<View>(R.id.reloadButton).isEnabled = true
                                 ctx.findViewById<View>(R.id.launchButton).isEnabled = true
+                                ctx.findViewById<View>(R.id.launchWebButton).isEnabled = true
                             }
                         }
                     } catch (e: JSONException) {
@@ -166,7 +175,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.launchWebButton).setOnClickListener {
-            startActivity(Intent(applicationContext, WebActivity::class.java))
+            paymentSessionLite.presentPaymentSheet(
+                getCustomisations(),
+                ::onPaymentSheetResult
+            )
         }
 
     }
@@ -178,17 +190,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onPaymentSheetResult(paymentSheetResult: PaymentSheetResult) {
-        when(paymentSheetResult) {
+        when (paymentSheetResult) {
             is PaymentSheetResult.Canceled -> {
                 setStatus(paymentSheetResult.data)
             }
+
             is PaymentSheetResult.Failed -> {
                 setStatus(paymentSheetResult.error.message ?: "")
             }
+
             is PaymentSheetResult.Completed -> {
                 setStatus(paymentSheetResult.data)
             }
         }
     }
-
 }

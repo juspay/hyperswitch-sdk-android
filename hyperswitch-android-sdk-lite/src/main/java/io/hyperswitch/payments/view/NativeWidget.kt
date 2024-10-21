@@ -1,12 +1,9 @@
-package io.hyperswitch.view
+package io.hyperswitch.payments.view
 
 import android.content.Context
-import android.os.Bundle
 import android.util.AttributeSet
 import android.widget.FrameLayout
-import androidx.appcompat.app.AppCompatActivity
 import io.hyperswitch.model.PaymentMethodCreateParams
-import io.hyperswitch.react.Utils
 
 /**
  *
@@ -15,7 +12,7 @@ import io.hyperswitch.react.Utils
  *
  *
  * To enable 19-digit card support, [io.hyperswitch.PaymentConfiguration] must be called before
- * [CardInputWidget] is instantiated.
+ * [NativeWidget] is instantiated.
  *
  *
  * The individual EditText views of this widget can be styled by defining a style
@@ -25,7 +22,7 @@ import io.hyperswitch.react.Utils
  * The card number, cvc, and expiry date will always be left to right regardless of locale.  Postal
  * code layout direction will be set according to the locale.
  */
-class CardInputWidget : FrameLayout {
+class NativeWidget : FrameLayout {
     constructor(context: Context?) : super(context!!) {
         initView(context)
     }
@@ -55,7 +52,6 @@ class CardInputWidget : FrameLayout {
 
     private fun initView(context: Context) {
         //inflate(context, R.layout.loader_activity, this);
-        Utils.openReactView(context as AppCompatActivity, Bundle(), "card", id)
     }
 
     val paymentMethodCreateParams: PaymentMethodCreateParams
