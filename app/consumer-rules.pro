@@ -1,0 +1,4 @@
+-keep class com.reactnativehyperswitchscancard.**  { *; }
+-keep class com.reactnativehyperswitchnetcetera3ds.** { *; }
+-keep class io.sentry.react.** { *; }
+-dontwarn com.horcrux.svg.**

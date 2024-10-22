@@ -1,0 +1,89 @@
+plugins {
+    id 'groovy'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+    id 'com.gradle.plugin-publish' version '1.3.0'
+}
+
+repositories {
+    google()
+    mavenCentral()
+}
+
+dependencies {
+    implementation gradleApi()
+
+    // Add the Android Gradle Plugin dependency
+    implementation 'com.android.tools.build:gradle:8.5.0'
+}
+
+gradlePlugin {
+    website = "https://github.com/juspay/hyperswitch-sdk-android"
+    vcsUrl = "https://github.com/juspay/hyperswitch-sdk-android"
+    plugins {
+        hyperPlugin {
+            id = 'io.hyperswitch.plugin'
+            implementationClass = 'io.hyperswitch.HyperPlugin'
+            displayName = "HyperPlugin"
+            description = "Plugin for Hyperswitch Android SDK!"
+            tags.set(["Hyperswitch", "payment", "Juspay"])
+        }
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+group = 'io.hyperswitch'
+version = '0.0.1'
+
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allSource
+    archiveClassifier = 'sources'
+}
+
+task javadocJar(type: Jar) {
+    from tasks.javadoc
+    archiveClassifier = 'javadoc'
+}
+
+//publishing {
+//    publications {
+//        pluginMaven(MavenPublication) {
+//            artifact sourcesJar
+//            artifact javadocJar
+//            pom {
+//                name = 'Hyperswitch SDK for Android'
+//                description = 'This is the Hyperswitch SDK for Android, providing seamless integration with the Hyperswitch platform.'
+//                url = 'http://www.hyperswitch.io'
+//                licenses {
+//                    license {
+//                        name = 'The Apache License, Version 2.0'
+//                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+//                        distribution = 'repo'
+//                    }
+//                }
+//                scm {
+//                    url = 'https://github.com/hyperswitch/hyperswitch-sdk-android'
+//                    connection = 'scm:git:git://github.com/juspay/hyperswitch-sdk-android.git'
+//                    developerConnection = 'scm:git:ssh://git@github.com:juspay/hyperswitch-sdk-android.git'
+//                    tag = 'HEAD'
+//                }
+//                developers {
+//                    developer {
+//                        id = 'sh-iv-am'
+//                        name = 'Shivam'
+//                        email = 'shivam.shashank@juspay.in'
+//                    }
+//                }
+//            }
+//        }
+//    }
+//    repositories {
+//        maven {
+//            url = uri('../maven')
+//        }
+//    }
+//}

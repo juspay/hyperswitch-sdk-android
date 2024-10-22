@@ -20,9 +20,6 @@ buildscript {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
         classpath("io.hyperswitch:react-native-gradle-plugin:0.75.2.1")
     }
-    gradle.startParameter.excludedTaskNames.addAll(
-            gradle.startParameter.taskNames.findAll { it.contains("testClasses") }
-    )
 }
 
 /*
@@ -140,7 +137,7 @@ subprojects {
 
                     groupId project.group
                     artifactId(project.name == 'app' ? 'hyperswitch-sdk-android' : project.name)
-                    version((project.name == 'app' || project.name == 'hyperswitch-sdk-android-lite') ? project.version : '0.0.4')
+                    version((project.name == 'app') ? project.version : (project.name == 'hyperswitch-sdk-android-lite' ? liteVersion : extVersion))
                     artifact "$buildDir/outputs/aar/$project.name-release.aar"
                     pom.withXml {
                         def root = asNode()
@@ -168,7 +165,7 @@ subprojects {
                                 def dependency = dependencies.appendNode('dependency')
                                 dependency.appendNode('groupId', it.moduleGroup)
                                 dependency.appendNode('artifactId', it.moduleName)
-                                dependency.appendNode('version', (runtimeDeps.contains(it.moduleName) ? '0.0.3' : it.moduleVersion))
+                                dependency.appendNode('version', (runtimeDeps.contains(it.moduleName) ? extVersion : (it.moduleName == 'hyperswitch-sdk-android-lite' ? liteversion : it.moduleVersion)))
                             }
                         }
                     }

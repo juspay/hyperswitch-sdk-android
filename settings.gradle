@@ -1,5 +1,11 @@
 pluginManagement {
+    repositories {
+        mavenCentral()
+        google()
+        gradlePluginPortal()
+    }
     includeBuild('../node_modules/@react-native/gradle-plugin')
+    includeBuild('hyperswitch-gradle-plugin')
 }
 plugins {
     id("io.hyperswitch.settings") version "0.75.2"

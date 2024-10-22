@@ -23,7 +23,7 @@ open class WebViewFragment : Fragment() {
     private lateinit var webViewContainer: RelativeLayout
     private lateinit var mainWebView: WebView
     private val webViews = mutableListOf<WebView>()
-    private val bundleUrl: String = "http://10.0.2.2:8080"
+    private val bundleUrl: String = "https://dev.hyperswitch.io/mobile/v1/index.html"
 
     @Deprecated("Deprecated in Java")
     override fun onCreate(savedInstanceState: Bundle?) {
