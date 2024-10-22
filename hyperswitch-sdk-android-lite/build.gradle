@@ -19,9 +19,9 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName version
+        versionName liteVersion
         resConfigs "en"
-        buildConfigField "String", "VERSION_NAME", "\"${version}\""
+        buildConfigField "String", "VERSION_NAME", "\"${liteVersion}\""
     }
     buildTypes {
         release {
