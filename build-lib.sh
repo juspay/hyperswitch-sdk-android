@@ -6,8 +6,8 @@ echo "Generating artifacts for React Native Gradle Plugin."
 
 # Navigate to the react-native gradle plugin and build and publish
 cd node_modules/@react-native/gradle-plugin
-# ./gradlew build
-# ./gradlew publish
+./gradlew build
+./gradlew publish
 
 # echo "Applying LibraryCreation Patch."
 
@@ -29,8 +29,8 @@ cd ..
 echo "Generating artifacts for Hyperswitch Android SDK."
 
 # Build and publish the library
-# ./gradlew assembleRelease
-# ./gradlew publish
+./gradlew assembleRelease
+./gradlew publish
 
 cd maven/io/hyperswitch || exit 1
 
@@ -95,6 +95,6 @@ local zip_name="hyperswitch-sdk-bundle.zip"
 echo "Creating ZIP bundle for $zip_name..."
 zip -r "hyperswitch-sdk-bundle.zip" ./*
 
-# upload_to_sonatype "hyperswitch-sdk-bundle.zip"
+upload_to_sonatype "hyperswitch-sdk-bundle.zip"
 
 echo "Processing completed."
