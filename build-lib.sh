@@ -6,14 +6,20 @@ echo "Generating artifacts for React Native Gradle Plugin."
 
 # Navigate to the react-native gradle plugin and build and publish
 cd node_modules/@react-native/gradle-plugin
-./gradlew build
-./gradlew publish
+# ./gradlew build
+# ./gradlew publish
 
 # echo "Applying LibraryCreation Patch."
 
 # Navigate to the Android folder and apply the patch
 cd ../../../android
 # git apply libraryCreation.patch
+
+cd hyperswitch-gradle-plugin
+./gradlew build
+./gradlew publish
+
+cd ..
 
 # Remove unnecessary files
 # rm app/src/main/java/io/hyperswitch/MainActivity.kt
@@ -23,10 +29,10 @@ cd ../../../android
 echo "Generating artifacts for Hyperswitch Android SDK."
 
 # Build and publish the library
-./gradlew assembleRelease
-./gradlew publish
+# ./gradlew assembleRelease
+# ./gradlew publish
 
-cd maven/io/hyperswitch
+cd maven/io/hyperswitch || exit 1
 
 # Function to sign files and create a bundle
 process_version_directory() {
@@ -89,6 +95,6 @@ local zip_name="hyperswitch-sdk-bundle.zip"
 echo "Creating ZIP bundle for $zip_name..."
 zip -r "hyperswitch-sdk-bundle.zip" ./*
 
-upload_to_sonatype "hyperswitch-sdk-bundle.zip"
+# upload_to_sonatype "hyperswitch-sdk-bundle.zip"
 
 echo "Processing completed."
