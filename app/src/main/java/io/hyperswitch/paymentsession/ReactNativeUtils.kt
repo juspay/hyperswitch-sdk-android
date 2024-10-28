@@ -60,7 +60,7 @@ class ReactNativeUtils(private val activity: Activity) : SDKInterface {
     }
 
     override fun presentSheet(configurationMap: Map<String, Any?>): Boolean {
-        return presentSheet(launchOptions.toBundleWithHyperParams(configurationMap))
+        return presentSheet(launchOptions.getBundleWithHyperParams(configurationMap))
     }
 
     private fun presentSheet(bundle: Bundle): Boolean {

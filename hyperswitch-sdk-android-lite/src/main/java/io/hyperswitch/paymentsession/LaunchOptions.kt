@@ -11,7 +11,6 @@ import io.hyperswitch.paymentsheet.PaymentSheet
 import org.json.JSONObject
 import java.util.Locale
 
-
 class LaunchOptions(private val activity: Activity? = null) {
 
     private fun getHyperParams(configuration: PaymentSheet.Configuration? = null): Bundle =
@@ -34,14 +33,14 @@ class LaunchOptions(private val activity: Activity? = null) {
             }
         }
 
-    private fun getHyperParamsJson(request: JSONObject) =
-        (request.optJSONObject("hyperParams") ?: JSONObject()).apply {
-            put("appId", activity?.packageName)
-            put("country", activity?.resources?.configuration?.locale?.country)
-            put("user-agent", getUserAgent(activity))
-            put("ip", getDeviceIPAddress(activity))
-            put("launchTime", getCurrentTime())
-            put("sdkVersion", BuildConfig.VERSION_NAME)
+    private fun getHyperParamsMap(map: Map<*, *>): Map<*, *> =
+        (map["hyperParams"] as? Map<*, *> ?: mutableMapOf<String, Any?>()).apply {
+            plus(Pair("appId", activity?.packageName))
+            plus(Pair("country", activity?.resources?.configuration?.locale?.country))
+            plus(Pair("user-agent", getUserAgent(activity)))
+            plus(Pair("ip", getDeviceIPAddress(activity)))
+            plus(Pair("launchTime", getCurrentTime()))
+            plus(Pair("sdkVersion", BuildConfig.VERSION_NAME))
         }
 
     fun getBundle(
@@ -74,20 +73,25 @@ class LaunchOptions(private val activity: Activity? = null) {
         })
     }
 
+    fun getBundleWithHyperParams(readableMap: Map<*, *>): Bundle = Bundle().apply {
+        putBundle("props", toBundle(readableMap).apply {
+            putBundle("hyperParams", getHyperParams())
+        })
+    }
+
     fun getJson(
         paymentIntentClientSecret: String,
         configuration: PaymentSheet.Configuration?
-    ): JSONObject = getJson(toJson(getBundle(paymentIntentClientSecret, configuration)))
+    ): JSONObject = toJson(getBundle(paymentIntentClientSecret, configuration))
 
-    fun getJson(configurationMap: Map<String, Any?>): JSONObject = getJson(toJson(configurationMap))
+    fun getJson(configurationMap: Map<*, *>): JSONObject =
+        toJson(getMapWithHyperParams(configurationMap))
 
-    private fun getJson(request: JSONObject): JSONObject {
-        // Add type to request
-        request.put("type", "payment")
-        // Get or create hyperParams object
-        request.put("hyperParams", getHyperParamsJson(request))
-        return request
-    }
+    private fun getMapWithHyperParams(map: Map<*, *>): Map<*, *> = mapOf(
+        "props" to map.apply {
+            plus(Pair("hyperParams", getHyperParamsMap(map)))
+        }
+    )
 
     // Get user agent
     private fun getUserAgent(context: Context?): String? =
@@ -120,7 +124,7 @@ class LaunchOptions(private val activity: Activity? = null) {
     // Get current time in milliseconds
     private fun getCurrentTime(): Double = System.currentTimeMillis().toDouble()
 
-    fun fromBundle(bundle: Bundle): Map<String, Any?> {
+    fun fromBundle(bundle: Bundle): Map<*, *> {
         val map = mutableMapOf<String, Any?>()
         for (key in bundle.keySet()) {
             val value = bundle[key]
@@ -136,12 +140,6 @@ class LaunchOptions(private val activity: Activity? = null) {
             }
         }
         return map
-    }
-
-    fun toBundleWithHyperParams(readableMap: Map<*, *>): Bundle {
-        val bundle = toBundle(readableMap)
-        bundle.putBundle("hyperParams", getHyperParams())
-        return bundle
     }
 
     fun toBundle(readableMap: Map<*, *>): Bundle {
