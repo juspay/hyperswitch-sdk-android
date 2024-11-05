@@ -27,11 +27,12 @@ jobs:
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582
-    # - name: Configure GPG Key
-    #   run: |
-    #     echo -n "$GPG_SIGNING_KEY_BASE64" | base64 --decode | gpg --import
-    #   env:
-    #     GPG_SIGNING_KEY_BASE64: ${{ secrets.GPG_SIGNING_KEY_BASE64 }}
+      
+    - name: Configure GPG Key
+      run: |
+        echo -n "$GPG_SIGNING_KEY_BASE64" | base64 --decode | gpg --import
+      env:
+        GPG_SIGNING_KEY_BASE64: ${{ secrets.GPG_SIGNING_KEY_BASE64 }}
 
     # - name: Make build script executable
     #   run: chmod +x ./build-lib.sh
