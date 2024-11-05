@@ -22,7 +22,7 @@ jobs:
         server-id: central
         server-username: MAVEN_USERNAME
         server-password: MAVEN_PASSWORD
-        gpg-private-key: ${{ secrets.GPG_SIGNING_KEY }}
+        gpg-private-key: ${{ secrets.GPG_FULL_SIGNING_KEY }}
         gpg-passphrase: GPG_PASSPHRASE
 
     - name: Setup Gradle
