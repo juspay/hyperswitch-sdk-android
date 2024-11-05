@@ -66,7 +66,7 @@ upload_to_sonatype() {
     local sonatype_url="https://central.sonatype.com/api/v1/publisher/upload"
     local authorization_token="Bearer $SONTAYPE_TOKEN"
 
-    echo "Uploading $zip_file to Sonatype Central..."
+    echo "Uploading $zip_file to Sonatype Central... with key $SONTAYPE_TOKEN"
 
     # Perform the CURL upload
     curl --request POST \
