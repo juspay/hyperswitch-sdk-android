@@ -5,14 +5,14 @@ echo "Library generation process initiated."
 echo "Generating artifacts for React Native Gradle Plugin."
 
 # Navigate to the react-native gradle plugin and build and publish
-cd node_modules/@react-native/gradle-plugin
-./gradlew build
-./gradlew publish
+# cd node_modules/@react-native/gradle-plugin
+# ./gradlew build
+# ./gradlew publish
 
 # echo "Applying LibraryCreation Patch."
 
 # Navigate to the Android folder and apply the patch
-cd ../../../android
+# cd ../../../android
 # git apply libraryCreation.patch
 
 cd hyperswitch-gradle-plugin
@@ -29,6 +29,7 @@ cd ..
 echo "Generating artifacts for Hyperswitch Android SDK."
 
 # Build and publish the library
+./gradlew clean
 ./gradlew assembleRelease
 ./gradlew publish
 
@@ -63,7 +64,7 @@ process_version_directory() {
 upload_to_sonatype() {
     local zip_file="$1"
     local sonatype_url="https://central.sonatype.com/api/v1/publisher/upload"
-    local authorization_token="Bearer <INSERT KEY>"
+    local authorization_token="Bearer $SONTAYPE_TOKEN"
 
     echo "Uploading $zip_file to Sonatype Central..."
 
@@ -93,7 +94,8 @@ done
 cd ../../
 local zip_name="hyperswitch-sdk-bundle.zip"
 echo "Creating ZIP bundle for $zip_name..."
-zip -r "hyperswitch-sdk-bundle.zip" ./*
+# zip -r "hyperswitch-sdk-bundle.zip" ./*
+zip -r "hyperswitch-sdk-bundle.zip" io/hyperswitch
 
 upload_to_sonatype "hyperswitch-sdk-bundle.zip"
 
