@@ -1,5 +1,10 @@
 #!/bin/bash
 
+echo "Checking environment variables:"
+if [ -z "$SONATYPE_TOKEN" ]; then
+    echo "ERROR: SONATYPE_TOKEN is not set!"
+fi
+
 echo "Library generation process initiated."
 
 echo "Generating artifacts for React Native Gradle Plugin."
@@ -64,9 +69,9 @@ process_version_directory() {
 upload_to_sonatype() {
     local zip_file="$1"
     local sonatype_url="https://central.sonatype.com/api/v1/publisher/upload"
-    local authorization_token="Bearer $SONTAYPE_TOKEN"
+    local authorization_token="Bearer $SONATYPE_TOKEN"
 
-    echo "Uploading $zip_file to Sonatype Central... with key $SONTAYPE_TOKEN"
+    echo "Uploading $zip_file to Sonatype Central... with key $SONATYPE_TOKEN"
 
     # Perform the CURL upload
     curl --request POST \
