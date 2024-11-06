@@ -1,3 +1,112 @@
+# #!/bin/bash
+
+# echo "Checking environment variables:"
+# if [ -z "$SONATYPE_TOKEN" ]; then
+#     echo "ERROR: SONATYPE_TOKEN is not set!"
+# fi
+
+# echo "Library generation process initiated."
+
+# echo "Generating artifacts for React Native Gradle Plugin."
+
+# # Navigate to the react-native gradle plugin and build and publish
+# # cd node_modules/@react-native/gradle-plugin
+# ./gradlew build
+# ./gradlew publish
+
+# # echo "Applying LibraryCreation Patch."
+
+# # Navigate to the Android folder and apply the patch
+# # cd ../../../android
+# # git apply libraryCreation.patch
+
+# cd hyperswitch-gradle-plugin
+# ./gradlew build
+# ./gradlew publish
+
+# cd ..
+
+# # Remove unnecessary files
+# # rm app/src/main/java/io/hyperswitch/MainActivity.kt
+# # rm app/src/main/res/layout/main_activity.xml
+# # rm app/src/main/res/values/styles.xml
+
+# echo "Generating artifacts for Hyperswitch Android SDK."
+
+# # Build and publish the library
+# ./gradlew clean
+# ./gradlew assembleRelease
+# ./gradlew publish
+
+# cd maven/io/hyperswitch || exit 1
+
+# # Function to sign files and create a bundle
+# process_version_directory() {
+#     local base_dir="$1"
+#     local version_dir="$2"
+    
+#     cd "$version_dir" || return
+
+#     # Sign all relevant files in the version directory
+#     for file in *.{aar,pom,jar,module}; do
+#         [ -e "$file" ] || continue
+        
+#         echo "Signing $file..."
+#         gpg --armor --output "${file}.asc" --detach-sign "$file"
+#     done
+
+#     # # Create the ZIP bundle
+#     # local base_name
+#     # base_name=$(basename "$base_dir")
+#     # local zip_name="${base_name}-$(basename "$version_dir")-bundle.zip"
+
+#     # echo "Creating ZIP bundle for $zip_name..."
+#     # zip -r "$zip_name" *.{aar,pom,jar,module} *-sources.jar *-javadoc.jar *.asc
+
+#     cd ..
+# }
+
+# upload_to_sonatype() {
+#     local zip_file="$1"
+#     local sonatype_url="https://central.sonatype.com/api/v1/publisher/upload"
+#     local authorization_token="Bearer $SONTAYPE_TOKEN"
+
+#     echo "Uploading $zip_file to Sonatype Central... with key $SONATYPE_TOKEN"
+
+#     # Perform the CURL upload
+#     curl --request POST \
+#          --verbose \
+#          --header "Authorization: $authorization_token" \
+#          --form bundle=@"$zip_file" \
+#          $sonatype_url
+# }
+
+# # Process each library directory
+# for library_dir in */; do
+#     [ -d "$library_dir" ] || continue
+#     cd "$library_dir" || continue
+    
+#     # Process each version directory
+#     for version_dir in */; do
+#         [ -d "$version_dir" ] || continue
+#         process_version_directory "$library_dir" "$version_dir"
+#     done
+    
+#     cd ..
+# done
+
+#  # Create the ZIP bundle
+# cd ../../
+# local zip_name="hyperswitch-sdk-bundle.zip"
+# echo "Creating ZIP bundle for $zip_name..."
+# # zip -r "hyperswitch-sdk-bundle.zip" ./*
+# zip -r "hyperswitch-sdk-bundle.zip" io/hyperswitch
+
+# upload_to_sonatype "hyperswitch-sdk-bundle.zip"
+
+# echo "Processing completed."
+
+
 #!/bin/bash
 
 echo "Checking environment variables:"
@@ -6,34 +115,17 @@ if [ -z "$SONATYPE_TOKEN" ]; then
 fi
 
 echo "Library generation process initiated."
-
 echo "Generating artifacts for React Native Gradle Plugin."
 
-# Navigate to the react-native gradle plugin and build and publish
-# cd node_modules/@react-native/gradle-plugin
-# ./gradlew build
-# ./gradlew publish
-
-# echo "Applying LibraryCreation Patch."
-
-# Navigate to the Android folder and apply the patch
-# cd ../../../android
-# git apply libraryCreation.patch
+./gradlew build
+./gradlew publish
 
 cd hyperswitch-gradle-plugin
 ./gradlew build
 ./gradlew publish
-
 cd ..
 
-# Remove unnecessary files
-# rm app/src/main/java/io/hyperswitch/MainActivity.kt
-# rm app/src/main/res/layout/main_activity.xml
-# rm app/src/main/res/values/styles.xml
-
 echo "Generating artifacts for Hyperswitch Android SDK."
-
-# Build and publish the library
 ./gradlew clean
 ./gradlew assembleRelease
 ./gradlew publish
@@ -44,64 +136,94 @@ cd maven/io/hyperswitch || exit 1
 process_version_directory() {
     local base_dir="$1"
     local version_dir="$2"
-    
     cd "$version_dir" || return
-
+    
     # Sign all relevant files in the version directory
     for file in *.{aar,pom,jar,module}; do
         [ -e "$file" ] || continue
-        
         echo "Signing $file..."
         gpg --armor --output "${file}.asc" --detach-sign "$file"
     done
-
-    # # Create the ZIP bundle
-    # local base_name
-    # base_name=$(basename "$base_dir")
-    # local zip_name="${base_name}-$(basename "$version_dir")-bundle.zip"
-
-    # echo "Creating ZIP bundle for $zip_name..."
-    # zip -r "$zip_name" *.{aar,pom,jar,module} *-sources.jar *-javadoc.jar *.asc
-
     cd ..
 }
 
 upload_to_sonatype() {
     local zip_file="$1"
     local sonatype_url="https://central.sonatype.com/api/v1/publisher/upload"
-    local authorization_token="Bearer $SONATYPE_TOKEN"
-
+    local authorization_token="Bearer $SONATYPE_TOKEN2"
+    
     echo "Uploading $zip_file to Sonatype Central... with key $SONATYPE_TOKEN"
-
-    # Perform the CURL upload
     curl --request POST \
-         --verbose \
-         --header "Authorization: $authorization_token" \
-         --form bundle=@"$zip_file" \
-         $sonatype_url
+        --verbose \
+        --header "Authorization: $authorization_token" \
+        --form bundle=@"$zip_file" \
+        $sonatype_url
 }
 
-# Process each library directory
+# Get list of available libraries
+available_libraries=()
+echo "Available libraries:"
+index=1
 for library_dir in */; do
-    [ -d "$library_dir" ] || continue
-    cd "$library_dir" || continue
+    if [ -d "$library_dir" ]; then
+        library_name=${library_dir%/}
+        available_libraries+=("$library_name")
+        echo "$index) $library_name"
+        ((index++))
+    fi
+done
+
+# Get user selection
+selected_libraries=()
+echo
+echo "Enter the numbers of the libraries you want to include (space-separated)"
+echo "Example: 1 3 4"
+read -r selections
+
+# Convert selections to array
+read -ra selection_array <<< "$selections"
+
+# Validate and process selections
+for selection in "${selection_array[@]}"; do
+    if [[ "$selection" =~ ^[0-9]+$ ]] && ((selection > 0 && selection <= ${#available_libraries[@]})); then
+        selected_libraries+=("${available_libraries[$selection-1]}")
+    else
+        echo "Invalid selection: $selection"
+    fi
+done
+
+# Process only selected libraries
+for library in "${selected_libraries[@]}"; do
+    echo "Processing library: $library"
+    cd "$library" || continue
     
     # Process each version directory
     for version_dir in */; do
         [ -d "$version_dir" ] || continue
-        process_version_directory "$library_dir" "$version_dir"
+        process_version_directory "$library" "$version_dir"
     done
-    
     cd ..
 done
 
- # Create the ZIP bundle
-cd ../../
-local zip_name="hyperswitch-sdk-bundle.zip"
+
+temp_dir=$(mktemp -d)
+mkdir -p "$temp_dir/io/hyperswitch"
+
+
+for library in "${selected_libraries[@]}"; do
+    cp -r "$library" "$temp_dir/io/hyperswitch/"
+done
+
+
+cd "$temp_dir"
+zip_name="hyperswitch-sdk-bundle.zip"
 echo "Creating ZIP bundle for $zip_name..."
-# zip -r "hyperswitch-sdk-bundle.zip" ./*
-zip -r "hyperswitch-sdk-bundle.zip" io/hyperswitch
+zip -r "$zip_name" io/hyperswitch
+
+
+mv "$zip_name" ../../
+cd ../../
+rm -rf "$temp_dir"
 
 upload_to_sonatype "hyperswitch-sdk-bundle.zip"
-
 echo "Processing completed."
