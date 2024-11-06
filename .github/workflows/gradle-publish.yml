@@ -45,6 +45,7 @@ jobs:
         GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
         GPG_FULL_SIGNING_KEY: ${{ secrets.GPG_FULL_SIGNING_KEY }}
         SONATYPE_TOKEN: ${{ secrets.SONATYPE_TOKEN_2 }}
+        SELECTED_LIBRARIES: "hyperswitch-gradle-plugin,plugin"
       run: ./build-lib.sh
 
      
