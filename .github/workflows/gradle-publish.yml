@@ -43,15 +43,6 @@ jobs:
     - name: Extract libraries from commit message
       id: extract-libs
       run: |
-        # # Extract text between square brackets after [build-libs]
-        # COMMIT_MSG="${{ github.event.head_commit.message }}"
-        # LIBS=$(echo "$COMMIT_MSG" | grep -o '\[build-libs\]\[.*\]' | grep -o '\[.*\]$' | tr -d '[]')
-        # if [ -z "$LIBS" ]; then
-        #   echo "No libraries specified in commit message"
-        #   exit 1
-        # fi
-        # echo "Found libraries: $LIBS"
-        # echo "libraries=$LIBS" >> $GITHUB_OUTPUT
           COMMIT_MSG="${{ github.event.head_commit.message }}"
           
           # Check if commit message contains a valid format for libraries
