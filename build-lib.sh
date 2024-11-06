@@ -117,13 +117,13 @@ fi
 echo "Library generation process initiated."
 echo "Generating artifacts for React Native Gradle Plugin."
 
-./gradlew build
-./gradlew publish
+# ./gradlew build
+# ./gradlew publish
 
-cd hyperswitch-gradle-plugin
-./gradlew build
-./gradlew publish
-cd ..
+# cd hyperswitch-gradle-plugin
+# ./gradlew build
+# ./gradlew publish
+# cd ..
 
 echo "Generating artifacts for Hyperswitch Android SDK."
 ./gradlew clean
@@ -252,7 +252,7 @@ fi
 
 
 echo "Processing selected libraries: ${selected_libraries[*]}"
-# Process only selected libraries
+
 for library in "${selected_libraries[@]}"; do
     echo "Processing library: $library"
     cd "$library" || continue
@@ -283,7 +283,7 @@ zip_name="hyperswitch-sdk-bundle.zip"
 echo "Creating ZIP bundle for $zip_name..."
 zip -r "$zip_name" io/hyperswitch
 
-# Move zip file to original directory and clean up
+
 upload_to_sonatype "hyperswitch-sdk-bundle.zip"
 # cp "$zip_name" ../../
 cd ../../
