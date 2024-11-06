@@ -19,7 +19,11 @@ buildscript {
         classpath("com.android.tools.build:gradle")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
         classpath("io.hyperswitch:react-native-gradle-plugin:0.75.2.1")
+        classpath("io.hyperswitch:hyperswitch-gradle-plugin:0.0.2")
+        // classpath("io.hyperswitch:settings-plugin:0.75.2")
+        classpath("io.hyperswitch.settings:io.hyperswitch.settings.gradle.plugin:0.75.2")
     }
+
 }
 
 /*
