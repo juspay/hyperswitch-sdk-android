@@ -117,13 +117,13 @@ fi
 echo "Library generation process initiated."
 echo "Generating artifacts for React Native Gradle Plugin."
 
-# ./gradlew build
-# ./gradlew publish
+./gradlew build
+./gradlew publish
 
-# cd hyperswitch-gradle-plugin
-# ./gradlew build
-# ./gradlew publish
-# cd ..
+cd hyperswitch-gradle-plugin
+./gradlew build
+./gradlew publish
+cd ..
 
 echo "Generating artifacts for Hyperswitch Android SDK."
 ./gradlew clean
