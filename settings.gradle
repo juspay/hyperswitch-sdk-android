@@ -4,17 +4,16 @@ pluginManagement {
         google()
         gradlePluginPortal()
     }
-    // includeBuild('../node_modules/@react-native/gradle-plugin')
-    // includeBuild('hyperswitch-gradle-plugin')
+    includeBuild('../node_modules/@react-native/gradle-plugin')
+    includeBuild('hyperswitch-gradle-plugin')
 }
 plugins {
     id("io.hyperswitch.settings") version "0.75.2"
-//    id("io.hyperswitch.hyperswitch-gradle-plugin") version "0.0.2"
 }
 extensions.configure(com.facebook.react.ReactSettingsExtension) { ex -> ex.autolinkLibrariesFromCommand() }
 
 rootProject.name = 'io.hyperswitch'
 
 include ':app', ':react-native-code-push', ':hyperswitch-sdk-android-lite'
-// includeBuild('../node_modules/@react-native/gradle-plugin')
- project(':react-native-code-push').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-code-push/android/app')
+includeBuild('../node_modules/@react-native/gradle-plugin')
+project(':react-native-code-push').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-code-push/android/app')
