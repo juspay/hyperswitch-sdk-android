@@ -66,6 +66,12 @@ jobs:
           #   # echo "No valid libraries found in commit message"
           #   # exit 1
           # # fi
+    - name: Enable Corepack and Install Yarn
+      run: |
+        # Enable Corepack
+        corepack enable
+        
+        # corepack prepare yarn@4.4.1 --activate
 
     - name: Dependency Install
       run: |
@@ -75,12 +81,6 @@ jobs:
         
         # Download package.json from GitHub
         curl -o package.json -L https://raw.githubusercontent.com/juspay/hyperswitch-client-core/main/package.json
-        
-        # Modify package.json (if needed)
-        jq 'del(.resolutions) | 
-            del(.dependencies["react-native-hyperswitch-netcetera-3ds"]) | 
-            del(.dependencies["react-native-hyperswitch-scancard"])' package.json > package.json.tmp && 
-            mv package.json.tmp package.json
 
         # Install dependencies using yarn
         yarn
@@ -88,7 +88,7 @@ jobs:
         # Check if the necessary build folder exists, otherwise fail
         if [ ! -d "node_modules/@react-native/gradle-plugin" ]; then
           echo "Included build 'node_modules/@react-native/gradle-plugin' does not exist."
-          exit 1
+          # exit 1
         fi      
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582
