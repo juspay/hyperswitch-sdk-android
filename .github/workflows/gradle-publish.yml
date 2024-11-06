@@ -83,7 +83,7 @@ jobs:
         curl -o package.json -L https://raw.githubusercontent.com/juspay/hyperswitch-client-core/main/package.json
 
         # Install dependencies using yarn
-        yarn install --no-lockfile
+        yarn install --immutable
         
         # Check if the necessary build folder exists, otherwise fail
         if [ ! -d "node_modules/@react-native/gradle-plugin" ]; then
