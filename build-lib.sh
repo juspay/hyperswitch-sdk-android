@@ -175,29 +175,81 @@ done
 
 # Get user selection
 selected_libraries=()
-echo
-echo "Enter the numbers of the libraries you want to include (space-separated)"
-echo "Example: 1 3 4"
-read -p "Your selection: " selections
+# echo
+# echo "Enter the numbers of the libraries you want to include (space-separated)"
+# echo "Example: 1 3 4"
+# read -p "Your selection: " selections
 
-# Convert selections to array
-read -ra selection_array <<< "$selections"
+# # Convert selections to array
+# read -ra selection_array <<< "$selections"
 
-# Validate and process selections
-for selection in "${selection_array[@]}"; do
-    if [[ "$selection" =~ ^[0-9]+$ ]] && ((selection > 0 && selection <= ${#available_libraries[@]})); then
-        selected_libraries+=("${available_libraries[$selection-1]}")
-        echo "Selected: ${available_libraries[$selection-1]}"
+# # Validate and process selections
+# for selection in "${selection_array[@]}"; do
+#     if [[ "$selection" =~ ^[0-9]+$ ]] && ((selection > 0 && selection <= ${#available_libraries[@]})); then
+#         selected_libraries+=("${available_libraries[$selection-1]}")
+#         echo "Selected: ${available_libraries[$selection-1]}"
+#     else
+#         echo "Invalid selection: $selection"
+#     fi
+# done
+
+# # Check if any libraries were selected
+# if [ ${#selected_libraries[@]} -eq 0 ]; then
+#     echo "No valid libraries selected. Exiting."
+#     exit 1
+# fi
+
+# Check if SELECTED_LIBRARIES environment variable is set (for CI)
+if [ ! -z "$SELECTED_LIBRARIES" ]; then
+    echo "Using libraries from SELECTED_LIBRARIES environment variable"
+    IFS=',' read -ra selected_libraries <<< "$SELECTED_LIBRARIES"
+# Check if command line arguments were provided
+elif [ $# -gt 0 ]; then
+    echo "Using libraries from command line arguments"
+    selected_libraries=("$@")
+else
+    # Interactive mode
+    echo "Available libraries:"
+    index=1
+    for library in "${available_libraries[@]}"; do
+        echo "$index) $library"
+        ((index++))
+    done
+
+    echo
+    echo "Enter the numbers of the libraries you want to include (space-separated)"
+    echo "Example: 1 3 4"
+    read -r selections
+
+    # Convert selections to array
+    read -ra selection_array <<< "$selections"
+
+    # Validate and process selections
+    for selection in "${selection_array[@]}"; do
+        if [[ "$selection" =~ ^[0-9]+$ ]] && ((selection > 0 && selection <= ${#available_libraries[@]})); then
+            selected_libraries+=("${available_libraries[$selection-1]}")
+             echo "Selected: ${available_libraries[$selection-1]}"
+        else
+            echo "Invalid selection: $selection"
+        fi
+    done
+fi
+
+# Validate selected libraries
+valid_libraries=()
+for library in "${selected_libraries[@]}"; do
+    if [[ " ${available_libraries[@]} " =~ " ${library} " ]]; then
+        valid_libraries+=("$library")
     else
-        echo "Invalid selection: $selection"
+        echo "Warning: Library '$library' not found, skipping"
     fi
 done
 
-# Check if any libraries were selected
-if [ ${#selected_libraries[@]} -eq 0 ]; then
+if [ ${#valid_libraries[@]} -eq 0 ]; then
     echo "No valid libraries selected. Exiting."
     exit 1
 fi
+
 
 echo "Processing selected libraries: ${selected_libraries[*]}"
 # Process only selected libraries
