@@ -138,7 +138,6 @@ process_version_directory() {
     local version_dir="$2"
     cd "$version_dir" || return
     
-    # Sign all relevant files in the version directory
     for file in *.{aar,pom,jar,module}; do
         [ -e "$file" ] || continue
         echo "Signing $file..."
@@ -150,7 +149,7 @@ process_version_directory() {
 upload_to_sonatype() {
     local zip_file="$1"
     local sonatype_url="https://central.sonatype.com/api/v1/publisher/upload"
-    local authorization_token="Bearer $SONATYPE_TOKEN2"
+    local authorization_token="Bearer $SONATYPE_TOKEN"
     
     echo "Uploading $zip_file to Sonatype Central... with key $SONATYPE_TOKEN"
     curl --request POST \
@@ -161,9 +160,10 @@ upload_to_sonatype() {
 }
 
 # Get list of available libraries
+echo "Discovering available libraries..."
 available_libraries=()
-echo "Available libraries:"
 index=1
+echo "Available libraries:"
 for library_dir in */; do
     if [ -d "$library_dir" ]; then
         library_name=${library_dir%/}
@@ -178,7 +178,7 @@ selected_libraries=()
 echo
 echo "Enter the numbers of the libraries you want to include (space-separated)"
 echo "Example: 1 3 4"
-read -r selections
+read -p "Your selection: " selections
 
 # Convert selections to array
 read -ra selection_array <<< "$selections"
@@ -187,11 +187,19 @@ read -ra selection_array <<< "$selections"
 for selection in "${selection_array[@]}"; do
     if [[ "$selection" =~ ^[0-9]+$ ]] && ((selection > 0 && selection <= ${#available_libraries[@]})); then
         selected_libraries+=("${available_libraries[$selection-1]}")
+        echo "Selected: ${available_libraries[$selection-1]}"
     else
         echo "Invalid selection: $selection"
     fi
 done
 
+# Check if any libraries were selected
+if [ ${#selected_libraries[@]} -eq 0 ]; then
+    echo "No valid libraries selected. Exiting."
+    exit 1
+fi
+
+echo "Processing selected libraries: ${selected_libraries[*]}"
 # Process only selected libraries
 for library in "${selected_libraries[@]}"; do
     echo "Processing library: $library"
@@ -206,21 +214,24 @@ for library in "${selected_libraries[@]}"; do
 done
 
 
+
+# Create temporary directory for selected libraries
 temp_dir=$(mktemp -d)
 mkdir -p "$temp_dir/io/hyperswitch"
 
-
+# Copy only selected libraries
 for library in "${selected_libraries[@]}"; do
+    echo "Copying library: $library"
     cp -r "$library" "$temp_dir/io/hyperswitch/"
 done
 
-
+# Create the ZIP bundle
 cd "$temp_dir"
 zip_name="hyperswitch-sdk-bundle.zip"
 echo "Creating ZIP bundle for $zip_name..."
 zip -r "$zip_name" io/hyperswitch
 
-
+# Move zip file to original directory and clean up
 mv "$zip_name" ../../
 cd ../../
 rm -rf "$temp_dir"
