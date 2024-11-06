@@ -151,7 +151,7 @@ upload_to_sonatype() {
     local sonatype_url="https://central.sonatype.com/api/v1/publisher/upload"
     local authorization_token="Bearer $SONATYPE_TOKEN"
     
-    echo "Uploading $zip_file to Sonatype Central... with key $SONATYPE_TOKEN"
+    echo "Uploading $zip_file to Sonatype Central..."
     curl --request POST \
         --verbose \
         --header "Authorization: $authorization_token" \
@@ -284,7 +284,7 @@ echo "Creating ZIP bundle for $zip_name..."
 zip -r "$zip_name" io/hyperswitch
 
 # Move zip file to original directory and clean up
-mv "$zip_name" ../../
+cp "$zip_name" ../../
 cd ../../
 rm -rf "$temp_dir"
 
