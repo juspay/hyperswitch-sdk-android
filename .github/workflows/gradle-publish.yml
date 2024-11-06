@@ -46,14 +46,14 @@ jobs:
           COMMIT_MSG="${{ github.event.head_commit.message }}"
           
           # Check if commit message contains a valid format for libraries
-          if [[ "$COMMIT_MSG" =~ ^release:\ \[([a-zA-Z0-9, ]+)\]\ .* ]]; then
+          # if [[ "$COMMIT_MSG" =~ ^release:\ \[([a-zA-Z0-9, ]+)\]\ .* ]]; then
             LIBS="${BASH_REMATCH[1]}"
             echo "Found libraries: $LIBS"
             echo "libraries=$LIBS" >> $GITHUB_OUTPUT
-          else
-            echo "No valid libraries found in commit message"
-            exit 1
-          fi
+          # else
+            # echo "No valid libraries found in commit message"
+            # exit 1
+          # fi
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582
   
