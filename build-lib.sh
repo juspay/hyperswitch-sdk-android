@@ -284,9 +284,9 @@ echo "Creating ZIP bundle for $zip_name..."
 zip -r "$zip_name" io/hyperswitch
 
 # Move zip file to original directory and clean up
-cp "$zip_name" ../../
+upload_to_sonatype "hyperswitch-sdk-bundle.zip"
+# cp "$zip_name" ../../
 cd ../../
 rm -rf "$temp_dir"
 
-upload_to_sonatype "hyperswitch-sdk-bundle.zip"
 echo "Processing completed."
