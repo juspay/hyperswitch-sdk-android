@@ -127,6 +127,7 @@ echo "Generating artifacts for React Native Gradle Plugin."
 
 echo "Generating artifacts for Hyperswitch Android SDK."
 ./gradlew clean
+./gradlew build
 ./gradlew assembleRelease
 ./gradlew publish
 
