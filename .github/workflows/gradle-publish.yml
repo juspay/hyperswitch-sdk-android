@@ -85,7 +85,13 @@ jobs:
         # Install dependencies using yarn
         npm i
         
-        curl -o react-native.config.js -L https://raw.githubusercontent.com/juspay/hyperswitch-client-core/main/react-native.config.js
+        # curl -o react-native.config.js -L https://raw.githubusercontent.com/juspay/hyperswitch-client-core/main/react-native.config.js
+        
+        echo "module.exports = { project: { android: { sourceDir: './android' } } };" > react-native.config.js
+    
+        # Ensure the gradle.properties file exists
+        mkdir -p android && touch android/gradle.properties
+
         
         # Check if the necessary build folder exists, otherwise fail
         if [ ! -d "node_modules/@react-native/gradle-plugin" ]; then
