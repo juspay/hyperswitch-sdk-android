@@ -116,17 +116,24 @@ fi
 
 echo "Library generation process initiated."
 echo "Generating artifacts for React Native Gradle Plugin."
+cd ..
+cd node_modules/@react-native/gradle-plugin
+./gradlew build
+./gradlew publish
 
-# ./gradlew build
-# ./gradlew publish
+# echo "Applying LibraryCreation Patch."
 
-# cd hyperswitch-gradle-plugin
-# ./gradlew build
-# ./gradlew publish
-# cd ..
+# Navigate to the Android folder and apply the patch
+cd ../../../hyperswitch-sdk-android
+# git apply libraryCreation.patch
 
-echo "Generating artifacts for Hyperswitch Android SDK."
-./gradlew clean
+cd hyperswitch-gradle-plugin
+./gradlew build
+./gradlew publish
+
+cd ..
+# echo "Generating artifacts for Hyperswitch Android SDK."
+# ./gradlew clean
 ./gradlew assembleRelease
 ./gradlew publish
 
