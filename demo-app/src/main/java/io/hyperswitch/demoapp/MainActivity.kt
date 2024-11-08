@@ -91,7 +91,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun getCL() {
 
-        ctx.findViewById<View>(R.id.reloadButton).isEnabled = false;
+        ctx.findViewById<View>(R.id.reloadButton).isEnabled = true;
         ctx.findViewById<View>(R.id.launchButton).isEnabled = false;
         ctx.findViewById<View>(R.id.launchWebButton).isEnabled = false;
         ctx.findViewById<View>(R.id.confirmButton).isEnabled = false;
@@ -159,11 +159,13 @@ class MainActivity : AppCompatActivity() {
                         }
                     } catch (e: JSONException) {
                         Log.d("Backend Response", e.toString())
+                        setStatus("could not connect to the server")
                     }
                 }
 
                 override fun failure(error: FuelError) {
                     Log.d("Backend Response", error.toString())
+                    setStatus("could not connect to the server")
                 }
             })
     }
