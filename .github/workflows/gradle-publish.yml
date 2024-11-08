@@ -84,6 +84,8 @@ jobs:
         git clone https://github.com/juspay/hyperswitch-client-core.git 
         rm -rf android
         rm -rf ios
+        echo "Directory structure after setup:"
+        ls -la
         # Install dependencies using yarn
         npm i
         
