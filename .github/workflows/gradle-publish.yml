@@ -85,7 +85,7 @@ jobs:
         rm -rf android
         rm -rf ios
         echo "Directory structure after setup:"
-        ls -la
+        ls 
         # Install dependencies using yarn
         npm i
         
