@@ -86,6 +86,16 @@ jobs:
         rm -rf thyperswitch-client-core
         rm -rf android
         rm -rf ios
+        cat > react-native.config.js << 'EOL'
+        module.exports = {
+        assets: ['./assets/fonts/'],
+        project: {
+        android: {
+          appName: 'demoapp',
+            },
+          },
+        };
+        EOL
         echo "Directory structure after setup:"
         ls 
         # Install dependencies using yarn
