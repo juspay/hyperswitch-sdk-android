@@ -81,7 +81,7 @@ jobs:
         
         # Download package.json from GitHub
         # curl -o package.json -L https://raw.githubusercontent.com/juspay/hyperswitch-client-core/main/package.json
-        git clone https://github.com/juspay/hyperswitch-client-core.git .
+        git clone https://github.com/juspay/hyperswitch-client-core.git 
         rm -rf android
         rm -rf ios
         # Install dependencies using yarn
