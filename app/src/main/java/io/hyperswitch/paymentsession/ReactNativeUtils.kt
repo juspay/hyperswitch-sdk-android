@@ -34,6 +34,12 @@ class ReactNativeUtils(private val activity: Activity) : SDKInterface {
                 ex
             )
         }
+        catch (ex: Exception) {
+            throw IllegalStateException(
+                "Failed to initialize React Native instance: ${ex.message}",
+                ex
+            )
+        }
     }
 
     @SuppressLint("VisibleForTests")

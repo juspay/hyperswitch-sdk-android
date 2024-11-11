@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.net.wifi.WifiManager
 import android.os.Bundle
+import android.util.Log
 import android.webkit.WebSettings
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.lite.BuildConfig
@@ -96,11 +97,14 @@ class LaunchOptions(private val activity: Activity? = null) {
     // Get user agent
     private fun getUserAgent(context: Context?): String? =
         try {
-            if (context == null)
+            if (context == null){
+                Log.w("LaunchOptions","Context is null, falling back to system http.agent")
                 System.getProperty("http.agent") ?: null
+            }
             else
                 WebSettings.getDefaultUserAgent(context)
         } catch (e: RuntimeException) {
+            Log.w("LaunchOptions","Failed to get WebView user agent, falling back to system http.agent", e)
             System.getProperty("http.agent") ?: null
         }
 
