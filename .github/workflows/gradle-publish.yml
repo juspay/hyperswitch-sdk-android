@@ -40,8 +40,6 @@ jobs:
         gpg-private-key: ${{ secrets.GPG_SIGNING_KEY }}
         gpg-passphrase: GPG_PASSPHRASE
 
-
-    
     - name: Extract libraries from commit message
       id: extract-libs
       run: |
