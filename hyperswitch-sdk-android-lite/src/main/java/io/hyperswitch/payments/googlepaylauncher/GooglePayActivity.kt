@@ -53,6 +53,9 @@ class GooglePayActivity : AppCompatActivity() {
             } catch (error: JSONException) {
                 put("error", error.message)
             }
+            catch (e: Exception) {
+                put ("error", e.message)
+            }
         })
         finish()
     }

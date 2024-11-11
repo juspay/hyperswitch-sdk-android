@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.os.Parcelable
+import android.util.Log
 import android.webkit.WebSettings
 import androidx.fragment.app.FragmentActivity
 import com.facebook.react.ReactFragment
@@ -71,7 +72,8 @@ class Utils {
       return try {
         WebSettings.getDefaultUserAgent(context)
       } catch (e: RuntimeException) {
-        System.getProperty("http.agent") ?: ""
+          Log.e("UserAgent","Failed to get default user agent", e)
+          System.getProperty("http.agent") ?: ""
       }
     }
 
@@ -117,7 +119,9 @@ class Utils {
             .beginTransaction()
             .hide(reactNativeFragmentSheet)
             .commitAllowingStateLoss()
-        } catch(_: Exception) {}
+        } catch (e: Exception) {
+          Log.e("ReactFragment","Failed to hide fragment", e)
+      }
       }
     }
 

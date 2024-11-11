@@ -1,7 +1,9 @@
 package io.hyperswitch.react
 
+import android.util.Log
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
+import com.facebook.react.bridge.NoSuchKeyException
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
@@ -100,7 +102,13 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
 
         val tag = try {
             readableMap.getString("TAG")
-        } catch (ex: Exception) {
+        }
+        catch (ex: NoSuchKeyException) {
+            Log.w("GetPaymentMethods", "TAG key not found in payment method data", ex)
+            ""  
+        }  
+        catch (ex: Exception) {
+            Log.e("GetPaymentMethods", "Unexpected error reading TAG from payment method data", ex)
             ""
         }
         val dataObject: ReadableMap = readableMap.getMap("_0") ?: Arguments.createMap()
