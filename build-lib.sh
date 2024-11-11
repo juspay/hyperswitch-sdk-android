@@ -10,14 +10,14 @@
 # echo "Generating artifacts for React Native Gradle Plugin."
 
 # # Navigate to the react-native gradle plugin and build and publish
-# # cd node_modules/@react-native/gradle-plugin
+# cd node_modules/@react-native/gradle-plugin
 # ./gradlew build
 # ./gradlew publish
 
-# # echo "Applying LibraryCreation Patch."
+# echo "Applying LibraryCreation Patch."
 
 # # Navigate to the Android folder and apply the patch
-# # cd ../../../android
+# cd ../../../android
 # # git apply libraryCreation.patch
 
 # cd hyperswitch-gradle-plugin
@@ -127,7 +127,7 @@ pwd
 # echo "Applying LibraryCreation Patch."
 
 # Navigate to the Android folder and apply the patch
-cd ../../../hyperswitch-sdk-android
+cd ../../../android
 pwd "DIRECTORY ECHO"
 # git apply libraryCreation.patch
 
