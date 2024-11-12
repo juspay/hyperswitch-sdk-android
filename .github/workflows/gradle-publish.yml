@@ -47,7 +47,7 @@ jobs:
           LIBS=$(echo "$COMMIT_MSG" | grep -o '\[build-libs\]\[.*\]' | grep -o '\[.*\]$' | tr -d '[]')
           if [ -z "$LIBS" ]; then
             echo "No libraries specified in commit message"
-            exit 1
+            exit 0
           fi
           echo "Found libraries: $LIBS"
           echo "libraries=$LIBS" >> $GITHUB_OUTPUT
