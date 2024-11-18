@@ -2,7 +2,7 @@ name: Trigger Main Repo Build
 on:
   push:
     branches:
-      - newPublishPipeline
+      # - newPublishPipeline
 
 jobs:
   trigger:
