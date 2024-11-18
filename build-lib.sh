@@ -127,18 +127,15 @@ pwd
 # echo "Applying LibraryCreation Patch."
 
 # Navigate to the Android folder and apply the patch
-# cd ../../../android
-cd ../../../hyperswitch-sdk-android
-pwd "DIRECTORY ECHO"
+cd ../../../android
+# cd ../../../hyperswitch-sdk-android
 # git apply libraryCreation.patch
 
 cd hyperswitch-gradle-plugin
-pwd "DIRECTORY ECHO"
 ./gradlew build
 ./gradlew publish
 
 cd ..
-pwd "DIRECTORY ECHO"
 # echo "Generating artifacts for Hyperswitch Android SDK."
 # ./gradlew clean
 ./gradlew assembleRelease
