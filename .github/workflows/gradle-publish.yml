@@ -5,7 +5,9 @@ name: Publish to Maven Central
 #     types: [created]
 on:
   push:
-    branches: [ newPublishPipeline ]
+    # branches: [ newPublishPipeline ]
+    branches: [ feat-androidWebView ]
+    
     
 jobs:
   publish:
