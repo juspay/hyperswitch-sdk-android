@@ -45,43 +45,12 @@ android {
 }
 
 dependencies {
-    implementation("androidx.appcompat:appcompat")
-    implementation("androidx.activity:activity-ktx")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("com.google.android.material:material")
     implementation("com.google.android.gms:play-services-wallet")
-    implementation("org.greenrobot:eventbus")
-
 
     constraints {
-        implementation("androidx.appcompat:appcompat") {
-            version {
-                prefer '1.6.1'
-            }
-        }
-        implementation("androidx.activity:activity-ktx") {
-            version {
-                prefer '1.6.1'
-            }
-        }
-        implementation("androidx.compose.ui:ui-graphics") {
-            version {
-                prefer '1.4.3'
-            }
-        }
-        implementation("com.google.android.material:material") {
-            version {
-                prefer '1.9.0'
-            }
-        }
         implementation("com.google.android.gms:play-services-wallet") {
             version {
-                prefer '19.2.1'
-            }
-        }
-        implementation("org.greenrobot:eventbus") {
-            version {
-                prefer '3.3.1'
+                prefer '16.0.1'
             }
         }
     }

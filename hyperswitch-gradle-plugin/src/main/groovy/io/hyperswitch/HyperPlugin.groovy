@@ -7,7 +7,7 @@ class HyperPlugin implements Plugin<Project> {
     void apply(Project project) {
         project.plugins.withId('com.android.application') {
             project.dependencies {
-                implementation 'io.hyperswitch:hyperswitch-sdk-android:1.0.7'
+                implementation 'io.hyperswitch:hyperswitch-sdk-android:1.0.8'
             }
 
             try {
@@ -49,7 +49,6 @@ class HyperPlugin implements Plugin<Project> {
                         exclude "lib/**/libreact_render_element.so"
                         exclude "lib/**/libjsijniprofiler.so"
                         exclude "lib/**/libnative-filters.so"
-                        exclude "lib/**/libimagepipeline.so"
                         exclude "lib/**/libsentry.so"
                         exclude "lib/**/libsentry-android.so"
                     }
