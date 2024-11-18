@@ -79,6 +79,55 @@ jobs:
         
         # corepack prepare yarn@4.4.1 --activate
 
+    # - name: Dependency Install
+    #   run: |
+    #     # Create a new folder for the dependencies
+    #     mkdir -p /home/runner/work/hyperswitch-sdk-android
+    #     cd /home/runner/work/hyperswitch-sdk-android
+        
+    #     # Download package.json from GitHub
+    #     # curl -o package.json -L https://raw.githubusercontent.com/juspay/hyperswitch-client-core/main/package.json
+    #     git clone https://github.com/juspay/hyperswitch-client-core.git 
+    #     cp -r hyperswitch-client-core/* .
+    #     rm -rf hyperswitch-client-core
+    #     rm -rf android
+    #     rm -rf ios
+    #     # cat > react-native.config.js << 'EOL'
+    #     # module.exports = {
+    #     # assets: ['./assets/fonts/'],
+    #     # project: {
+    #     # android: {
+    #     #   appName: 'demoapp',
+    #     #     },
+    #     #   },
+    #     # };
+    #     # EOL
+    #     echo "Directory structure after setup:"
+    #     ls 
+
+    #     # mv hyperswitch-sdk-android android
+
+    #     ls 
+    #     # Install dependencies using yarn
+    #     npm i
+        
+    #     # curl -o react-native.config.js -L https://raw.githubusercontent.com/juspay/hyperswitch-client-core/main/react-native.config.js
+    #     # curl -o rescript.json -L https://raw.githubusercontent.com/juspay/hyperswitch-client-core/main/rescript.json
+    #     npm run re:start
+    #     echo "Directory structure after downloads:"
+    #     ls 
+    #     # echo "module.exports = { project: { android: { sourceDir: './android' } } };" > react-native.config.js
+    
+    #     # # Ensure the gradle.properties file exists
+    #     # mkdir -p android && touch android/gradle.properties
+
+        
+    #     # Check if the necessary build folder exists, otherwise fail
+    #     if [ ! -d "node_modules/@react-native/gradle-plugin" ]; then
+    #       echo "Included build 'node_modules/@react-native/gradle-plugin' does not exist."
+    #       # exit 1
+    #     fi      
+    
     - name: Dependency Install
       run: |
         # Create a new folder for the dependencies
@@ -86,34 +135,12 @@ jobs:
         cd /home/runner/work/hyperswitch-sdk-android
         
         # Download package.json from GitHub
-        # curl -o package.json -L https://raw.githubusercontent.com/juspay/hyperswitch-client-core/main/package.json
-        git clone https://github.com/juspay/hyperswitch-client-core.git 
-        cp -r hyperswitch-client-core/* .
-        rm -rf hyperswitch-client-core
-        rm -rf android
-        rm -rf ios
-        # cat > react-native.config.js << 'EOL'
-        # module.exports = {
-        # assets: ['./assets/fonts/'],
-        # project: {
-        # android: {
-        #   appName: 'demoapp',
-        #     },
-        #   },
-        # };
-        # EOL
-        echo "Directory structure after setup:"
-        ls 
-
-        # mv hyperswitch-sdk-android android
-
-        ls 
+        curl -o package.json -L https://raw.githubusercontent.com/juspay/hyperswitch-client-core/main/package.json
+        
         # Install dependencies using yarn
         npm i
         
-        # curl -o react-native.config.js -L https://raw.githubusercontent.com/juspay/hyperswitch-client-core/main/react-native.config.js
-        # curl -o rescript.json -L https://raw.githubusercontent.com/juspay/hyperswitch-client-core/main/rescript.json
-        npm run re:start
+        curl -o react-native.config.js -L https://raw.githubusercontent.com/juspay/hyperswitch-client-core/main/react-native.config.js
         echo "Directory structure after downloads:"
         ls 
         # echo "module.exports = { project: { android: { sourceDir: './android' } } };" > react-native.config.js
@@ -126,7 +153,7 @@ jobs:
         if [ ! -d "node_modules/@react-native/gradle-plugin" ]; then
           echo "Included build 'node_modules/@react-native/gradle-plugin' does not exist."
           # exit 1
-        fi      
+        fi 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582
   
