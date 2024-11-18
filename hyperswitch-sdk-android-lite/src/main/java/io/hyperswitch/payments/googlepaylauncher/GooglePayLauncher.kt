@@ -1,14 +1,14 @@
 package io.hyperswitch.payments.googlepaylauncher
 
+import android.app.Activity
 import android.os.Parcelable
-import androidx.appcompat.app.AppCompatActivity
 import io.hyperswitch.PaymentConfiguration
 import kotlinx.parcelize.Parcelize
 
 class GooglePayLauncher() {
 
     constructor(
-        activity: AppCompatActivity,
+        activity: Activity,
         config: Config,
         readyCallback: GooglePayPaymentMethodLauncher.ReadyCallback,
         resultCallback: GooglePayPaymentMethodLauncher.ResultCallback,

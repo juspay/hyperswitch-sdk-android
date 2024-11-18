@@ -1,11 +1,11 @@
 package io.hyperswitch.demoapp
 
+import android.app.Activity
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
@@ -20,9 +20,9 @@ import org.json.JSONObject
 import io.hyperswitch.lite.PaymentSession as PaymentSessionLite
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : Activity() {
 
-    lateinit var ctx: AppCompatActivity;
+    lateinit var ctx: Activity;
     private var paymentIntentClientSecret: String = "clientSecret"
     private var publishKey: String = ""
     private lateinit var paymentSession: PaymentSession
@@ -91,7 +91,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun getCL() {
 
-        ctx.findViewById<View>(R.id.reloadButton).isEnabled = true;
         ctx.findViewById<View>(R.id.launchButton).isEnabled = false;
         ctx.findViewById<View>(R.id.launchWebButton).isEnabled = false;
         ctx.findViewById<View>(R.id.confirmButton).isEnabled = false;
@@ -152,7 +151,6 @@ class MainActivity : AppCompatActivity() {
                             }
 
                             ctx.runOnUiThread {
-                                ctx.findViewById<View>(R.id.reloadButton).isEnabled = true
                                 ctx.findViewById<View>(R.id.launchButton).isEnabled = true
                                 ctx.findViewById<View>(R.id.launchWebButton).isEnabled = true
                             }

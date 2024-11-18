@@ -1,10 +1,10 @@
 package io.hyperswitch.payments.paypallauncher
 
-import androidx.appcompat.app.AppCompatActivity
+import android.app.Activity
 
 class PayPalLauncher() {
     constructor(
-        activity: AppCompatActivity,
+        activity: Activity,
         readyCallback: PayPalPaymentMethodLauncher.ReadyCallback,
         resultCallback: PayPalPaymentMethodLauncher.ResultCallback,
         clientSecret: String? = null
