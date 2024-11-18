@@ -43,15 +43,24 @@ jobs:
       id: extract-libs
       run: |
           # Extract text between square brackets after [build-libs]
+          # COMMIT_MSG="${{ github.event.head_commit.message }}"
+          # LIBS=$(echo "$COMMIT_MSG" | grep -o '\[build-libs\]\[.*\]' | grep -o '\[.*\]$' | tr -d '[]')
+          # if [ -z "$LIBS" ]; then
+          #   echo "No libraries specified in commit message"
+          #   exit 0
+          # fi
+          # echo "Found libraries: $LIBS"
+          # echo "libraries=$LIBS" >> $GITHUB_OUTPUT
+      
           COMMIT_MSG="${{ github.event.head_commit.message }}"
-          LIBS=$(echo "$COMMIT_MSG" | grep -o '\[build-libs\]\[.*\]' | grep -o '\[.*\]$' | tr -d '[]')
-          if [ -z "$LIBS" ]; then
-            echo "No libraries specified in commit message"
-            exit 0
+          if [[ ! "$COMMIT_MSG" =~ ^release:\[(.*)\] ]]; then
+            echo "Invalid commit message format. Expected: release:[lib1,lib2]"
+            exit 1
           fi
+
+          LIBS="${BASH_REMATCH[1]}"
           echo "Found libraries: $LIBS"
           echo "libraries=$LIBS" >> $GITHUB_OUTPUT
-      
           # COMMIT_MSG="${{ github.event.head_commit.message }}"
           
           # # Check if commit message contains a valid format for libraries
@@ -80,7 +89,7 @@ jobs:
         # curl -o package.json -L https://raw.githubusercontent.com/juspay/hyperswitch-client-core/main/package.json
         git clone https://github.com/juspay/hyperswitch-client-core.git 
         cp -r hyperswitch-client-core/* .
-        rm -rf thyperswitch-client-core
+        rm -rf hyperswitch-client-core
         rm -rf android
         rm -rf ios
         # cat > react-native.config.js << 'EOL'
@@ -96,7 +105,7 @@ jobs:
         echo "Directory structure after setup:"
         ls 
 
-        mv hyperswitch-sdk-android android
+        # mv hyperswitch-sdk-android android
 
         ls 
         # Install dependencies using yarn
