@@ -2,24 +2,23 @@ name: Trigger Main Repo Build
 on:
   push:
     branches:
-      # - newPublishPipeline
+      - main
 
 jobs:
   trigger:
     runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, 'release:')
     steps:
       - name: Trigger client core repo workflow
         run: |
           curl -d "{\"event_type\": \"android_repo_push\"}" -H "Content-Type: application/json" -H "Authorization: token ${AUTORELEASE_PAT}" -H "Accept: application/vnd.github.everest-preview+json" "https://api.github.com/repos/juspay/hyperswitch-client-core/dispatches"
         env:
-           AUTORELEASE_PAT: ${{ secrets.AUTORELEASE_PAT }}
+          AUTORELEASE_PAT: ${{ secrets.AUTORELEASE_PAT }}
 #           curl -X POST \
 #             -H "Authorization: token ${{ secrets.AUTORELEASE_PAT }}" \
 #             -H "Accept: application/vnd.github.v3+json" \
 #             https://api.github.com/repos/juspay/hyperswitch-client-core/dispatches \
 #             -d '{"event_type":"android_repo_push"}'
-
-              
 
 # name: Trigger Client Core Build
 # on:

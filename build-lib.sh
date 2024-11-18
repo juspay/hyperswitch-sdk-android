@@ -127,7 +127,8 @@ pwd
 # echo "Applying LibraryCreation Patch."
 
 # Navigate to the Android folder and apply the patch
-cd ../../../android
+# cd ../../../android
+cd ../../../hyperswitch-sdk-android
 pwd "DIRECTORY ECHO"
 # git apply libraryCreation.patch
 
