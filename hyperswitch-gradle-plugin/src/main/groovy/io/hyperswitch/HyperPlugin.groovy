@@ -49,8 +49,6 @@ class HyperPlugin implements Plugin<Project> {
                         exclude "lib/**/libreact_render_element.so"
                         exclude "lib/**/libjsijniprofiler.so"
                         exclude "lib/**/libnative-filters.so"
-                        exclude "lib/**/libsentry.so"
-                        exclude "lib/**/libsentry-android.so"
                     }
                 }
             } catch (ignored) {
