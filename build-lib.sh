@@ -32,6 +32,9 @@ echo "Generating artifacts for Hyperswitch Android SDK."
 
 cd maven/io/hyperswitch || exit 1
 
+export GPG_TTY=$(tty)
+echo "RELOADAGENT" | gpg-connect-agent
+
 # Function to sign files and create a bundle
 process_version_directory() {
     local base_dir="$1"
@@ -41,7 +44,9 @@ process_version_directory() {
     for file in *.{aar,pom,jar,module}; do
         [ -e "$file" ] || continue
         echo "Signing $file..."
-        gpg --armor --output "${file}.asc" --detach-sign "$file"
+        # gpg --armor --output "${file}.asc" --detach-sign "$file"
+        gpg --batch --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --armor --output "${file}.asc" --detach-sign "$file"
+    
     done
     cd ..
 }
@@ -83,14 +88,13 @@ if [ ! -z "$SELECTED_LIBRARIES" ]; then
     IFS=',' read -ra selected_libraries <<< "$SELECTED_LIBRARIES"
 else
     # Interactive mode
-    echo "Available libraries:"
+    echo "Interactive Mode, Available libraries:"
     index=1
     for library in "${available_libraries[@]}"; do
         echo "$index) $library"
         ((index++))
     done
 
-    echo
     echo "Enter the numbers of the libraries you want to include (space-separated)"
     echo "Example: 1 3 4"
     read -r selections
