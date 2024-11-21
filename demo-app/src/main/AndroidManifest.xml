@@ -10,6 +10,12 @@
         android:extractNativeLibs="true"
         android:usesCleartextTraffic="true"
         android:theme="@style/AppTheme">
+        <meta-data
+            android:name="debug_mode"
+            android:value="N" />
+        <meta-data
+            android:name="spay_sdk_api_level"
+            android:value="2.19" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
