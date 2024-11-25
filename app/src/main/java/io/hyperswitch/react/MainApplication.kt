@@ -10,7 +10,7 @@ import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.load
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.soloader.SoLoader
-import com.microsoft.codepush.react.CodePush
+// import com.microsoft.codepush.react.CodePush
 import io.hyperswitch.BuildConfig
 
 open class MainApplication : Application(), ReactApplication {
@@ -31,17 +31,19 @@ open class MainApplication : Application(), ReactApplication {
             override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
             override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
 
-            override fun getJSBundleFile(): String {
-                CodePush.overrideAppVersion(BuildConfig.VERSION_NAME)
-                return CodePush.getJSBundleFile("hyperswitch.bundle")
-            }
+            // override fun getJSBundleFile(): String {
+            //     // CodePush.overrideAppVersion(BuildConfig.VERSION_NAME)
+            //     // return CodePush.getJSBundleFile("hyperswitch.bundle")
+            //     return "hyperswitch.bundle"
+            // }
         }
 
     override val reactHost: ReactHost
         get() = getDefaultReactHost(applicationContext, reactNativeHost)
 
     override fun onCreate() {
-        CodePush.setReactInstanceHolder { reactNativeHost.reactInstanceManager }
+        
+        // CodePush.setReactInstanceHolder { reactNativeHost.reactInstanceManager }
         super.onCreate()
         SoLoader.init(this, false)
         if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
