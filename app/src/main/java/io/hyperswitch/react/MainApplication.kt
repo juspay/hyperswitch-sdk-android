@@ -32,9 +32,14 @@ open class MainApplication : Application(), ReactApplication {
             override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
 
             // override fun getJSBundleFile(): String {
+<<<<<<< Updated upstream
             //     // CodePush.overrideAppVersion(BuildConfig.VERSION_NAME)
             //     // return CodePush.getJSBundleFile("hyperswitch.bundle")
             //     return "hyperswitch.bundle"
+=======
+            //     CodePush.overrideAppVersion(BuildConfig.VERSION_NAME)
+            //     return CodePush.getJSBundleFile("hyperswitch.bundle")
+>>>>>>> Stashed changes
             // }
         }
 
@@ -42,7 +47,10 @@ open class MainApplication : Application(), ReactApplication {
         get() = getDefaultReactHost(applicationContext, reactNativeHost)
 
     override fun onCreate() {
+<<<<<<< Updated upstream
         
+=======
+>>>>>>> Stashed changes
         // CodePush.setReactInstanceHolder { reactNativeHost.reactInstanceManager }
         super.onCreate()
         SoLoader.init(this, false)
