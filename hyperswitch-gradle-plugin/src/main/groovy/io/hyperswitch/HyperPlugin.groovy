@@ -7,7 +7,7 @@ class HyperPlugin implements Plugin<Project> {
     void apply(Project project) {
         project.plugins.withId('com.android.application') {
             project.dependencies {
-                implementation 'io.hyperswitch:hyperswitch-sdk-android:1.0.8'
+                implementation 'io.hyperswitch:hyperswitch-sdk-android:1.0.9'
             }
 
             try {
