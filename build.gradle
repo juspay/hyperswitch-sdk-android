@@ -46,6 +46,9 @@ rootProject.allprojects {
         maven {
             url 'https://x.klarnacdn.net/mobile-sdk/'
         }
+        maven {
+            url("$rootDir/../node_modules/detox/Detox-android")
+        }
     }
     /*
     afterEvaluate { project ->
