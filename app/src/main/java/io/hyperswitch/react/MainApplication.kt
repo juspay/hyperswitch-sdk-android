@@ -31,26 +31,17 @@ open class MainApplication : Application(), ReactApplication {
             override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
             override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
 
-            // override fun getJSBundleFile(): String {
-<<<<<<< Updated upstream
-            //     // CodePush.overrideAppVersion(BuildConfig.VERSION_NAME)
-            //     // return CodePush.getJSBundleFile("hyperswitch.bundle")
-            //     return "hyperswitch.bundle"
-=======
-            //     CodePush.overrideAppVersion(BuildConfig.VERSION_NAME)
-            //     return CodePush.getJSBundleFile("hyperswitch.bundle")
->>>>>>> Stashed changes
-            // }
+            override fun getJSBundleFile(): String {
+                // CodePush.overrideAppVersion(BuildConfig.VERSION_NAME)
+                // return CodePush.getJSBundleFile("hyperswitch.bundle")
+                return "assets://hyperswitch.bundle"
+            }
         }
 
     override val reactHost: ReactHost
         get() = getDefaultReactHost(applicationContext, reactNativeHost)
 
     override fun onCreate() {
-<<<<<<< Updated upstream
-        
-=======
->>>>>>> Stashed changes
         // CodePush.setReactInstanceHolder { reactNativeHost.reactInstanceManager }
         super.onCreate()
         SoLoader.init(this, false)

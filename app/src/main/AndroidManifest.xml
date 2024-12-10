@@ -11,7 +11,9 @@
         android:extractNativeLibs="true"
         android:supportsRtl="true"
         tools:replace="android:name"
-        tools:targetApi="tiramisu">
+        tools:targetApi="tiramisu"
+        android:usesCleartextTraffic="true"
+        >
         <activity
             android:name=".react.RedirectActivity"
             android:exported="true"
