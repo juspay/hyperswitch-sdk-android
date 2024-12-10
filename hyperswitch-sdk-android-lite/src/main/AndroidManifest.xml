@@ -14,7 +14,7 @@
         <activity
             android:name="io.hyperswitch.payments.googlepaylauncher.GooglePayActivity"
             android:exported="false"
-            android:theme="@style/HyperTransparentTheme" />
+            android:theme="@style/GooglePayTransparentTheme" />
         <meta-data
             android:name="com.google.android.gms.wallet.api.enabled"
             android:value="true" />

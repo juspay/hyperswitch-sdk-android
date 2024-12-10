@@ -1,11 +1,11 @@
 package io.hyperswitch.payments.expresscheckoutlauncher
 
-import androidx.appcompat.app.AppCompatActivity
+import android.app.Activity
 import io.hyperswitch.paymentsheet.PaymentSheet
 
 class ExpressCheckoutLauncher() {
     constructor(
-        activity: AppCompatActivity,
+        activity: Activity,
         clientSecret: String? = null,
         configuration: PaymentSheet.Configuration?,
         readyCallback: ExpressCheckoutPaymentMethodLauncher.ReadyCallback,

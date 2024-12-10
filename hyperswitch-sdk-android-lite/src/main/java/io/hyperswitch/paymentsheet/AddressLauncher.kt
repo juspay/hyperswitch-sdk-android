@@ -1,9 +1,8 @@
 package io.hyperswitch.paymentsheet
 
+import android.app.Activity
+import android.app.Fragment
 import android.os.Parcelable
-import androidx.activity.ComponentActivity
-import androidx.activity.result.ActivityResultLauncher
-import androidx.fragment.app.Fragment
 import io.hyperswitch.paymentsheet.AddressLauncher.AdditionalFieldsConfiguration.FieldConfiguration
 import kotlinx.parcelize.Parcelize
 
@@ -11,7 +10,7 @@ import kotlinx.parcelize.Parcelize
  * A drop-in class that presents a bottom sheet to collect a customer's address.
  */
 internal class AddressLauncher internal constructor(
-    private val activityResultLauncher: ActivityResultLauncher<AddressElementActivityContract.Args>
+//    private val activityResultLauncher: ActivityResultLauncher<AddressElementActivityContract.Args>
 ) {
 
     /**
@@ -21,12 +20,13 @@ internal class AddressLauncher internal constructor(
      * @param callback  called with the result after the address element is dismissed.
      */
     constructor(
-        activity: ComponentActivity, callback: AddressLauncherResultCallback
-    ) : this(activity.registerForActivityResult(
-        AddressElementActivityContract()
-    ) {
-        callback.onAddressLauncherResult(it)
-    })
+        activity: Activity, callback: AddressLauncherResultCallback
+    ) : this()
+//    : this(activity.registerForActivityResult(
+//        AddressElementActivityContract()
+//    ) {
+//        callback.onAddressLauncherResult(it)
+//    })
 
     /**
      * Constructor to be used when launching the address element from a Fragment.
@@ -36,21 +36,22 @@ internal class AddressLauncher internal constructor(
      */
     constructor(
         fragment: Fragment, callback: AddressLauncherResultCallback
-    ) : this(fragment.registerForActivityResult(
-        AddressElementActivityContract()
-    ) {
-        callback.onAddressLauncherResult(it)
-    })
+    ) : this()
+//    : this(fragment.registerForActivityResult(
+//        AddressElementActivityContract()
+//    ) {
+//        callback.onAddressLauncherResult(it)
+//    })
 
     @JvmOverloads
     fun present(
         publishableKey: String, configuration: Configuration = Configuration()
     ) {
-        activityResultLauncher.launch(
-            AddressElementActivityContract.Args(
-                publishableKey, configuration
-            )
-        )
+//        activityResultLauncher.launch(
+//            AddressElementActivityContract.Args(
+//                publishableKey, configuration
+//            )
+//        )
     }
 
     /** Configuration for [AddressLauncher] **/

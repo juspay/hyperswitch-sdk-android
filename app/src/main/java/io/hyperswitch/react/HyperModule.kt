@@ -100,6 +100,14 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
                     callBack.invoke(Arguments.fromBundle(LaunchOptions(it).toBundle(data)))
                 },
             )
+        } ?: run {
+            GooglePayCallbackManager.setCallback(
+                reactApplicationContext,
+                googlePayRequest,
+                fun(data: Map<String, Any?>) {
+                    callBack.invoke(Arguments.fromBundle(LaunchOptions().toBundle(data)))
+                },
+            )
         }
     }
 

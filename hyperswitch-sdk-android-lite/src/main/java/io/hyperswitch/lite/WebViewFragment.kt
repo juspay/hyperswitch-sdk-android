@@ -2,6 +2,7 @@ package io.hyperswitch.lite
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.AlertDialog
 import android.app.Fragment
 import android.graphics.Color
 import android.os.Bundle
@@ -11,6 +12,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
+import android.webkit.JsResult
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -23,6 +25,7 @@ open class WebViewFragment : Fragment() {
     private lateinit var webViewContainer: RelativeLayout
     private lateinit var mainWebView: WebView
     private val webViews = mutableListOf<WebView>()
+
     private val bundleUrl: String = "https://dev.hyperswitch.io/mobile/v1/index.html"
 
     @Deprecated("Deprecated in Java")
@@ -77,6 +80,26 @@ open class WebViewFragment : Fragment() {
                     val transport = resultMsg.obj as WebView.WebViewTransport
                     transport.webView = newWebView
                     resultMsg.sendToTarget()
+
+
+                    return true
+                }
+
+                override fun onJsAlert(
+                    view: WebView,
+                    url: String,
+                    message: String,
+                    result: JsResult
+                ): Boolean {
+                    val dialog = AlertDialog.Builder(view.context)
+                        .setTitle("Warning")
+                        .setMessage(message)
+                        .setPositiveButton("OK") { _, _ ->
+                            result.confirm()
+                        }
+                        .create()
+                    dialog.show()
+
                     return true
                 }
             }

@@ -1,7 +1,7 @@
 package io.hyperswitch.payments.googlepaylauncher
 
 import android.os.Parcelable
-import androidx.annotation.IntDef
+import android.support.annotation.IntDef
 import kotlinx.parcelize.Parcelize
 import java.util.Locale
 
@@ -119,7 +119,7 @@ class GooglePayPaymentMethodLauncher {
      * See the corresponding [Result.Failed.error] message for more details.
      */
     @Target(AnnotationTarget.PROPERTY, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.TYPE)
-    @IntDef(INTERNAL_ERROR, DEVELOPER_ERROR, NETWORK_ERROR)
+    @IntDef(INTERNAL_ERROR.toLong(), DEVELOPER_ERROR.toLong(), NETWORK_ERROR.toLong())
     annotation class ErrorCode
 
     companion object {

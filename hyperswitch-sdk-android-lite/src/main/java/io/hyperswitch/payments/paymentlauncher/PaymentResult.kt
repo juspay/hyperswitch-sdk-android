@@ -1,8 +1,8 @@
 package io.hyperswitch.payments.paymentlauncher
 
 import android.content.Intent
+import android.os.Bundle
 import android.os.Parcelable
-import androidx.core.os.bundleOf
 import kotlinx.parcelize.Parcelize
 
 /**
@@ -19,7 +19,9 @@ sealed class PaymentResult : Parcelable {
     class Canceled(val data: String) : PaymentResult()
 
     @JvmSynthetic
-    fun toBundle() = bundleOf(EXTRA to this)
+    fun toBundle() = Bundle().apply {
+        putParcelable(EXTRA, this)
+    }
 
     internal companion object {
         private const val EXTRA = "extra_args"
