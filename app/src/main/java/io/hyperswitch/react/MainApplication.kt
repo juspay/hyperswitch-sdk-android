@@ -34,7 +34,7 @@ open class MainApplication : Application(), ReactApplication {
             override fun getJSBundleFile(): String {
                 // CodePush.overrideAppVersion(BuildConfig.VERSION_NAME)
                 // return CodePush.getJSBundleFile("hyperswitch.bundle")
-                return "assets://hyperswitch.bundle"
+                return "assets://index.android.bundle"
             }
         }
 
