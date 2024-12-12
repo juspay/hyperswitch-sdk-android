@@ -111,6 +111,7 @@ android {
     }
 }
 
+
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
@@ -128,7 +129,9 @@ dependencies {
     implementation("com.google.android.gms:play-services-wallet")
     implementation("org.greenrobot:eventbus")
     implementation project(':hyperswitch-sdk-android-lite')
-
+    implementation(files('src/main/libs/hyper-release.aar'))
+    implementation(files('src/main/libs/hyper-sdk-release.aar'))
+    implementation(files('src/main/libs/hyper-sms-handler-release.aar'))
     constraints {
         implementation("androidx.appcompat:appcompat") {
             version {

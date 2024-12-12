@@ -1,6 +1,7 @@
 package io.hyperswitch.react
 
 import android.app.Application
+import android.util.Log
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
@@ -12,9 +13,9 @@ import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.soloader.SoLoader
 // import com.microsoft.codepush.react.CodePush
 import io.hyperswitch.BuildConfig
-
+import `in`.juspay.services.HyperOTAServices
 open class MainApplication : Application(), ReactApplication {
-
+    lateinit var hyperOTAServices : HyperOTAServices
     override val reactNativeHost: ReactNativeHost =
         object : DefaultReactNativeHost(this) {
             override fun getPackages(): List<ReactPackage> =
@@ -34,7 +35,7 @@ open class MainApplication : Application(), ReactApplication {
             override fun getJSBundleFile(): String {
                 // CodePush.overrideAppVersion(BuildConfig.VERSION_NAME)
                 // return CodePush.getJSBundleFile("hyperswitch.bundle")
-                return "assets://index.android.bundle"
+                return hyperOTAServices.getBundlePath()
             }
         }
 
@@ -43,6 +44,9 @@ open class MainApplication : Application(), ReactApplication {
 
     override fun onCreate() {
         // CodePush.setReactInstanceHolder { reactNativeHost.reactInstanceManager }
+        Log.i("called", "calledOTAServices")
+        this.hyperOTAServices = HyperOTAServices(this.applicationContext, "hyperswitch",
+            "index.android.bundle","http://10.0.2.2:3000/files%s/%s/%s-config.json?toss=%s")
         super.onCreate()
         SoLoader.init(this, false)
         if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
