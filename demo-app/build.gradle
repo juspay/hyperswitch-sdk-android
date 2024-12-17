@@ -14,6 +14,8 @@ android {
         targetSdk 34
         versionCode 1
         versionName "1.0"
+        testBuildType System.getProperty('testBuildType', 'debug')
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
 
     signingConfigs {
@@ -38,6 +40,8 @@ android {
             renderscriptDebuggable false
             pseudoLocalesEnabled false
             zipAlignEnabled true
+            proguardFile "${rootProject.projectDir}/../node_modules/detox/android/detox/proguard-rules-app.pro"
+
         }
         buildTypes.all { buildType ->
             if (!['debug', 'release'].contains(buildType.name)) {
@@ -89,5 +93,8 @@ dependencies {
     implementation 'com.github.kittinunf.fuel:fuel:2.3.1'
     implementation 'com.github.kittinunf.fuel:fuel-json:2.3.1'
     implementation project(':app')
+    implementation 'com.wix:detox:20.28.0'
+    androidTestImplementation('com.wix:detox:+')
+    implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation project(':hyperswitch-sdk-android-lite')
 }
