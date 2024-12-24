@@ -1,5 +1,5 @@
 package io.hyperswitch.react
-
+import android.os.Build
 import android.content.Context
 import android.net.wifi.WifiManager
 import android.os.Bundle
@@ -100,7 +100,9 @@ class Utils {
       hyperParams.putString("ip", getDeviceIPAddress(context))
       hyperParams.putDouble("launchTime", getCurrentTime())
       hyperParams.putString("sdkVersion", BuildConfig.VERSION_NAME)
-
+      hyperParams.putString("device_model", Build.MODEL)
+      hyperParams.putString("os_type", "android")
+      hyperParams.putString("os_version", Build.VERSION.RELEASE)
       request.putBundle("hyperParams", hyperParams)
 
       val bundle = Bundle()
