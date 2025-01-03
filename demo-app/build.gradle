@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId "io.hyperswitch.demoapp"
-        minSdk 23
+        minSdk 24
         targetSdk 34
         versionCode 1
         versionName "1.0"
@@ -93,7 +93,7 @@ dependencies {
     implementation 'com.github.kittinunf.fuel:fuel:2.3.1'
     implementation 'com.github.kittinunf.fuel:fuel-json:2.3.1'
     implementation project(':app')
-    implementation 'com.wix:detox:20.28.0'
+    implementation ('com.wix:detox:+')
     androidTestImplementation('com.wix:detox:+')
     implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation project(':hyperswitch-sdk-android-lite')
