@@ -31,7 +31,7 @@ java {
 }
 
 group = 'io.hyperswitch'
-version = '0.0.4'
+version = '0.0.5'
 
 task sourcesJar(type: Jar) {
     from sourceSets.main.allSource
