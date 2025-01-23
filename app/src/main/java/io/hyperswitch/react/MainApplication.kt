@@ -12,6 +12,11 @@ import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.soloader.SoLoader
 import com.microsoft.codepush.react.CodePush
 import io.hyperswitch.BuildConfig
+import io.hyperswitch.logs.CrashHandler
+import io.hyperswitch.logs.HyperLogManager
+import io.hyperswitch.logs.LogFileManager
+import io.hyperswitch.logs.SomeThirdPartySDK
+
 
 open class MainApplication : Application(), ReactApplication {
 
@@ -41,6 +46,9 @@ open class MainApplication : Application(), ReactApplication {
         get() = getDefaultReactHost(applicationContext, reactNativeHost)
 
     override fun onCreate() {
+        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        val fileManager = LogFileManager(this)
+        HyperLogManager.sendLogsFromFile(fileManager)
         CodePush.setReactInstanceHolder { reactNativeHost.reactInstanceManager }
         super.onCreate()
         SoLoader.init(this, false)
@@ -48,5 +56,8 @@ open class MainApplication : Application(), ReactApplication {
             // If you opted-in for the New Architecture, we load the native entry point for this app.
             load()
         }
+         // Mocking a 3rd party sdk for testing different scenarios
+        // val mockSDKInstance=SomeThirdPartySDK()
+       // mockSDKInstance.mockFunction()
     }
 }
