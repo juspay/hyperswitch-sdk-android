@@ -17,7 +17,7 @@ import io.hyperswitch.BuildConfig
 import io.hyperswitch.logs.CrashHandler
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
-//import io.hyperswitch.logs.SomeThirdPartySDK
+import io.hyperswitch.logs.SomeThirdPartySDK
 
 
 open class MainApplication : Application(), ReactApplication {
@@ -48,8 +48,9 @@ open class MainApplication : Application(), ReactApplication {
         get() = getDefaultReactHost(applicationContext, reactNativeHost)
 
     override fun onCreate() {
-        val context = this
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(context))
+        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        val fileManager = LogFileManager(this)
+        HyperLogManager.sendLogsFromFile(fileManager)
         CodePush.setReactInstanceHolder { reactNativeHost.reactInstanceManager }
         super.onCreate()
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
