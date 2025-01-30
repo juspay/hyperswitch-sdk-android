@@ -3,6 +3,7 @@ package io.hyperswitch.paymentsession
 import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.logs.HyperLogManager
+import io.hyperswitch.logs.LogFileManager
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
 
@@ -24,6 +25,8 @@ class DefaultPaymentSessionLauncher(
     init {
         if (publishableKey != null) {
             HyperLogManager.initialise(activity,publishableKey)
+            val fileManager = LogFileManager(activity)
+            HyperLogManager.sendLogsFromFile(fileManager)
         }
         reactNativeUtils.initializeReactNativeInstance()
     }
