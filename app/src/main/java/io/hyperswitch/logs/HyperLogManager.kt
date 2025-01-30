@@ -4,6 +4,7 @@ import android.content.Context
 import io.hyperswitch.networking.HyperNetworking
 import io.hyperswitch.react.SDKEnvironment
 import io.hyperswitch.react.Utils.Companion.checkEnvironment
+import org.json.JSONArray
 
 object HyperLogManager {
 
@@ -12,19 +13,26 @@ object HyperLogManager {
     private var loggingEndPoint: String? = null
 
     fun sendLogsFromFile(fileManager: LogFileManager) {
-        Debouncer(20000).debounce {
-            try {
-                val logArray = fileManager.getAllLogs()
-                if (logArray.length() > 0) {
-                    val logArrayString = logArray.toString()
-                    loggingEndPoint?.let { endpoint ->
-                        HyperNetworking.makePostRequest(endpoint, logArrayString)
-                        fileManager.clearFile()
-                    }
+        try {
+            val logArray = fileManager.getAllLogs()
+            appendPublishableKeyToJsonLog(logArray)
+            if (logArray.length() > 0) {
+                val logArrayString = logArray.toString()
+                loggingEndPoint?.let { endpoint ->
+                    HyperNetworking.makePostRequest(endpoint, logArrayString)
+                    fileManager.clearFile()
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+
+    private fun appendPublishableKeyToJsonLog(logsArray: JSONArray) {
+        for (i in 0 until logsArray.length()) {
+            val logObject = logsArray.getJSONObject(i)
+            logObject.put("merchant_id", publishableKey)
         }
     }
 
