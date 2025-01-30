@@ -15,8 +15,14 @@ import io.hyperswitch.paymentsession.PaymentMethod
 import io.hyperswitch.paymentsheet.AddressDetails
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONException
 import org.json.JSONObject
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import io.hyperswitch.lite.PaymentSession as PaymentSessionLite
 
 
@@ -28,7 +34,27 @@ class MainActivity : Activity() {
     private lateinit var paymentSession: PaymentSession
     private lateinit var paymentSessionLite: PaymentSessionLite
 
-    private fun getCustomisations(): PaymentSheet.Configuration {
+    private suspend fun fetchNetceteraApiKey(): String? =
+        suspendCancellableCoroutine { continuation ->
+            reset().get("http://10.0.2.2:5252/netcetera-sdk-api-key")
+                .responseString(object : Handler<String?> {
+                    override fun success(value: String?) {
+                        try {
+                            val result = value?.let { JSONObject(it) }
+                            val netceteraApiKey = result?.getString("netceteraApiKey")
+                            continuation.resume(netceteraApiKey)
+                        } catch (e: Exception) {
+                            continuation.resumeWithException(e)
+                        }
+                    }
+
+                    override fun failure(error: FuelError) {
+                        continuation.resumeWithException(error)
+                    }
+                })
+        }
+
+    private suspend fun getCustomisations(): PaymentSheet.Configuration {
         /**
          *
          * Customisations
@@ -74,7 +100,7 @@ class MainActivity : Activity() {
             colorsDark = color2
         )
 
-        return PaymentSheet.Configuration.Builder("Example, Inc.")
+        val configuration = PaymentSheet.Configuration.Builder("Example, Inc.")
             .appearance(appearance)
             .defaultBillingDetails(billingDetails)
             .primaryButtonLabel("Purchase ($2.00)")
@@ -86,7 +112,17 @@ class MainActivity : Activity() {
             .displaySavedPaymentMethodsCheckbox(true)
             .displaySavedPaymentMethods(true)
             .disableBranding(true)
-            .build()
+
+        try {
+            val netceteraApiKey = fetchNetceteraApiKey()
+            netceteraApiKey?.let {
+                configuration.netceteraSDKApiKey(it)
+            }
+        } catch (e: Exception) {
+            Log.i("Netcetera SDK API KEY ", "Key not provided in env")
+        }
+
+        return configuration.build()
     }
 
     private fun getCL() {
@@ -190,14 +226,19 @@ class MainActivity : Activity() {
          * */
 
         findViewById<View>(R.id.launchButton).setOnClickListener {
-            paymentSession.presentPaymentSheet(getCustomisations(), ::onPaymentSheetResult)
+            CoroutineScope(Dispatchers.Main).launch {
+                val customisations = getCustomisations()
+                paymentSession.presentPaymentSheet(customisations, ::onPaymentSheetResult)
+            }
         }
 
         findViewById<View>(R.id.launchWebButton).setOnClickListener {
-            paymentSessionLite.presentPaymentSheet(
-                getCustomisations(),
-                ::onPaymentSheetResult
-            )
+            CoroutineScope(Dispatchers.Main).launch {
+                paymentSessionLite.presentPaymentSheet(
+                    getCustomisations(),
+                    ::onPaymentSheetResult
+                )
+            }
         }
 
     }
