@@ -23,12 +23,7 @@ import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
 import org.json.JSONObject
 
 
-//const val bundleUrl = "http://192.168.0.103:8080"
-
-//const val bundleUrl: String = "https://dev.hyperswitch.io/mobile/v1/index.html"
-//const val bundleUrl: String = "http://10.10.70.164:5252:8080"
-//const val bundleUrl: String = "http://192.168.0.115:8080"
-const val bundleUrl: String = "http://10.10.30.93:8080"
+const val bundleUrl: String = "https://dev.hyperswitch.io/mobile/v1/index.html"
 
 open class WebViewFragment : Fragment() {
     private fun isScanCardAvailable(): Boolean {
