@@ -29,7 +29,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             signingConfig signingConfigs.release
 
@@ -45,14 +45,51 @@ android {
             }
         }
     }
+
+    packagingOptions {
+        exclude "lib/**/libfabricjni.so"
+        exclude "lib/**/libreact_codegen_rncore.so"
+        exclude "lib/**/librninstance.so"
+        exclude "lib/**/librrc_view.so"
+        exclude "lib/**/libreact_nativemodule_dom.so"
+        exclude "lib/**/librrc_textinput.so"
+        exclude "lib/**/libreact_nativemodule_core.so"
+        exclude "lib/**/libreact_render_core.so"
+        exclude "lib/**/libreact_render_uimanager_consistency.so"
+        exclude "lib/**/libnative-imagetranscoder.so"
+        exclude "lib/**/librrc_image.so"
+        exclude "lib/**/libeb90.so"
+        exclude "lib/**/libhermesinstancejni.so"
+        exclude "lib/**/libreact_newarchdefaults.so"
+        exclude "lib/**/libturbomodulejsijni.so"
+        exclude "lib/**/libreact_render_componentregistry.so"
+        exclude "lib/**/libjscexecutor.so"
+        exclude "lib/**/libuimanagerjni.so"
+        exclude "lib/**/libreact_nativemodule_defaults.so"
+        exclude "lib/**/libreact_performance_timeline.so"
+        exclude "lib/**/libmapbufferjni.so"
+        exclude "lib/**/librrc_legacyviewmanagerinterop.so"
+        exclude "lib/**/libjscinstance.so"
+        exclude "lib/**/libreact_nativemodule_featureflags.so"
+        exclude "lib/**/libreact_nativemodule_microtasks.so"
+        exclude "lib/**/libreact_render_mapbuffer.so"
+        exclude "lib/**/libreact_render_observers_events.so"
+        exclude "lib/**/libreact_render_imagemanager.so"
+        exclude "lib/**/libreact_render_graphics.so"
+        exclude "lib/**/libreact_render_element.so"
+        exclude "lib/**/libjsijniprofiler.so"
+        exclude "lib/**/libnative-filters.so"
+        // exclude "lib/**/libsentry.so"
+        // exclude "lib/**/libsentry-android.so"
+    }
 }
 
 dependencies {
 
-    implementation 'androidx.appcompat:appcompat:1.7.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'com.github.kittinunf.fuel:fuel:2.3.1'
     implementation 'com.github.kittinunf.fuel:fuel-json:2.3.1'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     implementation project(':app')
     implementation project(':hyperswitch-sdk-android-lite')
 }

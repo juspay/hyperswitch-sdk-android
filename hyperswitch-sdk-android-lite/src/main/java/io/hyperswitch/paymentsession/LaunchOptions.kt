@@ -3,6 +3,7 @@ package io.hyperswitch.paymentsession
 import android.app.Activity
 import android.content.Context
 import android.net.wifi.WifiManager
+import android.os.Build
 import android.os.Bundle
 import android.webkit.WebSettings
 import io.hyperswitch.PaymentConfiguration
@@ -21,6 +22,9 @@ class LaunchOptions(private val activity: Activity? = null) {
             putString("ip", getDeviceIPAddress(activity))
             putDouble("launchTime", getCurrentTime())
             putString("sdkVersion", BuildConfig.VERSION_NAME)
+            putString("device_model", Build.MODEL)
+            putString("os_type", "android")
+            putString("os_version", Build.VERSION.RELEASE)
             configuration?.disableBranding?.let {
                 putBoolean(
                     "disableBranding", it
@@ -41,6 +45,9 @@ class LaunchOptions(private val activity: Activity? = null) {
             plus(Pair("ip", getDeviceIPAddress(activity)))
             plus(Pair("launchTime", getCurrentTime()))
             plus(Pair("sdkVersion", BuildConfig.VERSION_NAME))
+            plus(Pair("device_model", Build.MODEL))
+            plus(Pair("os_type", "android"))
+            plus(Pair("os_version", Build.VERSION.RELEASE))
         }
 
     fun getBundle(

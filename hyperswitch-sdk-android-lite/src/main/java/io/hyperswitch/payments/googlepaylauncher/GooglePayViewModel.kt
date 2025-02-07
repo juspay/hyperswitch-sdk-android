@@ -1,28 +1,34 @@
 package io.hyperswitch.payments.googlepaylauncher
 
-import android.app.Application
 import android.content.Context
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
-import com.google.android.gms.wallet.*
+import com.google.android.gms.wallet.IsReadyToPayRequest
+import com.google.android.gms.wallet.PaymentData
+import com.google.android.gms.wallet.PaymentDataRequest
+import com.google.android.gms.wallet.PaymentsClient
+import com.google.android.gms.wallet.Wallet
+import com.google.android.gms.wallet.WalletConstants
 import org.json.JSONObject
 
-class GooglePayViewModel(application: Application) : AndroidViewModel(application) {
+class GooglePayViewModel(private val context: Context) {
 
     private lateinit var paymentsClient: PaymentsClient
 
     fun fetchCanUseGooglePay(isReadyToPayJson: JSONObject, environment: String): Boolean {
 
-        paymentsClient = createPaymentsClient(this.getApplication(), environment)
+        paymentsClient = createPaymentsClient(context, environment)
         var isAvailable = false;
         val request = IsReadyToPayRequest.fromJson(isReadyToPayJson.toString())
         val task = paymentsClient.isReadyToPay(request)
         task.addOnCompleteListener { completedTask ->
             try {
-                isAvailable = completedTask.getResult(ApiException::class.java)
-                Log.d("GPAY", "GPAY CAN BE USED ${completedTask.getResult(ApiException::class.java)}")
+                isAvailable = completedTask.getResult(ApiException::class.java) ?: false
+                Log.d(
+                    "GPAY",
+                    "GPAY CAN BE USED ${completedTask.getResult(ApiException::class.java)}"
+                )
             } catch (exception: ApiException) {
                 isAvailable = false
                 Log.w("GPAY WARNING", exception)
@@ -30,6 +36,7 @@ class GooglePayViewModel(application: Application) : AndroidViewModel(applicatio
         }
         return isAvailable
     }
+
     fun getLoadPaymentDataTask(paymentDataRequestJson: JSONObject): Task<PaymentData> {
         val request = PaymentDataRequest.fromJson(paymentDataRequestJson.toString())
         return paymentsClient.loadPaymentData(request)
