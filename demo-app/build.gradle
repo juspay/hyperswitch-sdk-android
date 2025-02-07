@@ -85,11 +85,11 @@ android {
 }
 
 dependencies {
-
     implementation 'com.github.kittinunf.fuel:fuel:2.3.1'
     implementation 'com.github.kittinunf.fuel:fuel-json:2.3.1'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     implementation project(':app')
     implementation project(':hyperswitch-sdk-android-lite')
+    implementation(project(":hyperswitch-scan-card-lite"))
 }
