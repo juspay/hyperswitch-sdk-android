@@ -178,6 +178,7 @@ class PaymentSheet internal constructor(
         val netceteraSDKApiKey: String? = null,
         val disableBranding: Boolean? = null,
         val defaultView: Boolean? = null,
+        val netceteraChallengeUICustomization: NetceteraChallengeUIWrapper?=null
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -210,6 +211,7 @@ class PaymentSheet internal constructor(
                     }
                     putBundle("placeHolder", placeHolder?.bundle)
                     putString("netceteraSDKApiKey", netceteraSDKApiKey)
+                    putBundle("netceteraChallengeUICustomization",netceteraChallengeUICustomization?.bundle)
                     if (disableBranding != null) {
                         putBoolean("disableBranding", disableBranding)
                     }
@@ -243,6 +245,7 @@ class PaymentSheet internal constructor(
             private var paymentSheetHeaderLabel: String? = null
             private var savedPaymentSheetHeaderLabel: String? = null
             private var netceteraSDKApiKey: String? = null
+            private var netceteraChallengeUICustomization:NetceteraChallengeUIWrapper?=null
             fun merchantDisplayName(merchantDisplayName: String) =
                 apply { this.merchantDisplayName = merchantDisplayName }
 
@@ -310,6 +313,9 @@ class PaymentSheet internal constructor(
             fun netceteraSDKApiKey(netceteraSDKApiKey: String?) = apply {
                 this.netceteraSDKApiKey = netceteraSDKApiKey
             }
+            fun netceteraChallengeUICustomization(netceteraChallengeUICustomization: NetceteraChallengeUIWrapper?)=apply {
+                this.netceteraChallengeUICustomization = netceteraChallengeUICustomization
+            }
 
             fun savedPaymentSheetHeaderLabel(savedPaymentSheetHeaderLabel: String) =
                 apply { this.savedPaymentSheetHeaderLabel = savedPaymentSheetHeaderLabel }
@@ -333,7 +339,8 @@ class PaymentSheet internal constructor(
                 placeHolder,
                 netceteraSDKApiKey,
                 disableBranding,
-                defaultView
+                defaultView,
+                netceteraChallengeUICustomization,
             )
         }
     }
