@@ -25,6 +25,7 @@ class LaunchOptions(private val activity: Activity? = null) {
             putString("device_model", Build.MODEL)
             putString("os_type", "android")
             putString("os_version", Build.VERSION.RELEASE)
+            putString("deviceBrand", Build.BRAND.toString())
             configuration?.disableBranding?.let {
                 putBoolean(
                     "disableBranding", it
