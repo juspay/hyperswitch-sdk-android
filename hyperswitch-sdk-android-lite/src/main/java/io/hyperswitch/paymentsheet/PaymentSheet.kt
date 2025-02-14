@@ -178,7 +178,7 @@ class PaymentSheet internal constructor(
         val netceteraSDKApiKey: String? = null,
         val disableBranding: Boolean? = null,
         val defaultView: Boolean? = null,
-        val netceteraChallengeUICustomization: NetceteraChallengeUIWrapper?=null
+        val netceteraChallengeUICustomization: NetceteraChallengeUICustomization?=null
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -245,7 +245,7 @@ class PaymentSheet internal constructor(
             private var paymentSheetHeaderLabel: String? = null
             private var savedPaymentSheetHeaderLabel: String? = null
             private var netceteraSDKApiKey: String? = null
-            private var netceteraChallengeUICustomization:NetceteraChallengeUIWrapper?=null
+            private var netceteraChallengeUICustomization:NetceteraChallengeUICustomization?=null
             fun merchantDisplayName(merchantDisplayName: String) =
                 apply { this.merchantDisplayName = merchantDisplayName }
 
@@ -313,7 +313,7 @@ class PaymentSheet internal constructor(
             fun netceteraSDKApiKey(netceteraSDKApiKey: String?) = apply {
                 this.netceteraSDKApiKey = netceteraSDKApiKey
             }
-            fun netceteraChallengeUICustomization(netceteraChallengeUICustomization: NetceteraChallengeUIWrapper?)=apply {
+            fun netceteraChallengeUICustomization(netceteraChallengeUICustomization: NetceteraChallengeUICustomization?)=apply {
                 this.netceteraChallengeUICustomization = netceteraChallengeUICustomization
             }
 
