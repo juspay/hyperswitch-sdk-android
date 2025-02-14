@@ -95,39 +95,60 @@ data class TextBoxCustomization(
 
 @Parcelize
 data class ToolbarCustomization(
+    val textFontName : String? = null,
+    val textColor : String? = null,
+    val textFontSize : String? = null,
     val backgroundColor: String? = null,
-    val textColor: String? = null,
-    val buttonText: String? = null,
-    val headerText: String? = null
+    val headerText: String? = null,
+    val buttonText: String? = null
 ) : Parcelable {
     val bundle: Bundle
         get() = Bundle().apply {
-            backgroundColor?.let { putString("backgroundColor", it) }
+            textFontName?.let { putString("textFontName", it) }
             textColor?.let { putString("textColor", it) }
-            buttonText?.let { putString("buttonText", it) }
+            textFontSize?.let { putString("textFontSize", it) }
+            backgroundColor?.let { putString("backgroundColor", it) }
             headerText?.let { putString("headerText", it) }
+            buttonText?.let { putString("buttonText", it) }
         }
 
     class Builder {
-        private var backgroundColor: String? = null
+        private var textFontName: String? = null
         private var textColor: String? = null
-        private var buttonText: String? = null
+        private var textFontSize: String? = null
+        private var backgroundColor: String? = null
         private var headerText: String? = null
+        private var buttonText: String? = null
 
-        fun backgroundColor(color: String) = apply { this.backgroundColor = color }
+        fun textFontName(name: String) = apply { this.textFontName = name }
         fun textColor(color: String) = apply { this.textColor = color }
-        fun buttonText(text: String) = apply { this.buttonText = text }
+        fun textFontSize(size: String) = apply { this.textFontSize = size }
+        fun backgroundColor(color: String) = apply { this.backgroundColor = color }
         fun headerText(text: String) = apply { this.headerText = text }
-
-        fun build() = ToolbarCustomization(backgroundColor, textColor, buttonText, headerText)
+        fun buttonText(text: String) = apply { this.buttonText = text }
+        fun build() = ToolbarCustomization(
+            textFontName, textColor, textFontSize, backgroundColor, headerText, buttonText
+        )
     }
+}
+
+enum class NetceteraButtonType {
+     SUBMIT,
+    CONTINUE,
+    NEXT,
+    RESEND,
+    OPEN_OOB_APP,
+  ADD_CH,
+  CANCEL,
 }
 
 
 @Parcelize
 data class ButtonCustomization(
+    val buttonType: NetceteraButtonType = NetceteraButtonType.SUBMIT,
     val backgroundColor: String? = null,
     val cornerRadius: Float? = null,
+    val textFontName: String? = null,
     val textFontSize: Float? = null,
     val textColor: String? = null
 ) : Parcelable {
@@ -135,23 +156,27 @@ data class ButtonCustomization(
         get() = Bundle().apply {
             backgroundColor?.let { putString("backgroundColor", it) }
             cornerRadius?.let { putFloat("cornerRadius", it) }
+            textFontName?.let { putString("textFontName", it) }
             textFontSize?.let { putFloat("textFontSize", it) }
             textColor?.let { putString("textColor", it) }
+            putString("buttonType", buttonType.name)
         }
 
     class Builder {
         private var backgroundColor: String? = null
         private var cornerRadius: Float? = null
+        private var textFontName: String? = null
         private var textFontSize: Float? = null
         private var textColor: String? = null
-
+        private var buttonType: NetceteraButtonType = NetceteraButtonType.SUBMIT
         fun backgroundColor(color: String) = apply { this.backgroundColor = color }
         fun cornerRadius(radius: Float) = apply { this.cornerRadius = radius }
+        fun textFontName(name: String) = apply { this.textFontName = name }
         fun textFontSize(size: Float) = apply { this.textFontSize = size }
         fun textColor(color: String) = apply { this.textColor = color }
-
+        fun buttonType(buttonType: NetceteraButtonType) = apply { this.buttonType = buttonType }
         fun build() = ButtonCustomization(
-            backgroundColor, cornerRadius, textFontSize, textColor
+            buttonType, backgroundColor, cornerRadius,textFontName, textFontSize, textColor
         )
     }
 }
@@ -191,7 +216,7 @@ data class ViewCustomization(
 
 
 @Parcelize
-data class NetceteraChallengeUICustomization(
+data class NetceteraChallengeUI(
     /**
      * Describes the customization for label appearance.
      */
@@ -208,14 +233,9 @@ data class NetceteraChallengeUICustomization(
     val toolbarCustomization: ToolbarCustomization? = null,
 
     /**
-     * Describes the customization for the submit button.
+     * Describes the customization for the buttons.
      */
-    val submitButtonCustomization: ButtonCustomization? = null,
-
-    /**
-     * Describes the customization for the cancel button.
-     */
-    val cancelButtonCustomization: ButtonCustomization? = null,
+    val  buttonCustomization: List<ButtonCustomization> = emptyList(),
 
     /**
      * Describes the customization for view appearance.
@@ -227,17 +247,19 @@ data class NetceteraChallengeUICustomization(
             labelCustomization?.let { putBundle("labelCustomization", it.bundle) }
             textBoxCustomization?.let { putBundle("textBoxCustomization", it.bundle) }
             toolbarCustomization?.let { putBundle("toolbarCustomization", it.bundle) }
-            submitButtonCustomization?.let { putBundle("submitButtonCustomization", it.bundle) }
-            cancelButtonCustomization?.let { putBundle("cancelButtonCustomization", it.bundle) }
             viewCustomization?.let { putBundle("viewCustomization", it.bundle) }
+            if (buttonCustomization.isNotEmpty()) {
+                val buttonBundles = ArrayList<Bundle>()
+                buttonCustomization.forEach { buttonBundles.add(it.bundle) }
+                putParcelableArrayList("buttonCustomization", buttonBundles)
+            }
         }
 
     class Builder {
         private var labelCustomization: LabelCustomization? = null
         private var textBoxCustomization: TextBoxCustomization? = null
         private var toolbarCustomization: ToolbarCustomization? = null
-        private var submitButtonCustomization: ButtonCustomization? = null
-        private var cancelButtonCustomization: ButtonCustomization? = null
+        private var buttonCustomization: MutableList<ButtonCustomization> = mutableListOf()
         private var viewCustomization: ViewCustomization? = null
 
         fun labelCustomization(labelCustomization: LabelCustomization) = apply {
@@ -252,24 +274,19 @@ data class NetceteraChallengeUICustomization(
             this.toolbarCustomization = toolbarCustomization
         }
 
-        fun submitButtonCustomization(submitButtonCustomization: ButtonCustomization) = apply {
-            this.submitButtonCustomization = submitButtonCustomization
-        }
-
-        fun cancelButtonCustomization(cancelButtonCustomization: ButtonCustomization) = apply {
-            this.cancelButtonCustomization = cancelButtonCustomization
+        fun addButtonCustomization(buttonCustomization: ButtonCustomization) = apply {
+            this.buttonCustomization.add(buttonCustomization)
         }
 
         fun viewCustomization(viewCustomization: ViewCustomization) = apply {
             this.viewCustomization = viewCustomization
         }
 
-        fun build() = NetceteraChallengeUICustomization(
+        fun build() = NetceteraChallengeUI(
             labelCustomization,
             textBoxCustomization,
             toolbarCustomization,
-            submitButtonCustomization,
-            cancelButtonCustomization,
+            buttonCustomization,
             viewCustomization
         )
     }
@@ -277,12 +294,12 @@ data class NetceteraChallengeUICustomization(
 
 
 @Parcelize
-data class NetceteraChallengeUIWrapper(
-    val lightModeCustomization: NetceteraChallengeUICustomization? = null,
-    val darkModeCustomization: NetceteraChallengeUICustomization? = null
+data class NetceteraChallengeUICustomization(
+    val lightModeCustomization: NetceteraChallengeUI? = null,
+    val darkModeCustomization: NetceteraChallengeUI? = null
 ) : Parcelable {
 
-    fun getCustomization(isDarkMode: Boolean): NetceteraChallengeUICustomization? {
+    fun getCustomization(isDarkMode: Boolean): NetceteraChallengeUI? {
         return if (isDarkMode) darkModeCustomization ?: lightModeCustomization
         else lightModeCustomization ?: darkModeCustomization
     }
@@ -294,23 +311,23 @@ data class NetceteraChallengeUIWrapper(
         }
 
     class Builder {
-        private var lightModeCustomization: NetceteraChallengeUICustomization? = null
-        private var darkModeCustomization: NetceteraChallengeUICustomization? = null
+        private var lightModeCustomization: NetceteraChallengeUI? = null
+        private var darkModeCustomization: NetceteraChallengeUI? = null
 
-        fun lightModeCustomization(customization: NetceteraChallengeUICustomization) = apply {
+        fun lightModeCustomization(customization: NetceteraChallengeUI) = apply {
             this.lightModeCustomization = customization
         }
 
-        fun darkModeCustomization(customization: NetceteraChallengeUICustomization) = apply {
+        fun darkModeCustomization(customization: NetceteraChallengeUI) = apply {
             this.darkModeCustomization = customization
         }
 
-        fun build(): NetceteraChallengeUIWrapper {
+        fun build(): NetceteraChallengeUICustomization {
             require(lightModeCustomization != null || darkModeCustomization != null) {
                 "At least one of lightModeCustomization or darkModeCustomization must be set before calling build()"
             }
 
-            return NetceteraChallengeUIWrapper(
+            return NetceteraChallengeUICustomization(
                 lightModeCustomization,
                 darkModeCustomization
             )
