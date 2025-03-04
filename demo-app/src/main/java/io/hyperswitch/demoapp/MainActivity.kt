@@ -31,12 +31,13 @@ class MainActivity : Activity() {
     lateinit var ctx: Activity;
     private var paymentIntentClientSecret: String = "clientSecret"
     private var publishKey: String = ""
+    private var serverUrl = "http://10.0.2.2:5252"
     private lateinit var paymentSession: PaymentSession
     private lateinit var paymentSessionLite: PaymentSessionLite
 
     private suspend fun fetchNetceteraApiKey(): String? =
         suspendCancellableCoroutine { continuation ->
-            reset().get("http://10.0.2.2:5252/netcetera-sdk-api-key")
+            reset().get("$serverUrl/netcetera-sdk-api-key")
                 .responseString(object : Handler<String?> {
                     override fun success(value: String?) {
                         try {
@@ -131,7 +132,7 @@ class MainActivity : Activity() {
         ctx.findViewById<View>(R.id.launchWebButton).isEnabled = false;
         ctx.findViewById<View>(R.id.confirmButton).isEnabled = false;
 
-        reset().get("http://10.0.2.2:5252/create-payment-intent", null)
+        reset().get("$serverUrl/create-payment-intent", null)
             .responseString(object : Handler<String?> {
                 override fun success(value: String?) {
                     try {
