@@ -51,6 +51,9 @@ dependencies {
     implementation("com.google.android.material:material")
     implementation("com.google.android.gms:play-services-wallet")
     implementation("org.greenrobot:eventbus")
+    implementation ("io.hyperswitch:universalThreeDS:1.0.0")
+    implementation 'in.juspay:trident:1.0.8-rc.04'
+    implementation("in.juspay:hypersmshandler:2.1.25")
 
 
     constraints {

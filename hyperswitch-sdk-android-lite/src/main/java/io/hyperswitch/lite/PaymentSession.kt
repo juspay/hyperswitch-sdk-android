@@ -1,7 +1,9 @@
 package io.hyperswitch.lite
-
+//
 import android.app.Activity
+import android.app.Application
 import android.os.Bundle
+import io.hyperswitch.authentication.AuthenticationSession
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncherLite
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSessionLauncher
@@ -11,48 +13,69 @@ import io.hyperswitch.paymentsheet.PaymentSheetResult
 /**
  * A class that manages payment sessions using a [PaymentSessionLauncher].
  *
- * This class provides methods for initializing a payment session, presenting a payment sheet,
- * and retrieving customer saved payment methods.
+ * This class provides methods for initializing a payment session, presenting a payment sheet, and
+ * retrieving customer saved payment methods.
  */
-class PaymentSession internal constructor(private val paymentSessionLauncher: PaymentSessionLauncher) {
-    constructor(activity: Activity, publishableKey: String) : this(
-        DefaultPaymentSessionLauncherLite(activity, publishableKey, null, null, null)
+class PaymentSession
+internal constructor(private val paymentSessionLauncher: PaymentSessionLauncher) {
+    constructor(
+            activity: Activity,
+            publishableKey: String
+    ) : this(DefaultPaymentSessionLauncherLite(activity, publishableKey, null, null, null))
+
+    constructor(
+            activity: Activity,
+            publishableKey: String,
+            customBackendUrl: String
+    ) : this(
+            DefaultPaymentSessionLauncherLite(
+                    activity,
+                    publishableKey,
+                    customBackendUrl,
+                    null,
+                    null
+            )
     )
 
     constructor(
-        activity: Activity, publishableKey: String, customBackendUrl: String
+            activity: Activity,
+            publishableKey: String,
+            customBackendUrl: String,
+            customLogUrl: String
     ) : this(
-        DefaultPaymentSessionLauncherLite(activity, publishableKey, customBackendUrl, null, null)
+            DefaultPaymentSessionLauncherLite(
+                    activity,
+                    publishableKey,
+                    customBackendUrl,
+                    customLogUrl,
+                    null
+            )
     )
 
     constructor(
-        activity: Activity,
-        publishableKey: String,
-        customBackendUrl: String,
-        customLogUrl: String
-    ) : this(
-        DefaultPaymentSessionLauncherLite(
-            activity, publishableKey, customBackendUrl, customLogUrl, null
-        )
-    )
-
-    constructor(activity: Activity, publishableKey: String, customParams: Bundle) : this(
-        DefaultPaymentSessionLauncherLite(activity, publishableKey, null, null, customParams)
-    )
+            activity: Activity,
+            publishableKey: String,
+            customParams: Bundle
+    ) : this(DefaultPaymentSessionLauncherLite(activity, publishableKey, null, null, customParams))
 
     constructor(
-        activity: Activity,
-        publishableKey: String,
-        customBackendUrl: String,
-        customLogUrl: String,
-        customParams: Bundle
+            activity: Activity,
+            publishableKey: String,
+            customBackendUrl: String,
+            customLogUrl: String,
+            customParams: Bundle
     ) : this(
-        DefaultPaymentSessionLauncherLite(
-            activity, publishableKey, customBackendUrl, customLogUrl, customParams
-        )
+            DefaultPaymentSessionLauncherLite(
+                    activity,
+                    publishableKey,
+                    customBackendUrl,
+                    customLogUrl,
+                    customParams
+            )
     )
 
-    /*** A builder class for creating instances of [PaymentSession].
+    /**
+     * * A builder class for creating instances of [PaymentSession].
      *
      * @param activity The activity that will host the payment sheet.
      * @param publishableKey The publishable key for your Stripe account.
@@ -67,9 +90,14 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
         fun customParams(params: Bundle) = apply { this.customParams = params }
 
         fun build(): PaymentSession {
-            val launcher = DefaultPaymentSessionLauncherLite(
-                activity, publishableKey, customBackendUrl, customLogUrl, customParams
-            )
+            val launcher =
+                    DefaultPaymentSessionLauncherLite(
+                            activity,
+                            publishableKey,
+                            customBackendUrl,
+                            customLogUrl,
+                            customParams
+                    )
             return PaymentSession(launcher)
         }
     }
@@ -82,6 +110,11 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
     fun initPaymentSession(paymentIntentClientSecret: String) {
         paymentSessionLauncher.initPaymentSession(paymentIntentClientSecret)
     }
+
+    fun initAuthenticationSession(applicationContext: Application, paymentIntentClientSecret: String): AuthenticationSession {
+        return AuthenticationSession.init(applicationContext, "",paymentIntentClientSecret)
+    }
+
 
     /**
      * Presents the payment sheet to the user.
@@ -99,7 +132,8 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
      * @param resultCallback A callback that will be invoked when the payment sheet is closed.
      */
     fun presentPaymentSheet(
-        configuration: Configuration, resultCallback: (PaymentSheetResult) -> Unit
+            configuration: Configuration,
+            resultCallback: (PaymentSheetResult) -> Unit
     ) {
         paymentSessionLauncher.presentPaymentSheet(configuration, resultCallback)
     }
@@ -111,8 +145,8 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
      * @param resultCallback A callback that will be invoked when the payment sheet is closed.
      */
     fun presentPaymentSheet(
-        configurationMap: Map<String, Any?>,
-        resultCallback: (PaymentSheetResult) -> Unit
+            configurationMap: Map<String, Any?>,
+            resultCallback: (PaymentSheetResult) -> Unit
     ) {
         paymentSessionLauncher.presentPaymentSheet(configurationMap, resultCallback)
     }
@@ -120,9 +154,12 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
     /**
      * Retrieves the customer's saved payment methods.
      *
-     * @param savedPaymentMethodCallback A callback that will be invoked with the customer's saved payment methods.
+     * @param savedPaymentMethodCallback A callback that will be invoked with the customer's saved
+     * payment methods.
      */
-    fun getCustomerSavedPaymentMethods(savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)) {
+    fun getCustomerSavedPaymentMethods(
+            savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)
+    ) {
         paymentSessionLauncher.getCustomerSavedPaymentMethods(savedPaymentMethodCallback)
     }
 }

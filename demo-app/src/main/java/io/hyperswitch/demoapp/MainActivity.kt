@@ -223,7 +223,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.authBtn).setOnClickListener{
             println("btn clicked!!!!!!")
             val authenticationSession =
-                paymentSession.initAuthenticationSession(application, paymentIntentClientSecret)
+                paymentSessionLite.initAuthenticationSession(application, paymentIntentClientSecret)
 //            authenticationSession.startAuthentication(this,challengeStatusReceiver)
             val dsId = authenticationSession.getDirectoryServerID()
             val messageVersion = authenticationSession.getMessageVersion()

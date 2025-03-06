@@ -7,9 +7,16 @@ import `in`.juspay.trident.core.Transaction
 import `in`.juspay.trident.data.AuthenticationRequestParameters
 import `in`.juspay.trident.data.ChallengeParameters
 import `in`.juspay.trident.data.ChallengeStatusReceiver
+import `in`.juspay.trident.data.CompletionEvent
+import `in`.juspay.trident.data.ErrorMessage
+import `in`.juspay.trident.data.ProtocolErrorEvent
+import `in`.juspay.trident.data.RuntimeErrorEvent
 import io.hyperswitch.threedslibrary.authenticationSDKs.TridentSDK
 import io.hyperswitch.threedslibrary.di.ThreeDSFactory
 import io.hyperswitch.threedslibrary.di.ThreeDSSDKType
+
+
+
 object AuthenticationSession {
 
     lateinit var threeDSInstance: TridentSDK
@@ -19,7 +26,7 @@ object AuthenticationSession {
         publishableKey: String,
         clientSecret: String
     ): AuthenticationSession {
-        this.applicationContext = applicationContext
+        AuthenticationSession.applicationContext = applicationContext
         ThreeDSFactory.initialize<TridentSDK>(
             ThreeDSSDKType.TRIDENT,
             clientSecret,
