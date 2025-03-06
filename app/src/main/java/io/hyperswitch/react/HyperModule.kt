@@ -29,12 +29,18 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
         private var pendingEmitList: ArrayList<Pair<String, WritableMap>> = ArrayList()
 
         // Method to emit 'confirm' event for card
-        fun confirmCard(map: WritableMap) {
+//        fun confirmCard(map: WritableMap) {
+        @JvmStatic
+        fun confirmCard(map: Map<String, String?>) {
+            val writableMap = Arguments.createMap()
+            for ((key, value) in map) {
+                writableMap.putString(key, value)
+            }
             if (reactContextCard != null && reactContextCard!!.hasCatalystInstance())
                 reactContextCard!!.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                    ?.emit("confirm", map)
+                    ?.emit("confirm", writableMap)
             else
-                pendingEmitList.add(Pair("confirm", map))
+                pendingEmitList.add(Pair("confirm", writableMap))
         }
 
         // Method to emit 'confirmEC' event for express checkout

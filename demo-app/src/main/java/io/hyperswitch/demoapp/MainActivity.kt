@@ -243,6 +243,11 @@ class MainActivity : Activity() {
             }
         }
 
+        findViewById<View>(R.id.launchWidgetLayout).setOnClickListener{
+            val intent = Intent(this,WidgetActivity::class.java)
+            startActivity(intent)
+        }
+
     }
 
     private fun setStatus(error: String) {
