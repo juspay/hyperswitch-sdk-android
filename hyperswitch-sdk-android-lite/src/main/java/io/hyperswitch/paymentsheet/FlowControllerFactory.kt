@@ -1,10 +1,10 @@
 package io.hyperswitch.paymentsheet
 
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentActivity
+import android.app.Activity
+import android.app.Fragment
 
 internal class FlowControllerFactory(
-    private val activity: FragmentActivity,
+    private val activity: Activity,
     private val paymentOptionCallback: PaymentOptionCallback,
     private val paymentResultCallback: PaymentSheetResultCallback
 ) {
@@ -13,7 +13,7 @@ internal class FlowControllerFactory(
         paymentOptionCallback: PaymentOptionCallback,
         paymentResultCallback: PaymentSheetResultCallback
     ) : this(
-        activity = fragment.requireActivity(),
+        activity = fragment.activity,
         paymentOptionCallback = paymentOptionCallback,
         paymentResultCallback = paymentResultCallback,
     )

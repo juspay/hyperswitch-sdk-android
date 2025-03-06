@@ -1,30 +1,30 @@
 package io.hyperswitch.payments.googlepaylauncher
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
 import com.google.android.gms.wallet.AutoResolveHelper
 import com.google.android.gms.wallet.PaymentData
-
 import org.json.JSONException
 import org.json.JSONObject
+import java.util.Locale
 
-class GooglePayActivity : AppCompatActivity() {
+class GooglePayActivity : Activity() {
 
     private val gPayRequestCode = 1212
-    private val model: GooglePayViewModel by viewModels()
+    private lateinit var model: GooglePayViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val intent = intent
+        model = GooglePayViewModel(applicationContext)
+
         val gPayRequest = JSONObject(intent.getStringExtra("googlePayRequest").toString())
         var isReadyToPayJson: JSONObject? = null
         var environment = "TEST" // Default Value is TEST in capitals
-        if (gPayRequest.has("paymentDataRequest") and gPayRequest.has("environment")) {
+        if (gPayRequest.has("paymentDataRequest") && gPayRequest.has("environment")) {
             isReadyToPayJson = gPayRequest.getJSONObject("paymentDataRequest")
-            environment = gPayRequest.getString("environment").uppercase()
+            environment = gPayRequest.getString("environment").uppercase(Locale.ROOT)
         }
 
         if (isReadyToPayJson != null) {
@@ -37,7 +37,6 @@ class GooglePayActivity : AppCompatActivity() {
             Log.e("GooglePay", "GPay PaymentRequest Not available")
         }
     }
-
 
     private fun requestPayment(paymentDataRequestJson: JSONObject) {
         val task = model.getLoadPaymentDataTask(paymentDataRequestJson)
@@ -64,8 +63,6 @@ class GooglePayActivity : AppCompatActivity() {
         finish()
     }
 
-
-    @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 

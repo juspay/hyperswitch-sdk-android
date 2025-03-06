@@ -1,5 +1,11 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
+gradle.startParameter.excludedTaskNames.addAll(
+        gradle.startParameter.taskNames.findAll {
+            it.contains("testClasses")
+        }
+)
+
 buildscript {
     ext {
         buildToolsVersion = "34.0.0"

@@ -1,11 +1,11 @@
 package io.hyperswitch.demoapp
 
+import android.app.Activity
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
@@ -19,18 +19,45 @@ import io.hyperswitch.paymentsession.PaymentMethod
 import io.hyperswitch.paymentsheet.AddressDetails
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONException
 import org.json.JSONObject
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import io.hyperswitch.lite.PaymentSession as PaymentSessionLite
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : Activity() {
 
-    lateinit var ctx: AppCompatActivity;
+    lateinit var ctx: Activity;
     private var paymentIntentClientSecret: String = "clientSecret"
     private var publishKey: String = ""
+    private var serverUrl = "http://10.0.2.2:5252"
     private lateinit var paymentSession: PaymentSession
     private lateinit var paymentSessionLite: PaymentSessionLite
+
+    private suspend fun fetchNetceteraApiKey(): String? =
+        suspendCancellableCoroutine { continuation ->
+            reset().get("$serverUrl/netcetera-sdk-api-key")
+                .responseString(object : Handler<String?> {
+                    override fun success(value: String?) {
+                        try {
+                            val result = value?.let { JSONObject(it) }
+                            val netceteraApiKey = result?.getString("netceteraApiKey")
+                            continuation.resume(netceteraApiKey)
+                        } catch (e: Exception) {
+                            continuation.resumeWithException(e)
+                        }
+                    }
+
+                    override fun failure(error: FuelError) {
+                        continuation.resumeWithException(error)
+                    }
+                })
+        }
 
     val challengeStatusReceiver = object : ChallengeStatusReceiver {
         override fun completed(completionEvent: CompletionEvent) {
@@ -59,7 +86,7 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun getCustomisations(): PaymentSheet.Configuration {
+    private suspend fun getCustomisations(): PaymentSheet.Configuration {
         /**
          *
          * Customisations
@@ -105,7 +132,7 @@ class MainActivity : AppCompatActivity() {
             colorsDark = color2
         )
 
-        return PaymentSheet.Configuration.Builder("Example, Inc.")
+        val configuration = PaymentSheet.Configuration.Builder("Example, Inc.")
             .appearance(appearance)
             .defaultBillingDetails(billingDetails)
             .primaryButtonLabel("Purchase ($2.00)")
@@ -117,17 +144,26 @@ class MainActivity : AppCompatActivity() {
             .displaySavedPaymentMethodsCheckbox(true)
             .displaySavedPaymentMethods(true)
             .disableBranding(true)
-            .build()
+
+        try {
+            val netceteraApiKey = fetchNetceteraApiKey()
+            netceteraApiKey?.let {
+                configuration.netceteraSDKApiKey(it)
+            }
+        } catch (e: Exception) {
+            Log.i("Netcetera SDK API KEY ", "Key not provided in env")
+        }
+
+        return configuration.build()
     }
 
     private fun getCL() {
 
-        ctx.findViewById<View>(R.id.reloadButton).isEnabled = false;
         ctx.findViewById<View>(R.id.launchButton).isEnabled = false;
         ctx.findViewById<View>(R.id.launchWebButton).isEnabled = false;
         ctx.findViewById<View>(R.id.confirmButton).isEnabled = false;
 
-        reset().get("http://10.0.2.2:5252/create-payment-intent", null)
+        reset().get("$serverUrl/create-payment-intent", null)
             .responseString(object : Handler<String?> {
                 override fun success(value: String?) {
                     try {
@@ -183,18 +219,19 @@ class MainActivity : AppCompatActivity() {
                             }
 
                             ctx.runOnUiThread {
-                                ctx.findViewById<View>(R.id.reloadButton).isEnabled = true
                                 ctx.findViewById<View>(R.id.launchButton).isEnabled = true
                                 ctx.findViewById<View>(R.id.launchWebButton).isEnabled = true
                             }
                         }
                     } catch (e: JSONException) {
                         Log.d("Backend Response", e.toString())
+                        setStatus("could not connect to the server")
                     }
                 }
 
                 override fun failure(error: FuelError) {
                     Log.d("Backend Response", error.toString())
+                    setStatus("could not connect to the server")
                 }
             })
     }
@@ -233,14 +270,19 @@ class MainActivity : AppCompatActivity() {
             authenticationSession.doChallenge(this, challengeParameters, challengeStatusReceiver, 0)
         }
         findViewById<View>(R.id.launchButton).setOnClickListener {
-            paymentSession.presentPaymentSheet(getCustomisations(), ::onPaymentSheetResult)
+            CoroutineScope(Dispatchers.Main).launch {
+                val customisations = getCustomisations()
+                paymentSession.presentPaymentSheet(customisations, ::onPaymentSheetResult)
+            }
         }
 
         findViewById<View>(R.id.launchWebButton).setOnClickListener {
-            paymentSessionLite.presentPaymentSheet(
-                getCustomisations(),
-                ::onPaymentSheetResult
-            )
+            CoroutineScope(Dispatchers.Main).launch {
+                paymentSessionLite.presentPaymentSheet(
+                    getCustomisations(),
+                    ::onPaymentSheetResult
+                )
+            }
         }
 
     }

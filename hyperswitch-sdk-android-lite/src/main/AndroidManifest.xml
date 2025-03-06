@@ -9,12 +9,11 @@
     <application
         android:enableOnBackInvokedCallback="true"
         android:supportsRtl="true"
-        android:usesCleartextTraffic="true"
         tools:targetApi="tiramisu">
         <activity
             android:name="io.hyperswitch.payments.googlepaylauncher.GooglePayActivity"
             android:exported="false"
-            android:theme="@style/HyperTransparentTheme" />
+            android:theme="@style/GooglePayTransparentTheme" />
         <meta-data
             android:name="com.google.android.gms.wallet.api.enabled"
             android:value="true" />

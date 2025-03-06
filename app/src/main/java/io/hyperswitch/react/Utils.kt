@@ -1,5 +1,5 @@
 package io.hyperswitch.react
-
+import android.os.Build
 import android.content.Context
 import android.net.wifi.WifiManager
 import android.os.Bundle
@@ -92,7 +92,6 @@ class Utils {
     // Get launch options for React Native fragment
     private fun getLaunchOptions(request: Bundle, message: String, context: FragmentActivity): Bundle {
       request.putString("type", message)
-
       val hyperParams = request.getBundle("hyperParams") ?: Bundle()
       hyperParams.putString("appId", context.packageName)
       hyperParams.putString("country", context.resources.configuration.locale.country)
@@ -100,8 +99,11 @@ class Utils {
       hyperParams.putString("ip", getDeviceIPAddress(context))
       hyperParams.putDouble("launchTime", getCurrentTime())
       hyperParams.putString("sdkVersion", BuildConfig.VERSION_NAME)
-
+      hyperParams.putString("device_model", Build.MODEL)
+      hyperParams.putString("os_type", "android")
+      hyperParams.putString("os_version", Build.VERSION.RELEASE)
       request.putBundle("hyperParams", hyperParams)
+      hyperParams.putString("deviceBrand", Build.BRAND)
 
       val bundle = Bundle()
       bundle.putBundle("props", request)

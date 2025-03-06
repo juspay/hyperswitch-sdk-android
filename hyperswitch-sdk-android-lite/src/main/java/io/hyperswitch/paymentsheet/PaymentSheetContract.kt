@@ -5,15 +5,12 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Parcelable
-import androidx.activity.result.contract.ActivityResultContract
-import androidx.annotation.ColorInt
-import androidx.annotation.VisibleForTesting
-import androidx.core.os.bundleOf
+import android.support.annotation.ColorInt
+import android.support.annotation.VisibleForTesting
 import kotlinx.parcelize.Parcelize
 
-class PaymentSheetContract :
-    ActivityResultContract<PaymentSheetContract.Args, PaymentSheetResult>() {
-    override fun createIntent(
+class PaymentSheetContract {
+    fun createIntent(
         context: Context,
         input: Args
     ): Intent {
@@ -21,7 +18,7 @@ class PaymentSheetContract :
         return Intent()
     }
 
-    override fun parseResult(
+    fun parseResult(
         resultCode: Int,
         intent: Intent?
     ): PaymentSheetResult {
@@ -83,7 +80,9 @@ class PaymentSheetContract :
         val paymentSheetResult: PaymentSheetResult
     ) : Parcelable {
         fun toBundle(): Bundle {
-            return bundleOf("EXTRA_RESULT" to this)
+            return Bundle().apply {
+                putParcelable("EXTRA_RESULT", this)
+            }
         }
     }
 }

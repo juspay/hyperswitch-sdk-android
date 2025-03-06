@@ -1,14 +1,15 @@
 package io.hyperswitch.paymentsheet
 
+import android.app.Activity
+import android.app.Fragment
 import android.content.res.ColorStateList
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
-import androidx.annotation.ColorInt
-import androidx.annotation.FontRes
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentActivity
+import android.support.annotation.ColorInt
+import android.support.annotation.FontRes
+import android.support.annotation.RequiresApi
 import kotlinx.parcelize.Parcelize
 
 /**
@@ -25,7 +26,7 @@ class PaymentSheet internal constructor(
      * @param callback  called with the result of the payment after the payment sheet is dismissed.
      */
     constructor(
-        activity: FragmentActivity,
+        activity: Activity,
         callback: PaymentSheetResultCallback
     ) : this(
         DefaultPaymentSheetLauncher(activity, callback)
@@ -508,6 +509,7 @@ class PaymentSheet internal constructor(
             return "#" + s.substring(3) + s.substring(1, 3)
         }
 
+        @RequiresApi(Build.VERSION_CODES.O)
         constructor(
             primary: Color? = null,
             surface: Color? = null,
@@ -567,6 +569,7 @@ class PaymentSheet internal constructor(
             return "#" + s.substring(3) + s.substring(1, 3)
         }
 
+        @RequiresApi(Build.VERSION_CODES.O)
         constructor(
             color: Color?,
             intensity: Float?
@@ -698,6 +701,7 @@ class PaymentSheet internal constructor(
                 }
             }
 
+        @RequiresApi(Build.VERSION_CODES.O)
         constructor(
             background: Color?,
             onBackground: Color?,
@@ -1050,7 +1054,7 @@ class PaymentSheet internal constructor(
              */
             @JvmStatic
             fun create(
-                activity: FragmentActivity,
+                activity: Activity,
                 paymentOptionCallback: PaymentOptionCallback,
                 paymentResultCallback: PaymentSheetResultCallback
             ): FlowController {

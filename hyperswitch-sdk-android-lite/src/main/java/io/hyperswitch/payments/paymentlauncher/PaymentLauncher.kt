@@ -1,6 +1,6 @@
 package io.hyperswitch.payments.paymentlauncher
 
-import androidx.appcompat.app.AppCompatActivity
+import android.app.Activity
 import io.hyperswitch.model.ConfirmPaymentIntentParams
 import org.json.JSONObject
 
@@ -42,7 +42,7 @@ class PaymentLauncher(
         lateinit var onPaymentResult: PaymentResultCallback
 
         fun create(
-            activity: AppCompatActivity?,
+            activity: Activity?,
             publishableKey: String?,
             stripeAccountId: String?,
             onPaymentResult: PaymentResultCallback

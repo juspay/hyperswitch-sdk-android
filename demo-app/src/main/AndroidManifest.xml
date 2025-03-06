@@ -3,23 +3,16 @@
 
     <application
         android:allowBackup="true"
+        android:extractNativeLibs="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:label="Demo App"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:extractNativeLibs="true"
-        android:usesCleartextTraffic="true"
-        android:theme="@style/AppTheme">
-        <meta-data
-            android:name="debug_mode"
-            android:value="N" />
-        <meta-data
-            android:name="spay_sdk_api_level"
-            android:value="2.19" />
+        android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
-            android:exported="true"
-            android:label="@string/title_activity_main">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
