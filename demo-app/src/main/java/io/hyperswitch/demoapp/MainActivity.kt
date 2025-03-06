@@ -1,6 +1,7 @@
 package io.hyperswitch.demoapp
 
 import android.app.Activity
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
@@ -240,6 +241,11 @@ class MainActivity : Activity() {
                     ::onPaymentSheetResult
                 )
             }
+        }
+
+        findViewById<View>(R.id.launchWidgetLayout).setOnClickListener{
+            val intent = Intent(this,WidgetActivity::class.java)
+            startActivity(intent)
         }
 
     }
