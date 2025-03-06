@@ -12,6 +12,7 @@ buildscript {
         androidXBrowser = "1.5.0"
     }
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
     }
@@ -35,6 +36,7 @@ apply plugin: 'maven-publish'
 rootProject.allprojects {
     // apply plugin: 'com.vanniktech.maven.publish'
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
         maven {
@@ -45,6 +47,9 @@ rootProject.allprojects {
         }
         maven {
             url 'https://x.klarnacdn.net/mobile-sdk/'
+        }
+        maven {
+            url "https://maven.juspay.in/jp-build-packages/hyper-sdk/"
         }
     }
     /*

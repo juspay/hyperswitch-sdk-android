@@ -10,6 +10,23 @@
     tools:context=".MainActivity">
 
     <Button
+        android:id="@+id/authBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:background="@drawable/rounded_button"
+        android:text="3DS Authentication"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        app:layout_constraintBottom_toTopOf="@+id/resultText"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/launchButton"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <Button
         android:id="@+id/reloadButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

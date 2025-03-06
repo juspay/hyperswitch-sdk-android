@@ -55,4 +55,5 @@ dependencies {
     implementation 'com.github.kittinunf.fuel:fuel-json:2.3.1'
     implementation project(':app')
     implementation project(':hyperswitch-sdk-android-lite')
+    implementation 'in.juspay:trident:1.0.8-rc.04'
 }

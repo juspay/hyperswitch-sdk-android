@@ -1,12 +1,17 @@
 package io.hyperswitch
 
 import android.app.Activity
+import android.app.Application
+import android.content.Context
 import android.os.Bundle
+import `in`.juspay.trident.data.ChallengeStatusReceiver
+import io.hyperswitch.authentication.AuthenticationSession
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSessionLauncher
 import io.hyperswitch.paymentsheet.PaymentSheet.Configuration
 import io.hyperswitch.paymentsheet.PaymentSheetResult
+import io.hyperswitch.threedslibrary.authenticationSDKs.TridentSDK
 
 /**
  * A class that manages payment sessions using a [PaymentSessionLauncher].
@@ -50,6 +55,8 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
         DefaultPaymentSessionLauncher(
             activity, publishableKey, customBackendUrl, customLogUrl, customParams
         )
+
+
     )
 
     /*** A builder class for creating instances of [PaymentSession].
@@ -82,6 +89,11 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
     fun initPaymentSession(paymentIntentClientSecret: String) {
         paymentSessionLauncher.initPaymentSession(paymentIntentClientSecret)
     }
+
+    fun initAuthenticationSession(applicationContext: Application, paymentIntentClientSecret: String):AuthenticationSession{
+         return AuthenticationSession.init(applicationContext, "",paymentIntentClientSecret)
+    }
+
 
     /**
      * Presents the payment sheet to the user.

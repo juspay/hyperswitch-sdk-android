@@ -9,6 +9,10 @@ import androidx.appcompat.app.AppCompatActivity
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
+import `in`.juspay.trident.data.ChallengeStatusReceiver
+import `in`.juspay.trident.data.CompletionEvent
+import `in`.juspay.trident.data.ProtocolErrorEvent
+import `in`.juspay.trident.data.RuntimeErrorEvent
 import io.hyperswitch.PaymentSession
 import io.hyperswitch.payments.paymentlauncher.PaymentResult
 import io.hyperswitch.paymentsession.PaymentMethod
@@ -27,6 +31,33 @@ class MainActivity : AppCompatActivity() {
     private var publishKey: String = ""
     private lateinit var paymentSession: PaymentSession
     private lateinit var paymentSessionLite: PaymentSessionLite
+
+    val challengeStatusReceiver = object : ChallengeStatusReceiver {
+        override fun completed(completionEvent: CompletionEvent) {
+            println("Completion Event: $completionEvent")
+        }
+
+        override fun cancelled() {
+            println("Cancelled")
+
+        }
+
+        override fun timedout() {
+            println("Timedout")
+
+        }
+
+        override fun protocolError(protocolErrorEvent: ProtocolErrorEvent) {
+            println("Completion Event: $protocolErrorEvent")
+
+        }
+
+        override fun runtimeError(runtimeErrorEvent: RuntimeErrorEvent) {
+            println("Completion Event: $runtimeErrorEvent")
+
+        }
+
+    }
 
     private fun getCustomisations(): PaymentSheet.Configuration {
         /**
@@ -189,6 +220,18 @@ class MainActivity : AppCompatActivity() {
          *
          * */
 
+        findViewById<View>(R.id.authBtn).setOnClickListener{
+            println("btn clicked!!!!!!")
+            val authenticationSession =
+                paymentSession.initAuthenticationSession(application, paymentIntentClientSecret)
+//            authenticationSession.startAuthentication(this,challengeStatusReceiver)
+            val dsId = authenticationSession.getDirectoryServerID()
+            val messageVersion = authenticationSession.getMessageVersion()
+            val transaction = authenticationSession.createTransaction(dsId, messageVersion)
+            val aReq = transaction.getAuthenticationRequestParameters()
+            val challengeParameters = authenticationSession.getChallengeParameters(aReq)
+            authenticationSession.doChallenge(this, challengeParameters, challengeStatusReceiver, 0)
+        }
         findViewById<View>(R.id.launchButton).setOnClickListener {
             paymentSession.presentPaymentSheet(getCustomisations(), ::onPaymentSheetResult)
         }
