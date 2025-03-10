@@ -19,23 +19,25 @@ class HyperOtaLogger : TrackerCallback() {
         subCategory: String,
         value: Any
     ) {
-        val eventData = mapOf(
-            "label" to label,
-            "value" to value.toString(),
-            "category" to category,
-            "subcategory" to subCategory
-        )
+        if (!value.toString().contains("index split is empty") && !value.toString().contains("End of input at character") && !value.toString().contains("some files during clean up")) {
+            val eventData = mapOf(
+                "label" to label,
+                "value" to value,
+                "category" to category,
+                "subcategory" to subCategory
+            )
 
-        try {
-            val jsonData = JSONObject(eventData).toString()
-            val log = nativeLog.LogBuilder()
-                .logType(level)
-                .category(LogCategory.OTA_LIFE_CYCLE)
-                .eventName(eventName)
-                .value(jsonData)
-            HyperLogManager.addLog(log.build())
-        } catch (e: JSONException) {
-            Log.e("HyperOtaLogger", "Error: JSON serialization failed. ${e.message}")
+            try {
+                val jsonData = JSONObject(eventData).toString()
+                val log = nativeLog.LogBuilder()
+                    .logType(level)
+                    .category(LogCategory.OTA_LIFE_CYCLE)
+                    .eventName(eventName)
+                    .value(jsonData)
+                HyperLogManager.addLog(log.build())
+            } catch (e: JSONException) {
+                Log.e("HyperOtaLogger", "Error: JSON serialization failed. ${e.message}")
+            }
         }
     }
 
@@ -48,15 +50,18 @@ class HyperOtaLogger : TrackerCallback() {
         value: Any
     ) {
         if (category == "lifecycle") {
-            val eventName = when (key) {
-                "init" -> EventName.HYPER_OTA_INIT
-                "end" -> EventName.HYPER_OTA_FINISH
-                else -> EventName.HYPER_OTA_EVENT
+            if (subCategory == "system") {
+                val eventName = when (key) {
+                    "init" -> EventName.HYPER_OTA_INIT
+                    "end" -> EventName.HYPER_OTA_FINISH
+                    else -> EventName.HYPER_OTA_EVENT
+                }
+                createAndSendLog(eventName, level, label, category, "update_task", value)
+            }else{
+                createAndSendLog(EventName.HYPER_OTA_EVENT, level, label, category, "update_task", value)
             }
 
-            createAndSendLog(eventName, level, label, category, subCategory, value)
-        }        
-//        Log.i("ota -1",category + " " + subCategory + " " + level + " " + label + " " + key + " " + value)
+        }
     }
 
     override fun track(
@@ -68,21 +73,23 @@ class HyperOtaLogger : TrackerCallback() {
         value: JSONObject
     ) {
         if (category == "lifecycle") {
-            val eventName = when (key) {
-                "init" -> EventName.HYPER_OTA_INIT
-                "end" -> EventName.HYPER_OTA_FINISH
-                else -> EventName.HYPER_OTA_EVENT
-            }
             try {
                 val otaVersion = value.getString("package_version")
                 HyperLogManager.setOtaVersion(otaVersion)
             }catch (_: JSONException){
 
             }
-            createAndSendLog(eventName, level, label, category, subCategory, value)
+            if (subCategory == "system") {
+                val eventName = when (key) {
+                    "init" -> EventName.HYPER_OTA_INIT
+                    "end" -> EventName.HYPER_OTA_FINISH
+                    else -> EventName.HYPER_OTA_EVENT
+                }
+                createAndSendLog(eventName, level, label, category, "update_task", value)
+            }else{
+                createAndSendLog(EventName.HYPER_OTA_EVENT, level, label, category, "update_task", value)
+            }
         }
-//        Log.i("ota -2",category + " " + subCategory + " " + level + " " + label + " " + key + " " + value.toString())
-
     }
 
     override fun trackException(
@@ -95,9 +102,9 @@ class HyperOtaLogger : TrackerCallback() {
         if (category == "lifecycle") {
             val eventData = mapOf(
                 "label" to label,
-                "value" to e.message.toString(),
+                "value" to (e.localizedMessage?.toString() ?: e.stackTraceToString()),
                 "category" to category,
-                "subcategory" to subCategory
+                "subcategory" to "update_task"
             )
 
             try {

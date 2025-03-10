@@ -57,19 +57,19 @@ open class MainApplication : Application(), ReactApplication {
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(context))
     //  CodePush.setReactInstanceHolder { reactNativeHost.reactInstanceManager }
         super.onCreate()
-        registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
-            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
-            override fun onActivityStarted(activity: Activity) {}
-            override fun onActivityStopped(activity: Activity) {
-                val fileManager = LogFileManager(context)
-                fileManager.addLog(HyperLogManager.getAllLogsAsString())
-            }
+        // registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
+        //     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+        //     override fun onActivityStarted(activity: Activity) {}
+        //     override fun onActivityStopped(activity: Activity) {
+        //         val fileManager = LogFileManager(context)
+        //         fileManager.addLog(HyperLogManager.getAllLogsAsString())
+        //     }
 
-            override fun onActivityResumed(activity: Activity) {}
-            override fun onActivityPaused(activity: Activity) {}
-            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
-            override fun onActivityDestroyed(activity: Activity) {}
-        })
+        //     override fun onActivityResumed(activity: Activity) {}
+        //     override fun onActivityPaused(activity: Activity) {}
+        //     override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+        //     override fun onActivityDestroyed(activity: Activity) {}
+        // })
 
         this.tracker = HyperOtaLogger()
         SoLoader.init(this, false)
@@ -77,7 +77,7 @@ open class MainApplication : Application(), ReactApplication {
             "hyperswitch",
             "hyperswitch.bundle",
             BuildConfig.VERSION_NAME,
-            "https://beta.hyperswitch.io/assets/v1/mobile-ota/android/${BuildConfig.VERSION_NAME}/config.json",
+            "https://beta.hyperswitch.io/assets/v1/mobile-ota/android/${BuildConfig.VERSION_NAME}/config.json", // need to change URL
             this.tracker,
         )
         if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {

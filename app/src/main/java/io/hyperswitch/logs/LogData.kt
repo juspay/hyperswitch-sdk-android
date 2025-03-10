@@ -41,18 +41,17 @@ data class Log(
 ) {
     fun toJson(): String {
         try {
-            val safeValue = if (value is String) value else value.toString()
 
             val logData = JSONObject().apply {
                 put("timestamp", timestamp)
                 put("log_type", logType.name)
                 put("component", component)
-                put("category", category)
+                put("category", category.toString())
                 put("version", version)
                 put("code_push_version", codePushVersion)
                 put("client_core_version", clientCoreVersion)
-                put("value", safeValue)
-                put("internal_metadata", "")
+                put("value", value.toString())
+                put("internal_metadata", internalMetadata)
                 put("session_id", sessionId)
                 put("merchant_id", merchantId)
                 put("payment_id", paymentId)
@@ -60,7 +59,7 @@ data class Log(
                 put("platform", platform)
                 put("user_agent", userAgent)
                 put("event_name", eventName.name)
-                put("first_event", firstEvent)
+                put("first_event", firstEvent.toString())
                 put("payment_method", paymentMethod ?: "")
                 put("payment_experience", paymentExperience ?: "")
                 put("latency", latency ?: "")
@@ -74,35 +73,9 @@ data class Log(
         }
     }
 
-//        return """
-//            {
-//                "timestamp": "$timestamp",
-//                "log_type": "${logType.name}",
-//                "component": "${component}",
-//                "category": "${category}",
-//                "version": "$version",
-//                "code_push_version": "$codePushVersion",
-//                "client_core_version": "$clientCoreVersion",
-//                "value": "$value",
-//                "internal_metadata": "{\"response\":null}",
-//                "session_id": "$sessionId",
-//                "merchant_id": "$merchantId",
-//                "payment_id": "$paymentId",
-//                "app_id": "${appId ?: ""}",
-//                "platform": "$platform",
-//                "user_agent": "$userAgent",
-//                "event_name": "${eventName.name}",
-//                "first_event": "$firstEvent",
-//                "payment_method": "${paymentMethod ?: ""}",
-//                "payment_experience": "${paymentExperience ?: ""}",
-//                "latency": "${latency ?: ""}",
-//                "source": "$source"
-//            }
-//        """.trimIndent().replace("\n", "").replace("\r", "").replace("\\s".toRegex(), "")
-
 
     class LogBuilder {
-        private var timestamp: String = getCurrentTime().toString()
+        private var timestamp: String = System.currentTimeMillis().toString()
         private var logType: LogType = LogType.INFO
         private var component: String = "MOBILE"
         private lateinit var category: LogCategory
@@ -110,7 +83,7 @@ data class Log(
         private var codePushVersion: String = ""
         private var clientCoreVersion: String = ""
         private var value: String = ""
-        private var internalMetadata: String = "{\"response\":null}"
+        private var internalMetadata: String = ""
         private var sessionId: String = ""
         private var merchantId: String = ""
         private var paymentId: String = ""
