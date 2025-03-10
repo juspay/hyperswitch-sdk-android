@@ -3,6 +3,7 @@ pluginManagement {
         mavenCentral()
         google()
         gradlePluginPortal()
+         maven { url 'https://jitpack.io' }
     }
     includeBuild('../node_modules/@react-native/gradle-plugin')
     includeBuild('hyperswitch-gradle-plugin')

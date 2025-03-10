@@ -92,4 +92,5 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     implementation project(':app')
     implementation project(':hyperswitch-sdk-android-lite')
+    compileOnly( 'com.github.Sanskar2001:Universal-3DS-SDK-Adapter:v1.1.0')
 }

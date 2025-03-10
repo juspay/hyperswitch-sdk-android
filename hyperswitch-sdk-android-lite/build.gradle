@@ -46,6 +46,9 @@ android {
 
 dependencies {
     implementation("com.google.android.gms:play-services-wallet")
+     implementation 'com.github.Sanskar2001:Universal-3DS-SDK-Adapter:v1.1.0'
+     implementation 'in.juspay:trident:1.0.8-rc.04'
+     implementation("in.juspay:hypersmshandler:2.1.25")
 
     constraints {
         implementation("com.google.android.gms:play-services-wallet") {

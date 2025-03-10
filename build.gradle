@@ -20,6 +20,7 @@ buildscript {
     repositories {
         google()
         mavenCentral()
+         maven { url 'https://jitpack.io' }
     }
     dependencies {
         classpath("com.android.tools.build:gradle")
@@ -51,6 +52,10 @@ rootProject.allprojects {
         }
         maven {
             url 'https://x.klarnacdn.net/mobile-sdk/'
+        }
+        maven { url 'https://jitpack.io' }
+        maven {
+            url "https://maven.juspay.in/jp-build-packages/hyper-sdk/"
         }
     }
     /*

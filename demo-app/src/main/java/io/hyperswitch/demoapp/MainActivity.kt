@@ -19,6 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import io.hyperswitch.threedslibrary.service.Result
 import org.json.JSONException
 import org.json.JSONObject
 import kotlin.coroutines.resume
@@ -34,6 +35,33 @@ class MainActivity : Activity() {
     private var serverUrl = "http://10.0.2.2:5252"
     private lateinit var paymentSession: PaymentSession
     private lateinit var paymentSessionLite: PaymentSessionLite
+
+    val challengeStatusReceiver =
+        object : io.hyperswitch.threedslibrary.data.ChallengeStatusReceiver {
+
+            override fun cancelled() {
+                println("Cancelled")
+
+            }
+
+            override fun completed(completionEvent: io.hyperswitch.threedslibrary.data.CompletionEvent) {
+                println("Completion Event: $completionEvent")
+            }
+
+            override fun protocolError(protocolErrorEvent: io.hyperswitch.threedslibrary.data.ProtocolErrorEvent) {
+                println("Completion Event: $protocolErrorEvent")
+            }
+
+            override fun runtimeError(runtimeErrorEvent: io.hyperswitch.threedslibrary.data.RuntimeErrorEvent) {
+                println("Completion Event: $runtimeErrorEvent")
+            }
+
+            override fun timedout() {
+                println("Timedout")
+
+            }
+
+        }
 
     private suspend fun fetchNetceteraApiKey(): String? =
         suspendCancellableCoroutine { continuation ->
@@ -225,6 +253,34 @@ class MainActivity : Activity() {
          * Launch Payment Sheet
          *
          * */
+
+        findViewById<View>(R.id.authBtn).setOnClickListener {
+            println("btn clicked!!!!!!")
+            val authenticationSession =
+                paymentSessionLite.initAuthenticationSession(application, paymentIntentClientSecret)
+                { result: Result ->
+                        println(result)
+
+                }
+
+//            val dsId = authenticationSession.getDirectoryServerID()
+//            val messageVersion = authenticationSession.getMessageVersion()
+//            val transaction =
+//                authenticationSession.createTransaction(dsId, messageVersion)
+//            val aReq = transaction.getAuthenticationRequestParameters()
+//            val challengeParameters = authenticationSession.getChallengeParameters(aReq)
+//
+//            println("transStatus" + challengeParameters.transStatus)
+//
+//            if (challengeParameters.transStatus == "C")
+//                transaction.doChallenge(
+//                    this,
+//                    challengeParameters,
+//                    challengeStatusReceiver,
+//                    5,
+//                    ""
+//                )
+        }
 
         findViewById<View>(R.id.launchButton).setOnClickListener {
             CoroutineScope(Dispatchers.Main).launch {

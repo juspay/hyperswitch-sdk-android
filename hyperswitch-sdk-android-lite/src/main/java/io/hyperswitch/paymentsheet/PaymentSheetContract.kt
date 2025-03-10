@@ -5,8 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Parcelable
-import android.support.annotation.ColorInt
-import android.support.annotation.VisibleForTesting
+import androidx.annotation.ColorInt
+import androidx.annotation.VisibleForTesting
 import kotlinx.parcelize.Parcelize
 
 class PaymentSheetContract {
