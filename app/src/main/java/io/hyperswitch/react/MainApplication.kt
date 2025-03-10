@@ -16,6 +16,7 @@ import com.facebook.soloader.SoLoader
 // import com.microsoft.codepush.react.CodePush
 import `in`.juspay.hyperotareact.HyperOTAServicesReact
 import io.hyperswitch.BuildConfig
+import io.hyperswitch.R
 import io.hyperswitch.logs.CrashHandler
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
@@ -24,7 +25,7 @@ import io.hyperswitch.logs.LogFileManager
 import io.hyperswitch.hyperota.HyperOtaLogger
 
 open class MainApplication : Application(), ReactApplication {
-    private lateinit var hyperOTAServices : HyperOTAServicesReact
+    private  var hyperOTAServices : HyperOTAServicesReact? = null
     private lateinit var tracker: HyperOtaLogger
     override val reactNativeHost: ReactNativeHost =
         object : DefaultReactNativeHost(this) {
@@ -45,7 +46,7 @@ open class MainApplication : Application(), ReactApplication {
             override fun getJSBundleFile(): String {
 //                CodePush.overrideAppVersion(BuildConfig.VERSION_NAME)
 //                return CodePush.getJSBundleFile("hyperswitch.bundle")
-                return hyperOTAServices.getBundlePath()
+                return hyperOTAServices?.getBundlePath() ?: "assets://hyperswitch.bundle"
             }
         }
 
@@ -71,15 +72,19 @@ open class MainApplication : Application(), ReactApplication {
         //     override fun onActivityDestroyed(activity: Activity) {}
         // })
 
-        this.tracker = HyperOtaLogger()
+
         SoLoader.init(this, false)
-        this.hyperOTAServices = HyperOTAServicesReact(this.applicationContext,
-            "hyperswitch",
-            "hyperswitch.bundle",
-            BuildConfig.VERSION_NAME,
-            "https://beta.hyperswitch.io/assets/v1/mobile-ota/android/${BuildConfig.VERSION_NAME}/config.json", // need to change URL
-            this.tracker,
-        )
+        if (R.string.hyperOTAEndPoint.toString() != "hyperOTA_END_POINT_") {
+            this.tracker = HyperOtaLogger()
+            this.hyperOTAServices = HyperOTAServicesReact(
+                this.applicationContext,
+                "hyperswitch",
+                "hyperswitch.bundle",
+                BuildConfig.VERSION_NAME,
+                "${R.string.hyperOTAEndPoint}/mobile-ota/android/${BuildConfig.VERSION_NAME}/config.json", // need to change URL
+                this.tracker,
+            )
+        }
         if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
             // If you opted-in for the New Architecture, we load the native entry point for this app.
             load()
