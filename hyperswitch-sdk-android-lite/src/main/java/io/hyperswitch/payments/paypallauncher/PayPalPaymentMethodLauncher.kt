@@ -1,7 +1,7 @@
 package io.hyperswitch.payments.paypallauncher
 
 import android.os.Parcelable
-import android.support.annotation.IntDef
+import androidx.annotation.IntDef
 import kotlinx.parcelize.Parcelize
 
 class PayPalPaymentMethodLauncher {
@@ -80,7 +80,7 @@ class PayPalPaymentMethodLauncher {
      * See the corresponding [Result.Failed.error] message for more details.
      */
     @Target(AnnotationTarget.PROPERTY, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.TYPE)
-    @IntDef(INTERNAL_ERROR.toLong(), DEVELOPER_ERROR.toLong(), NETWORK_ERROR.toLong())
+    @IntDef(INTERNAL_ERROR, DEVELOPER_ERROR, NETWORK_ERROR)
     annotation class ErrorCode
 
     companion object {

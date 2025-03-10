@@ -1,12 +1,15 @@
 package io.hyperswitch.lite
 
 import android.app.Activity
+import android.app.Application
 import android.os.Bundle
+import io.hyperswitch.authentication.AuthenticationSession
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncherLite
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSessionLauncher
 import io.hyperswitch.paymentsheet.PaymentSheet.Configuration
 import io.hyperswitch.paymentsheet.PaymentSheetResult
+import io.hyperswitch.threedslibrary.service.Result
 
 /**
  * A class that manages payment sessions using a [PaymentSessionLauncher].
@@ -82,6 +85,32 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
     fun initPaymentSession(paymentIntentClientSecret: String) {
         paymentSessionLauncher.initPaymentSession(paymentIntentClientSecret)
     }
+
+    fun initAuthenticationSession(
+        applicationContext: Application,
+        paymentIntentClientSecret: String,
+        initializationCallback: (Result) -> Unit
+    ): AuthenticationSession {
+        return AuthenticationSession.init(
+            applicationContext,
+            paymentIntentClientSecret,
+            initializationCallback
+        )
+    }
+
+    fun initAuthenticationSession(
+        applicationContext: Application,
+        paymentIntentClientSecret: String?,
+        authenticationResponse: String,
+        initializationCallback: (Result) -> Unit,
+    ): AuthenticationSession {
+        return AuthenticationSession.init(
+            applicationContext,
+            authenticationResponse,
+            initializationCallback
+        )
+    }
+
 
     /**
      * Presents the payment sheet to the user.

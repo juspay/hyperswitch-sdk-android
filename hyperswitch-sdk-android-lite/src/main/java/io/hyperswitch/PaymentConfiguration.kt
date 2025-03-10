@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.Parcelable
-import android.support.annotation.RestrictTo
+import androidx.annotation.RestrictTo
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
