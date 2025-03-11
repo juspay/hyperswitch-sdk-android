@@ -92,4 +92,5 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     implementation project(':app')
     implementation project(':hyperswitch-sdk-android-lite')
+    compileOnly( 'io.hyperswitch:universalThreeDS:1.0.0')
 }

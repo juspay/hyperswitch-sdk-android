@@ -15,10 +15,21 @@ import io.hyperswitch.paymentsession.PaymentMethod
 import io.hyperswitch.paymentsheet.AddressDetails
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
+import io.hyperswitch.threedslibrary.customization.ButtonCustomization
+import io.hyperswitch.threedslibrary.customization.CancelDialogCustomization
+import io.hyperswitch.threedslibrary.customization.FontCustomization
+import io.hyperswitch.threedslibrary.customization.FontStyle
+import io.hyperswitch.threedslibrary.customization.LabelCustomization
+import io.hyperswitch.threedslibrary.customization.LoaderCustomization
+import io.hyperswitch.threedslibrary.customization.OTPSheetCustomization
+import io.hyperswitch.threedslibrary.customization.TextBoxCustomization
+import io.hyperswitch.threedslibrary.customization.ToolbarCustomization
+import io.hyperswitch.threedslibrary.customization.UiCustomization
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import io.hyperswitch.threedslibrary.service.Result
 import org.json.JSONException
 import org.json.JSONObject
 import kotlin.coroutines.resume
@@ -34,6 +45,65 @@ class MainActivity : Activity() {
     private var serverUrl = "http://10.0.2.2:5252"
     private lateinit var paymentSession: PaymentSession
     private lateinit var paymentSessionLite: PaymentSessionLite
+
+
+    private fun getUiCustomization(): UiCustomization {
+
+        return UiCustomization(
+            submitButtonCustomization = ButtonCustomization(
+                backgroundColor = "#FF0000"
+            ),
+            resendButtonCustomization = ButtonCustomization(
+                textColor = "#356fd3",
+                backgroundColor = "#FF0000",
+                fontStyle = FontStyle.REGULAR
+            ),
+            toolbarCustomization = ToolbarCustomization(
+                backgroundColor = "#FF0000"
+            ),
+            labelCustomization = LabelCustomization(),
+            textBoxCustomization = TextBoxCustomization(),
+            loaderCustomization = LoaderCustomization(),
+            fontCustomization = FontCustomization(),
+            otpSheetCustomization = OTPSheetCustomization(),
+            cancelDialogCustomization = CancelDialogCustomization(
+                continueButtonCustomization = ButtonCustomization(
+                    backgroundColor = "#356fd3"
+                )
+            ),
+            showJpBrandingFooter = true,
+            screenHorizontalPadding = 16,
+            screenVerticalPadding = 8,
+            showExpandableInfoTexts = true
+        )
+    }
+
+    val challengeStatusReceiver =
+        object : io.hyperswitch.threedslibrary.data.ChallengeStatusReceiver {
+
+            override fun cancelled() {
+                println("Cancelled")
+
+            }
+
+            override fun completed(completionEvent: io.hyperswitch.threedslibrary.data.CompletionEvent) {
+                println("Completion Event: $completionEvent")
+            }
+
+            override fun protocolError(protocolErrorEvent: io.hyperswitch.threedslibrary.data.ProtocolErrorEvent) {
+                println("Completion Event: $protocolErrorEvent")
+            }
+
+            override fun runtimeError(runtimeErrorEvent: io.hyperswitch.threedslibrary.data.RuntimeErrorEvent) {
+                println("Completion Event: $runtimeErrorEvent")
+            }
+
+            override fun timedout() {
+                println("Timedout")
+
+            }
+
+        }
 
     private suspend fun fetchNetceteraApiKey(): String? =
         suspendCancellableCoroutine { continuation ->
@@ -150,7 +220,7 @@ class MainActivity : Activity() {
                              * */
 
                             paymentSession = PaymentSession(ctx, publishKey)
-                            paymentSessionLite = PaymentSessionLite(ctx, publishKey)
+//                            paymentSessionLite = PaymentSessionLite(ctx, publishKey)
 
                             /**
                              *
@@ -225,6 +295,50 @@ class MainActivity : Activity() {
          * Launch Payment Sheet
          *
          * */
+
+        fun tracker(jsonObject: JSONObject) {
+            println("mytracker------>" + jsonObject)
+        }
+
+        findViewById<View>(R.id.authBtn).setOnClickListener {
+            try {
+                val authenticationSession = paymentSession.initAuthenticationSession(
+                    application,
+                    "pay_B6SSn0VBxaDKxv0x18Cx_secret_V3xDkwAhEfD9iFhSBdpA",
+                    getUiCustomization(),
+                    ::tracker
+                ) { result: Result ->
+                }
+
+                val dsId = authenticationSession.getDirectoryServerID()
+                val messageVersion = authenticationSession.getMessageVersion()
+                val transaction =
+                    authenticationSession.createTransaction(dsId, messageVersion)
+                val aReq = transaction.getAuthenticationRequestParameters()
+                val challengeParameters = authenticationSession.getChallengeParameters(aReq)
+                if (challengeParameters.transStatus == "C")
+                    transaction.doChallenge(
+                        this,
+                        challengeParameters,
+                        challengeStatusReceiver,
+                        5,
+                        ""
+                    )
+
+                /* ------------OR----------
+                * authenticationSession.startAuthentication(this) { result: Result ->
+                    println(result)
+                   }
+                *
+                * */
+
+
+            } catch (err: Exception) {
+                println(err)
+            }
+
+
+        }
 
         findViewById<View>(R.id.launchButton).setOnClickListener {
             CoroutineScope(Dispatchers.Main).launch {
