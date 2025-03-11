@@ -2,11 +2,12 @@ package io.hyperswitch.paymentsession
 
 import android.app.Activity
 import android.os.Bundle
+import io.hyperswitch.authentication.AuthenticationSession
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
 
 class DefaultPaymentSessionLauncher(
-    activity: Activity,
+    private val activity: Activity,
     publishableKey: String?,
     customBackendUrl: String?,
     customLogUrl: String?,
@@ -27,6 +28,11 @@ class DefaultPaymentSessionLauncher(
     override fun initPaymentSession(paymentIntentClientSecret: String) {
         super.initPaymentSession(paymentIntentClientSecret)
         Companion.paymentIntentClientSecret = paymentIntentClientSecret
+    }
+
+    override fun initAuthenticationSession(paymentIntentClientSecret: String): AuthenticationSession {
+        this.paymentIntentClientSecret = paymentIntentClientSecret
+        return AuthenticationSession.init(activity.application, "", paymentIntentClientSecret)
     }
 
     override fun presentPaymentSheet(

@@ -3,6 +3,7 @@ package io.hyperswitch.paymentsession
 import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.PaymentConfiguration
+import io.hyperswitch.authentication.AuthenticationSession
 import io.hyperswitch.lite.WebViewUtils
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
@@ -34,6 +35,11 @@ open class DefaultPaymentSessionLauncherLite(
     // Method to initialize the payment session
     override fun initPaymentSession(paymentIntentClientSecret: String) {
         this.paymentIntentClientSecret = paymentIntentClientSecret
+    }
+
+    override fun initAuthenticationSession(paymentIntentClientSecret: String): AuthenticationSession {
+        this.paymentIntentClientSecret = paymentIntentClientSecret
+        return AuthenticationSession.init(activity.application, "", paymentIntentClientSecret)
     }
 
     // Method to present the payment sheet with configuration

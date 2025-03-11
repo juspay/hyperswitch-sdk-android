@@ -2,6 +2,7 @@ package io.hyperswitch.lite
 
 import android.app.Activity
 import android.os.Bundle
+import io.hyperswitch.authentication.AuthenticationSession
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncherLite
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSessionLauncher
@@ -81,6 +82,10 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
      */
     fun initPaymentSession(paymentIntentClientSecret: String) {
         paymentSessionLauncher.initPaymentSession(paymentIntentClientSecret)
+    }
+
+    fun initAuthenticationSession(paymentIntentClientSecret: String): AuthenticationSession {
+        return paymentSessionLauncher.initAuthenticationSession(paymentIntentClientSecret)
     }
 
     /**

@@ -9,6 +9,10 @@ import android.widget.TextView
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
+import `in`.juspay.trident.data.ChallengeStatusReceiver
+import `in`.juspay.trident.data.CompletionEvent
+import `in`.juspay.trident.data.ProtocolErrorEvent
+import `in`.juspay.trident.data.RuntimeErrorEvent
 import io.hyperswitch.PaymentSession
 import io.hyperswitch.payments.paymentlauncher.PaymentResult
 import io.hyperswitch.paymentsession.PaymentMethod
@@ -131,6 +135,7 @@ class MainActivity : Activity() {
         ctx.findViewById<View>(R.id.launchButton).isEnabled = false;
         ctx.findViewById<View>(R.id.launchWebButton).isEnabled = false;
         ctx.findViewById<View>(R.id.confirmButton).isEnabled = false;
+        ctx.findViewById<View>(R.id.authBtn).isEnabled = false;
 
         reset().get("$serverUrl/create-payment-intent", null)
             .responseString(object : Handler<String?> {
@@ -190,6 +195,7 @@ class MainActivity : Activity() {
                             ctx.runOnUiThread {
                                 ctx.findViewById<View>(R.id.launchButton).isEnabled = true
                                 ctx.findViewById<View>(R.id.launchWebButton).isEnabled = true
+                                ctx.findViewById<View>(R.id.authBtn).isEnabled = true
                             }
                         }
                     } catch (e: JSONException) {
@@ -242,6 +248,18 @@ class MainActivity : Activity() {
             }
         }
 
+
+        findViewById<View>(R.id.authBtn).setOnClickListener{
+            val authenticationSession = paymentSession.initAuthenticationSession(paymentIntentClientSecret)
+//            authenticationSession.startAuthentication(this,challengeStatusReceiver)
+            val dsId = authenticationSession.getDirectoryServerID()
+            val messageVersion = authenticationSession.getMessageVersion()
+            val transaction = authenticationSession.createTransaction(dsId, messageVersion)
+            val aReq = transaction.getAuthenticationRequestParameters()
+            val challengeParameters = authenticationSession.getChallengeParameters(aReq)
+            authenticationSession.doChallenge(this, challengeParameters, challengeStatusReceiver, 0)
+        }
+
     }
 
     private fun setStatus(error: String) {
@@ -280,5 +298,32 @@ class MainActivity : Activity() {
                 setStatus(paymentResult.data)
             }
         }
+    }
+
+    val challengeStatusReceiver = object : ChallengeStatusReceiver {
+        override fun completed(completionEvent: CompletionEvent) {
+            println("Completion Event: $completionEvent")
+        }
+
+        override fun cancelled() {
+            println("Cancelled")
+
+        }
+
+        override fun timedout() {
+            println("Timedout")
+
+        }
+
+        override fun protocolError(protocolErrorEvent: ProtocolErrorEvent) {
+            println("Completion Event: $protocolErrorEvent")
+
+        }
+
+        override fun runtimeError(runtimeErrorEvent: RuntimeErrorEvent) {
+            println("Completion Event: $runtimeErrorEvent")
+
+        }
+
     }
 }
