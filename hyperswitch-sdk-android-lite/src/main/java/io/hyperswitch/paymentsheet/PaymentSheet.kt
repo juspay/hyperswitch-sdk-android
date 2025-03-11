@@ -7,9 +7,9 @@ import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
-import android.support.annotation.ColorInt
-import android.support.annotation.FontRes
-import android.support.annotation.RequiresApi
+import androidx.annotation.ColorInt
+import androidx.annotation.FontRes
+import androidx.annotation.RequiresApi
 import kotlinx.parcelize.Parcelize
 
 /**

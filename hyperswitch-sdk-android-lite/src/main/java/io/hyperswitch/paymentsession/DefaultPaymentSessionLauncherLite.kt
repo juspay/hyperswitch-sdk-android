@@ -3,6 +3,7 @@ package io.hyperswitch.paymentsession
 import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.PaymentConfiguration
+import io.hyperswitch.authentication.AuthenticationSession
 import io.hyperswitch.lite.WebViewUtils
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
@@ -20,6 +21,7 @@ open class DefaultPaymentSessionLauncherLite(
 
     init {
         if (publishableKey != null) {
+            AuthenticationSession.setAuthSessionPublishableKey(publishableKey)
             PaymentConfiguration.init(
                 activity.applicationContext,
                 publishableKey,
