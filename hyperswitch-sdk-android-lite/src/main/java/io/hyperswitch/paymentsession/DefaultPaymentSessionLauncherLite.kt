@@ -7,6 +7,9 @@ import io.hyperswitch.authentication.AuthenticationSession
 import io.hyperswitch.lite.WebViewUtils
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
+import io.hyperswitch.threedslibrary.customization.UiCustomization
+import io.hyperswitch.threedslibrary.service.Result
+import org.json.JSONObject
 
 open class DefaultPaymentSessionLauncherLite(
     private val activity: Activity,
@@ -61,4 +64,38 @@ open class DefaultPaymentSessionLauncherLite(
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)
     ) {
     }
+
+    override fun initAuthenticationSession(
+        paymentIntentClientSecret: String,
+        uiCustomization: UiCustomization?,
+        tracker: ((JSONObject) -> Unit)?,
+        initializationCallback: (Result) -> Unit,
+
+        ): AuthenticationSession {
+        return AuthenticationSession.init(
+            paymentIntentClientSecret,
+            initializationCallback,
+            uiCustomization,
+            tracker
+
+        )
+    }
+
+    override fun initAuthenticationSession(
+        authenticationResponse: String,
+        uiCustomization: UiCustomization?,
+        tracker: ((JSONObject) -> Unit)?,
+        paymentIntentClientSecret: String?,
+        initializationCallback: (Result) -> Unit,
+    ): AuthenticationSession {
+
+        return AuthenticationSession.init(
+            null,
+            authenticationResponse,
+            initializationCallback,
+            tracker,
+            uiCustomization,
+        )
+    }
+
 }

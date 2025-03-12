@@ -112,12 +112,12 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
         initializationCallback: (Result) -> Unit,
     ): AuthenticationSession {
 
-        return AuthenticationSession.init(
-            null,
+        return paymentSessionLauncher.initAuthenticationSession(
             authenticationResponse,
-            initializationCallback,
-            tracker,
             uiCustomization,
+            tracker,
+            null,
+            initializationCallback
         )
     }
 
