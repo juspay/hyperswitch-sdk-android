@@ -97,13 +97,7 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
         initializationCallback: (Result) -> Unit,
 
     ): AuthenticationSession {
-        return AuthenticationSession.init(
-            paymentIntentClientSecret,
-            initializationCallback,
-            uiCustomization,
-            tracker
-
-        )
+        return paymentSessionLauncher.initAuthenticationSession(paymentIntentClientSecret,uiCustomization,tracker,initializationCallback)
     }
 
     fun initAuthenticationSession(
@@ -114,14 +108,15 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
         initializationCallback: (Result) -> Unit,
     ): AuthenticationSession {
 
-        return AuthenticationSession.init(
-            null,
+        return paymentSessionLauncher.initAuthenticationSession(
             authenticationResponse,
-            initializationCallback,
-            tracker,
             uiCustomization,
+            tracker,
+            null,
+            initializationCallback
         )
     }
+
 
 
 
