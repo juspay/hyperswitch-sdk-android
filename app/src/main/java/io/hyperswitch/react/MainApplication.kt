@@ -76,12 +76,17 @@ open class MainApplication : Application(), ReactApplication {
         SoLoader.init(this, false)
         if (R.string.hyperOTAEndPoint.toString() != "hyperOTA_END_POINT_") {
             this.tracker = HyperOtaLogger()
+            val hyperOTAUrl = if (BuildConfig.DEBUG) {
+                R.string.hyperOTASandBoxEndPoint
+            } else {
+                R.string.hyperOTAEndPoint
+            }
             this.hyperOTAServices = HyperOTAServicesReact(
                 this.applicationContext,
                 "hyperswitch",
                 "hyperswitch.bundle",
                 BuildConfig.VERSION_NAME,
-                "${R.string.hyperOTAEndPoint}/mobile-ota/android/${BuildConfig.VERSION_NAME}/config.json", // need to change URL
+                "${hyperOTAUrl}/mobile-ota/android/${BuildConfig.VERSION_NAME}/config.json", // need to change URL
                 this.tracker,
             )
         }
