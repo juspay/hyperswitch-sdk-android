@@ -36,7 +36,7 @@ object AuthenticationSession {
         tracker: ((JSONObject) -> Unit)? = null,
     ): AuthenticationSession {
 
-        println("init called-------->")
+    
 
         AuthenticationSession.applicationContext = applicationContext
         ThreeDSFactory.initialize<TridentSDK>(
@@ -75,7 +75,7 @@ object AuthenticationSession {
         )
 
         threeDSInstance = ThreeDSFactory.getService<TridentSDK>()
-        threeDSInstance.setClientSecret(authenticationResponse)
+        threeDSInstance.setAuthenticationResponse(authenticationResponse)
 
 
         threeDSInstance.initialise(
