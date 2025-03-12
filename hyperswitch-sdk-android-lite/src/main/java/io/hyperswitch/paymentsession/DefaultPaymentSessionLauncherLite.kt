@@ -22,6 +22,7 @@ open class DefaultPaymentSessionLauncherLite(
     init {
         if (publishableKey != null) {
             AuthenticationSession.setAuthSessionPublishableKey(publishableKey)
+            AuthenticationSession.setAuthApplicationContext(activity.application)
             PaymentConfiguration.init(
                 activity.applicationContext,
                 publishableKey,

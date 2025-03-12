@@ -28,12 +28,12 @@ object AuthenticationSession {
         this.applicationContext = applicationContext
     }
 
+
     fun init(
-        applicationContext: Application,
         clientSecret: String,
         initializationCallback: (Result) -> Unit,
         uiCustomization: UiCustomization? = null,
-        tracker: ((JSONObject) -> Unit)?=null,
+        tracker: ((JSONObject) -> Unit)? = null,
     ): AuthenticationSession {
 
         println("init called-------->")
@@ -61,7 +61,6 @@ object AuthenticationSession {
     }
 
     fun init(
-        applicationContext: Application,
         paymentIntentClientSecret: String?,
         authenticationResponse: String,
         initializationCallback: (Result) -> Unit,

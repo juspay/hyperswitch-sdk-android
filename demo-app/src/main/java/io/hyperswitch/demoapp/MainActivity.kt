@@ -303,8 +303,7 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.authBtn).setOnClickListener {
             try {
                 val authenticationSession = paymentSession.initAuthenticationSession(
-                    application,
-                    "pay_B6SSn0VBxaDKxv0x18Cx_secret_V3xDkwAhEfD9iFhSBdpA",
+                    paymentIntentClientSecret,
                     getUiCustomization(),
                     ::tracker
                 ) { result: Result ->
