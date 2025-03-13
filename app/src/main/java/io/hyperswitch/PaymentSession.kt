@@ -3,7 +3,9 @@ package io.hyperswitch
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
+import io.hyperswitch.authentication.AuthenticationResponse
 import io.hyperswitch.authentication.AuthenticationSession
+import io.hyperswitch.authentication.PaymentIntentClientSecret
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSessionLauncher
@@ -91,7 +93,7 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
 
 
     fun initAuthenticationSession(
-        paymentIntentClientSecret: String,
+        paymentIntentClientSecret: PaymentIntentClientSecret,
         uiCustomization: UiCustomization?=null,
         tracker: ((JSONObject) -> Unit)?=null,
         initializationCallback: (Result) -> Unit,
@@ -101,7 +103,7 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
     }
 
     fun initAuthenticationSession(
-        authenticationResponse: String,
+        authenticationResponse: AuthenticationResponse,
         uiCustomization: UiCustomization?=null,
         tracker: ((JSONObject) -> Unit)?=null,
         paymentIntentClientSecret: String?=null,
@@ -112,7 +114,6 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
             authenticationResponse,
             uiCustomization,
             tracker,
-            null,
             initializationCallback
         )
     }

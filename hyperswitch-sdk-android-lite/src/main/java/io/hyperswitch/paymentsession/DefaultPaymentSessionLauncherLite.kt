@@ -3,7 +3,9 @@ package io.hyperswitch.paymentsession
 import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.PaymentConfiguration
+import io.hyperswitch.authentication.AuthenticationResponse
 import io.hyperswitch.authentication.AuthenticationSession
+import io.hyperswitch.authentication.PaymentIntentClientSecret
 import io.hyperswitch.lite.WebViewUtils
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
@@ -66,7 +68,7 @@ open class DefaultPaymentSessionLauncherLite(
     }
 
     override fun initAuthenticationSession(
-        paymentIntentClientSecret: String,
+        paymentIntentClientSecret: PaymentIntentClientSecret,
         uiCustomization: UiCustomization?,
         tracker: ((JSONObject) -> Unit)?,
         initializationCallback: (Result) -> Unit,
@@ -82,20 +84,19 @@ open class DefaultPaymentSessionLauncherLite(
     }
 
     override fun initAuthenticationSession(
-        authenticationResponse: String,
+        authenticationResponse: AuthenticationResponse,
         uiCustomization: UiCustomization?,
         tracker: ((JSONObject) -> Unit)?,
-        paymentIntentClientSecret: String?,
-        initializationCallback: (Result) -> Unit,
+        initializationCallback: (Result) -> Unit
     ): AuthenticationSession {
 
         return AuthenticationSession.init(
-            null,
             authenticationResponse,
             initializationCallback,
             tracker,
             uiCustomization,
         )
     }
+
 
 }
