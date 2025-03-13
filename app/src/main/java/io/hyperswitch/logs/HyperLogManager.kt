@@ -13,7 +13,7 @@ object HyperLogManager : ViewModel() {
     private val logsBatch = mutableListOf<Log>()
     private var publishableKey: String? = null
     private var loggingEndPoint: String? = null
-    private const val DEFAULT_DELAY_IN_MILLIS = 2000L
+    private const val DEFAULT_DELAY_IN_MILLIS = 5000L
     private var delayInMillis: Long = DEFAULT_DELAY_IN_MILLIS
     private var hyperOtaVersion: String = ""
     private val debouncer = Debouncer(DEFAULT_DELAY_IN_MILLIS)

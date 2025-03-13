@@ -74,6 +74,14 @@ open class MainApplication : Application(), ReactApplication {
 
 
         SoLoader.init(this, false)
+
+        if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
+            // If you opted-in for the New Architecture, we load the native entry point for this app.
+            load()
+        }
+        // Mocking a 3rd party sdk for testing different scenarios
+        // val mockSDKInstance=SomeThirdPartySDK()
+        // mockSDKInstance.mockFunction()
         if (R.string.hyperOTAEndPoint.toString() != "hyperOTA_END_POINT_") {
             this.tracker = HyperOtaLogger()
             val hyperOTAUrl = if (BuildConfig.DEBUG) {
@@ -86,17 +94,9 @@ open class MainApplication : Application(), ReactApplication {
                 "hyperswitch",
                 "hyperswitch.bundle",
                 BuildConfig.VERSION_NAME,
-                "${hyperOTAUrl}/mobile-ota/android/${BuildConfig.VERSION_NAME}/config.json", // need to change URL
+                "${ context.getString(hyperOTAUrl)}/manideep-ota/android/${BuildConfig.VERSION_NAME}/config.json", // need to change URL
                 this.tracker,
             )
         }
-        if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
-            // If you opted-in for the New Architecture, we load the native entry point for this app.
-            load()
-        }
-        // Mocking a 3rd party sdk for testing different scenarios
-        // val mockSDKInstance=SomeThirdPartySDK()
-        // mockSDKInstance.mockFunction()
-
     }
 }
