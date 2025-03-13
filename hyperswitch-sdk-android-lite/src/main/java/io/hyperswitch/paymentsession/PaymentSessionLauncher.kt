@@ -1,6 +1,8 @@
 package io.hyperswitch.paymentsession
 
+import io.hyperswitch.authentication.AuthenticationResponse
 import io.hyperswitch.authentication.AuthenticationSession
+import io.hyperswitch.authentication.PaymentIntentClientSecret
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
 import io.hyperswitch.threedslibrary.customization.UiCustomization
@@ -20,7 +22,7 @@ interface PaymentSessionLauncher {
     fun getCustomerSavedPaymentMethods(savedPaymentMethodCallback: (PaymentSessionHandler) -> Unit)
 
     fun initAuthenticationSession(
-        paymentIntentClientSecret: String,
+        paymentIntentClientSecret: PaymentIntentClientSecret,
         uiCustomization: UiCustomization? = null,
         tracker: ((JSONObject) -> Unit)? = null,
         initializationCallback: (Result) -> Unit,
@@ -28,10 +30,9 @@ interface PaymentSessionLauncher {
         ): AuthenticationSession
 
     fun initAuthenticationSession(
-        authenticationResponse: String,
+        authenticationResponse: AuthenticationResponse,
         uiCustomization: UiCustomization? = null,
         tracker: ((JSONObject) -> Unit)? = null,
-        paymentIntentClientSecret: String? = null,
         initializationCallback: (Result) -> Unit,
     ): AuthenticationSession
 

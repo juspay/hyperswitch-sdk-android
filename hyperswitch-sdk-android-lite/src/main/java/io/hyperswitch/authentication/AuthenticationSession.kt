@@ -13,6 +13,12 @@ import io.hyperswitch.threedslibrary.service.Result
 import org.json.JSONObject
 
 
+@JvmInline
+value class PaymentIntentClientSecret(val value: String)
+
+@JvmInline
+value class AuthenticationResponse(val value: String)
+
 object AuthenticationSession {
 
     lateinit var threeDSInstance: TridentSDK
@@ -30,7 +36,7 @@ object AuthenticationSession {
 
 
     fun init(
-        clientSecret: String,
+        clientSecret: PaymentIntentClientSecret,
         initializationCallback: (Result) -> Unit,
         uiCustomization: UiCustomization? = null,
         tracker: ((JSONObject) -> Unit)? = null,
@@ -41,12 +47,12 @@ object AuthenticationSession {
         AuthenticationSession.applicationContext = applicationContext
         ThreeDSFactory.initialize<TridentSDK>(
             ThreeDSSDKType.TRIDENT,
-            clientSecret,
+            clientSecret.value,
             publishableKey
         )
 
         threeDSInstance = ThreeDSFactory.getService<TridentSDK>()
-        threeDSInstance.setClientSecret(clientSecret)
+        threeDSInstance.setClientSecret(clientSecret.value)
 
 
         threeDSInstance.initialise(
@@ -61,8 +67,7 @@ object AuthenticationSession {
     }
 
     fun init(
-        paymentIntentClientSecret: String?,
-        authenticationResponse: String,
+        authenticationResponse:AuthenticationResponse,
         initializationCallback: (Result) -> Unit,
         tracker: ((JSONObject) -> Unit)?,
         uiCustomization: UiCustomization? = null,
@@ -70,12 +75,16 @@ object AuthenticationSession {
         AuthenticationSession.applicationContext = applicationContext
 
         ThreeDSFactory.initializeWithAuthResponse<TridentSDK>(
-            ThreeDSSDKType.TRIDENT, authenticationResponse,
+            ThreeDSSDKType.TRIDENT, authenticationResponse.value,
             publishableKey
         )
 
         threeDSInstance = ThreeDSFactory.getService<TridentSDK>()
+<<<<<<< Updated upstream
         threeDSInstance.setAuthenticationResponse(authenticationResponse)
+=======
+        threeDSInstance.setClientSecret(authenticationResponse.value)
+>>>>>>> Stashed changes
 
 
         threeDSInstance.initialise(

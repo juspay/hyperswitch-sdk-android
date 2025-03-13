@@ -10,6 +10,7 @@ import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.PaymentSession
+import io.hyperswitch.authentication.PaymentIntentClientSecret
 import io.hyperswitch.payments.paymentlauncher.PaymentResult
 import io.hyperswitch.paymentsession.PaymentMethod
 import io.hyperswitch.paymentsheet.AddressDetails
@@ -30,6 +31,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import io.hyperswitch.threedslibrary.service.Result
+import kotlinx.coroutines.withContext
 import org.json.JSONException
 import org.json.JSONObject
 import kotlin.coroutines.resume
@@ -303,7 +305,7 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.authBtn).setOnClickListener {
             try {
                 val authenticationSession = paymentSession.initAuthenticationSession(
-                    paymentIntentClientSecret,
+                    PaymentIntentClientSecret(paymentIntentClientSecret),
                     getUiCustomization(),
                     ::tracker
                 ) { result: Result ->
@@ -315,14 +317,19 @@ class MainActivity : Activity() {
                     authenticationSession.createTransaction(dsId, messageVersion)
                 val aReq = transaction.getAuthenticationRequestParameters()
                 val challengeParameters = authenticationSession.getChallengeParameters(aReq)
-                if (challengeParameters.transStatus == "C")
-                    transaction.doChallenge(
-                        this,
-                        challengeParameters,
-                        challengeStatusReceiver,
-                        5,
-                        ""
-                    )
+
+                runOnUiThread {
+
+                    if (challengeParameters.transStatus == "C")
+                        transaction.doChallenge(
+                            this,
+                            challengeParameters,
+                            challengeStatusReceiver,
+                            5,
+                            ""
+                        )
+                }
+
 
                 /* ------------OR----------
                 * authenticationSession.startAuthentication(this) { result: Result ->
