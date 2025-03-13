@@ -80,11 +80,7 @@ object AuthenticationSession {
         )
 
         threeDSInstance = ThreeDSFactory.getService<TridentSDK>()
-<<<<<<< Updated upstream
-        threeDSInstance.setAuthenticationResponse(authenticationResponse)
-=======
-        threeDSInstance.setClientSecret(authenticationResponse.value)
->>>>>>> Stashed changes
+        threeDSInstance.setAuthenticationResponse(authenticationResponse.value)
 
 
         threeDSInstance.initialise(
