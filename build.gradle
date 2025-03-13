@@ -127,6 +127,7 @@ def runtimeDepsOptional = [
         'react-native-klarna-inapp-sdk',
         'react-native-hyperswitch-scancard',
         'react-native-hyperswitch-netcetera-3ds',
+        'react-native-hyperswitch-samsung-pay',      
 ]
 
 def configurePomMetadata = { root ->
