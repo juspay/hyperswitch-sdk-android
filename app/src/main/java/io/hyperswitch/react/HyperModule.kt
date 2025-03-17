@@ -6,10 +6,10 @@ import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
-import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import io.hyperswitch.payments.googlepaylauncher.GooglePayCallbackManager
 import io.hyperswitch.payments.paymentlauncher.PaymentLauncher
+import io.hyperswitch.payments.view.WidgetLauncher
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
 import org.json.JSONObject
@@ -26,12 +26,11 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
 
         @JvmStatic
         var reactContextEC: ReactApplicationContext? = null
-        private var pendingEmitList: ArrayList<Pair<String, WritableMap>> = ArrayList()
-
+        private var pendingEmitList: MutableList<Pair<String, MutableMap<String,String?>>> = ArrayList()
         // Method to emit 'confirm' event for card
 //        fun confirmCard(map: WritableMap) {
         @JvmStatic
-        fun confirmCard(map: Map<String, String?>) {
+        fun confirmCard(map: MutableMap<String, String?>) {
             val writableMap = Arguments.createMap()
             for ((key, value) in map) {
                 writableMap.putString(key, value)
@@ -40,23 +39,34 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
                 reactContextCard!!.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
                     ?.emit("confirm", writableMap)
             else
-                pendingEmitList.add(Pair("confirm", writableMap))
+                pendingEmitList.add(Pair("confirm", map))
         }
 
         // Method to emit 'confirmEC' event for express checkout
-        fun confirmEC(map: WritableMap) {
+        @JvmStatic
+        fun confirmEC(map: MutableMap<String, String?>) {
+            val writableMap = Arguments.createMap()
+            for ((key, value) in map) {
+                writableMap.putString(key, value)
+            }
             if (reactContextEC != null && reactContextEC!!.hasCatalystInstance())
                 reactContextEC!!.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                    ?.emit("confirmEC", map)
+                    ?.emit("confirmEC", writableMap)
             else
                 pendingEmitList.add(Pair("confirmEC", map))
         }
 
         // Generic method to emit events
-        fun confirm(tag: String, map: WritableMap) {
+
+        @JvmStatic
+        fun confirm(tag: String, map: MutableMap<String, String?>) {
+            val writableMap = Arguments.createMap()
+            for ((key, value) in map) {
+                writableMap.putString(key, value)
+            }
             if (reactContext != null && reactContext!!.hasCatalystInstance())
-                reactContext!!.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                    ?.emit(tag, map)
+            { reactContext!!.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                    ?.emit(tag, writableMap)}
             else
                 pendingEmitList.add(Pair(tag, map))
         }
@@ -137,8 +147,8 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     @ReactMethod
     fun exitWidget(paymentResult: String, widgetType: String) {
         when (widgetType) {
-            "google_pay" -> {}
-            "paypal" -> {}
+            "google_pay" -> WidgetLauncher.onGPayPaymentResultCallBack(paymentResult)
+            "paypal" ->  WidgetLauncher.onPaypalPaymentResultCallBack(paymentResult)
             "expressCheckout" -> {}
         }
     }
