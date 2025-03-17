@@ -113,6 +113,7 @@ class MainActivity : Activity() {
             .displaySavedPaymentMethodsCheckbox(true)
             .displaySavedPaymentMethods(true)
             .disableBranding(true)
+            .showVersionInfo(true)
 
         try {
             val netceteraApiKey = fetchNetceteraApiKey()
