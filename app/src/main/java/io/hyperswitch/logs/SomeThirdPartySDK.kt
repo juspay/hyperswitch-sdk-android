@@ -10,7 +10,7 @@ class SomeThirdPartySDK {
     }
 
     fun mockFunction() {
-        val log1 = LogBuilder().logType(LogType.INFO).category(LogCategory.API)
+        val log1 = Log.LogBuilder().logType("INFO").category(LogCategory.API)
             .eventName(EventName.HYPER_OTA_INIT).value("FATAL ERROR FROM SDK")
             .firstEvent(true).build()
 

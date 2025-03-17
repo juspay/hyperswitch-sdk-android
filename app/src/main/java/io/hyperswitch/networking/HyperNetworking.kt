@@ -1,5 +1,8 @@
 package io.hyperswitch.networking
 
+import android.util.Log
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
@@ -7,77 +10,50 @@ import javax.net.ssl.HttpsURLConnection
 
 
 object HyperNetworking {
-    fun makeHttpRequest(
+
+    private suspend fun makeHttpRequest(
         urlString: String,
         method: String,
         headers: Map<String, String> = emptyMap(),
         body: String? = null
     ): String {
-        var response = ""
-        val thread = Thread {
+        return withContext(Dispatchers.IO) {
             try {
-
                 val url = URL(urlString)
-
-
-                val connection = url.openConnection() as HttpsURLConnection
-                connection.requestMethod = method // Set the HTTP method
-                connection.doOutput = body != null // Allow sending data if body is not null
-
-
-                headers.forEach { (key, value) ->
-                    connection.setRequestProperty(key, value)
+                val connection = (url.openConnection() as HttpsURLConnection).apply {
+                    requestMethod = method
+                    doOutput = body != null
+                    headers.forEach { (key, value) -> setRequestProperty(key, value) }
                 }
 
-
-                if (body != null) {
-                    val outputStream = OutputStreamWriter(connection.outputStream)
-                    outputStream.write(body)
-                    outputStream.flush()
-                    outputStream.close()
+                body?.let {
+                    OutputStreamWriter(connection.outputStream).use { writer ->
+                        writer.write(it)
+                        writer.flush()
+                    }
                 }
 
                 val responseCode = connection.responseCode
-                println("Response Code: $responseCode")
-                response = if (responseCode == HttpURLConnection.HTTP_OK) {
-
+                val response = if (responseCode == HttpURLConnection.HTTP_OK) {
                     connection.inputStream.bufferedReader().use { it.readText() }
                 } else {
                     "Error: $responseCode"
                 }
 
-
                 connection.disconnect()
+                response
             } catch (e: Exception) {
-                response = "Exception: ${e.message}"
-                println("Error: ${e.message}")
+                Log.e("HyperNetworking", "Request failed: ${e.message}")
+                "Exception: ${e.message}"
             }
         }
-
-        thread.start()
-        thread.join()
-        return response
     }
-
-    fun makePostRequest(urlString: String, postData: String): String {
+    suspend fun makePostRequest(urlString: String, postData: Any): String {
         return makeHttpRequest(
             urlString = urlString,
             method = "POST",
             headers = mapOf("Content-Type" to "application/json"),
-            body = postData
+            body = postData.toString()
         )
     }
-
-    fun makePostRequest(urlString: String, stringArray: List<String>): String {
-        val postData = stringArray.toString() // Serialize array to JSON
-        return makeHttpRequest(
-            urlString = urlString,
-            method = "POST",
-            headers = mapOf("Content-Type" to "application/json"),
-            body = postData
-        )
-    }
-
-
 }
-

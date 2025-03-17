@@ -12,6 +12,4 @@ class CrashHandler(private val context: Context) : Thread.UncaughtExceptionHandl
         fileManager.addLog(HyperLogManager.getAllLogsAsString())
         defaultHandler?.uncaughtException(thread, throwable)
     }
-
-
 }

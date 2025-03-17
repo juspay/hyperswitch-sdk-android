@@ -176,5 +176,12 @@ class Utils {
         SDKEnvironment.SANDBOX
       }
     }
+
+    fun getLoggingUrl(publishableKey: String): String{
+      return if (checkEnvironment(publishableKey) == SDKEnvironment.PROD)
+        "https://api.hyperswitch.io/logs/sdk"
+      else
+        "https://sandbox.hyperswitch.io/logs/sdk"
+    }
   }
 }
