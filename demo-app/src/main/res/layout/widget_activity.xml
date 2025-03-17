@@ -46,5 +46,20 @@
             android:layout_marginTop="20dp"
             android:layout_marginHorizontal="20dp" />
 
+
+        <io.hyperswitch.view.GooglePayButton
+            android:id="@+id/googlePayButton2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:layout_marginHorizontal="20dp" />
+
+        <io.hyperswitch.view.PayPalButton
+            android:id="@+id/payPalButton2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:layout_marginHorizontal="20dp"
+            />
     </LinearLayout>
 </ScrollView>
