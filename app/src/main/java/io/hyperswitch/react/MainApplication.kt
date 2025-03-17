@@ -48,6 +48,7 @@ open class MainApplication : Application(), ReactApplication {
         get() = getDefaultReactHost(applicationContext, reactNativeHost)
 
     override fun onCreate() {
+        val context = this
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
         val fileManager = LogFileManager(this)
         HyperLogManager.sendLogsFromFile(fileManager)

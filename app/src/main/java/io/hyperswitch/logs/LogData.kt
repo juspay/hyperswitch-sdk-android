@@ -1,148 +1,160 @@
 package io.hyperswitch.logs
 
+import io.hyperswitch.react.Utils.Companion.getCurrentTime
+import org.json.JSONException
+import org.json.JSONObject
 
 enum class LogType {
     DEBUG, INFO, ERROR, WARNING
 }
 
 enum class LogCategory {
-    API, USER_ERROR, USER_EVENT, MERCHANT_EVENT
+    API, USER_ERROR, USER_EVENT, MERCHANT_EVENT, OTA_LIFE_CYCLE
 }
 
 enum class EventName {
-    HYPER_OTA_INIT, RC_DOWNLOAD, BUNDLE_DOWNLOAD, BUNDLE_UNZIP_AND_VERIFY, BUNDLE_PATH_RETURN
+    HYPER_OTA_INIT, HYPER_OTA_FINISH , HYPER_OTA_EVENT
 }
 
 data class Log(
     val timestamp: String,
     val logType: LogType,
-    val component: String,
+    val component: String = "MOBILE",
     val category: LogCategory,
     val version: String,
-    val codePushVersion: String,
-    val clientCoreVersion: String,
+    var codePushVersion: String,
+    var clientCoreVersion: String,
     val value: String,
     val internalMetadata: String,
     val sessionId: String,
     var merchantId: String,
     val paymentId: String,
     val appId: String? = null, // Optional field
-    val platform: String,
+    val platform: String = "ANDROID",
     val userAgent: String,
     val eventName: EventName,
     val latency: String? = null, // Optional field
-    val firstEvent: Boolean,
+    val firstEvent: Boolean = false,
     val paymentMethod: String? = null, // Optional field
     val paymentExperience: String? = null, // Optional field
     val source: String
 ) {
-
-
-
     fun toJson(): String {
-        return """
-            {
-                "timestamp": "$timestamp",
-                "log_type": "${logType.name}",
-                "component": "${component}",
-                "category": "${category}",
-                "version": "$version",
-                "code_push_version": "$codePushVersion",
-                "client_core_version": "$clientCoreVersion",
-                "value": "$value",
-                "internal_metadata": "{\"response\":null}",
-                "session_id": "$sessionId",
-                "merchant_id": "$merchantId",
-                "payment_id": "$paymentId",
-                "app_id": "${appId ?: ""}",
-                "platform": "$platform",
-                "user_agent": "$userAgent",
-                "event_name": "${eventName.name}",
-                "first_event": "$firstEvent",
-                "payment_method": "${paymentMethod ?: ""}",
-                "payment_experience": "${paymentExperience ?: ""}",
-                "latency": "${latency ?: ""}",
-                "source": "$source"
+        try {
+
+            val logData = JSONObject().apply {
+                put("timestamp", timestamp)
+                put("log_type", logType.name)
+                put("component", component)
+                put("category", category.toString())
+                put("version", version)
+                put("code_push_version", codePushVersion)
+                put("client_core_version", clientCoreVersion)
+                put("value", value.toString())
+                put("internal_metadata", internalMetadata)
+                put("session_id", sessionId)
+                put("merchant_id", merchantId)
+                put("payment_id", paymentId)
+                put("app_id", appId ?: "")
+                put("platform", platform)
+                put("user_agent", userAgent)
+                put("event_name", eventName.name)
+                put("first_event", firstEvent.toString())
+                put("payment_method", paymentMethod ?: "")
+                put("payment_experience", paymentExperience ?: "")
+                put("latency", latency ?: "")
+                put("source", source)
             }
-        """.trimIndent().replace("\n", "").replace("\r", "") .replace("\\s".toRegex(), "")
+
+            val jsonString = logData.toString()
+            return jsonString
+        } catch (e: JSONException) {
+            return ""
+        }
     }
 
-}
 
+    class LogBuilder {
+        private var timestamp: String = System.currentTimeMillis().toString()
+        private var logType: LogType = LogType.INFO
+        private var component: String = "MOBILE"
+        private lateinit var category: LogCategory
+        private var version: String = ""
+        private var codePushVersion: String = ""
+        private var clientCoreVersion: String = ""
+        private var value: String = ""
+        private var internalMetadata: String = ""
+        private var sessionId: String = ""
+        private var merchantId: String = ""
+        private var paymentId: String = ""
+        private var appId: String? = null
+        private var platform: String = "ANDROID"
+        private var userAgent: String = ""
+        private lateinit var eventName: EventName
+        private var latency: String? = null
+        private var firstEvent: Boolean = false
+        private var paymentMethod: String? = null
+        private var paymentExperience: String? = null
+        private var source: String = ""
 
+        fun timestamp(timestamp: String) = apply { this.timestamp = timestamp }
+        fun logType(logType: String) = apply {
+            this.logType =
+                LogType.entries.find { it.name == logType.uppercase() } ?: LogType.INFO
+        }
 
+        fun component(component: String) = apply { this.component = component }
+        fun category(category: LogCategory) = apply { this.category = category }
+        fun version(version: String) = apply { this.version = version }
+        fun codePushVersion(codePushVersion: String) =
+            apply { this.codePushVersion = codePushVersion }
 
-class LogBuilder {
-    private var timestamp: String = ""
-    private lateinit var logType: LogType
-    private var component: String = "MOBILE"
-    private lateinit var category: LogCategory
-    private var version: String = ""
-    private var codePushVersion: String = ""
-    private var clientCoreVersion: String = ""
-    private var value: String = ""
-    private var internalMetadata: String = "{\"response\":null}"
-    private var sessionId: String = ""
-    private var merchantId: String = ""
-    private var paymentId: String = ""
-    private var appId: String? = null
-    private var platform: String = "ANDROID"
-    private var userAgent: String = ""
-    private lateinit var eventName: EventName
-    private var latency: String? = null
-    private var firstEvent: Boolean = false
-    private var paymentMethod: String? = null
-    private var paymentExperience: String? = null
-    private var source: String = ""
+        fun clientCoreVersion(clientCoreVersion: String) =
+            apply { this.clientCoreVersion = clientCoreVersion }
 
-    fun timestamp(timestamp: String) = apply { this.timestamp = timestamp }
-    fun logType(logType: LogType) = apply { this.logType = logType }
-    fun component(component: String) = apply { this.component = component }
-    fun category(category: LogCategory) = apply { this.category = category }
-    fun version(version: String) = apply { this.version = version }
-    fun codePushVersion(codePushVersion: String) = apply { this.codePushVersion = codePushVersion }
-    fun clientCoreVersion(clientCoreVersion: String) = apply { this.clientCoreVersion = clientCoreVersion }
-    fun value(value: String) = apply { this.value = value }
-    fun internalMetadata(internalMetadata: String) = apply { this.internalMetadata = internalMetadata }
-    fun sessionId(sessionId: String) = apply { this.sessionId = sessionId }
-    fun merchantId(merchantId: String) = apply { this.merchantId = merchantId }
-    fun paymentId(paymentId: String) = apply { this.paymentId = paymentId }
-    fun appId(appId: String?) = apply { this.appId = appId }
-    fun platform(platform: String) = apply { this.platform = platform }
-    fun userAgent(userAgent: String) = apply { this.userAgent = userAgent }
-    fun eventName(eventName: EventName) = apply { this.eventName = eventName }
-    fun latency(latency: String?) = apply { this.latency = latency }
-    fun firstEvent(firstEvent: Boolean) = apply { this.firstEvent = firstEvent }
-    fun paymentMethod(paymentMethod: String?) = apply { this.paymentMethod = paymentMethod }
-    fun paymentExperience(paymentExperience: String?) = apply { this.paymentExperience = paymentExperience }
-    fun source(source: String) = apply { this.source = source }
+        fun value(value: String) = apply { this.value = value }
+        fun internalMetadata(internalMetadata: String) =
+            apply { this.internalMetadata = internalMetadata }
 
-    fun build(): Log {
-        timestamp=System.currentTimeMillis().toString()
-        return Log(
-            timestamp,
-            logType,
-            component,
-            category,
-            version,
-            codePushVersion,
-            clientCoreVersion,
-            value,
-            internalMetadata,
-            sessionId,
-            merchantId,
-            paymentId,
-            appId,
-            platform,
-            userAgent,
-            eventName,
-            latency,
-            firstEvent,
-            paymentMethod,
-            paymentExperience,
-            source
-        )
+        fun sessionId(sessionId: String) = apply { this.sessionId = sessionId }
+        fun merchantId(merchantId: String) = apply { this.merchantId = merchantId }
+        fun paymentId(paymentId: String) = apply { this.paymentId = paymentId }
+        fun appId(appId: String?) = apply { this.appId = appId }
+        fun platform(platform: String) = apply { this.platform = platform }
+        fun userAgent(userAgent: String) = apply { this.userAgent = userAgent }
+        fun eventName(eventName: EventName) = apply { this.eventName = eventName }
+        fun latency(latency: String?) = apply { this.latency = latency }
+        fun firstEvent(firstEvent: Boolean) = apply { this.firstEvent = firstEvent }
+        fun paymentMethod(paymentMethod: String?) = apply { this.paymentMethod = paymentMethod }
+        fun paymentExperience(paymentExperience: String?) =
+            apply { this.paymentExperience = paymentExperience }
+
+        fun source(source: String) = apply { this.source = source }
+
+        fun build(): Log {
+            return Log(
+                timestamp,
+                logType,
+                component,
+                category,
+                version,
+                codePushVersion,
+                clientCoreVersion,
+                value,
+                internalMetadata,
+                sessionId,
+                merchantId,
+                paymentId,
+                appId,
+                platform,
+                userAgent,
+                eventName,
+                latency,
+                firstEvent,
+                paymentMethod,
+                paymentExperience,
+                source
+            )
+        }
     }
 }
-
-
