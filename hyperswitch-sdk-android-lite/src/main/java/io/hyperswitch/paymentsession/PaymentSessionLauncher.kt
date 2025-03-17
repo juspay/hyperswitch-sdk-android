@@ -22,7 +22,7 @@ interface PaymentSessionLauncher {
     fun getCustomerSavedPaymentMethods(savedPaymentMethodCallback: (PaymentSessionHandler) -> Unit)
 
     fun initAuthenticationSession(
-        paymentIntentClientSecret: PaymentIntentClientSecret,
+        paymentIntentClientSecret: String,
         uiCustomization: UiCustomization? = null,
         tracker: ((JSONObject) -> Unit)? = null,
         initializationCallback: (Result) -> Unit,
@@ -30,7 +30,10 @@ interface PaymentSessionLauncher {
         ): AuthenticationSession
 
     fun initAuthenticationSession(
-        authenticationResponse: AuthenticationResponse,
+        paymentIntentClientSecret: String,
+        merchantId:String,
+        directoryServerId:String,
+        messageVersion:String,
         uiCustomization: UiCustomization? = null,
         tracker: ((JSONObject) -> Unit)? = null,
         initializationCallback: (Result) -> Unit,

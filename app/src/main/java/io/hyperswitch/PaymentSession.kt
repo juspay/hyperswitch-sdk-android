@@ -5,7 +5,6 @@ import android.app.Application
 import android.os.Bundle
 import io.hyperswitch.authentication.AuthenticationResponse
 import io.hyperswitch.authentication.AuthenticationSession
-import io.hyperswitch.authentication.PaymentIntentClientSecret
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSessionLauncher
@@ -93,25 +92,31 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
 
 
     fun initAuthenticationSession(
-        paymentIntentClientSecret: PaymentIntentClientSecret,
+        paymentIntentClientSecret: String,
         uiCustomization: UiCustomization?=null,
         tracker: ((JSONObject) -> Unit)?=null,
         initializationCallback: (Result) -> Unit,
 
-    ): AuthenticationSession {
+        ): AuthenticationSession {
         return paymentSessionLauncher.initAuthenticationSession(paymentIntentClientSecret,uiCustomization,tracker,initializationCallback)
     }
 
+
     fun initAuthenticationSession(
-        authenticationResponse: AuthenticationResponse,
+        paymentIntentClientSecret: String,
+        merchantId:String,
+        directoryServerId:String,
+        messageVersion:String,
         uiCustomization: UiCustomization?=null,
         tracker: ((JSONObject) -> Unit)?=null,
-        paymentIntentClientSecret: String?=null,
         initializationCallback: (Result) -> Unit,
     ): AuthenticationSession {
 
         return paymentSessionLauncher.initAuthenticationSession(
-            authenticationResponse,
+            paymentIntentClientSecret,
+            merchantId,
+            directoryServerId,
+            messageVersion,
             uiCustomization,
             tracker,
             initializationCallback
