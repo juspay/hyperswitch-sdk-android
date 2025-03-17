@@ -304,12 +304,20 @@ class MainActivity : Activity() {
 
         findViewById<View>(R.id.authBtn).setOnClickListener {
             try {
-                val authenticationSession = paymentSession.initAuthenticationSession(
-                    PaymentIntentClientSecret(paymentIntentClientSecret),
-                    getUiCustomization(),
-                    ::tracker
-                ) { result: Result ->
-                }
+
+                val paymentSession = PaymentSession(this, "pk_snd_42900f40029e450aa895e22e1839a189")
+
+//                val authenticationSession = paymentSession.initAuthenticationSession(
+//                 "pay_tUIlwWt1KijJCcPMvUGy_secret_pMXlVLxaroALLu4lSOME",
+//                    getUiCustomization(),
+//                    ::tracker
+//                ) { result: Result ->
+//                }
+
+                val authenticationSession =
+                    paymentSession.initAuthenticationSession("pay_zQY0dE8680784x2E0D26_secret_um11o30kSodtgaBlMtKN", "merchant_1737632689", "", "2.2.0", null, null) {
+
+                    }
 
                 val dsId = authenticationSession.getDirectoryServerID()
                 val messageVersion = authenticationSession.getMessageVersion()

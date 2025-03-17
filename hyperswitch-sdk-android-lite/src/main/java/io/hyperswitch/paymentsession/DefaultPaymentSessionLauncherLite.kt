@@ -68,7 +68,7 @@ open class DefaultPaymentSessionLauncherLite(
     }
 
     override fun initAuthenticationSession(
-        paymentIntentClientSecret: PaymentIntentClientSecret,
+        paymentIntentClientSecret: String,
         uiCustomization: UiCustomization?,
         tracker: ((JSONObject) -> Unit)?,
         initializationCallback: (Result) -> Unit,
@@ -84,14 +84,20 @@ open class DefaultPaymentSessionLauncherLite(
     }
 
     override fun initAuthenticationSession(
-        authenticationResponse: AuthenticationResponse,
+        paymentIntentClientSecret: String,
+        merchantId:String,
+        directoryServerId:String,
+        messageVersion:String,
         uiCustomization: UiCustomization?,
         tracker: ((JSONObject) -> Unit)?,
         initializationCallback: (Result) -> Unit
     ): AuthenticationSession {
 
         return AuthenticationSession.init(
-            authenticationResponse,
+            paymentIntentClientSecret,
+            merchantId,
+            directoryServerId,
+            messageVersion,
             initializationCallback,
             tracker,
             uiCustomization,

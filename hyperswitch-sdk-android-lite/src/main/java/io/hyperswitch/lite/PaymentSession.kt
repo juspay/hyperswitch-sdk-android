@@ -91,7 +91,7 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
     }
 
     fun initAuthenticationSession(
-        paymentIntentClientSecret: PaymentIntentClientSecret,
+        paymentIntentClientSecret: String,
         uiCustomization: UiCustomization? = null,
         tracker: ((JSONObject) -> Unit)? = null,
         initializationCallback: (Result) -> Unit,
@@ -107,14 +107,20 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
     }
 
     fun initAuthenticationSession(
-        authenticationResponse: AuthenticationResponse,
+        paymentIntentClientSecret: String,
+        merchantId:String,
+        directoryServerId:String,
+        messageVersion:String,
         uiCustomization: UiCustomization? = null,
         tracker: ((JSONObject) -> Unit)? = null,
         initializationCallback: (Result) -> Unit,
     ): AuthenticationSession {
 
         return paymentSessionLauncher.initAuthenticationSession(
-            authenticationResponse,
+            paymentIntentClientSecret,
+            merchantId,
+            directoryServerId,
+            messageVersion,
             uiCustomization,
             tracker,
             initializationCallback

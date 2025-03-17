@@ -7,6 +7,7 @@ import io.hyperswitch.threedslibrary.core.Transaction
 import io.hyperswitch.threedslibrary.customization.UiCustomization
 import io.hyperswitch.threedslibrary.data.AuthenticationRequestParameters
 import io.hyperswitch.threedslibrary.data.ChallengeParameters
+import io.hyperswitch.threedslibrary.data.ThreeDSAuthParameters
 import io.hyperswitch.threedslibrary.di.ThreeDSFactory
 import io.hyperswitch.threedslibrary.di.ThreeDSSDKType
 import io.hyperswitch.threedslibrary.service.Result
@@ -36,23 +37,22 @@ object AuthenticationSession {
 
 
     fun init(
-        clientSecret: PaymentIntentClientSecret,
+        clientSecret: String,
         initializationCallback: (Result) -> Unit,
         uiCustomization: UiCustomization? = null,
         tracker: ((JSONObject) -> Unit)? = null,
     ): AuthenticationSession {
 
-    
 
         AuthenticationSession.applicationContext = applicationContext
         ThreeDSFactory.initialize<TridentSDK>(
             ThreeDSSDKType.TRIDENT,
-            clientSecret.value,
+            clientSecret,
             publishableKey
         )
 
         threeDSInstance = ThreeDSFactory.getService<TridentSDK>()
-        threeDSInstance.setClientSecret(clientSecret.value)
+        threeDSInstance.setClientSecret(clientSecret)
 
 
         threeDSInstance.initialise(
@@ -67,20 +67,29 @@ object AuthenticationSession {
     }
 
     fun init(
-        authenticationResponse:AuthenticationResponse,
+        paymentIntentClientSecret: String,
+        merchantId: String,
+        directoryServerId: String,
+        messageVersion: String,
         initializationCallback: (Result) -> Unit,
         tracker: ((JSONObject) -> Unit)?,
         uiCustomization: UiCustomization? = null,
     ): AuthenticationSession {
         AuthenticationSession.applicationContext = applicationContext
 
-        ThreeDSFactory.initializeWithAuthResponse<TridentSDK>(
-            ThreeDSSDKType.TRIDENT, authenticationResponse.value,
-            publishableKey
+        val paymentId = paymentIntentClientSecret.substringBefore("_secret_")
+
+        val threeDSParams = ThreeDSAuthParameters(
+            messageVersion = messageVersion,
+            directoryServerID = directoryServerId,
+            clientSecret = paymentIntentClientSecret,
+            merchantId = merchantId,
+            paymentId = paymentId
         )
+        ThreeDSFactory.initialize<TridentSDK>(ThreeDSSDKType.TRIDENT, threeDSParams, publishableKey)
 
         threeDSInstance = ThreeDSFactory.getService<TridentSDK>()
-        threeDSInstance.setAuthenticationResponse(authenticationResponse.value)
+        threeDSInstance.setAuthenticationResponse(threeDSParams)
 
 
         threeDSInstance.initialise(
