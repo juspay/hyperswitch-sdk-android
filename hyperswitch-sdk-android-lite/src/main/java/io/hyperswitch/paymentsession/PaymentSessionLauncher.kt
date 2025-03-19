@@ -1,8 +1,6 @@
 package io.hyperswitch.paymentsession
 
-import io.hyperswitch.authentication.AuthenticationResponse
 import io.hyperswitch.authentication.AuthenticationSession
-import io.hyperswitch.authentication.PaymentIntentClientSecret
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
 import io.hyperswitch.threedslibrary.customization.UiCustomization
@@ -23,20 +21,11 @@ interface PaymentSessionLauncher {
 
     fun initAuthenticationSession(
         paymentIntentClientSecret: String,
-        uiCustomization: UiCustomization? = null,
-        tracker: ((JSONObject) -> Unit)? = null,
-        initializationCallback: (Result) -> Unit,
-
-        ): AuthenticationSession
-
-    fun initAuthenticationSession(
-        paymentIntentClientSecret: String,
-        merchantId:String,
-        directoryServerId:String,
-        messageVersion:String,
+        merchantId: String? = null,
+        directoryServerId: String? = null,
+        messageVersion: String? = null,
         uiCustomization: UiCustomization? = null,
         tracker: ((JSONObject) -> Unit)? = null,
         initializationCallback: (Result) -> Unit,
     ): AuthenticationSession
-
 }

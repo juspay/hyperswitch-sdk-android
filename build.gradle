@@ -41,7 +41,6 @@ apply plugin: 'maven-publish'
 rootProject.allprojects {
     // apply plugin: 'com.vanniktech.maven.publish'
     repositories {
-        mavenLocal()
         google()
         mavenCentral()
         maven {
@@ -54,7 +53,7 @@ rootProject.allprojects {
             url 'https://x.klarnacdn.net/mobile-sdk/'
         }
         maven {
-            url "https://maven.juspay.in/jp-build-packages/hyper-sdk/"
+            url "https://maven.hyperswitch.io/release/production/1.1.2-rc.1/"
         }
     }
     /*

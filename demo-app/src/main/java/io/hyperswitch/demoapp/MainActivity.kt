@@ -10,7 +10,6 @@ import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.PaymentSession
-import io.hyperswitch.authentication.PaymentIntentClientSecret
 import io.hyperswitch.payments.paymentlauncher.PaymentResult
 import io.hyperswitch.paymentsession.PaymentMethod
 import io.hyperswitch.paymentsheet.AddressDetails
@@ -185,6 +184,7 @@ class MainActivity : Activity() {
             .displaySavedPaymentMethodsCheckbox(true)
             .displaySavedPaymentMethods(true)
             .disableBranding(true)
+//            .setPsd2ScaExemptionType("transaction_risk_analysis")
 
         try {
             val netceteraApiKey = fetchNetceteraApiKey()
@@ -203,8 +203,10 @@ class MainActivity : Activity() {
         ctx.findViewById<View>(R.id.launchButton).isEnabled = false;
         ctx.findViewById<View>(R.id.launchWebButton).isEnabled = false;
         ctx.findViewById<View>(R.id.confirmButton).isEnabled = false;
+        ctx.findViewById<View>(R.id.authBtn).isEnabled = false;
 
-        reset().get("$serverUrl/create-payment-intent", null)
+//        "$serverUrl/create-payment-intent"
+        reset().get("$serverUrl/authenticate", null)
             .responseString(object : Handler<String?> {
                 override fun success(value: String?) {
                     try {
@@ -222,7 +224,7 @@ class MainActivity : Activity() {
                              * */
 
                             paymentSession = PaymentSession(ctx, publishKey)
-//                            paymentSessionLite = PaymentSessionLite(ctx, publishKey)
+                            paymentSessionLite = PaymentSessionLite(ctx, publishKey)
 
                             /**
                              *
@@ -262,6 +264,7 @@ class MainActivity : Activity() {
                             ctx.runOnUiThread {
                                 ctx.findViewById<View>(R.id.launchButton).isEnabled = true
                                 ctx.findViewById<View>(R.id.launchWebButton).isEnabled = true
+                                ctx.findViewById<View>(R.id.authBtn).isEnabled = true
                             }
                         }
                     } catch (e: JSONException) {
@@ -304,20 +307,12 @@ class MainActivity : Activity() {
 
         findViewById<View>(R.id.authBtn).setOnClickListener {
             try {
-
-                val paymentSession = PaymentSession(this, "pk_snd_42900f40029e450aa895e22e1839a189")
-
-//                val authenticationSession = paymentSession.initAuthenticationSession(
-//                 "pay_tUIlwWt1KijJCcPMvUGy_secret_pMXlVLxaroALLu4lSOME",
-//                    getUiCustomization(),
-//                    ::tracker
-//                ) { result: Result ->
-//                }
-
-                val authenticationSession =
-                    paymentSession.initAuthenticationSession("pay_zQY0dE8680784x2E0D26_secret_um11o30kSodtgaBlMtKN", "merchant_1737632689", "", "2.2.0", null, null) {
-
-                    }
+                val authenticationSession = paymentSession.initAuthenticationSession(
+                    paymentIntentClientSecret,
+                    null, //getUiCustomization(),
+                    ::tracker
+                ) { result: Result ->
+                }
 
                 val dsId = authenticationSession.getDirectoryServerID()
                 val messageVersion = authenticationSession.getMessageVersion()

@@ -1,11 +1,8 @@
 package io.hyperswitch.lite
 
 import android.app.Activity
-import android.app.Application
 import android.os.Bundle
-import io.hyperswitch.authentication.AuthenticationResponse
 import io.hyperswitch.authentication.AuthenticationSession
-import io.hyperswitch.authentication.PaymentIntentClientSecret
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncherLite
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSessionLauncher
@@ -95,27 +92,27 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
         uiCustomization: UiCustomization? = null,
         tracker: ((JSONObject) -> Unit)? = null,
         initializationCallback: (Result) -> Unit,
-
-        ): AuthenticationSession {
-        return AuthenticationSession.init(
+    ): AuthenticationSession {
+        return initAuthenticationSession(
             paymentIntentClientSecret,
-            initializationCallback,
+            null,
+            null,
+            null,
             uiCustomization,
-            tracker
-
+            initializationCallback,
+            tracker,
         )
     }
 
     fun initAuthenticationSession(
         paymentIntentClientSecret: String,
-        merchantId:String,
-        directoryServerId:String,
-        messageVersion:String,
+        merchantId: String? = null,
+        directoryServerId: String? = null,
+        messageVersion: String? = null,
         uiCustomization: UiCustomization? = null,
-        tracker: ((JSONObject) -> Unit)? = null,
         initializationCallback: (Result) -> Unit,
+        tracker: ((JSONObject) -> Unit)? = null,
     ): AuthenticationSession {
-
         return paymentSessionLauncher.initAuthenticationSession(
             paymentIntentClientSecret,
             merchantId,
@@ -123,7 +120,7 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
             messageVersion,
             uiCustomization,
             tracker,
-            initializationCallback
+            initializationCallback,
         )
     }
 

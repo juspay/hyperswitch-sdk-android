@@ -1,9 +1,7 @@
 package io.hyperswitch
 
 import android.app.Activity
-import android.app.Application
 import android.os.Bundle
-import io.hyperswitch.authentication.AuthenticationResponse
 import io.hyperswitch.authentication.AuthenticationSession
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher
 import io.hyperswitch.paymentsession.PaymentSessionHandler
@@ -96,17 +94,16 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
         uiCustomization: UiCustomization?=null,
         tracker: ((JSONObject) -> Unit)?=null,
         initializationCallback: (Result) -> Unit,
-
-        ): AuthenticationSession {
-        return paymentSessionLauncher.initAuthenticationSession(paymentIntentClientSecret,uiCustomization,tracker,initializationCallback)
+    ): AuthenticationSession {
+        return initAuthenticationSession(paymentIntentClientSecret, null, null, null, uiCustomization, tracker, initializationCallback)
     }
 
 
     fun initAuthenticationSession(
         paymentIntentClientSecret: String,
-        merchantId:String,
-        directoryServerId:String,
-        messageVersion:String,
+        merchantId: String? = null,
+        directoryServerId: String? = null,
+        messageVersion: String? = null,
         uiCustomization: UiCustomization?=null,
         tracker: ((JSONObject) -> Unit)?=null,
         initializationCallback: (Result) -> Unit,
@@ -119,12 +116,9 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
             messageVersion,
             uiCustomization,
             tracker,
-            initializationCallback
+            initializationCallback,
         )
     }
-
-
-
 
     /**
      * Presents the payment sheet to the user.
