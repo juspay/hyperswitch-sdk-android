@@ -2,3 +2,4 @@
 -keep class com.reactnativehyperswitchnetcetera3ds.** { *; }
 -keep class io.sentry.react.** { *; }
 -dontwarn com.horcrux.svg.**
+-dontwarn org.slf4j.impl.**

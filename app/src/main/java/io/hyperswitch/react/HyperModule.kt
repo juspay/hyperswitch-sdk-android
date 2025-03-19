@@ -8,10 +8,14 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
+import io.hyperswitch.PaymentSession
 import io.hyperswitch.payments.googlepaylauncher.GooglePayCallbackManager
 import io.hyperswitch.payments.paymentlauncher.PaymentLauncher
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
+import io.hyperswitch.threedslibrary.service.Result
+import io.hyperswitch.threedslibrary.service.Result.Failure
+import io.hyperswitch.threedslibrary.service.Result.Success
 import org.json.JSONObject
 
 class HyperModule internal constructor(private val rct: ReactApplicationContext) :
@@ -151,6 +155,41 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     // Method to exit widget payment sheet
     @ReactMethod
     fun exitWidgetPaymentsheet(rootTag: Int, paymentResult: String, reset: Boolean) {
+    }
+
+    @ReactMethod
+    fun launch3DS(request: String, callBack: Callback) {
+        currentActivity?.let {
+            val jsonObject = JSONObject(request)
+            val threeDsData = jsonObject.getJSONObject("threeDsData")
+
+            val ps = PaymentSession(it, jsonObject.getString("publishableKey"))
+            val session = ps.initAuthenticationSession(
+                jsonObject.getString("clientSecret"),
+                jsonObject.getString("merchantId"),
+                threeDsData.getString("directoryServerId"),
+                threeDsData.getString("messageVersion"),
+            ) { result ->
+
+            }
+
+            session.startAuthentication(it) { result ->
+                when (result) {
+                    is Success -> {
+                        val map = Arguments.createMap()
+                        map.putString("status", "succeeded")
+                        map.putString("message", result.message)
+                        callBack.invoke(map)
+                    }
+                    is Failure -> {
+                        val map = Arguments.createMap()
+                        map.putString("status", "failed")
+                        map.putString("message", result.errorMessage)
+                        callBack.invoke(map)
+                    }
+                }
+            }
+        }
     }
 
     // Variable to keep track of event listener count

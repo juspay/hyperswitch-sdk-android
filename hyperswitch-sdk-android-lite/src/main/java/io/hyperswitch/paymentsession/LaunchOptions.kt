@@ -36,6 +36,11 @@ class LaunchOptions(private val activity: Activity? = null) {
                     "defaultView", it
                 )
             }
+            configuration?.psd2ScaExemptionType?.let {
+                putString(
+                    "psd2ScaExemptionType", it
+                )
+            }
         }
 
     private fun getHyperParamsMap(map: Map<*, *>): Map<*, *> =
@@ -63,7 +68,7 @@ class LaunchOptions(private val activity: Activity? = null) {
         configuration: PaymentSheet.Configuration? = null
     ): Bundle = Bundle().apply {
         putBundle("props", Bundle().apply {
-            putString("type", "payment")
+            putString("type", "authentication")
             putString(
                 "publishableKey",
                 PaymentConfiguration.getInstance(context).publishableKey

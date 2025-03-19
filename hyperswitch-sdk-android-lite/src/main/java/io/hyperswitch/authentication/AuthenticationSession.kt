@@ -1,9 +1,13 @@
 package io.hyperswitch.authentication
 
 import android.app.Activity
-import android.app.Application
-import io.hyperswitch.threedslibrary.authenticationSDKs.TridentSDK
+import android.content.Context
 import io.hyperswitch.threedslibrary.core.Transaction
+import io.hyperswitch.threedslibrary.customization.ButtonCustomization
+import io.hyperswitch.threedslibrary.customization.CancelDialogCustomization
+import io.hyperswitch.threedslibrary.customization.FontStyle
+import io.hyperswitch.threedslibrary.customization.ToolbarCustomization
+import `in`.juspay.trident.core.Transaction as TridentTransaction
 import io.hyperswitch.threedslibrary.customization.UiCustomization
 import io.hyperswitch.threedslibrary.data.AuthenticationRequestParameters
 import io.hyperswitch.threedslibrary.data.ChallengeParameters
@@ -11,106 +15,105 @@ import io.hyperswitch.threedslibrary.data.ThreeDSAuthParameters
 import io.hyperswitch.threedslibrary.di.ThreeDSFactory
 import io.hyperswitch.threedslibrary.di.ThreeDSSDKType
 import io.hyperswitch.threedslibrary.service.Result
+import io.hyperswitch.threedslibrary.threeDSSDKAdapters.trident.TridentSDK
 import org.json.JSONObject
-
-
-@JvmInline
-value class PaymentIntentClientSecret(val value: String)
-
-@JvmInline
-value class AuthenticationResponse(val value: String)
 
 object AuthenticationSession {
 
-    lateinit var threeDSInstance: TridentSDK
-    lateinit var applicationContext: Application
+    private lateinit var threeDSInstance: TridentSDK
     lateinit var publishableKey: String
-    lateinit var transaction: Transaction<`in`.juspay.trident.core.Transaction>
+    lateinit var transaction: Transaction<TridentTransaction>
 
     fun setAuthSessionPublishableKey(publishableKey: String) {
         this.publishableKey = publishableKey
     }
 
-    fun setAuthApplicationContext(applicationContext: Application) {
-        this.applicationContext = applicationContext
-    }
-
-
     fun init(
-        clientSecret: String,
-        initializationCallback: (Result) -> Unit,
-        uiCustomization: UiCustomization? = null,
-        tracker: ((JSONObject) -> Unit)? = null,
-    ): AuthenticationSession {
-
-
-        AuthenticationSession.applicationContext = applicationContext
-        ThreeDSFactory.initialize<TridentSDK>(
-            ThreeDSSDKType.TRIDENT,
-            clientSecret,
-            publishableKey
-        )
-
-        threeDSInstance = ThreeDSFactory.getService<TridentSDK>()
-        threeDSInstance.setClientSecret(clientSecret)
-
-
-        threeDSInstance.initialise(
-            applicationContext, "en-US",
-            uiCustomization,
-            tracker,
-            initializationCallback
-        )
-
-        return this
-
-    }
-
-    fun init(
+        context: Context,
         paymentIntentClientSecret: String,
-        merchantId: String,
-        directoryServerId: String,
-        messageVersion: String,
-        initializationCallback: (Result) -> Unit,
-        tracker: ((JSONObject) -> Unit)?,
+        merchantId: String? = null,
+        directoryServerId: String? = null,
+        messageVersion: String? = null,
         uiCustomization: UiCustomization? = null,
+        tracker: ((JSONObject) -> Unit)?,
+        initializationCallback: (Result) -> Unit,
     ): AuthenticationSession {
-        AuthenticationSession.applicationContext = applicationContext
 
-        val paymentId = paymentIntentClientSecret.substringBefore("_secret_")
+        val directFlow = merchantId != null && directoryServerId != null && messageVersion != null
+        var threeDSParams: ThreeDSAuthParameters? = null
 
-        val threeDSParams = ThreeDSAuthParameters(
-            messageVersion = messageVersion,
-            directoryServerID = directoryServerId,
-            clientSecret = paymentIntentClientSecret,
-            merchantId = merchantId,
-            paymentId = paymentId
-        )
-        ThreeDSFactory.initialize<TridentSDK>(ThreeDSSDKType.TRIDENT, threeDSParams, publishableKey)
+        if (directFlow) {
+            val paymentId = paymentIntentClientSecret.substringBefore("_secret_")
+
+            threeDSParams = ThreeDSAuthParameters(
+                clientSecret = paymentIntentClientSecret,
+                paymentId = paymentId,
+                messageVersion = messageVersion!!,
+                directoryServerID = directoryServerId!!,
+                merchantId = merchantId!!,
+            )
+            ThreeDSFactory.initialize<TridentSDK>(
+                ThreeDSSDKType.TRIDENT,
+                threeDSParams,
+                publishableKey
+            )
+        } else {
+            ThreeDSFactory.initialize<TridentSDK>(
+                ThreeDSSDKType.TRIDENT,
+                paymentIntentClientSecret,
+                publishableKey
+            )
+        }
 
         threeDSInstance = ThreeDSFactory.getService<TridentSDK>()
-        threeDSInstance.setAuthenticationResponse(threeDSParams)
+        if(directFlow && threeDSParams != null) {
+            threeDSInstance.setAuthenticationResponse(threeDSParams)
+        } else {
+            threeDSInstance.setClientSecret(paymentIntentClientSecret)
+        }
 
+        val defaultCustomization = UiCustomization(
+            submitButtonCustomization = ButtonCustomization(
+                backgroundColor = "#356fd3"
+            ),
+            resendButtonCustomization = ButtonCustomization(
+                textColor = "#356fd3",
+                backgroundColor = "#FFFFFF",
+                fontStyle = FontStyle.REGULAR
+            ),
+            toolbarCustomization = ToolbarCustomization(
+                backgroundColor = "#356fd3"
+            ),
+            cancelDialogCustomization = CancelDialogCustomization(
+                continueButtonCustomization = ButtonCustomization(
+                    backgroundColor = "#356fd3"
+                )
+            ),
+            showJpBrandingFooter = true,
+            screenHorizontalPadding = 16,
+            screenVerticalPadding = 8,
+            showExpandableInfoTexts = true
+        )
 
         threeDSInstance.initialise(
-            applicationContext, "en-US",
-            uiCustomization,
+            context,
+            "en-US",
+            uiCustomization ?: defaultCustomization,
             tracker,
             initializationCallback
         )
 
         return this
-
     }
 
     fun startAuthentication(activity: Activity, completionCallback: (Result) -> Unit) {
-        threeDSInstance.startAuthentication(applicationContext, activity, completionCallback)
+        threeDSInstance.startAuthentication(activity, completionCallback)
     }
 
     fun createTransaction(
         directoryServerID: String,
         messageVersion: String
-    ): Transaction<`in`.juspay.trident.core.Transaction> {
+    ):  Transaction<TridentTransaction> {
 
         this.transaction =
             threeDSInstance.createTransaction(directoryServerID, messageVersion)

@@ -178,6 +178,7 @@ class PaymentSheet internal constructor(
         val netceteraSDKApiKey: String? = null,
         val disableBranding: Boolean? = null,
         val defaultView: Boolean? = null,
+        val psd2ScaExemptionType: String? = null,
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -216,6 +217,9 @@ class PaymentSheet internal constructor(
                     if (defaultView != null) {
                         putBoolean("defaultView", defaultView)
                     }
+                    if(psd2ScaExemptionType != null) {
+                        putString("psd2ScaExemptionType", psd2ScaExemptionType)
+                    }
                 }
             }
 
@@ -243,6 +247,7 @@ class PaymentSheet internal constructor(
             private var paymentSheetHeaderLabel: String? = null
             private var savedPaymentSheetHeaderLabel: String? = null
             private var netceteraSDKApiKey: String? = null
+            private var psd2ScaExemptionType: String? = null
             fun merchantDisplayName(merchantDisplayName: String) =
                 apply { this.merchantDisplayName = merchantDisplayName }
 
@@ -311,6 +316,10 @@ class PaymentSheet internal constructor(
                 this.netceteraSDKApiKey = netceteraSDKApiKey
             }
 
+            fun setPsd2ScaExemptionType(psd2ScaExemptionType: String?) = apply {
+                this.psd2ScaExemptionType = psd2ScaExemptionType
+            }
+
             fun savedPaymentSheetHeaderLabel(savedPaymentSheetHeaderLabel: String) =
                 apply { this.savedPaymentSheetHeaderLabel = savedPaymentSheetHeaderLabel }
 
@@ -333,7 +342,8 @@ class PaymentSheet internal constructor(
                 placeHolder,
                 netceteraSDKApiKey,
                 disableBranding,
-                defaultView
+                defaultView,
+                psd2ScaExemptionType
             )
         }
     }

@@ -1,6 +1,6 @@
 package io.hyperswitch.paymentsheet
 
-import android.support.annotation.DrawableRes
+import androidx.annotation.DrawableRes
 
 /**
  * The customer's selected payment option.
