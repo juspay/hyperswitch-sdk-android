@@ -61,7 +61,11 @@ open class MainApplication : Application(), ReactApplication {
                         tracker,
                     )
                 }
+                if (hyperOTAServices?.getBundlePath()?.contains("ios") == true){
+                    return "assets://hyperswitch.bundle"
+                }else {
                 return hyperOTAServices?.getBundlePath() ?: "assets://hyperswitch.bundle"
+                }
             }
         }
 

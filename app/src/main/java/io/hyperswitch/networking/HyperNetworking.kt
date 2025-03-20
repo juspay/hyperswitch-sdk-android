@@ -1,78 +1,68 @@
 package io.hyperswitch.networking
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.io.BufferedReader
-import java.io.OutputStreamWriter
-import java.net.URL
-import javax.net.ssl.HttpsURLConnection
-import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManagerFactory
-import javax.net.ssl.KeyManagerFactory
-import java.security.KeyStore
+import okhttp3.*
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.IOException
 
 object HyperNetworking {
-
-    private fun getSSLContext(): SSLContext {
-        return SSLContext.getInstance("TLS").apply {
-            val keyStore = KeyStore.getInstance(KeyStore.getDefaultType()).apply {
-                load(null, null)
-            }
-            val trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).apply {
-                init(keyStore)
-            }
-            val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm()).apply {
-                init(keyStore, null)
-            }
-            init(keyManagerFactory.keyManagers, trustManagerFactory.trustManagers, null)
-        }
-    }
-
-    private suspend fun makeHttpRequest(
+    private val client = OkHttpClient()
+    private fun makeHttpRequest(
         urlString: String,
         method: String,
         headers: Map<String, String> = emptyMap(),
-        body: String? = null
-    ): Result<String> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val url = URL(urlString)
-                (url.openConnection() as? HttpsURLConnection)?.run {
-                    sslSocketFactory = getSSLContext().socketFactory
-                    requestMethod = method
-                    doOutput = body != null
-                    connectTimeout = 15000
-                    readTimeout = 15000
-                    headers.forEach { (key, value) -> setRequestProperty(key, value) }
-                    body?.let {
-                        outputStream.use { output ->
-                            OutputStreamWriter(output, Charsets.UTF_8).use { writer ->
-                                writer.write(it)
-                                writer.flush()
-                            }
+        body: String? = null,
+        callback: (Result<String>) -> Unit
+    ) {
+        try {
+            val mediaType = "application/json".toMediaType()
+            val requestBody = body?.takeIf { it.isNotBlank() }?.toRequestBody(mediaType)
+
+            val url = try {
+                urlString.toHttpUrl()
+            } catch (e: Exception) {
+                callback(Result.failure(e))
+                return
+            }
+
+            val requestBuilder = Request.Builder()
+                .url(url)
+                .method(method, requestBody)
+
+            headers.forEach { (key, value) ->
+                requestBuilder.addHeader(key, value)
+            }
+
+            val request = requestBuilder.build()
+            client.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    callback(Result.failure(e))
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    response.use {
+                        if (!it.isSuccessful ) {
+                            callback(Result.failure(Exception("HTTP Error: ${it.code}")))
+                        } else {
+                            val responseBody = it.body?.string()
+                            callback(Result.success(responseBody ?: "success"))
                         }
                     }
-                    val responseCode = responseCode
-                    val response = if (responseCode in 200..299) {
-                        inputStream.bufferedReader().use(BufferedReader::readText)
-                    } else {
-                        errorStream?.bufferedReader()?.use(BufferedReader::readText) ?: "Error: $responseCode"
-                    }
-                    disconnect()
-                    Result.success(response)
-                } ?: Result.failure(Exception("Failed to open HTTPS connection"))
-            } catch (e: Exception) {
-                Result.failure(e)
-            }
+                }
+            })
+        } catch (e: Exception) {
+            callback(Result.failure(e))
         }
     }
 
-    suspend fun makePostRequest(urlString: String, postData: Any): Result<String> {
-        return makeHttpRequest(
+    fun makePostRequest(urlString: String, postData: Any, callback: (Result<String>) -> Unit) {
+        makeHttpRequest(
             urlString = urlString,
             method = "POST",
             headers = mapOf("Content-Type" to "application/json"),
-            body = postData.toString()
+            body = postData.toString().takeIf { it != "null" },
+            callback = callback
         )
     }
 }
