@@ -74,7 +74,7 @@ object HyperLogManager {
             logsArray.getJSONObject(i).apply {
                 put("merchant_id", publishableKey)
                 put("code_push_version", hyperOtaVersion)
-                put("client_core_version", hyperOtaVersion.substringAfter("-"))
+                put("client_core_version", hyperOtaVersion)
             }
         }
     }
@@ -90,7 +90,7 @@ object HyperLogManager {
                 log.apply {
                     merchantId = publishableKey!!
                     codePushVersion = hyperOtaVersion
-                    clientCoreVersion = hyperOtaVersion.substringBefore('-')
+                    clientCoreVersion = hyperOtaVersion
                 }
             }
             val logsToSend = getAllLogsAsString()
