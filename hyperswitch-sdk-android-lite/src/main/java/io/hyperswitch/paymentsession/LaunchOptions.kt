@@ -41,6 +41,11 @@ class LaunchOptions(private val activity: Activity? = null) {
                     "psd2ScaExemptionType", it
                 )
             }
+            configuration?.debugApiKey?.let {
+                putString(
+                    "debugApiKey", it
+                )
+            }
         }
 
     private fun getHyperParamsMap(map: Map<*, *>): Map<*, *> =
