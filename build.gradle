@@ -103,7 +103,6 @@ rootProject.allprojects {
 }
 
 def runtimeDeps = [
-        'react-native-code-push',
         'react-native-gesture-handler',
         'react-native-inappbrowser-reborn',
         'react-native-pager-view',
