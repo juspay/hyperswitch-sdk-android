@@ -128,8 +128,15 @@ dependencies {
     implementation("com.google.android.gms:play-services-wallet")
     implementation("org.greenrobot:eventbus")
     implementation project(':hyperswitch-sdk-android-lite')
+    implementation('com.squareup.okhttp3:okhttp')
 
-        constraints {
+    constraints {
+        implementation("com.squareup.okhttp3:okhttp") {
+            version {
+                prefer '3.3.0'
+            }
+        }
+        
         implementation("androidx.appcompat:appcompat") {
             version {
                 prefer '1.6.1'

@@ -1,13 +1,10 @@
 package io.hyperswitch.logs
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import io.hyperswitch.networking.HyperNetworking
 import io.hyperswitch.react.Utils.Companion.getLoggingUrl
-import kotlinx.coroutines.launch
 import org.json.JSONArray
 
-object HyperLogManager : ViewModel() {
+object HyperLogManager {
 
     private val logsBatch = mutableListOf<HSLog>()
     private var publishableKey: String? = null
@@ -22,12 +19,12 @@ object HyperLogManager : ViewModel() {
         customLogUrl: String?,
         delay: Long = DEFAULT_DELAY_IN_MILLIS
     ) {
-        if (pkKey.isNotBlank() ) {
+        if (pkKey.isNotBlank()) {
             publishableKey = pkKey
             delayInMillis = delay
-            if (customLogUrl != "" && customLogUrl != null){
+            if (customLogUrl != "" && customLogUrl != null) {
                 loggingEndPoint = customLogUrl
-            }else{
+            } else {
                 loggingEndPoint = getLoggingUrl(pkKey)
             }
         }
@@ -45,15 +42,17 @@ object HyperLogManager : ViewModel() {
             if (logArray.length() > 0) {
                 enrichLogs(logArray)
                 loggingEndPoint?.let { endpoint ->
-                    viewModelScope.launch {
-                        try {
-                            HyperNetworking.makePostRequest(endpoint, logArray.toString()).onSuccess {
-                                fileManager.clearFile()
-                            }
-                        }catch (e :Exception){
-                        }
+                    try {
+                        HyperNetworking.makePostRequest(
+                            endpoint,
+                            logArray.toString(),
+                            callback = { result ->
+                                result.onSuccess {
+                                    fileManager.clearFile()
+                                }
+                            })
+                    } catch (_: Exception) {
                     }
-
                 }
             }
         } catch (e: Exception) {
@@ -83,7 +82,10 @@ object HyperLogManager : ViewModel() {
     fun getAllLogsAsString(): String = logsBatch.joinToString(prefix = "[", postfix = "]") { it.toJson() }
 
     private fun sendLogsOverNetwork() {
-        if (logsBatch.isNotEmpty() && !publishableKey.isNullOrBlank() && !loggingEndPoint.isNullOrBlank()) {
+        if (logsBatch.isEmpty()){
+            return
+        }
+        if (!publishableKey.isNullOrBlank() && !loggingEndPoint.isNullOrBlank()) {
             logsBatch.map { log ->
                 log.apply {
                     merchantId = publishableKey!!
@@ -91,15 +93,15 @@ object HyperLogManager : ViewModel() {
                     clientCoreVersion = hyperOtaVersion.substringBefore('-')
                 }
             }
-
             val logsToSend = getAllLogsAsString()
             logsBatch.clear()
             loggingEndPoint?.let { endpoint ->
-                viewModelScope.launch {
-                    try {
-                        HyperNetworking.makePostRequest(endpoint, logsToSend)
-                    }catch (e :Exception){
-                    }
+                try {
+                    HyperNetworking.makePostRequest(
+                        endpoint, logsToSend,
+                        callback = {}
+                    )
+                } catch (_: Exception) {
                 }
             }
         } else {
