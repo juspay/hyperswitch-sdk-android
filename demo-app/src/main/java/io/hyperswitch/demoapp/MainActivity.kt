@@ -47,65 +47,6 @@ class MainActivity : Activity() {
     private lateinit var paymentSession: PaymentSession
     private lateinit var paymentSessionLite: PaymentSessionLite
 
-
-    private fun getUiCustomization(): UiCustomization {
-
-        return UiCustomization(
-            submitButtonCustomization = ButtonCustomization(
-                backgroundColor = "#FF0000"
-            ),
-            resendButtonCustomization = ButtonCustomization(
-                textColor = "#356fd3",
-                backgroundColor = "#FF0000",
-                fontStyle = FontStyle.REGULAR
-            ),
-            toolbarCustomization = ToolbarCustomization(
-                backgroundColor = "#FF0000"
-            ),
-            labelCustomization = LabelCustomization(),
-            textBoxCustomization = TextBoxCustomization(),
-            loaderCustomization = LoaderCustomization(),
-            fontCustomization = FontCustomization(),
-            otpSheetCustomization = OTPSheetCustomization(),
-            cancelDialogCustomization = CancelDialogCustomization(
-                continueButtonCustomization = ButtonCustomization(
-                    backgroundColor = "#356fd3"
-                )
-            ),
-            showJpBrandingFooter = true,
-            screenHorizontalPadding = 16,
-            screenVerticalPadding = 8,
-            showExpandableInfoTexts = true
-        )
-    }
-
-    val challengeStatusReceiver =
-        object : io.hyperswitch.threedslibrary.data.ChallengeStatusReceiver {
-
-            override fun cancelled() {
-                println("Cancelled")
-
-            }
-
-            override fun completed(completionEvent: io.hyperswitch.threedslibrary.data.CompletionEvent) {
-                println("Completion Event: $completionEvent")
-            }
-
-            override fun protocolError(protocolErrorEvent: io.hyperswitch.threedslibrary.data.ProtocolErrorEvent) {
-                println("Completion Event: $protocolErrorEvent")
-            }
-
-            override fun runtimeError(runtimeErrorEvent: io.hyperswitch.threedslibrary.data.RuntimeErrorEvent) {
-                println("Completion Event: $runtimeErrorEvent")
-            }
-
-            override fun timedout() {
-                println("Timedout")
-
-            }
-
-        }
-
     private suspend fun fetchNetceteraApiKey(): String? =
         suspendCancellableCoroutine { continuation ->
             reset().get("$serverUrl/netcetera-sdk-api-key")
@@ -184,7 +125,6 @@ class MainActivity : Activity() {
             .displaySavedPaymentMethodsCheckbox(true)
             .displaySavedPaymentMethods(true)
             .disableBranding(true)
-//            .setPsd2ScaExemptionType("transaction_risk_analysis")
 
         try {
             val netceteraApiKey = fetchNetceteraApiKey()
@@ -341,12 +281,9 @@ class MainActivity : Activity() {
                 *
                 * */
 
-
             } catch (err: Exception) {
-                println(err)
+                setStatus(err.message.toString())
             }
-
-
         }
 
         findViewById<View>(R.id.launchButton).setOnClickListener {
@@ -404,4 +341,28 @@ class MainActivity : Activity() {
             }
         }
     }
+
+    val challengeStatusReceiver =
+        object : io.hyperswitch.threedslibrary.data.ChallengeStatusReceiver {
+
+            override fun cancelled() {
+                setStatus("Cancelled")
+            }
+
+            override fun completed(completionEvent: io.hyperswitch.threedslibrary.data.CompletionEvent) {
+                setStatus("Completion Event: $completionEvent")
+            }
+
+            override fun protocolError(protocolErrorEvent: io.hyperswitch.threedslibrary.data.ProtocolErrorEvent) {
+                setStatus("Completion Event: $protocolErrorEvent")
+            }
+
+            override fun runtimeError(runtimeErrorEvent: io.hyperswitch.threedslibrary.data.RuntimeErrorEvent) {
+                setStatus("Completion Event: $runtimeErrorEvent")
+            }
+
+            override fun timedout() {
+                setStatus("Timedout")
+            }
+        }
 }
