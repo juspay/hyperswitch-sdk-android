@@ -51,10 +51,8 @@ object HyperLogManager {
                                     fileManager.clearFile()
                                 }
                             })
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                     }
-
-
                 }
             }
         } catch (e: Exception) {
@@ -84,7 +82,10 @@ object HyperLogManager {
     fun getAllLogsAsString(): String = logsBatch.joinToString(prefix = "[", postfix = "]") { it.toJson() }
 
     private fun sendLogsOverNetwork() {
-        if (logsBatch.isNotEmpty() && !publishableKey.isNullOrBlank() && !loggingEndPoint.isNullOrBlank()) {
+        if (logsBatch.isEmpty()){
+            return
+        }
+        if (!publishableKey.isNullOrBlank() && !loggingEndPoint.isNullOrBlank()) {
             logsBatch.map { log ->
                 log.apply {
                     merchantId = publishableKey!!
@@ -92,20 +93,15 @@ object HyperLogManager {
                     clientCoreVersion = hyperOtaVersion.substringBefore('-')
                 }
             }
-
             val logsToSend = getAllLogsAsString()
             logsBatch.clear()
             loggingEndPoint?.let { endpoint ->
                 try {
                     HyperNetworking.makePostRequest(
                         endpoint, logsToSend,
-                        callback = { result ->
-                            result.onSuccess {
-                            }.onFailure {
-                            }
-                        }
+                        callback = {}
                     )
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                 }
             }
         } else {
