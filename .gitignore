@@ -65,5 +65,4 @@ buck-out/
 .vscode
 .vs
 
-maven/com/
-maven/io/
+maven

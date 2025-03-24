@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace 'io.hyperswitch.demoapp'
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "io.hyperswitch.demoapp"
@@ -92,6 +92,8 @@ dependencies {
 
     implementation 'com.github.kittinunf.fuel:fuel:2.3.1'
     implementation 'com.github.kittinunf.fuel:fuel-json:2.3.1'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     implementation project(':app')
     implementation ('com.wix:detox:+')
     androidTestImplementation('com.wix:detox:+')

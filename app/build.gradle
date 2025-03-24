@@ -120,7 +120,7 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-
+    implementation("in.juspay:hyperotareact:2.2.2-xota.07")
     implementation("androidx.appcompat:appcompat")
     implementation("androidx.activity:activity-ktx")
     implementation("androidx.compose.ui:ui-graphics")
@@ -128,8 +128,15 @@ dependencies {
     implementation("com.google.android.gms:play-services-wallet")
     implementation("org.greenrobot:eventbus")
     implementation project(':hyperswitch-sdk-android-lite')
+    implementation('com.squareup.okhttp3:okhttp')
 
     constraints {
+        implementation("com.squareup.okhttp3:okhttp") {
+            version {
+                prefer '3.3.0'
+            }
+        }
+        
         implementation("androidx.appcompat:appcompat") {
             version {
                 prefer '1.6.1'

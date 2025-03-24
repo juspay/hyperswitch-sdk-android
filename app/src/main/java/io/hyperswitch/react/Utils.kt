@@ -1,5 +1,5 @@
 package io.hyperswitch.react
-
+import android.os.Build
 import android.content.Context
 import android.net.wifi.WifiManager
 import android.os.Bundle
@@ -9,6 +9,7 @@ import androidx.fragment.app.FragmentActivity
 import com.facebook.react.ReactFragment
 import io.hyperswitch.BuildConfig
 import java.util.Locale
+enum class SDKEnvironment{SANDBOX,PROD}
 
 class Utils {
   companion object {
@@ -92,7 +93,6 @@ class Utils {
     // Get launch options for React Native fragment
     private fun getLaunchOptions(request: Bundle, message: String, context: FragmentActivity): Bundle {
       request.putString("type", message)
-
       val hyperParams = request.getBundle("hyperParams") ?: Bundle()
       hyperParams.putString("appId", context.packageName)
       hyperParams.putString("country", context.resources.configuration.locale.country)
@@ -100,8 +100,11 @@ class Utils {
       hyperParams.putString("ip", getDeviceIPAddress(context))
       hyperParams.putDouble("launchTime", getCurrentTime())
       hyperParams.putString("sdkVersion", BuildConfig.VERSION_NAME)
-
+      hyperParams.putString("device_model", Build.MODEL)
+      hyperParams.putString("os_type", "android")
+      hyperParams.putString("os_version", Build.VERSION.RELEASE)
       request.putBundle("hyperParams", hyperParams)
+      hyperParams.putString("deviceBrand", Build.BRAND)
 
       val bundle = Bundle()
       bundle.putBundle("props", request)
@@ -165,6 +168,20 @@ class Utils {
     // Get current time in milliseconds
     fun getCurrentTime(): Double {
       return System.currentTimeMillis().toDouble()
+    }
+    fun checkEnvironment(publishableKey: String): SDKEnvironment {
+      return if (publishableKey.isNotEmpty() && publishableKey.startsWith("pk_prd_")) {
+        SDKEnvironment.PROD
+      } else {
+        SDKEnvironment.SANDBOX
+      }
+    }
+
+    fun getLoggingUrl(publishableKey: String): String{
+      return if (checkEnvironment(publishableKey) == SDKEnvironment.PROD)
+        "https://api.hyperswitch.io/logs/sdk"
+      else
+        "https://sandbox.hyperswitch.io/logs/sdk"
     }
   }
 }
