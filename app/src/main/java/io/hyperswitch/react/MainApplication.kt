@@ -43,11 +43,7 @@ open class MainApplication : Application(), ReactApplication {
             override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
 
             override fun getJSBundleFile(): String {
-                val hyperOTAUrl = if (BuildConfig.DEBUG) {
-                    context.getString(R.string.hyperOTASandBoxEndPoint)
-                } else {
-                    context.getString(R.string.hyperOTAEndPoint)
-                }
+                val hyperOTAUrl =  context.getString(R.string.hyperOTAEndPoint)
                 if (hyperOTAUrl != "hyperOTA_END_POINT_" ) {
                     tracker = HyperOtaLogger()
                     hyperOTAServices = HyperOTAServicesReact(
@@ -73,7 +69,6 @@ open class MainApplication : Application(), ReactApplication {
     override fun onCreate() {
         this.context = this
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(context))
-    //  CodePush.setReactInstanceHolder { reactNativeHost.reactInstanceManager }
         super.onCreate()
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
              override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
@@ -83,8 +78,8 @@ open class MainApplication : Application(), ReactApplication {
              override fun onActivityPaused(activity: Activity) {}
              override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
              override fun onActivityDestroyed(activity: Activity) {
-                 val fileManager = LogFileManager(context)
-                 fileManager.addLog(HyperLogManager.getAllLogsAsString())
+                     val fileManager = LogFileManager(context)
+                     fileManager.addLog(HyperLogManager.getAllLogsAsString())
              }
         })
         SoLoader.init(this, false)
