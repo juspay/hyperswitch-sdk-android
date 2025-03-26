@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">HyperSwitch</string>
-    <string name="CodePushDeploymentKey" moduleConfig="true">ZAmo7uOXuDhPzU1NKlOOwGHasre9bTOKqrLLu</string>
     <string name="hyperOTAEndPoint" moduleConfig="true">hyperOTA_END_POINT_</string>
     <string name="hyperOTASandBoxEndPoint">hyperOTATest_END_POINT_</string>
 </resources>
