@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
@@ -14,7 +13,6 @@ import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.load
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.soloader.SoLoader
-// import com.microsoft.codepush.react.CodePush
 import `in`.juspay.hyperotareact.HyperOTAServicesReact
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.R
@@ -64,7 +62,7 @@ open class MainApplication : Application(), ReactApplication {
                 if (hyperOTAServices?.getBundlePath()?.contains("ios") == true){
                     return "assets://hyperswitch.bundle"
                 }else {
-                return hyperOTAServices?.getBundlePath() ?: "assets://hyperswitch.bundle"
+                    return hyperOTAServices?.getBundlePath() ?: "assets://hyperswitch.bundle"
                 }
             }
         }
