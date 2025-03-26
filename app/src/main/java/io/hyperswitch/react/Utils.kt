@@ -103,8 +103,8 @@ class Utils {
       hyperParams.putString("device_model", Build.MODEL)
       hyperParams.putString("os_type", "android")
       hyperParams.putString("os_version", Build.VERSION.RELEASE)
-      request.putBundle("hyperParams", hyperParams)
       hyperParams.putString("deviceBrand", Build.BRAND)
+      request.putBundle("hyperParams", hyperParams)
 
       val bundle = Bundle()
       bundle.putBundle("props", request)

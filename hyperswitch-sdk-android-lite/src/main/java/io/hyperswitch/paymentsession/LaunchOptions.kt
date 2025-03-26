@@ -49,6 +49,7 @@ class LaunchOptions(private val activity: Activity? = null) {
             plus(Pair("device_model", Build.MODEL))
             plus(Pair("os_type", "android"))
             plus(Pair("os_version", Build.VERSION.RELEASE))
+            plus(Pair("deviceBrand",Build.BRAND))
         }
 
     fun getBundle(
