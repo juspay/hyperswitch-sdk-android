@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.TextView
+import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
@@ -34,10 +35,28 @@ class MainActivity : Activity() {
     private var serverUrl = "http://10.0.2.2:5252"
     private lateinit var paymentSession: PaymentSession
     private lateinit var paymentSessionLite: PaymentSessionLite
+    private var xCsrfToken = ""
+
+    private fun getCSRFToken(ctx: Activity) {
+        reset().get("$serverUrl/csrf-token").responseString(object : Handler<String?> {
+            override fun success(value: String?) {
+                try {
+                    val csrfResult = value?.let { JSONObject(it) }
+                    xCsrfToken = csrfResult?.getString("csrfToken") ?: ""
+                } catch (e: Exception) {
+                    setStatus("Could not retrieve CSRF token")
+                }
+            }
+            override fun failure(error: FuelError) {
+                setStatus("Could not connect to the server")
+            }
+        })
+    }
 
     private suspend fun fetchNetceteraApiKey(): String? =
         suspendCancellableCoroutine { continuation ->
-            reset().get("$serverUrl/netcetera-sdk-api-key")
+               Fuel
+                .get("$serverUrl/netcetera-sdk-api-key").header("X-CSRF-Token" to xCsrfToken)
                 .responseString(object : Handler<String?> {
                     override fun success(value: String?) {
                         try {
@@ -128,31 +147,26 @@ class MainActivity : Activity() {
     }
 
     private fun getCL() {
-
         ctx.findViewById<View>(R.id.launchButton).isEnabled = false;
         ctx.findViewById<View>(R.id.launchWebButton).isEnabled = false;
         ctx.findViewById<View>(R.id.confirmButton).isEnabled = false;
-
-        reset().get("$serverUrl/create-payment-intent", null)
+        getCSRFToken(ctx)
+        Fuel.get("$serverUrl/create-payment-intent").header("X-CSRF-Token" to xCsrfToken)
             .responseString(object : Handler<String?> {
                 override fun success(value: String?) {
                     try {
                         Log.d("Backend Response", value.toString())
-
                         val result = value?.let { JSONObject(it) }
                         if (result != null) {
                             paymentIntentClientSecret = result.getString("clientSecret")
                             publishKey = result.getString("publishableKey")
-
                             /**
-                             *
                              * Create Payment Session Object
                              *
                              * */
 
                             paymentSession = PaymentSession(ctx, publishKey)
                             paymentSessionLite = PaymentSessionLite(ctx, publishKey)
-
                             /**
                              *
                              * Initialise Payment Session
@@ -209,15 +223,12 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_activity)
-
         ctx = this
-
         /**
          *
          * Merchant API call to get Client Secret
          *
          * */
-
         getCL()
         findViewById<View>(R.id.reloadButton).setOnClickListener { getCL() }
 
