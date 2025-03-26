@@ -7,6 +7,9 @@ plugins {
 repositories {
     google()
     mavenCentral()
+    maven {
+        url 'https://maven.juspay.in/hyper-sdk'
+    }
 }
 
 dependencies {
@@ -31,7 +34,7 @@ java {
 }
 
 group = 'io.hyperswitch'
-version = '0.0.8'
+version = '0.0.9'
 
 task sourcesJar(type: Jar) {
     from sourceSets.main.allSource

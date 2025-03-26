@@ -6,11 +6,16 @@ import org.gradle.api.Project
 class HyperPlugin implements Plugin<Project> {
     void apply(Project project) {
         project.plugins.withId('com.android.application') {
-            project.repositories {
-                maven {
-                    url 'https://maven.juspay.in/hyper-sdk'
+            try {
+                project.repositories {
+                    maven {
+                        url 'https://maven.juspay.in/hyper-sdk'
+                    }
                 }
+            } catch (ignored) {
+                project.logger.warn("Failed to apply custom repositories", ignored)
             }
+            
             project.dependencies {
                 implementation 'io.hyperswitch:hyperswitch-sdk-android:1.1.2'
             }
