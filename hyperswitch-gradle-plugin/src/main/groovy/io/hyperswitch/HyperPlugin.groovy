@@ -7,13 +7,16 @@ class HyperPlugin implements Plugin<Project> {
     void apply(Project project) {
         project.plugins.withId('com.android.application') {
             try {
-                project.repositories {
-                    maven {
-                        url 'https://maven.juspay.in/hyper-sdk'
+                project.gradle.rootProject.allprojects { p ->
+                    p.repositories {
+                        maven {
+                            url 'https://maven.juspay.in/hyper-sdk'
+                        }
                     }
                 }
             } catch (ignored) {
-                project.logger.warn("Failed to apply custom repositories", ignored)
+                project.logger.warn("Failed to apply custom repositories")
+                project.logger.error("⚠️ Please add `maven { url 'https://maven.juspay.in/hyper-sdk' }` to your settings.gradle")
             }
             
             project.dependencies {
@@ -62,7 +65,7 @@ class HyperPlugin implements Plugin<Project> {
                     }
                 }
             } catch (ignored) {
-                project.logger.warn("Failed to apply custom configurations", ignored)
+                project.logger.warn("Failed to apply custom configurations")
             }
 
         }

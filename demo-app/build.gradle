@@ -18,22 +18,10 @@ android {
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
 
-    signingConfigs {
-        release {
-            if (project.hasProperty('sign')) {
-                storeFile file(sign)
-                storePassword sign
-                keyAlias sign
-                keyPassword sign
-            }
-        }
-    }
-
     buildTypes {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
-            signingConfig signingConfigs.release
 
             debuggable false
             jniDebuggable false

@@ -6,6 +6,19 @@ import org.gradle.api.Project
 class HyperPluginTest implements Plugin<Project> {
     void apply(Project project) {
         project.plugins.withId('com.android.application') {
+            try {
+                project.gradle.rootProject.allprojects { p ->
+                    p.repositories {
+                        maven {
+                            url 'https://maven.juspay.in/hyper-sdk'
+                        }
+                    }
+                }
+            } catch (ignored) {
+                project.logger.warn("Failed to apply custom repositories")
+                project.logger.warn("⚠️ Please add `maven { url 'https://maven.juspay.in/hyper-sdk' }` to your settings.gradle")
+            }
+            
             project.dependencies {
                 implementation 'io.hyperswitch:hyperswitch-sdk-android:1.1.2'
             }
@@ -49,13 +62,10 @@ class HyperPluginTest implements Plugin<Project> {
                         exclude "lib/**/libreact_render_element.so"
                         exclude "lib/**/libjsijniprofiler.so"
                         exclude "lib/**/libnative-filters.so"
-                        exclude "lib/**/libimagepipeline.so"
-                        exclude "lib/**/libsentry.so"
-                        exclude "lib/**/libsentry-android.so"
                     }
                 }
             } catch (ignored) {
-                project.logger.warn("Failed to apply custom configurations", ignored)
+                project.logger.warn("Failed to apply custom configurations")
             }
 
         }
