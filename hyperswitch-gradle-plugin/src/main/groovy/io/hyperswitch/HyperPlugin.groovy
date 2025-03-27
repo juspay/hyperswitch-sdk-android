@@ -7,6 +7,11 @@ class HyperPlugin implements Plugin<Project> {
     void apply(Project project) {
         project.plugins.withId('com.android.application') {
             try {
+                project.repositories {
+                    maven {
+                        url 'https://maven.juspay.in/hyper-sdk'
+                    }
+                }
                 project.gradle.rootProject.allprojects { p ->
                     p.repositories {
                         maven {
@@ -15,12 +20,18 @@ class HyperPlugin implements Plugin<Project> {
                     }
                 }
             } catch (ignored) {
-                project.logger.warn("Failed to apply custom repositories")
-                project.logger.error("⚠️ Please add `maven { url 'https://maven.juspay.in/hyper-sdk' }` to your settings.gradle")
+                project.logger.warn(
+                        "\n" +
+                        "⚠️ Build was configured to prefer settings repositories over project repositories\n\n" +
+                        "   If you haven't manually configured the SDK yet, follow these steps:\n" +
+                        "   🔹 In settings.gradle file:\n" +
+                        "      • Apply HyperSettingsPlugin `plugins { id('io.hyperswitch.settings.plugin') version '0.1.1' }`\n" +
+                        "       OR \n" +
+                        "      • Add `maven { url 'https://maven.juspay.in/hyper-sdk' }`\n")
             }
             
             project.dependencies {
-                implementation 'io.hyperswitch:hyperswitch-sdk-android:1.1.2'
+                implementation 'io.hyperswitch:hyperswitch-sdk-android:1.1.3'
             }
 
             try {
