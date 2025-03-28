@@ -30,10 +30,7 @@ class HyperPlugin implements Plugin<Project> {
                         "      • Add `maven { url 'https://maven.juspay.in/hyper-sdk' }`\n")
             }
 
-            def hyperswitchVersion = project.findProperty("version") ?: "1.1.2"
-            project.dependencies {
-                implementation "io.hyperswitch:hyperswitch-sdk-android:${hyperswitchVersion}"
-            }
+                implementation 'io.hyperswitch:hyperswitch-sdk-android:1.1.3'
 
             try {
                 if (project.android) {
