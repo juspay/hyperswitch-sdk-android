@@ -29,9 +29,11 @@ class HyperPlugin implements Plugin<Project> {
                         "       OR \n" +
                         "      • Add `maven { url 'https://maven.juspay.in/hyper-sdk' }`\n")
             }
-
+            
+             project.dependencies {
                 implementation 'io.hyperswitch:hyperswitch-sdk-android:1.1.3'
-
+            }
+            
             try {
                 if (project.android) {
                     project.android.buildTypes.debug.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
