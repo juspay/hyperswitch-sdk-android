@@ -31,7 +31,7 @@ class HyperPlugin implements Plugin<Project> {
             }
             
             project.dependencies {
-                implementation 'io.hyperswitch:hyperswitch-sdk-android:1.1.3'
+                implementation 'io.hyperswitch:hyperswitch-sdk-android:1.1.4'
             }
 
             try {
