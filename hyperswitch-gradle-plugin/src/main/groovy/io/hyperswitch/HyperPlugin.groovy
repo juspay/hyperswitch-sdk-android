@@ -33,7 +33,7 @@ class HyperPlugin implements Plugin<Project> {
             project.dependencies {
                 implementation 'io.hyperswitch:hyperswitch-sdk-android:1.1.3'
             }
-
+            
             try {
                 if (project.android) {
                     project.android.buildTypes.debug.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
