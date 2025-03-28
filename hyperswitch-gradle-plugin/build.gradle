@@ -25,6 +25,10 @@ gradlePlugin {
             id = 'io.hyperswitch.plugin'
             implementationClass = 'io.hyperswitch.HyperPlugin'
         }
+        hyperSettingsPlugin {
+            id = 'io.hyperswitch.settings.plugin'
+            implementationClass = 'io.hyperswitch.HyperSettingsPlugin'
+        }
     }
 }
 
@@ -34,7 +38,7 @@ java {
 }
 
 group = 'io.hyperswitch'
-version = '0.0.9'
+version = '0.1.1'
 
 task sourcesJar(type: Jar) {
     from sourceSets.main.allSource

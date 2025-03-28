@@ -12,8 +12,22 @@ class HyperPlugin implements Plugin<Project> {
                         url 'https://maven.juspay.in/hyper-sdk'
                     }
                 }
+                project.gradle.rootProject.allprojects { p ->
+                    p.repositories {
+                        maven {
+                            url 'https://maven.juspay.in/hyper-sdk'
+                        }
+                    }
+                }
             } catch (ignored) {
-                project.logger.warn("Failed to apply custom repositories", ignored)
+                project.logger.warn(
+                        "\n" +
+                        "⚠️ Build was configured to prefer settings repositories over project repositories\n\n" +
+                        "   If you haven't manually configured the SDK yet, follow these steps:\n" +
+                        "   🔹 In settings.gradle file:\n" +
+                        "      • Apply HyperSettingsPlugin `plugins { id('io.hyperswitch.settings.plugin') version '0.1.1' }`\n" +
+                        "       OR \n" +
+                        "      • Add `maven { url 'https://maven.juspay.in/hyper-sdk' }`\n")
             }
 
             def hyperswitchVersion = project.findProperty("version") ?: "1.1.2"
@@ -63,7 +77,7 @@ class HyperPlugin implements Plugin<Project> {
                     }
                 }
             } catch (ignored) {
-                project.logger.warn("Failed to apply custom configurations", ignored)
+                project.logger.warn("Failed to apply custom configurations")
             }
 
         }

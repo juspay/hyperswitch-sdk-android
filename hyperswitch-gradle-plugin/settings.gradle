@@ -3,8 +3,5 @@ pluginManagement {
         mavenCentral()
         google()
         gradlePluginPortal()
-        maven {
-            url 'https://maven.juspay.in/hyper-sdk'
-        }
     }
 }
