@@ -30,7 +30,7 @@ class HyperPlugin implements Plugin<Project> {
                         "      • Add `maven { url 'https://maven.juspay.in/hyper-sdk' }`\n")
             }
             
-             project.dependencies {
+            project.dependencies {
                 implementation 'io.hyperswitch:hyperswitch-sdk-android:1.1.3'
             }
             
