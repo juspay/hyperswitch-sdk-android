@@ -15,9 +15,10 @@ class HyperPlugin implements Plugin<Project> {
             } catch (ignored) {
                 project.logger.warn("Failed to apply custom repositories", ignored)
             }
-            
+
+            def hyperswitchVersion = project.findProperty("version") ?: "1.1.2"
             project.dependencies {
-                implementation 'io.hyperswitch:hyperswitch-sdk-android:1.1.2'
+                implementation "io.hyperswitch:hyperswitch-sdk-android:${hyperswitchVersion}"
             }
 
             try {
