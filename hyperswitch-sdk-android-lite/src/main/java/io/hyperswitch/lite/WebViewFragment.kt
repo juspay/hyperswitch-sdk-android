@@ -5,7 +5,10 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.app.Fragment
 import android.graphics.Color
+import android.net.http.SslError
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.Message
 import android.util.Log
 import android.view.LayoutInflater
@@ -13,6 +16,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.JsResult
+import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -31,6 +35,7 @@ open class WebViewFragment : Fragment() {
     @Deprecated("Deprecated in Java")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        bundleUrl = getString(R.string.localWebViewUrl)
         mainWebView = createWebView()
         webViewContainer = RelativeLayout(context)
         webViews.add(mainWebView)
@@ -43,7 +48,17 @@ open class WebViewFragment : Fragment() {
     ): View {
         return webViewContainer
     }
-
+    // Helper function to translate SSL error codes
+    private fun getSSLErrorMessage(error: SslError?): String {
+        return when (error?.primaryError) {
+            SslError.SSL_UNTRUSTED -> "The certificate is not trusted"
+            SslError.SSL_EXPIRED -> "The certificate has expired"
+            SslError.SSL_IDMISMATCH -> "Hostname mismatch"
+            SslError.SSL_NOTYETVALID -> "The certificate is not yet valid"
+            SslError.SSL_DATE_INVALID -> "The certificate date is invalid"
+            else -> "Unknown SSL error"
+        }
+    }
     /**
      * Creates and configures a new WebView instance.
      *
@@ -55,21 +70,56 @@ open class WebViewFragment : Fragment() {
      */
     @SuppressLint("SetJavaScriptEnabled")
     private fun createWebView(): WebView {
+
         return WebView(context).apply {
             layoutParams = RelativeLayout.LayoutParams(
                 RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT
             )
             setBackgroundColor(Color.TRANSPARENT)
-            settings.javaScriptEnabled = true
-            settings.javaScriptCanOpenWindowsAutomatically = true
-            settings.setSupportMultipleWindows(true)
 
-//            webViewClient = object : WebViewClient()
-//            {
-//                override fun onPageFinished(view: WebView?, url: String?) {
-//                    super.onPageFinished(view, url)
-//                }
-//            }
+            settings.apply {
+                javaScriptEnabled = true
+                javaScriptCanOpenWindowsAutomatically = true
+                allowFileAccessFromFileURLs = false
+                allowUniversalAccessFromFileURLs = false
+                allowContentAccess = false
+                allowFileAccess = false
+                setSupportMultipleWindows(true)
+            }
+
+
+            webViewClient = object : WebViewClient() {
+                override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?){
+
+                    handler?.cancel()
+                    val context = context ?: activity ?: view?.context ?: activity?.applicationContext
+                    context?.let { ctx ->
+                        // Use Handler to ensure dialog shows even if UI thread is blocked
+                        Handler(Looper.getMainLooper()).post {
+                            try {
+                                AlertDialog.Builder(ctx)
+                                    .setTitle("Security Warning")
+                                    .setMessage("Connection failed: ${getSSLErrorMessage(error)}")
+                                    .setPositiveButton("Cancel") { dialog, _ ->
+                                        activity?.fragmentManager?.beginTransaction()
+                                            ?.remove(this@WebViewFragment)
+                                            ?.commit()
+                                        dialog.dismiss()
+                                    }
+                                    .setCancelable(false)
+                                    .create()
+                                    .show()
+                            } catch (e: Exception) {
+                                Log.e("WebViewSSL", "Failed to show dialog", e)
+                            }
+                        }
+                    } ?: Log.e("WebViewSSL", "No context available to show dialog")
+                }
+
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                }
+            }
             webChromeClient = object : WebChromeClient() {
                 override fun onCreateWindow(
                     view: WebView?, dialog: Boolean, userGesture: Boolean, resultMsg: Message
@@ -123,7 +173,14 @@ open class WebViewFragment : Fragment() {
             layoutParams = RelativeLayout.LayoutParams(
                 RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT
             )
-            settings.javaScriptEnabled = true
+//            settings.javaScriptEnabled = true
+            settings.apply {
+                javaScriptEnabled = true
+                allowFileAccessFromFileURLs = false
+                allowUniversalAccessFromFileURLs = false
+                allowContentAccess = false
+                allowFileAccess = false
+            }
 
             webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {

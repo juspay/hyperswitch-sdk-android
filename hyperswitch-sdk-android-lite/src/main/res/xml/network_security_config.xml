@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+        <domain-config cleartextTrafficPermitted="true">
+            <domain includeSubdomains="true">10.0.2.2</domain>
+            <domain includeSubdomains="true">localhost</domain>
+    <!--        <domain includeSubdomains="true">127.0.0.1</domain>-->
+        </domain-config>
+    <domain-config>
+        <domain includeSubdomains="true">dev.hyperswitch.io</domain>
+        <pin-set>
+            <pin digest="SHA-256">7u4WTHNf89bSusTFEtSdYDio7DjDdRZ5bkjXMituElc=</pin>
+<!--            <pin digest="SHA-256">7u4WTHNf89bSusTFEtSdYDio7DjDdRZ5bkjXMituElc=</pin>-->
+        </pin-set>
+    </domain-config>
+</network-security-config>
