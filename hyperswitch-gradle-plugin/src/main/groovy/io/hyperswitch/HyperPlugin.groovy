@@ -9,6 +9,7 @@ class HyperPluginExtension {
 
 class HyperPlugin implements Plugin<Project> {
     static final String FALLBACK_SDK_VERSION = "+"
+  
     void apply(Project project) {
         def extension = project.extensions.create('hyperswitch', HyperPluginExtension)
         project.plugins.withId('com.android.application') {

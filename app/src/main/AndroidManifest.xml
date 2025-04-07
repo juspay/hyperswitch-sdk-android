@@ -32,6 +32,7 @@
             android:exported="false"
             android:launchMode="singleTask"
             android:theme="@style/HyperTransparentTheme"
+            android:enableOnBackInvokedCallback="false"
             android:windowSoftInputMode="adjustResize" />
 
         <meta-data
