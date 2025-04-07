@@ -97,7 +97,6 @@ class Utils {
       hyperParams.putString("appId", context.packageName)
       hyperParams.putString("country", context.resources.configuration.locale.country)
       hyperParams.putString("user-agent", getUserAgent(context))
-//      hyperParams.putString("ip", getDeviceIPAddress(context))
       hyperParams.putDouble("launchTime", getCurrentTime())
       hyperParams.putString("sdkVersion", BuildConfig.VERSION_NAME)
       hyperParams.putString("device_model", Build.MODEL)
