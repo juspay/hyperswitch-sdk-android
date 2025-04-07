@@ -3,8 +3,14 @@ package io.hyperswitch
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
+class HyperPluginExtension {
+    String sdkVersion = null
+}
+
 class HyperPlugin implements Plugin<Project> {
+    static final String FALLBACK_SDK_VERSION = "+"
     void apply(Project project) {
+        def extension = project.extensions.create('hyperswitch', HyperPluginExtension)
         project.plugins.withId('com.android.application') {
             try {
                 project.repositories {
@@ -22,19 +28,19 @@ class HyperPlugin implements Plugin<Project> {
             } catch (ignored) {
                 project.logger.warn(
                         "\n" +
-                        "⚠️ Build was configured to prefer settings repositories over project repositories\n\n" +
-                        "   If you haven't manually configured the SDK yet, follow these steps:\n" +
-                        "   🔹 In settings.gradle file:\n" +
-                        "      • Apply HyperSettingsPlugin `plugins { id('io.hyperswitch.settings.plugin') version '0.1.1' }`\n" +
-                        "       OR \n" +
-                        "      • Add `maven { url 'https://maven.juspay.in/hyper-sdk' }`\n")
+                                "⚠️ Build was configured to prefer settings repositories over project repositories\n\n" +
+                                "   If you haven't manually configured the SDK yet, follow these steps:\n" +
+                                "   🔹 In settings.gradle file:\n" +
+                                "      • Apply HyperSettingsPlugin `plugins { id('io.hyperswitch.settings.plugin') version '0.1.1' }`\n" +
+                                "       OR \n" +
+                                "      • Add `maven { url 'https://maven.juspay.in/hyper-sdk' }`\n")
             }
 
-            def hyperswitchVersion = project.findProperty("version") ?: "1.1.2"
-            project.dependencies {
-                implementation "io.hyperswitch:hyperswitch-sdk-android:${hyperswitchVersion}"
-            }
-            
+                String sdkVersionToUse = extension.sdkVersion ?: getVersionFromResources()
+                project.dependencies {
+                    implementation "io.hyperswitch:hyperswitch-sdk-android:${sdkVersionToUse}"
+                }
+
             try {
                 if (project.android) {
                     project.android.buildTypes.debug.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
@@ -79,7 +85,20 @@ class HyperPlugin implements Plugin<Project> {
             } catch (ignored) {
                 project.logger.warn("Failed to apply custom configurations")
             }
-
         }
+    }
+
+    private static String getVersionFromResources() {
+        try {
+            InputStream inputStream = HyperPlugin.class.getResourceAsStream("/version.properties")
+            if (inputStream != null) {
+                Properties properties = new Properties()
+                properties.load(inputStream)
+                inputStream.close()
+                return properties.getProperty("sdk.version", FALLBACK_SDK_VERSION)
+            }
+        } catch (Exception ignored) {
+        }
+        return FALLBACK_SDK_VERSION
     }
 }
