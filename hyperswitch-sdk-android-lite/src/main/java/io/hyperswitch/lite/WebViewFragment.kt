@@ -26,11 +26,13 @@ open class WebViewFragment : Fragment() {
     private lateinit var mainWebView: WebView
     private val webViews = mutableListOf<WebView>()
 
-    private val bundleUrl: String = "https://dev.hyperswitch.io/mobile/v1/index.html"
+    //URL
+    private lateinit var bundleUrl:String
 
     @Deprecated("Deprecated in Java")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        bundleUrl = getString(R.string.webViewUrl)
         mainWebView = createWebView()
         webViewContainer = RelativeLayout(context)
         webViews.add(mainWebView)
@@ -43,7 +45,7 @@ open class WebViewFragment : Fragment() {
     ): View {
         return webViewContainer
     }
-
+  
     /**
      * Creates and configures a new WebView instance.
      *
@@ -60,10 +62,15 @@ open class WebViewFragment : Fragment() {
                 RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT
             )
             setBackgroundColor(Color.TRANSPARENT)
-            settings.javaScriptEnabled = true
-            settings.javaScriptCanOpenWindowsAutomatically = true
-            settings.setSupportMultipleWindows(true)
-
+            settings.apply {
+                javaScriptEnabled = true
+                javaScriptCanOpenWindowsAutomatically = true
+                allowFileAccessFromFileURLs = false
+                allowUniversalAccessFromFileURLs = false
+                allowContentAccess = false
+                allowFileAccess = false
+                setSupportMultipleWindows(true)
+            }
 //            webViewClient = object : WebViewClient()
 //            {
 //                override fun onPageFinished(view: WebView?, url: String?) {
@@ -123,7 +130,13 @@ open class WebViewFragment : Fragment() {
             layoutParams = RelativeLayout.LayoutParams(
                 RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT
             )
-            settings.javaScriptEnabled = true
+            settings.apply {
+                javaScriptEnabled = true
+                allowFileAccessFromFileURLs = false
+                allowUniversalAccessFromFileURLs = false
+                allowContentAccess = false
+                allowFileAccess = false
+            }
 
             webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
