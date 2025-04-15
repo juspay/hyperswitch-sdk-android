@@ -55,7 +55,7 @@ open class WebViewFragment : Fragment() {
     ): View {
         return webViewContainer
     }
-
+  
     /**
      * Creates and configures a new WebView instance.
      *
@@ -81,6 +81,7 @@ open class WebViewFragment : Fragment() {
                 allowFileAccess = false
                 setSupportMultipleWindows(true)
             }
+
             webViewClient = object : WebViewClient()
             {
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -92,6 +93,7 @@ open class WebViewFragment : Fragment() {
                     super.onPageFinished(view, url)
                 }
             }
+
             webChromeClient = object : WebChromeClient() {
                 override fun onCreateWindow(
                     view: WebView?, dialog: Boolean, userGesture: Boolean, resultMsg: Message
