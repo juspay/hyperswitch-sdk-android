@@ -42,7 +42,7 @@ open class WebViewFragment : Fragment() {
     @Deprecated("Deprecated in Java")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        bundleUrl = getString(R.string.localWebViewUrl)
+        bundleUrl = getString(R.string.webViewUrl)
         mainWebView = createWebView()
         webViewContainer = RelativeLayout(context)
         webViews.add(mainWebView)
