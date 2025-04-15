@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.JsResult
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.RelativeLayout
@@ -22,6 +23,15 @@ import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
 import org.json.JSONObject
 
 open class WebViewFragment : Fragment() {
+    private fun isScanCardAvailable(): Boolean {
+        return try {
+            Class.forName("io.hyperswitch.hyperswitchScanCardLite.ScanCardManager")
+            true
+        } catch (e: ClassNotFoundException) {
+            false
+        }
+    }
+
     private lateinit var webViewContainer: RelativeLayout
     private lateinit var mainWebView: WebView
     private val webViews = mutableListOf<WebView>()
@@ -71,17 +81,33 @@ open class WebViewFragment : Fragment() {
                 allowFileAccess = false
                 setSupportMultipleWindows(true)
             }
-//            webViewClient = object : WebViewClient()
-//            {
-//                override fun onPageFinished(view: WebView?, url: String?) {
-//                    super.onPageFinished(view, url)
-//                }
-//            }
+
+            webViewClient = object : WebViewClient()
+            {
+                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                    view?.loadUrl(request?.url.toString())
+                    return true
+                }
+
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                }
+            }
+
             webChromeClient = object : WebChromeClient() {
                 override fun onCreateWindow(
                     view: WebView?, dialog: Boolean, userGesture: Boolean, resultMsg: Message
                 ): Boolean {
                     val newWebView = createNewWebView()
+                    newWebView.webViewClient = object : WebViewClient() {
+                        override fun shouldOverrideUrlLoading(
+                            view: WebView?,
+                            request: WebResourceRequest?
+                        ): Boolean {
+                            view?.loadUrl(request?.url.toString())
+                            return true
+                        }
+                    }
                     webViews.add(newWebView)
                     webViewContainer.addView(newWebView)
                     val transport = resultMsg.obj as WebView.WebViewTransport
@@ -110,7 +136,13 @@ open class WebViewFragment : Fragment() {
                     return true
                 }
             }
-            addJavascriptInterface(WebAppInterface(activity), "AndroidInterface")
+            
+           val webAppInterface = if (isScanCardAvailable()) {
+            WebAppInterfaceWithScanCard(activity,this@WebViewFragment,this,bundleUrl)
+        } else {
+        WebAppInterfaceWithoutScanCard(activity,this@WebViewFragment,this,bundleUrl)
+    }
+        addJavascriptInterface(webAppInterface, "AndroidInterface")
             loadUrl(bundleUrl)
         }
     }
@@ -197,23 +229,33 @@ open class WebViewFragment : Fragment() {
      *
      * @param context The Activity context.
      */
-    private inner class WebAppInterface(private val context: Activity) {
+    open class WebAppInterface( val context: Activity,val webFragment: Fragment,val webView:WebView,val bundleUrl:String) {
         @JavascriptInterface
         fun exitPaymentSheet(data: String) {
             PaymentSheetCallbackManager.executeCallback(data)
-            activity.runOnUiThread {
-                mainWebView.loadUrl(bundleUrl)
+            context.runOnUiThread {
+                webView.loadUrl(bundleUrl)
             }
-            context.fragmentManager.beginTransaction().detach(this@WebViewFragment).commit()
+            context.fragmentManager.beginTransaction().detach(webFragment).commit()
         }
-
         @JavascriptInterface
         fun launchGPay(data: String) {
             GooglePayCallbackManager.setCallback(
-                activity,
+                context,
                 data,
                 ::sendResultToWebView
             )
+        }
+        private fun sendResultToWebView(result: Map<String, Any?>) {
+            try {
+                val javascriptFunction =
+                    """window.postMessage(JSON.stringify({"googlePayData":  ${JSONObject(result)}}), '*');""".trimIndent()
+                context.runOnUiThread {
+                    webView.evaluateJavascript(javascriptFunction, null)
+                }
+            } catch (e: Exception) {
+                Log.e("sendResultToWebView", "Error sending result to WebView", e)
+            }
         }
 
         @JavascriptInterface
@@ -224,5 +266,53 @@ open class WebViewFragment : Fragment() {
             } */
         }
     }
-}
+
+    class WebAppInterfaceWithScanCard(context: Activity,webFragment: Fragment,webView:WebView,bundleUrl: String) : WebAppInterface(context, webFragment=webFragment,webView=webView,bundleUrl=bundleUrl) {
+        @JavascriptInterface
+        fun launchScanCard(data: String) {
+            try {
+                val scanCardCallbackClass =
+                    Class.forName("io.hyperswitch.hyperswitchScanCardLite.ScanCardCallback")
+                val scanCardManagerClass = Class.forName("io.hyperswitch.hyperswitchScanCardLite.ScanCardManager")
+
+                val callback = java.lang.reflect.Proxy.newProxyInstance(
+                    scanCardCallbackClass.classLoader,
+                    arrayOf(scanCardCallbackClass)
+                ) { _, method, args ->
+                    if (method.name == "onScanResult") {
+                        @Suppress("UNCHECKED_CAST")
+                        val result = args[0] as Map<String, Any?>
+                        val jsonResult = JSONObject(result).toString()
+                        context.runOnUiThread {
+                            val jsCode = """
+                        window.postMessage(JSON.stringify({ scanCardData: $jsonResult }), '*');
+                    """.trimIndent()
+                            webView.evaluateJavascript(jsCode, null)
+                        }
+                    }
+                    null
+                }
+                val launchMethod = scanCardManagerClass.getMethod(
+                    "launch",
+                    Activity::class.java,
+                    scanCardCallbackClass
+                )
+                launchMethod.invoke(null, context, callback)
+
+            } catch (e: Exception) {
+                Log.e("WebViewFragment", "Card scanning not available", e)
+                val result = mapOf("status" to "Failed", "error" to "Card scanning not available")
+                val jsonResult = JSONObject(result).toString()
+                context.runOnUiThread {
+                    val jsCode = """
+                window.postMessage(JSON.stringify({ scanCardData: $jsonResult }), '*');
+            """.trimIndent()
+                    webView.evaluateJavascript(jsCode, null)
+                }
+            }
+        }
+    }
+
+    class WebAppInterfaceWithoutScanCard(context: Activity,webFragment: Fragment,webView:WebView,bundleUrl: String) :WebAppInterface(context, webFragment=webFragment,webView=webView,bundleUrl=bundleUrl)
+    }
 
