@@ -22,9 +22,6 @@ import io.hyperswitch.payments.googlepaylauncher.GooglePayCallbackManager
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
 import org.json.JSONObject
 
-
-const val bundleUrl: String = "https://dev.hyperswitch.io/mobile/v1/index.html"
-
 open class WebViewFragment : Fragment() {
     private fun isScanCardAvailable(): Boolean {
         return try {
@@ -33,15 +30,19 @@ open class WebViewFragment : Fragment() {
         } catch (e: ClassNotFoundException) {
             false
         }
-}
+    }
+
     private lateinit var webViewContainer: RelativeLayout
     private lateinit var mainWebView: WebView
     private val webViews = mutableListOf<WebView>()
 
+    //URL
+    private lateinit var bundleUrl:String
 
     @Deprecated("Deprecated in Java")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        bundleUrl = getString(R.string.localWebViewUrl)
         mainWebView = createWebView()
         webViewContainer = RelativeLayout(context)
         webViews.add(mainWebView)
@@ -71,9 +72,15 @@ open class WebViewFragment : Fragment() {
                 RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT
             )
             setBackgroundColor(Color.TRANSPARENT)
-            settings.javaScriptEnabled = true
-            settings.javaScriptCanOpenWindowsAutomatically = true
-            settings.setSupportMultipleWindows(true)
+            settings.apply {
+                javaScriptEnabled = true
+                javaScriptCanOpenWindowsAutomatically = true
+                allowFileAccessFromFileURLs = false
+                allowUniversalAccessFromFileURLs = false
+                allowContentAccess = false
+                allowFileAccess = false
+                setSupportMultipleWindows(true)
+            }
             webViewClient = object : WebViewClient()
             {
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -127,12 +134,13 @@ open class WebViewFragment : Fragment() {
                     return true
                 }
             }
+            
            val webAppInterface = if (isScanCardAvailable()) {
-                WebAppInterfaceWithScanCard(activity,this@WebViewFragment,this)
-            } else {
-            WebAppInterfaceWithoutScanCard(activity,this@WebViewFragment,this)
-        }
-            addJavascriptInterface(webAppInterface, "AndroidInterface")
+            WebAppInterfaceWithScanCard(activity,this@WebViewFragment,this,bundleUrl)
+        } else {
+        WebAppInterfaceWithoutScanCard(activity,this@WebViewFragment,this,bundleUrl)
+    }
+        addJavascriptInterface(webAppInterface, "AndroidInterface")
             loadUrl(bundleUrl)
         }
     }
@@ -152,7 +160,13 @@ open class WebViewFragment : Fragment() {
             layoutParams = RelativeLayout.LayoutParams(
                 RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT
             )
-            settings.javaScriptEnabled = true
+            settings.apply {
+                javaScriptEnabled = true
+                allowFileAccessFromFileURLs = false
+                allowUniversalAccessFromFileURLs = false
+                allowContentAccess = false
+                allowFileAccess = false
+            }
 
             webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
@@ -213,8 +227,7 @@ open class WebViewFragment : Fragment() {
      *
      * @param context The Activity context.
      */
-
-    open class WebAppInterface( val context: Activity,val webFragment: Fragment,val webView:WebView) {
+    open class WebAppInterface( val context: Activity,val webFragment: Fragment,val webView:WebView,val bundleUrl:String) {
         @JavascriptInterface
         fun exitPaymentSheet(data: String) {
             PaymentSheetCallbackManager.executeCallback(data)
@@ -252,7 +265,7 @@ open class WebViewFragment : Fragment() {
         }
     }
 
-    class WebAppInterfaceWithScanCard(context: Activity,webFragment: Fragment,webView:WebView) : WebAppInterface(context, webFragment=webFragment,webView=webView) {
+    class WebAppInterfaceWithScanCard(context: Activity,webFragment: Fragment,webView:WebView,bundleUrl: String) : WebAppInterface(context, webFragment=webFragment,webView=webView,bundleUrl=bundleUrl) {
         @JavascriptInterface
         fun launchScanCard(data: String) {
             try {
@@ -298,6 +311,6 @@ open class WebViewFragment : Fragment() {
         }
     }
 
-    class WebAppInterfaceWithoutScanCard(context: Activity,webFragment: Fragment,webView:WebView) :WebAppInterface(context, webFragment=webFragment,webView=webView)
+    class WebAppInterfaceWithoutScanCard(context: Activity,webFragment: Fragment,webView:WebView,bundleUrl: String) :WebAppInterface(context, webFragment=webFragment,webView=webView,bundleUrl=bundleUrl)
     }
 
