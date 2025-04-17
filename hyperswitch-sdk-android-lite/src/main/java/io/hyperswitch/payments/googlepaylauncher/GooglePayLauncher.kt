@@ -26,13 +26,14 @@ class GooglePayLauncher() {
                 WidgetLauncher.onGPayPaymentReady.onReady(it)
             }
         }
+
         WidgetLauncher.config = config
         val map = mutableMapOf<String, String?>() //Arguments.createMap()
         map.put("publishableKey", PaymentConfiguration.getInstance(activity).publishableKey)
         map.put("clientSecret", clientSecret)
         map.put("paymentMethodType", "google_pay")
         val hyperModuleClass = Class.forName("io.hyperswitch.react.HyperModule")
-        val confirmCardMethod = hyperModuleClass.getMethod("confirm", String::class.java, MutableMap::class.java)
+        val confirmCardMethod = hyperModuleClass.getMethod("confirmStatic", String::class.java, MutableMap::class.java)
         confirmCardMethod.invoke(null, "widget", map)
     }
 
@@ -44,7 +45,7 @@ class GooglePayLauncher() {
         map.put("paymentMethodType", "google_pay")
         map.put("confirm", "true")
         val hyperModuleClass = Class.forName("io.hyperswitch.react.HyperModule")
-        val confirmCardMethod = hyperModuleClass.getMethod("confirm", String::class.java, MutableMap::class.java)
+        val confirmCardMethod = hyperModuleClass.getMethod("confirmStatic", String::class.java, MutableMap::class.java)
         confirmCardMethod.invoke(null, "widget", map)
     }
 

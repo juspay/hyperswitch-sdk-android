@@ -25,7 +25,7 @@ class PayPalLauncher() {
         map.put("clientSecret", clientSecret)
         map.put("paymentMethodType", "paypal")
         val hyperModuleClass = Class.forName("io.hyperswitch.react.HyperModule")
-        val confirmCardMethod = hyperModuleClass.getMethod("confirm", String::class.java, MutableMap::class.java)
+        val confirmCardMethod = hyperModuleClass.getMethod("confirmStatic", String::class.java, MutableMap::class.java)
         confirmCardMethod.invoke(null, "widget", map)
     }
 
@@ -37,7 +37,7 @@ class PayPalLauncher() {
         map.put("paymentMethodType", "paypal")
         map.put("confirm", "true")
         val hyperModuleClass = Class.forName("io.hyperswitch.react.HyperModule")
-        val confirmCardMethod = hyperModuleClass.getMethod("confirm", String::class.java, MutableMap::class.java)
+        val confirmCardMethod = hyperModuleClass.getMethod("confirmStatic", String::class.java, MutableMap::class.java)
         confirmCardMethod.invoke(null, "widget", map)
     }
 }
