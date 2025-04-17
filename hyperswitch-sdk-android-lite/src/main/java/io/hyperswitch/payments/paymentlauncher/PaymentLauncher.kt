@@ -28,7 +28,7 @@ class PaymentLauncher(
         map.put("paymentMethodData", confirmParams[1].toString())
 //        HyperModule.confirmCard(map)
         val hyperModuleClass=Class.forName("io.hyperswitch.react.HyperModule")
-        val confirmCardMethod=hyperModuleClass.getMethod("confirmCard",Map::class.java)
+        val confirmCardMethod=hyperModuleClass.getMethod("confirmCardStatic",Map::class.java)
         confirmCardMethod.invoke(null,map)
     }
 

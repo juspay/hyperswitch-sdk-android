@@ -1,5 +1,6 @@
 package io.hyperswitch.react
 
+import android.util.Log
 import androidx.fragment.app.FragmentActivity
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
@@ -13,95 +14,110 @@ import io.hyperswitch.payments.view.WidgetLauncher
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
 import org.json.JSONObject
+import java.util.concurrent.ConcurrentLinkedQueue
 
 class HyperModule internal constructor(private val rct: ReactApplicationContext) :
     ReactContextBaseJavaModule(rct) {
 
     companion object {
         @JvmStatic
-        var reactContext: ReactApplicationContext? = null
+        private var reactContext: ReactApplicationContext? = null
+
+        private val pendingEvents = ConcurrentLinkedQueue<Pair<String, Map<String, String?>>>()
 
         @JvmStatic
-        var reactContextCard: ReactApplicationContext? = null
-
-        @JvmStatic
-        var reactContextEC: ReactApplicationContext? = null
-        private var pendingEmitList: MutableList<Pair<String, MutableMap<String,String?>>> = ArrayList()
-        // Method to emit 'confirm' event for card
-//        fun confirmCard(map: WritableMap) {
-        @JvmStatic
-        fun confirmCard(map: MutableMap<String, String?>) {
+        fun confirmStatic(tag: String, map: MutableMap<String, String?>) {
             val writableMap = Arguments.createMap()
             for ((key, value) in map) {
                 writableMap.putString(key, value)
             }
-            if (reactContextCard != null && reactContextCard!!.hasCatalystInstance())
-                reactContextCard!!.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                    ?.emit("confirm", writableMap)
-            else
-                pendingEmitList.add(Pair("confirm", map))
-        }
 
-        // Method to emit 'confirmEC' event for express checkout
-        @JvmStatic
-        fun confirmEC(map: MutableMap<String, String?>) {
-            val writableMap = Arguments.createMap()
-            for ((key, value) in map) {
-                writableMap.putString(key, value)
+            if (reactContext != null && reactContext!!.hasCatalystInstance()) {
+                try {
+                    reactContext!!.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                        ?.emit(tag, writableMap)
+                } catch (e: Exception) {
+                    pendingEvents.add(Pair(tag, map))
+                }
+            } else {
+                pendingEvents.add(Pair(tag, map))
             }
-            if (reactContextEC != null && reactContextEC!!.hasCatalystInstance())
-                reactContextEC!!.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                    ?.emit("confirmEC", writableMap)
-            else
-                pendingEmitList.add(Pair("confirmEC", map))
         }
-
-        // Generic method to emit events
 
         @JvmStatic
-        fun confirm(tag: String, map: MutableMap<String, String?>) {
-            val writableMap = Arguments.createMap()
-            for ((key, value) in map) {
-                writableMap.putString(key, value)
-            }
-            if (reactContext != null && reactContext!!.hasCatalystInstance())
-            { reactContext!!.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                    ?.emit(tag, writableMap)}
-            else
-                pendingEmitList.add(Pair(tag, map))
+        fun confirmCardStatic(map: MutableMap<String, String?>) {
+            confirmStatic("confirm", map)
         }
 
-        // Method to emit pending events once context is initialized
-        fun onContextInitialized() {
-            pendingEmitList.forEach { pendingEmit ->
-                pendingEmit.let { (tag, map) ->
-                    confirm(tag, map)
+        @JvmStatic
+        fun confirmECStatic(map: MutableMap<String, String?>) {
+            confirmStatic("confirmEC", map)
+        }
+
+        @JvmStatic
+        private fun processPendingEvents() {
+            if (reactContext == null || !reactContext!!.hasCatalystInstance()) {
+                return
+            }
+
+            val iterator = pendingEvents.iterator()
+            while (iterator.hasNext()) {
+                val (tag, map) = iterator.next()
+                try {
+                    val writableMap = Arguments.createMap()
+                    for ((key, value) in map) {
+                        writableMap.putString(key, value)
+                    }
+
+                    reactContext!!.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                        ?.emit(tag, writableMap)
+
+                    iterator.remove()
+                } catch (e: Exception) {
+                    Log.e("Error processing pending event", e.toString())
                 }
             }
-            pendingEmitList = ArrayList()
-            reactContext = null
+        }
+
+        @JvmStatic
+        fun onContextInitialized() {
+            processPendingEvents()
         }
     }
 
-    // Set the name for this module
     override fun getName(): String {
         reactContext = rct
-        reactContextCard = rct
-        reactContextEC = rct
+        processPendingEvents()
         return "HyperModule"
     }
 
-    // Method to handle messages from React Native
+    // Using invalidate instead of deprecated onCatalystInstanceDestroy
+    override fun invalidate() {
+        super.invalidate()
+        reactContext = null
+    }
+
+
     @ReactMethod
     fun sendMessageToNative(rnMessage: String) {
-        val jsonObject = JSONObject(rnMessage)
-        if (jsonObject.getBoolean("isReady")) {
-            reactContext = rct
-            onContextInitialized()
-            when (jsonObject.getString("paymentMethodType")) {
-                "google_pay" -> {}
-                "paypal" -> {}
+        try {
+            val jsonObject = JSONObject(rnMessage)
+
+            if (jsonObject.optBoolean("isReady", false)) {
+                reactContext = rct
+                onContextInitialized()
+                val paymentMethodType = jsonObject.optString("paymentMethodType", "")
+                when (paymentMethodType) {
+                    "google_pay" -> {
+                        WidgetLauncher.onGPayPaymentReadyWithUI.onReady(true)
+                    }
+                    "paypal" -> {
+                        WidgetLauncher.onPaypalPaymentReadyWithUI.onReady(true)
+                    }
+                }
             }
+        } catch (e: Exception) {
+            Log.e("Error processing message", e.toString())
         }
     }
 
