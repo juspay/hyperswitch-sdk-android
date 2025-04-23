@@ -3,7 +3,6 @@ package io.hyperswitch.view
 import android.content.Context
 import android.os.Bundle
 import android.util.AttributeSet
-import android.util.Log
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import io.hyperswitch.react.Utils
