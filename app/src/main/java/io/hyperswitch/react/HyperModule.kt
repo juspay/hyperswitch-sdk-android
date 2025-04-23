@@ -1,6 +1,5 @@
 package io.hyperswitch.react
 
-import android.util.Log
 import androidx.fragment.app.FragmentActivity
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
@@ -63,19 +62,13 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
             val iterator = pendingEvents.iterator()
             while (iterator.hasNext()) {
                 val (tag, map) = iterator.next()
-                try {
                     val writableMap = Arguments.createMap()
                     for ((key, value) in map) {
                         writableMap.putString(key, value)
                     }
-
                     reactContext!!.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
                         ?.emit(tag, writableMap)
-
                     iterator.remove()
-                } catch (e: Exception) {
-                    Log.e("Error processing pending event", e.toString())
-                }
             }
         }
 
@@ -100,7 +93,6 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
 
     @ReactMethod
     fun sendMessageToNative(rnMessage: String) {
-        try {
             val jsonObject = JSONObject(rnMessage)
 
             if (jsonObject.optBoolean("isReady", false)) {
@@ -116,9 +108,6 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
                     }
                 }
             }
-        } catch (e: Exception) {
-            Log.e("Error processing message", e.toString())
-        }
     }
 
     // Method to launch Google Pay payment
