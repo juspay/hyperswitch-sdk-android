@@ -1,16 +1,8 @@
 package io.hyperswitch.view
 
 import android.content.Context
-import android.os.Bundle
 import android.util.AttributeSet
-import android.util.Log
-import android.view.Gravity
-import android.view.View
-import android.widget.FrameLayout
-import android.widget.ProgressBar
-import androidx.appcompat.app.AppCompatActivity
 import io.hyperswitch.model.PaymentMethodCreateParams
-import io.hyperswitch.react.Utils
 
 /**
  *
