@@ -58,7 +58,9 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
             override fun getCustomerSavedPaymentMethodData(): Array<PaymentMethod> {
                 val array = mutableListOf<PaymentMethod>()
                 for (i in 0 until getPaymentMethodDataArray.size()) {
-                    array.add(parseGetPaymentMethodData(getPaymentMethodDataArray.getMap(i)))
+                    getPaymentMethodDataArray.getMap(i)?.let {
+                        array.add(parseGetPaymentMethodData(it))
+                    }
                 }
                 return array.toTypedArray()
             }
