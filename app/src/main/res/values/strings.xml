@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">HyperSwitch</string>
-    <string name="hyperOTAEndPoint" moduleConfig="true">hyperOTA_END_POINT_</string>
+    <string name="hyperOTAEndPoint">hyperOTA_END_POINT_</string>
+    <string name="hyperOTASandBoxEndPoint">hyperOTA_END_POINT_</string>
 </resources>

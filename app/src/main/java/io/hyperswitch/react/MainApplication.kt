@@ -16,17 +16,20 @@ import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
 import `in`.juspay.hyperotareact.HyperOTAServicesReact
 import io.hyperswitch.BuildConfig
+import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.R
 import io.hyperswitch.logs.CrashHandler
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
 
 import io.hyperswitch.hyperota.HyperOtaLogger
+import io.hyperswitch.react.Utils.Companion.checkEnvironment
 
 open class MainApplication : Application(), ReactApplication {
-    private  var hyperOTAServices : HyperOTAServicesReact? = null
+    private var hyperOTAServices: HyperOTAServicesReact? = null
     private lateinit var tracker: HyperOtaLogger
-    private lateinit var context : Context
+    private lateinit var context: Context
+
     override val reactNativeHost: ReactNativeHost =
         object : DefaultReactNativeHost(this) {
             override fun getPackages(): List<ReactPackage> =
@@ -44,8 +47,13 @@ open class MainApplication : Application(), ReactApplication {
             override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
 
             override fun getJSBundleFile(): String {
-                val hyperOTAUrl =  context.getString(R.string.hyperOTAEndPoint)
-                if (hyperOTAUrl != "hyperOTA_END_POINT_" ) {
+                val hyperOTAUrl =
+                    if (checkEnvironment(PaymentConfiguration.getInstance(context).publishableKey) == SDKEnvironment.PROD) {
+                        context.getString(R.string.hyperOTAEndPoint)
+                    } else {
+                        context.getString(R.string.hyperOTASandBoxEndPoint)
+                    }
+                if (hyperOTAUrl != "hyperOTA_END_POINT_") {
                     tracker = HyperOtaLogger()
                     hyperOTAServices = HyperOTAServicesReact(
                         context.applicationContext,
@@ -56,9 +64,9 @@ open class MainApplication : Application(), ReactApplication {
                         tracker,
                     )
                 }
-                if (hyperOTAServices?.getBundlePath()?.contains("ios") == true){
+                if (hyperOTAServices?.getBundlePath()?.contains("ios") == true) {
                     return "assets://hyperswitch.bundle"
-                }else {
+                } else {
                     return hyperOTAServices?.getBundlePath() ?: "assets://hyperswitch.bundle"
                 }
             }
@@ -72,16 +80,16 @@ open class MainApplication : Application(), ReactApplication {
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(context))
         super.onCreate()
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
-             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
-             override fun onActivityStarted(activity: Activity) {}
-             override fun onActivityStopped(activity: Activity) {}
-             override fun onActivityResumed(activity: Activity) {}
-             override fun onActivityPaused(activity: Activity) {}
-             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
-             override fun onActivityDestroyed(activity: Activity) {
-                     val fileManager = LogFileManager(context)
-                     fileManager.addLog(HyperLogManager.getAllLogsAsString())
-             }
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+            override fun onActivityStarted(activity: Activity) {}
+            override fun onActivityStopped(activity: Activity) {}
+            override fun onActivityResumed(activity: Activity) {}
+            override fun onActivityPaused(activity: Activity) {}
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+            override fun onActivityDestroyed(activity: Activity) {
+                val fileManager = LogFileManager(context)
+                fileManager.addLog(HyperLogManager.getAllLogsAsString())
+            }
         })
         SoLoader.init(this, OpenSourceMergedSoMapping)
         if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
