@@ -21,9 +21,8 @@ import io.hyperswitch.payments.paymentlauncher.PaymentLauncher
 import io.hyperswitch.payments.paymentlauncher.PaymentResult
 import io.hyperswitch.payments.paypallauncher.PayPalLauncher
 import io.hyperswitch.payments.paypallauncher.PayPalPaymentMethodLauncher
-import io.hyperswitch.view.CardInputWidget
-import io.hyperswitch.view.GooglePayButton
-import io.hyperswitch.view.PayPalButton
+import io.hyperswitch.view.BasePaymentWidget
+
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -34,8 +33,8 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
     private var publishKey: String = ""
 
 
-    private lateinit var googlePayButton: GooglePayButton
-    private lateinit var payPalButton: PayPalButton
+    private lateinit var googlePayButton: BasePaymentWidget
+    private lateinit var payPalButton: BasePaymentWidget
 
     private lateinit var paymentLauncher: PaymentLauncher
 
@@ -163,7 +162,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
 
         findViewById<View>(R.id.reloadButton2).setOnClickListener { getCL() }
         findViewById<View>(R.id.confirmButton2).setOnClickListener {
-            val cardInputWidget: CardInputWidget = findViewById(R.id.cardElement)
+            val cardInputWidget: BasePaymentWidget = findViewById(R.id.cardElement)
             val params: PaymentMethodCreateParams = cardInputWidget.paymentMethodCreateParams
             val confirmParams = ConfirmPaymentIntentParams.createWithPaymentMethodCreateParams(
                 params,

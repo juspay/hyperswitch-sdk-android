@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@android:color/white"
     android:fitsSystemWindows="true"
     tools:context=".WidgetActivity">
@@ -26,14 +27,14 @@
             android:textColor="#FFFFFF"
             android:textSize="20sp"
             />
-        <io.hyperswitch.view.CardInputWidget
+        <io.hyperswitch.view.BasePaymentWidget
             android:id="@+id/cardElement"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="40dp"
             android:layout_marginHorizontal="20dp"
+            app:paymentMethod="card"
             />
-
         <Button
             android:textAllCaps="false"
             android:id="@+id/confirmButton2"
@@ -47,19 +48,24 @@
             android:layout_marginHorizontal="20dp" />
 
 
-        <io.hyperswitch.view.GooglePayButton
+        <io.hyperswitch.view.BasePaymentWidget
             android:id="@+id/googlePayButton2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="40dp"
-            android:layout_marginHorizontal="20dp" />
-
-        <io.hyperswitch.view.PayPalButton
+            android:layout_marginHorizontal="20dp"
+            app:paymentMethod="google_pay"
+            />
+        <io.hyperswitch.view.BasePaymentWidget
             android:id="@+id/payPalButton2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="40dp"
             android:layout_marginHorizontal="20dp"
+            app:paymentMethod="paypal"
             />
+
+
+
     </LinearLayout>
 </ScrollView>
