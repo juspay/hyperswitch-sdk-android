@@ -16,3 +16,4 @@ rootProject.name = 'io.hyperswitch'
 
 include ':app', ':demo-app', ':hyperswitch-sdk-android-lite', ':hyperswitch-scan-card-lite'
 includeBuild('../node_modules/@react-native/gradle-plugin')
+include ':test-app'

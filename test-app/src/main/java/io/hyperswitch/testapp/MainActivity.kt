@@ -1,10 +1,14 @@
-package io.hyperswitch.demoapp
+package io.hyperswitch.testapp
 
 import android.app.Activity
-import android.graphics.Color
+import android.content.Context
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
+import android.util.Patterns
 import android.view.View
+import android.widget.EditText
 import android.widget.TextView
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
@@ -12,32 +16,154 @@ import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.PaymentSession
 import io.hyperswitch.payments.paymentlauncher.PaymentResult
 import io.hyperswitch.paymentsession.PaymentMethod
-import io.hyperswitch.paymentsheet.AddressDetails
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
+import io.hyperswitch.testapp.JsonToConfigurationConverter.createConfigurationFromJson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import io.hyperswitch.lite.PaymentSession as PaymentSessionLite
 
-
 class MainActivity : Activity() {
+
+    companion object {
+        private const val PREFS_NAME = "HyperswitchPrefs"
+        private const val KEY_SERVER_URL = "server_url"
+        private const val DEFAULT_SERVER_URL = "http://10.0.2.2:5252"
+    }
 
     lateinit var ctx: Activity;
     private var paymentIntentClientSecret: String = "clientSecret"
     private var publishKey: String = ""
-    private var serverUrl = "http://192.168.0.101:5252"
+    private var serverUrl = DEFAULT_SERVER_URL
     private lateinit var paymentSession: PaymentSession
     private lateinit var paymentSessionLite: PaymentSessionLite
+    private lateinit var editText : EditText
+    private lateinit var statusText: TextView
+
+    private fun getSharedPreferences(): android.content.SharedPreferences {
+        return ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    private fun saveServerUrl(url: String) {
+        getSharedPreferences().edit().putString(KEY_SERVER_URL, url).apply()
+    }
+
+    private fun loadServerUrl(): String {
+        return getSharedPreferences().getString(KEY_SERVER_URL, DEFAULT_SERVER_URL) ?: DEFAULT_SERVER_URL
+    }
+
+    private fun isValidUrl(url: String): Boolean {
+        return Patterns.WEB_URL.matcher(url).matches()
+    }
+
+    private fun updateServerUrl(newUrl: String) {
+        if (isValidUrl(newUrl)) {
+            serverUrl = newUrl
+            saveServerUrl(newUrl)
+        } else {
+            setStatus("Invalid URL format")
+        }
+    }
+
+    private fun jsonToMap(jsonObject: JSONObject): Map<String, Any> {
+        val map = mutableMapOf<String, Any>()
+        val keys = jsonObject.keys()
+        
+        while (keys.hasNext()) {
+            val key = keys.next()
+            val value = jsonObject.get(key)
+            
+            when (value) {
+                is JSONObject -> map[key] = jsonToMap(value)
+                is JSONArray -> map[key] = jsonArrayToList(value)
+                else -> map[key] = value
+            }
+        }
+        
+        return map
+    }
+
+    private fun jsonArrayToList(jsonArray: JSONArray): List<Any> {
+        val list = mutableListOf<Any>()
+        
+        for (i in 0 until jsonArray.length()) {
+            val value = jsonArray.get(i)
+            
+            when (value) {
+                is JSONObject -> list.add(jsonToMap(value))
+                is JSONArray -> list.add(jsonArrayToList(value))
+                else -> list.add(value)
+            }
+        }
+        
+        return list
+    }
+
+    private suspend fun fetchSDKpropsString() : String? =suspendCancellableCoroutine { continuation ->
+        reset().get("${serverUrl}/get-sdk-props?val=100")
+            .responseString(object : Handler<String?> {
+                override fun success(value: String?) {
+                    try {
+                        val jsonObject = JSONObject(value ?: "{}")
+                        val properties = jsonObject.getJSONObject("sdkProps").toString()
+                        continuation.resume(properties)
+                    } catch (e: Exception) {
+                        continuation.resumeWithException(e)
+                    }
+                }
+
+                override fun failure(error: FuelError) {
+                    continuation.resumeWithException(error)
+                }
+            })
+    }
+
+    private suspend fun fetchSDKProperties(): Map<String, Any> =
+        suspendCancellableCoroutine { continuation ->
+            reset().get("${serverUrl}/get-sdk-props")
+                .responseString(object : Handler<String?> {
+                    override fun success(value: String?) {
+                        try {
+                            val jsonObject = JSONObject(value ?: "{}")
+                            val properties = jsonToMap(jsonObject.getJSONObject("sdkProps"))
+                            continuation.resume(properties)
+                        } catch (e: Exception) {
+                            continuation.resumeWithException(e)
+                        }
+                    }
+
+                    override fun failure(error: FuelError) {
+                        continuation.resumeWithException(error)
+                    }
+                })
+        }
+
+    private suspend fun getCustomisations(): PaymentSheet.Configuration {
+        return try {
+            val props = fetchSDKpropsString()
+            props.let {
+                if (it != null) {
+                    createConfigurationFromJson(it)
+                }else{
+                    PaymentSheet.Configuration.Builder("Example").build()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("SDK Properties", "Error fetching properties: ${e.message}")
+            PaymentSheet.Configuration.Builder("Example 3").build()
+        }
+    }
 
     private suspend fun fetchNetceteraApiKey(): String? =
         suspendCancellableCoroutine { continuation ->
-            reset().get("$serverUrl/netcetera-sdk-api-key")
+            reset().get("${editText.text}/netcetera-sdk-api-key")
                 .responseString(object : Handler<String?> {
                     override fun success(value: String?) {
                         try {
@@ -55,85 +181,13 @@ class MainActivity : Activity() {
                 })
         }
 
-    private suspend fun getCustomisations(): PaymentSheet.Configuration {
-        /**
-         *
-         * Customisations
-         *
-         * */
-
-        val primaryButtonShape = PaymentSheet.PrimaryButtonShape(32f, 0f)
-        val address = PaymentSheet.Address.Builder()
-            .city("city")
-            .country("US")
-            .line1("US")
-            .line2("line2")
-            .postalCode("560060")
-            .state("California")
-            .build()
-        val billingDetails: PaymentSheet.BillingDetails = PaymentSheet.BillingDetails.Builder()
-            .address(address)
-            .email("email.com")
-            .name("John Doe")
-            .phone("1234123443").build()
-        val shippingDetails = AddressDetails("Shipping Inc.", address, "6205007614", true)
-
-        val primaryButton = PaymentSheet.PrimaryButton(
-            shape = primaryButtonShape,
-        )
-        val color1: PaymentSheet.Colors = PaymentSheet.Colors(
-            primary = Color.parseColor("#8DBD00"),
-            surface = Color.parseColor("#F5F8F9"),
-        )
-
-        val color2: PaymentSheet.Colors = PaymentSheet.Colors(
-            primary = Color.parseColor("#8DBD00"),
-            surface = Color.parseColor("#F5F8F9"),
-        )
-
-        val appearance: PaymentSheet.Appearance = PaymentSheet.Appearance(
-            typography = PaymentSheet.Typography(
-                sizeScaleFactor = 1f,
-                fontResId = R.font.montserrat
-            ),
-            primaryButton = primaryButton,
-            colorsLight = color1,
-            colorsDark = color2
-        )
-
-        val configuration = PaymentSheet.Configuration.Builder("Example, Inc.")
-            .appearance(appearance)
-            .defaultBillingDetails(billingDetails)
-            .primaryButtonLabel("Purchase ($2.00)")
-            .paymentSheetHeaderLabel("Select payment method")
-            .savedPaymentSheetHeaderLabel("Payment methods")
-            .shippingDetails(shippingDetails)
-            .allowsPaymentMethodsRequiringShippingAddress(false)
-            .allowsDelayedPaymentMethods(true)
-            .displaySavedPaymentMethodsCheckbox(true)
-            .displaySavedPaymentMethods(true)
-            .disableBranding(true)
-            .showVersionInfo(true)
-
-        try {
-            val netceteraApiKey = fetchNetceteraApiKey()
-            netceteraApiKey?.let {
-                configuration.netceteraSDKApiKey(it)
-            }
-        } catch (e: Exception) {
-            Log.i("Netcetera SDK API KEY ", "Key not provided in env")
-        }
-
-        return configuration.build()
-    }
-
     private fun getCL() {
 
         ctx.findViewById<View>(R.id.launchButton).isEnabled = false;
         ctx.findViewById<View>(R.id.launchWebButton).isEnabled = false;
         ctx.findViewById<View>(R.id.confirmButton).isEnabled = false;
 
-        reset().get("$serverUrl/create-payment-intent", null)
+        reset().get("${editText.text}/create-payment-intent", null)
             .responseString(object : Handler<String?> {
                 override fun success(value: String?) {
                     try {
@@ -211,6 +265,27 @@ class MainActivity : Activity() {
         setContentView(R.layout.main_activity)
 
         ctx = this
+        editText = ctx.findViewById<EditText>(R.id.ipAddressInput)
+        statusText = ctx.findViewById<TextView>(R.id.resultText)
+        
+        // Load saved URL or use default
+        serverUrl = loadServerUrl()
+        editText.setText(serverUrl)
+
+        // Add TextWatcher for URL validation
+        editText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            
+            override fun afterTextChanged(s: Editable?) {
+                s?.toString()?.let { newUrl ->
+                    if (newUrl.isNotEmpty()) {
+                        updateServerUrl(newUrl)
+                    }
+                }
+            }
+        })
 
         /**
          *
@@ -219,6 +294,9 @@ class MainActivity : Activity() {
          * */
 
         getCL()
+
+
+
         findViewById<View>(R.id.reloadButton).setOnClickListener { getCL() }
 
         /**
@@ -230,7 +308,11 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.launchButton).setOnClickListener {
             CoroutineScope(Dispatchers.Main).launch {
                 val customisations = getCustomisations()
-                paymentSession.presentPaymentSheet(customisations, ::onPaymentSheetResult)
+                Log.i("data", customisations.toString() )
+                paymentSession.presentPaymentSheet(customisations,::onPaymentSheetResult)
+
+
+
             }
         }
 
@@ -247,7 +329,7 @@ class MainActivity : Activity() {
 
     private fun setStatus(error: String) {
         runOnUiThread {
-            findViewById<TextView>(R.id.resultText).text = error
+            statusText.text = error
         }
     }
 
