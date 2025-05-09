@@ -82,6 +82,15 @@ data class PaymentConfiguration
                 "PaymentConfiguration was not initialized. Call PaymentConfiguration.init()."
             )
         }
+        /**
+         * Returns the publishable key for the current [PaymentConfiguration] instance.
+         *
+         * @return the publishable key
+         * @throws IllegalStateException if the [PaymentConfiguration] instance is not initialized
+         */
+        fun publishableKey(): String {
+            return instance?.publishableKey ?: ""
+        }
 
         /**
          * A publishable key from the Dashboard's [API keys](https://app.hyperswitch.io/apikeys) page.
