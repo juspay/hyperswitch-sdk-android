@@ -30,29 +30,29 @@ open class MainApplication : Application(), ReactApplication {
     private lateinit var tracker: HyperOtaLogger
     private lateinit var context: Context
 
-    override val reactNativeHost: ReactNativeHost =
-        object : DefaultReactNativeHost(this) {
-            override fun getPackages(): List<ReactPackage> =
-                PackageList(this).packages.apply {
-                    // Packages that cannot be autolinked yet can be added manually here, for example:
-                    // add(MyReactNativePackage())
-                    add(HyperPackage())
-                }
+    override val reactNativeHost: ReactNativeHost = object : DefaultReactNativeHost(this) {
+        override fun getPackages(): List<ReactPackage> = PackageList(this).packages.apply {
+            // Packages that cannot be autolinked yet can be added manually here, for example:
+            // add(MyReactNativePackage())
+            add(HyperPackage())
+        }
 
-            override fun getJSMainModuleName(): String = "index"
+        override fun getJSMainModuleName(): String = "index"
 
-            override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
+        override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
 
-            override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
-            override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
+        override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
+        override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
 
-            override fun getJSBundleFile(): String {
-                val hyperOTAUrl =
-                    if (checkEnvironment(PaymentConfiguration.getInstance(context).publishableKey) == SDKEnvironment.PROD) {
-                        context.getString(R.string.hyperOTAEndPoint)
-                    } else {
-                        context.getString(R.string.hyperOTASandBoxEndPoint)
-                    }
+        override fun getJSBundleFile(): String {
+            try {
+                val environment = checkEnvironment(PaymentConfiguration.publishableKey())
+                val hyperOTAUrl = context.getString(
+                    if (environment == SDKEnvironment.SANDBOX)
+                        R.string.hyperOTASandBoxEndPoint
+                    else
+                        R.string.hyperOTAEndPoint
+                )
                 if (hyperOTAUrl != "hyperOTA_END_POINT_") {
                     tracker = HyperOtaLogger()
                     hyperOTAServices = HyperOTAServicesReact(
@@ -60,17 +60,18 @@ open class MainApplication : Application(), ReactApplication {
                         "hyperswitch",
                         "hyperswitch.bundle",
                         BuildConfig.VERSION_NAME,
-                        "${hyperOTAUrl}/mobile-ota/android/${BuildConfig.VERSION_NAME}/config.json",
+                        "$hyperOTAUrl/mobile-ota/android/${BuildConfig.VERSION_NAME}/config.json",
                         tracker,
                     )
                 }
-                if (hyperOTAServices?.getBundlePath()?.contains("ios") == true) {
-                    return "assets://hyperswitch.bundle"
-                } else {
-                    return hyperOTAServices?.getBundlePath() ?: "assets://hyperswitch.bundle"
-                }
+                return hyperOTAServices?.getBundlePath()?.takeUnless { it.contains("ios") }
+                    ?: "assets://hyperswitch.bundle"
+            } catch (_: Exception) {
+                return "assets://hyperswitch.bundle"
             }
+
         }
+    }
 
     override val reactHost: ReactHost
         get() = getDefaultReactHost(applicationContext, reactNativeHost)
