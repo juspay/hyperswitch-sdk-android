@@ -7,6 +7,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import androidx.test.espresso.IdlingRegistry;
+import androidx.test.espresso.IdlingResource;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.rule.ActivityTestRule;
@@ -21,7 +23,11 @@ public class DetoxTest {
 
     @Test
     public void runDetoxTests() {
-        DetoxIdlingResources.unregisterReactNativeIdlingResource("UIModuleIdlingResource");
+        for (IdlingResource r : IdlingRegistry.getInstance().getResources()) {
+            if (r.getName().contains("UIModuleIdlingResource")) {
+                IdlingRegistry.getInstance().unregister(r);
+            }
+        }
         DetoxConfig detoxConfig = new DetoxConfig();
         detoxConfig.idlePolicyConfig.masterTimeoutSec = 180;
         detoxConfig.idlePolicyConfig.idleResourceTimeoutSec = 120;
