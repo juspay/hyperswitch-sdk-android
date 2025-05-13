@@ -56,7 +56,6 @@ class HyperPlugin implements Plugin<Project> {
             String highestSdkVersion = findHighestVersion(optionalDepVersions.keySet())
             project.logger.warn("Highest SDK version found: ${highestSdkVersion ?: 'None'}")
 
-            String sdkVersionFromResources = getVersionFromResources()
             String sdkVersionToUse = extension.sdkVersion ?:highestSdkVersion
             if (!sdkVersionToUse) {
                 throw new GradleException("No SDK version specified or found. Cannot continue.")
@@ -117,7 +116,7 @@ class HyperPlugin implements Plugin<Project> {
 
             try {
                 if (!project.hasProperty("android")) {
-                project.logger.warn("⚠️ 'android' block not found in project. Plugin will not configure Android-specific settings.")
+                    project.logger.warn("⚠️ 'android' block not found in project. Plugin will not configure Android-specific settings.")
                 }
                 if (project.android) {
                     project.android.buildTypes.debug.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
@@ -165,7 +164,7 @@ class HyperPlugin implements Plugin<Project> {
         }
     }
 
-   private static Map loadOptionalDepVersions(Project project) {
+    private static Map loadOptionalDepVersions(Project project) {
         InputStream input = HyperPlugin.classLoader.getResourceAsStream("optional-dep-versions.json")
         if (input != null) {
             def json = new JsonSlurper().parse(input)
@@ -175,52 +174,8 @@ class HyperPlugin implements Plugin<Project> {
             return [:]
         }
     }
-
-    private static String getVersionFromResources() {
-        try {
-            InputStream inputStream = HyperPlugin.class.getResourceAsStream("/version.properties")
-            if (inputStream != null) {
-                Properties properties = new Properties()
-                properties.load(inputStream)
-                inputStream.close()
-                String version = properties.getProperty("sdk.version")
-                return version && !version.isEmpty() ? version : null
-            }
-        } catch (Exception ignored) {
-        }
-        return null
-    }
-
-//    private static String findHighestVersion(Set<String> versions) {
-//        if (versions == null || versions.isEmpty()) {
-//            return null
-//        }
-//        return versions.toList()
-//                .sort { version1, version2 -> compareVersions(version1, version2) }
-//                .last()
-//    }
-
+    
     private static String findHighestVersion(Set<String> versions) {
         return versions ? versions.iterator().next() : null
     }
-
-//    private static int compareVersions(String version1, String version2) {
-//        if (!version1) return -1
-//        if (!version2) return 1
-//
-//        def v1Parts = version1.tokenize('.')
-//        def v2Parts = version2.tokenize('.')
-//
-//        def length = Math.max(v1Parts.size(), v2Parts.size())
-//
-//        for (int i = 0; i < length; i++) {
-//            def v1Part = i < v1Parts.size() ? v1Parts[i].toInteger() : 0
-//            def v2Part = i < v2Parts.size() ? v2Parts[i].toInteger() : 0
-//
-//            if (v1Part != v2Part) {
-//                return v1Part <=> v2Part
-//            }
-//        }
-//        return 0
-//    }
 }
