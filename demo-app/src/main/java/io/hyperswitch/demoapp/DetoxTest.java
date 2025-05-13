@@ -1,4 +1,5 @@
 package io.hyperswitch.demoapp;
+
 import com.wix.detox.Detox;
 import com.wix.detox.config.DetoxConfig;
 
@@ -20,6 +21,7 @@ public class DetoxTest {
 
     @Test
     public void runDetoxTests() {
+        DetoxIdlingResources.unregisterReactNativeIdlingResource("UIModuleIdlingResource");
         DetoxConfig detoxConfig = new DetoxConfig();
         detoxConfig.idlePolicyConfig.masterTimeoutSec = 180;
         detoxConfig.idlePolicyConfig.idleResourceTimeoutSec = 120;
