@@ -31,7 +31,7 @@ class MainActivity : Activity() {
     lateinit var ctx: Activity;
     private var paymentIntentClientSecret: String = "clientSecret"
     private var publishKey: String = ""
-    private var serverUrl = "http://10.0.2.2:5252"
+    private var serverUrl = "http://192.168.0.101:5252"
     private lateinit var paymentSession: PaymentSession
     private lateinit var paymentSessionLite: PaymentSessionLite
 

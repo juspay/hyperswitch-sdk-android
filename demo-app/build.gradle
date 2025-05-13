@@ -87,4 +87,6 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation project(':hyperswitch-sdk-android-lite')
     implementation(project(":hyperswitch-scan-card-lite"))
+
+    implementation 'org.slf4j:slf4j-nop:2.0.9'
 }
