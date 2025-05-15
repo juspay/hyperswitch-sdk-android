@@ -1,13 +1,11 @@
 package io.hyperswitch.react
 
-import android.util.Log
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import java.util.concurrent.ConcurrentLinkedQueue
 
 object HyperEventEmitter {
-    private const val TAG = "HyperEventEmitter"
     private var reactContext: ReactApplicationContext? = null
     private val pendingEvents = ConcurrentLinkedQueue<Pair<String, Map<String, String?>>>()
 
@@ -41,11 +39,9 @@ object HyperEventEmitter {
                 reactContext!!.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
                     ?.emit(tag, writableMap)
             } catch (e: Exception) {
-                Log.e(TAG, "Error emitting event: $tag", e)
                 pendingEvents.add(Pair(tag, map))
             }
         } else {
-            Log.d(TAG, "Error emitting event: $tag. React context not available or catalyst instance not ready.")
             pendingEvents.add(Pair(tag, map))
         }
     }
