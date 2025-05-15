@@ -14,6 +14,8 @@ import io.hyperswitch.HyperInterface
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.model.ConfirmPaymentIntentParams
 import io.hyperswitch.model.PaymentMethodCreateParams
+import io.hyperswitch.payments.expresscheckoutlauncher.ExpressCheckoutLauncher
+import io.hyperswitch.payments.expresscheckoutlauncher.ExpressCheckoutPaymentMethodLauncher
 import io.hyperswitch.payments.googlepaylauncher.GooglePayEnvironment
 import io.hyperswitch.payments.googlepaylauncher.GooglePayLauncher
 import io.hyperswitch.payments.googlepaylauncher.GooglePayPaymentMethodLauncher
@@ -22,7 +24,6 @@ import io.hyperswitch.payments.paymentlauncher.PaymentResult
 import io.hyperswitch.payments.paypallauncher.PayPalLauncher
 import io.hyperswitch.payments.paypallauncher.PayPalPaymentMethodLauncher
 import io.hyperswitch.view.BasePaymentWidget
-
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -69,6 +70,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                                     initialiseSDK()
                                     setupGooglePayLauncher()
                                     setupPayPalLauncher()
+                                    setupECLauncher()
                                     ctx.findViewById<View>(R.id.confirmButton2).isEnabled = true
                                     ctx.findViewById<View>(R.id.googlePayButton2).isEnabled = true;
                                     ctx.findViewById<View>(R.id.payPalButton2).isEnabled = true;
@@ -149,6 +151,19 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
 
         payPalButton.setOnClickListener {
             payPalLauncher.presentForPaymentIntent(paymentIntentClientSecret)
+        }
+    }
+    private fun setupECLauncher(){
+        val ecLauncher = ExpressCheckoutLauncher(
+            activity = this,
+            clientSecret = paymentIntentClientSecret,
+            configuration = null,
+            readyCallback = ::onExpressCheckoutReady,
+            resultCallback = ::onExpressCheckoutResult,
+        )
+
+        findViewById<View>(R.id.confirmEC).setOnClickListener {
+            ecLauncher.confirm(paymentIntentClientSecret)
         }
     }
 
@@ -243,4 +258,23 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             }
         }
     }
+
+    private fun onExpressCheckoutReady(isReady: Boolean) {
+        googlePayButton.isEnabled = isReady
+    }
+
+    private fun onExpressCheckoutResult(paymentSheetResult: ExpressCheckoutPaymentMethodLauncher.Result) {
+        when(paymentSheetResult) {
+            is ExpressCheckoutPaymentMethodLauncher.Result.Canceled -> {
+                Toast.makeText(applicationContext, paymentSheetResult.data, Toast.LENGTH_LONG).show()
+            }
+            is ExpressCheckoutPaymentMethodLauncher.Result.Failed -> {
+                Toast.makeText(applicationContext, paymentSheetResult.error.message ?: "", Toast.LENGTH_LONG).show()
+            }
+            is ExpressCheckoutPaymentMethodLauncher.Result.Completed -> {
+                Toast.makeText(applicationContext, paymentSheetResult.paymentMethod.toString(), Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
 }

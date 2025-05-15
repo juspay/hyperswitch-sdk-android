@@ -1,6 +1,7 @@
 package io.hyperswitch.payments.view
 
 import android.app.Activity
+import io.hyperswitch.payments.expresscheckoutlauncher.ExpressCheckoutPaymentMethodLauncher
 import io.hyperswitch.payments.googlepaylauncher.GooglePayEnvironment
 import io.hyperswitch.payments.googlepaylauncher.GooglePayLauncher
 import io.hyperswitch.payments.googlepaylauncher.GooglePayPaymentMethodLauncher
@@ -22,13 +23,17 @@ class WidgetLauncher(
         walletTypeStr = walletType
     }
     companion object {
-        @JvmStatic lateinit var onGPayPaymentReadyWithUI: GooglePayPaymentMethodLauncher.ReadyCallback
-        @JvmStatic lateinit var onPaypalPaymentReadyWithUI: PayPalPaymentMethodLauncher.ReadyCallback
+        @JvmStatic var onGPayPaymentReadyWithUI: GooglePayPaymentMethodLauncher.ReadyCallback? = null
+        @JvmStatic  var onPaypalPaymentReadyWithUI: PayPalPaymentMethodLauncher.ReadyCallback?=null
         @JvmStatic lateinit var onGPayPaymentReady: GooglePayPaymentMethodLauncher.ReadyCallback
         @JvmStatic lateinit var onPaypalPaymentReady: PayPalPaymentMethodLauncher.ReadyCallback
         @JvmStatic lateinit var onGPayPaymentResult: GooglePayPaymentMethodLauncher.ResultCallback
         @JvmStatic lateinit var onPaypalPaymentResult: PayPalPaymentMethodLauncher.ResultCallback
         @JvmStatic lateinit var config: GooglePayLauncher.Config
+        @JvmStatic  var onExpressCheckoutPaymentReadyWithUI: ExpressCheckoutPaymentMethodLauncher.ReadyCallback?=null
+        @JvmStatic lateinit var onExpressCheckoutPaymentReady: ExpressCheckoutPaymentMethodLauncher.ReadyCallback
+        @JvmStatic lateinit var onExpressCheckoutPaymentResult: ExpressCheckoutPaymentMethodLauncher.ResultCallback
+
 
         fun onGPayPaymentResultCallBack(paymentResult: String) {
             val jsonObject = JSONObject(paymentResult)
@@ -58,6 +63,19 @@ class WidgetLauncher(
             }
         }
 
+        fun onExpressCheckoutPaymentResultCallBack(paymentResult: String) {
+            val jsonObject = JSONObject(paymentResult)
+            when (val status = jsonObject.getString("status")) {
+                "cancelled" -> onExpressCheckoutPaymentResult.onResult(ExpressCheckoutPaymentMethodLauncher.Result.Canceled(status))
+                "failed", "requires_payment_method" -> {
+                    val throwable = Throwable(jsonObject.getString("message"))
+                    throwable.initCause(Throwable(jsonObject.getString("code")))
+                    onExpressCheckoutPaymentResult.onResult(ExpressCheckoutPaymentMethodLauncher.Result.Failed(throwable, ExpressCheckoutPaymentMethodLauncher.INTERNAL_ERROR))
+                }
+                else -> onExpressCheckoutPaymentResult.onResult(
+                    ExpressCheckoutPaymentMethodLauncher.Result.Completed(io.hyperswitch.payments.expresscheckoutlauncher.PaymentMethod(status, 0, null)))
+            }
+        }
     }
 
 }
