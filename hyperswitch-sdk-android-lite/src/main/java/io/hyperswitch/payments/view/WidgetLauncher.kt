@@ -35,91 +35,127 @@ class WidgetLauncher(
         @JvmStatic var onCurrentCardResult: PaymentResultCallback? = null
 
         @JvmStatic lateinit var config: GooglePayConfig
-
-        /**
-         * Called from native code (e.g., React Native) when the payment widget is ready.
-         */
         @JvmStatic
         fun onPaymentReadyCallback(isReady: Boolean) {
             onCurrentPaymentReady?.invoke(isReady)
         }
 
-        /**
-         * Called from native code (e.g., React Native) with the payment result.
-         */
         @JvmStatic
         fun onPaymentResultCallback(paymentMethodTypeStr: String, paymentResult: String) {
             val jsonObject = JSONObject(paymentResult)
-            val status = jsonObject.optString("status") // Use optString for safety
+            val status = jsonObject.optString("status")
+            val message = jsonObject.optString("message")
+            val code = jsonObject.optString("code")
 
             val paymentMethodType = PaymentMethod.entries.find { it.apiValue == paymentMethodTypeStr }
 
             when (paymentMethodType) {
                 UnifiedPaymentMethodEnum.GOOGLE_PAY -> {
-                    val callback = onCurrentGPayResult ?: return
-                    when (status) {
-                        "cancelled" -> callback.onResult(GooglePayPaymentMethodLauncher.Result.Canceled(status))
-                        "failed", "requires_payment_method" -> {
-                            val throwable = Throwable(jsonObject.optString("message"))
-                            jsonObject.optString("code").let { code -> if (code.isNotEmpty()) throwable.initCause(Throwable(code)) }
-                            callback.onResult(GooglePayPaymentMethodLauncher.Result.Failed(throwable, GooglePayPaymentMethodLauncher.INTERNAL_ERROR))
-                        }
-                        else -> callback.onResult(
-                            GooglePayPaymentMethodLauncher.Result.Completed(
-                                io.hyperswitch.payments.googlepaylauncher.PaymentMethod(status, 0, config.googlePayConfig.environment == GooglePayEnvironment.Production)
+                    handlePaymentResult(
+                        status = status,
+                        message = message,
+                        code = code,
+                        onCancelled = { reason ->
+                            onCurrentGPayResult?.onResult(GooglePayPaymentMethodLauncher.Result.Canceled(reason))
+                        },
+                        onFailed = { error, errorCode ->
+                            onCurrentGPayResult?.onResult(GooglePayPaymentMethodLauncher.Result.Failed(error, errorCode))
+                        },
+                        onCompleted = {
+                            onCurrentGPayResult?.onResult(
+                                GooglePayPaymentMethodLauncher.Result.Completed(
+                                    io.hyperswitch.payments.googlepaylauncher.PaymentMethod(
+                                        status,
+                                        0,
+                                        config.googlePayConfig.environment == GooglePayEnvironment.Production
+                                    )
+                                )
                             )
-                        )
-                    }
+                        },
+                        defaultErrorCode = GooglePayPaymentMethodLauncher.INTERNAL_ERROR
+                    )
                 }
                 UnifiedPaymentMethodEnum.PAYPAL -> {
-                    val callback = onCurrentPayPalResult ?: return
-                    when (status) {
-                        "cancelled" -> callback.onResult(PayPalPaymentMethodLauncher.Result.Canceled(status))
-                        "failed", "requires_payment_method" -> {
-                            val throwable = Throwable(jsonObject.optString("message"))
-                            jsonObject.optString("code").let { code -> if (code.isNotEmpty()) throwable.initCause(Throwable(code)) }
-                            callback.onResult(PayPalPaymentMethodLauncher.Result.Failed(throwable, PayPalPaymentMethodLauncher.INTERNAL_ERROR))
-                        }
-                        else -> callback.onResult(
-                            PayPalPaymentMethodLauncher.Result.Completed(
-                                io.hyperswitch.payments.paypallauncher.PaymentMethod(status, 0, null)
+                    handlePaymentResult(
+                        status = status,
+                        message = message,
+                        code = code,
+                        onCancelled = { reason ->
+                            onCurrentPayPalResult?.onResult(PayPalPaymentMethodLauncher.Result.Canceled(reason))
+                        },
+                        onFailed = { error, errorCode ->
+                            onCurrentPayPalResult?.onResult(PayPalPaymentMethodLauncher.Result.Failed(error, errorCode))
+                        },
+                        onCompleted = {
+                            onCurrentPayPalResult?.onResult(
+                                PayPalPaymentMethodLauncher.Result.Completed(
+                                    io.hyperswitch.payments.paypallauncher.PaymentMethod(status, 0, null)
+                                )
                             )
-                        )
-                    }
+                        },
+                        defaultErrorCode = PayPalPaymentMethodLauncher.INTERNAL_ERROR
+                    )
                 }
                 UnifiedPaymentMethodEnum.EXPRESS_CHECKOUT -> {
-                    val callback = onCurrentExpressCheckoutResult ?: return
-                    when (status) {
-                        "cancelled" -> callback.onResult(ExpressCheckoutPaymentMethodLauncher.Result.Canceled(status))
-                        "failed", "requires_payment_method" -> {
-                            val throwable = Throwable(jsonObject.optString("message"))
-                            jsonObject.optString("code").let { code -> if (code.isNotEmpty()) throwable.initCause(Throwable(code)) }
-                            callback.onResult(ExpressCheckoutPaymentMethodLauncher.Result.Failed(throwable, ExpressCheckoutPaymentMethodLauncher.INTERNAL_ERROR))
-                        }
-                        else -> callback.onResult(
-                            ExpressCheckoutPaymentMethodLauncher.Result.Completed(
-                                io.hyperswitch.payments.expresscheckoutlauncher.PaymentMethod(status, 0, null)
+                    handlePaymentResult(
+                        status = status,
+                        message = message,
+                        code = code,
+                        onCancelled = { reason ->
+                            onCurrentExpressCheckoutResult?.onResult(ExpressCheckoutPaymentMethodLauncher.Result.Canceled(reason))
+                        },
+                        onFailed = { error, errorCode ->
+                            onCurrentExpressCheckoutResult?.onResult(ExpressCheckoutPaymentMethodLauncher.Result.Failed(error, errorCode))
+                        },
+                        onCompleted = {
+                            onCurrentExpressCheckoutResult?.onResult(
+                                ExpressCheckoutPaymentMethodLauncher.Result.Completed(
+                                    io.hyperswitch.payments.expresscheckoutlauncher.PaymentMethod(status, 0, null)
+                                )
                             )
-                        )
-                    }
+                        },
+                        defaultErrorCode = ExpressCheckoutPaymentMethodLauncher.INTERNAL_ERROR
+                    )
                 }
                 UnifiedPaymentMethodEnum.CARD -> {
-                    val callback = onCurrentCardResult ?: return
-                    when (status) {
-                        "cancelled" -> callback.onPaymentResult(PaymentResult.Canceled(status))
-                        "failed", "requires_payment_method" -> {
-                            val message = jsonObject.optString("message")
-                            val code = jsonObject.optString("code")
-                            val throwable = Throwable(message)
-                            if (code.isNotEmpty()) throwable.initCause(Throwable(code))
-                            callback.onPaymentResult(PaymentResult.Failed(throwable))
+                    handlePaymentResult(
+                        status = status,
+                        message = message,
+                        code = code,
+                        onCancelled = { reason ->
+                            onCurrentCardResult?.onPaymentResult(PaymentResult.Canceled(reason))
+                        },
+                        onFailed = { error, _ ->
+                            onCurrentCardResult?.onPaymentResult(PaymentResult.Failed(error))
+                        },
+                        onCompleted = {
+                            onCurrentCardResult?.onPaymentResult(PaymentResult.Completed(status))
                         }
-                        else -> callback.onPaymentResult(PaymentResult.Completed(status))
-                    }
+                    )
                 }
                 null -> {
                     System.err.println("WidgetLauncher: Received payment result with unknown type: $paymentMethodTypeStr")
                 }
+            }
+        }
+
+        private fun handlePaymentResult(
+            status: String,
+            message: String,
+            code: String,
+            onCancelled: (String) -> Unit,
+            onFailed: (Throwable, Int) -> Unit,
+            onCompleted: () -> Unit,
+            defaultErrorCode: Int = 0
+        ) {
+            when (status) {
+                "cancelled" -> onCancelled(status)
+                "failed", "requires_payment_method" -> {
+                    val throwable = Throwable(message)
+                    if (code.isNotEmpty()) throwable.initCause(Throwable(code))
+                    onFailed(throwable, defaultErrorCode)
+                }
+                else -> onCompleted()
             }
         }
     }
