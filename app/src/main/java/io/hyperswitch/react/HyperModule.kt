@@ -1,6 +1,5 @@
 package io.hyperswitch.react
 
-import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.FragmentActivity
@@ -9,18 +8,13 @@ import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
-import com.facebook.react.modules.core.DeviceEventManagerModule
-import io.hyperswitch.payments.expresscheckoutlauncher.ExpressCheckoutLauncher
 import io.hyperswitch.payments.googlepaylauncher.GooglePayCallbackManager
-import io.hyperswitch.payments.paymentlauncher.PaymentLauncher
 import io.hyperswitch.payments.view.WidgetLauncher
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
 import io.hyperswitch.view.BasePaymentWidget
-//import io.hyperswitch.view.ExpressCheckoutWidget
-import org.json.JSONArray
+import io.hyperswitch.payments.launcher.PaymentMethod
 import org.json.JSONObject
-import java.util.concurrent.ConcurrentLinkedQueue
 
 class HyperModule internal constructor(private val rct: ReactApplicationContext) :
     ReactContextBaseJavaModule(rct) {
@@ -89,18 +83,7 @@ private fun findFirstExpressCheckoutWidget(rootView: View): BasePaymentWidget? {
         val jsonObject = JSONObject(rnMessage)
         if (jsonObject.optBoolean("isReady", false)) {
 //            HyperEventEmitter.initialize(rct)
-            val paymentMethodType = jsonObject.optString("paymentMethodType", "")
-            when (paymentMethodType) {
-                "google_pay" -> {
-                    WidgetLauncher.onGPayPaymentReadyWithUI?.onReady(true)
-                }
-                "paypal" -> {
-                    WidgetLauncher.onPaypalPaymentReadyWithUI?.onReady(true)
-                }
-                "express_checkout" -> {
-                    WidgetLauncher.onExpressCheckoutPaymentReadyWithUI?.onReady(true)
-                }
-            }
+            WidgetLauncher.onPaymentReadyCallback(true)
         }
     }
 
@@ -145,17 +128,13 @@ private fun findFirstExpressCheckoutWidget(rootView: View): BasePaymentWidget? {
     // Method to exit the widget
     @ReactMethod
     fun exitWidget(paymentResult: String, widgetType: String) {
-        when (widgetType) {
-            "google_pay" -> WidgetLauncher.onGPayPaymentResultCallBack(paymentResult)
-            "paypal" ->  WidgetLauncher.onPaypalPaymentResultCallBack(paymentResult)
-            "expressCheckout" -> {WidgetLauncher.onExpressCheckoutPaymentResultCallBack(paymentResult)}
-        }
+        WidgetLauncher.onPaymentResultCallback(widgetType, paymentResult)
     }
 
     // Method to exit the card form
     @ReactMethod
     fun exitCardForm(paymentResult: String) {
-        PaymentLauncher.Companion.onPaymentResultCallBack(paymentResult)
+        WidgetLauncher.onPaymentResultCallback(PaymentMethod.CARD.apiValue, paymentResult)
     }
 
     // Method to launch widget payment sheet
