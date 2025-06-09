@@ -13,6 +13,19 @@
         android:layout_gravity="center"
         android:orientation="vertical">
 
+        <EditText
+            android:id="@+id/ipAddressInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="25dp"
+            android:layout_weight="1"
+            android:ems="10"
+            android:textSize="32dp"
+            android:hint="IP Address"
+            android:inputType="text"
+            android:textAlignment="center"
+            />
+
         <Button
             android:id="@+id/reloadButton"
             android:layout_width="match_parent"
