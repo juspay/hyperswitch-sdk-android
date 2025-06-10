@@ -123,7 +123,7 @@ selected_libraries=()
 # Check if SELECTED_LIBRARIES environment variable is set (for CI or manual override)
 if [ ! -z "$SELECTED_LIBRARIES" ]; then
     echo "Using libraries from SELECTED_LIBRARIES environment variable: $SELECTED_LIBRARIES"
-#    if [[ "$SELECTED_LIBRARIES" == "all" ]]; then
+   if [[ "$SELECTED_LIBRARIES" == "all" ]]; then
         echo "'all' keyword detected. Using all discovered available libraries."
         selected_libraries=("${available_libraries[@]}") # Copy all available libraries
         echo "Selected all ${#selected_libraries[@]} libraries: ${selected_libraries[*]}"  # Add this line
@@ -360,7 +360,7 @@ echo "Creating ZIP bundle for $zip_name..."
 zip -r "$zip_name" io/hyperswitch
 
 
-# upload_to_sonatype "hyperswitch-sdk-bundle.zip"
+upload_to_sonatype "hyperswitch-sdk-bundle.zip"
 # cp "$zip_name" ../../
 cd ../../
 rm -rf "$temp_dir"
