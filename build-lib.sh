@@ -35,6 +35,12 @@ cd maven/io/hyperswitch || exit 1
 export GPG_TTY=$(tty)
 echo "RELOADAGENT" | gpg-connect-agent
 
+# Determine interactive vs CI mode
+IS_INTERACTIVE=true
+if [ ! -z "$SELECTED_LIBRARIES" ]; then
+  IS_INTERACTIVE=false
+fi
+
 # Function to sign files and create a bundle
 process_version_directory() {
     local base_dir="$1"
@@ -44,9 +50,11 @@ process_version_directory() {
     for file in *.{aar,pom,jar,module}; do
         [ -e "$file" ] || continue
         echo "Signing $file..."
-        # gpg --armor --output "${file}.asc" --detach-sign "$file"
-        gpg --batch --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --armor --output "${file}.asc" --detach-sign "$file"
-    
+        if [ "$IS_INTERACTIVE" = true ]; then
+            gpg --armor --output "${file}.asc" --detach-sign "$file"
+        else    
+            gpg --batch --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --armor --output "${file}.asc" --detach-sign "$file"
+        fi
     done
     cd ..
 }
@@ -121,7 +129,7 @@ selected_libraries=()
 # echo "INFO: LOCAL TESTING OVERRIDE - SELECTED_LIBRARIES forced to: $SELECTED_LIBRARIES"
 
 # Check if SELECTED_LIBRARIES environment variable is set (for CI or manual override)
-if [ ! -z "$SELECTED_LIBRARIES" ]; then
+if [ "$IS_INTERACTIVE" = false ]; then
     echo "Using libraries from SELECTED_LIBRARIES environment variable: $SELECTED_LIBRARIES"
    if [[ "$SELECTED_LIBRARIES" == "all" ]]; then
         echo "'all' keyword detected. Using all discovered available libraries."
@@ -177,17 +185,17 @@ echo "Processing selected libraries: ${selected_libraries[*]}"
 for library in "${selected_libraries[@]}"; do
     echo "Processing library: $library"
     cd "$library" || { echo "Failed to cd into $library directory. Skipping."; continue; }
-    
+
 
     echo
     echo "############################################################"
     echo "##########   AAR Size Comparison Report: $library 🤖   ##########"
     echo "############################################################"
-    
-    temp_version_dirs=() 
-    for dir_name_with_slash in */; do 
-        if [ -d "$dir_name_with_slash" ]; then 
-            dirname_no_slash=${dir_name_with_slash%/} 
+
+    temp_version_dirs=()
+    for dir_name_with_slash in */; do
+        if [ -d "$dir_name_with_slash" ]; then
+            dirname_no_slash=${dir_name_with_slash%/}
             if echo "$dirname_no_slash" | grep -qE '^[0-9]+(?:\.[0-9]+)*$'; then
                 temp_version_dirs+=("$dirname_no_slash")
             fi
@@ -210,7 +218,7 @@ for library in "${selected_libraries[@]}"; do
         else
             new_version="" # Should not happen if outer if is true, but defensive
         fi
-        
+
         new_aar_file_name="${library}-${new_version}.aar"
         new_aar_path="${new_version}/${new_aar_file_name}" # Relative to $library dir in maven/io/hyperswitch
 
@@ -220,7 +228,7 @@ for library in "${selected_libraries[@]}"; do
             new_aar_size_bytes=$(wc -c < "$new_aar_path" | awk '{print $1}')
             new_aar_size_formatted=$(format_size $new_aar_size_bytes)
             echo "- New Version (current build): $new_version"
-            
+
             old_aar_size_bytes=0
             old_aar_size_formatted="N/A"
             old_version_found_and_fetched=false
@@ -360,7 +368,7 @@ echo "Creating ZIP bundle for $zip_name..."
 zip -r "$zip_name" io/hyperswitch
 
 
-upload_to_sonatype "hyperswitch-sdk-bundle.zip"
+# upload_to_sonatype "hyperswitch-sdk-bundle.zip"
 # cp "$zip_name" ../../
 cd ../../
 rm -rf "$temp_dir"
