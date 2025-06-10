@@ -368,7 +368,7 @@ echo "Creating ZIP bundle for $zip_name..."
 zip -r "$zip_name" io/hyperswitch
 
 
-# upload_to_sonatype "hyperswitch-sdk-bundle.zip"
+upload_to_sonatype "hyperswitch-sdk-bundle.zip"
 # cp "$zip_name" ../../
 cd ../../
 rm -rf "$temp_dir"
