@@ -262,14 +262,6 @@ for library in "${selected_libraries[@]}"; do
 
                 if [ -z "$old_version" ]; then
                     echo "  Could not determine old version from maven-metadata.xml for $library."
-                elif [ "$old_version" == "$new_version" ]; then
-                    echo "  Latest version in metadata ($old_version) is the same as new version ($new_version)."
-                    echo "  This might happen on a re-run. Attempting to find version before $new_version."
-                    previous_versions=$(echo "$metadata_content" | grep '<version>' | sed -e 's#.*<version>##' -e 's#<\\/version>.*##' | grep -v "^${new_version}$" | sort -V | uniq)
-                    old_version=$(echo "$previous_versions" | tail -n 1)
-                    if [ -z "$old_version" ]; then
-                         echo "    Could not find a version prior to $new_version in metadata."
-                    fi 
                 fi
             fi
 
