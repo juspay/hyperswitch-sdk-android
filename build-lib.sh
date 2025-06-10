@@ -196,7 +196,7 @@ for library in "${selected_libraries[@]}"; do
     for dir_name_with_slash in */; do
         if [ -d "$dir_name_with_slash" ]; then
             dirname_no_slash=${dir_name_with_slash%/}
-            if echo "$dirname_no_slash" | grep -qE '^[0-9]+(?:\.[0-9]+)*$'; then
+            if echo "$dirname_no_slash" | grep -qE '^[0-9]+(\.[0-9]+)*$'; then
                 temp_version_dirs+=("$dirname_no_slash")
             fi
         fi
