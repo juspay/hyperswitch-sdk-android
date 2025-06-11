@@ -14,7 +14,8 @@ import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
-import `in`.juspay.hyperotareact.HyperOTAServicesReact
+import `in`.juspay.hyperota.LazyDownloadCallback
+import `in`.juspay.hyperotareact.HyperOTAReact
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.R
@@ -26,7 +27,7 @@ import io.hyperswitch.hyperota.HyperOtaLogger
 import io.hyperswitch.react.Utils.Companion.checkEnvironment
 
 open class MainApplication : Application(), ReactApplication {
-    private var hyperOTAServices: HyperOTAServicesReact? = null
+    private var hyperOTAServices: HyperOTAReact? = null
     private lateinit var tracker: HyperOtaLogger
     private lateinit var context: Context
 
@@ -55,14 +56,24 @@ open class MainApplication : Application(), ReactApplication {
                 )
                 if (hyperOTAUrl != "hyperOTA_END_POINT_") {
                     tracker = HyperOtaLogger()
-                    hyperOTAServices = HyperOTAServicesReact(
+                    val headers = mapOf(
+                        "Content-Encoding" to "br, gzip"
+                    )
+                    HyperOTAReact(
                         context.applicationContext,
                         "hyperswitch",
                         "hyperswitch.bundle",
                         BuildConfig.VERSION_NAME,
                         "$hyperOTAUrl/mobile-ota/android/${BuildConfig.VERSION_NAME}/config.json",
+                        headers,
+                        object : LazyDownloadCallback {
+                            override fun fileInstalled(filePath: String, success: Boolean) {
+                            }
+                            override fun lazySplitsInstalled(success: Boolean) {
+                            }
+                        },
                         tracker,
-                    )
+                    ).also { hyperOTAServices = it }
                 }
                 return hyperOTAServices?.getBundlePath()?.takeUnless { it.contains("ios") }
                     ?: "assets://hyperswitch.bundle"
