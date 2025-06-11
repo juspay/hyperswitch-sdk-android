@@ -1,6 +1,7 @@
 package io.hyperswitch.hyperota
 
 import `in`.juspay.hyperota.TrackerCallback
+import io.hyperswitch.BuildConfig
 import io.hyperswitch.logs.EventName
 import org.json.JSONObject
 import io.hyperswitch.logs.HSLog
@@ -34,7 +35,7 @@ class HyperOtaLogger : TrackerCallback() {
             try {
                 val jsonData = JSONObject(eventData).toString()
                 val log = HSLog.LogBuilder().logType(level).category(LogCategory.OTA_LIFE_CYCLE)
-                    .eventName(eventName).value(jsonData)
+                    .eventName(eventName).value(jsonData).version(BuildConfig.VERSION_NAME)
                 HyperLogManager.addLog(log.build())
             } catch (e: JSONException) {
             }
