@@ -2,15 +2,16 @@ package io.hyperswitch.paymentsession
 
 import android.app.Activity
 import android.content.Context
-import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
+import android.support.annotation.RequiresApi
+import android.view.View
+import android.view.WindowInsets
 import android.webkit.WebSettings
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.lite.BuildConfig
 import io.hyperswitch.paymentsheet.PaymentSheet
 import org.json.JSONObject
-import java.util.Locale
 
 class LaunchOptions(private val activity: Activity? = null) {
 
@@ -19,13 +20,19 @@ class LaunchOptions(private val activity: Activity? = null) {
             putString("appId", activity?.packageName)
             putString("country", activity?.resources?.configuration?.locale?.country)
             putString("user-agent", getUserAgent(activity))
-            putString("ip", getDeviceIPAddress(activity))
             putDouble("launchTime", getCurrentTime())
             putString("sdkVersion", BuildConfig.VERSION_NAME)
             putString("device_model", Build.MODEL)
             putString("os_type", "android")
             putString("os_version", Build.VERSION.RELEASE)
             putString("deviceBrand", Build.BRAND)
+            val edgeInsets = getBottomInset(activity)
+            if(edgeInsets!=null) {
+                putFloat("topInset", edgeInsets.top)
+                putFloat("leftInset", edgeInsets.left)
+                putFloat("rightInset", edgeInsets.right)
+                putFloat("bottomInset", edgeInsets.bottom)
+            }
             configuration?.disableBranding?.let {
                 putBoolean(
                     "disableBranding", it
@@ -43,13 +50,19 @@ class LaunchOptions(private val activity: Activity? = null) {
             plus(Pair("appId", activity?.packageName))
             plus(Pair("country", activity?.resources?.configuration?.locale?.country))
             plus(Pair("user-agent", getUserAgent(activity)))
-            plus(Pair("ip", getDeviceIPAddress(activity)))
             plus(Pair("launchTime", getCurrentTime()))
             plus(Pair("sdkVersion", BuildConfig.VERSION_NAME))
             plus(Pair("device_model", Build.MODEL))
             plus(Pair("os_type", "android"))
             plus(Pair("os_version", Build.VERSION.RELEASE))
             plus(Pair("deviceBrand",Build.BRAND))
+            val edgeInsets = getBottomInset(activity)
+            if(edgeInsets!=null) {
+                plus(Pair("topInset", edgeInsets.top))
+                plus(Pair("leftInset", edgeInsets.left))
+                plus(Pair("rightInset", edgeInsets.right))
+                plus(Pair("bottomInset", edgeInsets.bottom))
+            }
         }
 
     fun getBundle(
@@ -106,28 +119,52 @@ class LaunchOptions(private val activity: Activity? = null) {
     private fun getUserAgent(context: Context?): String? =
         try {
             if (context == null)
-                System.getProperty("http.agent") ?: null
+                System.getProperty("http.agent")
             else
                 WebSettings.getDefaultUserAgent(context)
         } catch (e: RuntimeException) {
-            System.getProperty("http.agent") ?: null
+            System.getProperty("http.agent")
         }
 
 
-    // Get device IP address
-    private fun getDeviceIPAddress(context: Context?): String? {
-        if (context == null) return null
-        val wifiManager =
-            context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        val wifiInfo = wifiManager.connectionInfo
-        val ipAddress = wifiInfo.ipAddress
-        return String.format(
-            Locale.getDefault(), "%d.%d.%d.%d",
-            ipAddress and 0xff,
-            ipAddress shr 8 and 0xff,
-            ipAddress shr 16 and 0xff,
-            ipAddress shr 24 and 0xff
-        )
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun getRootWindowInsetsCompatR(rootView: View): EdgeInsets? {
+        val insets =
+            rootView.rootWindowInsets?.getInsets(
+                WindowInsets.Type.statusBars() or
+                        WindowInsets.Type.displayCutout() or
+                        WindowInsets.Type.navigationBars() or
+                        WindowInsets.Type.captionBar())
+                ?: return null
+        return EdgeInsets(
+            top = insets.top.toFloat(),
+            right = insets.right.toFloat(),
+            bottom = insets.bottom.toFloat(),
+            left = insets.left.toFloat())
+    }
+
+    private fun getRootWindowInsetsCompatBase(rootView: View): EdgeInsets? {
+        val visibleRect = android.graphics.Rect()
+        rootView.getWindowVisibleDisplayFrame(visibleRect)
+        return EdgeInsets(
+            top = visibleRect.top.toFloat(),
+            right = (rootView.width - visibleRect.right).toFloat(),
+            bottom = (rootView.height - visibleRect.bottom).toFloat(),
+            left = visibleRect.left.toFloat())
+    }
+
+    private fun getBottomInset(context: Activity?): EdgeInsets? {
+        if(context != null) {
+            val rootView = context.window.decorView
+            return when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> getRootWindowInsetsCompatR(
+                    rootView
+                )
+                else -> getRootWindowInsetsCompatBase(rootView)
+            }
+        } else {
+            return null
+        }
     }
 
     // Get current time in milliseconds
@@ -187,3 +224,5 @@ class LaunchOptions(private val activity: Activity? = null) {
         return JSONObject(map)
     }
 }
+
+data class EdgeInsets(val top: Float, val right: Float, val bottom: Float, val left: Float)
