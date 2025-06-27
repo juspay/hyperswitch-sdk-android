@@ -24,6 +24,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data android:scheme="${applicationId}.hyperswitch" />
+                <data android:host="" tools:ignore="AppLinkUrlError" />
             </intent-filter>
         </activity>
         <activity

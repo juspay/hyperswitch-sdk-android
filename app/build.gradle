@@ -120,7 +120,7 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-    implementation("in.juspay:hyperotareact:2.2.2-xota.07")
+    implementation("in.juspay:hyperotareact:0.0.1-xota.10")
     implementation("androidx.appcompat:appcompat")
     implementation("androidx.activity:activity-ktx")
     implementation("androidx.compose.ui:ui-graphics")

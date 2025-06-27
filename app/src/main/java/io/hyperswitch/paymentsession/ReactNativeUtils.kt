@@ -11,6 +11,7 @@ import com.facebook.react.ReactFragment
 import com.facebook.react.ReactInstanceManager
 import com.facebook.react.common.assets.ReactFontManager
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
+import com.facebook.react.uimanager.PixelUtil
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
@@ -56,11 +57,11 @@ class ReactNativeUtils(private val activity: Activity) : SDKInterface {
     ): Boolean {
         val bundle = launchOptions.getBundle(paymentIntentClientSecret, configuration)
         applyFonts(configuration, bundle)
-        return presentSheet(bundle)
+        return presentSheet(bottomInsetToDIPFromPixel(bundle))
     }
 
     override fun presentSheet(configurationMap: Map<String, Any?>): Boolean {
-        return presentSheet(launchOptions.getBundleWithHyperParams(configurationMap))
+        return presentSheet(bottomInsetToDIPFromPixel(launchOptions.getBundleWithHyperParams(configurationMap)))
     }
 
     private fun presentSheet(bundle: Bundle): Boolean {
@@ -127,5 +128,23 @@ class ReactNativeUtils(private val activity: Activity) : SDKInterface {
                     )
                 }
         }
+    }
+
+    private fun bottomInsetToDIPFromPixel(bundle: Bundle): Bundle {
+        val propsBundle = bundle.getBundle("props")
+        val hyperParamsBundle = propsBundle?.getBundle("hyperParams")
+        hyperParamsBundle?.getFloat("topInset")?.let { dipValue ->
+            hyperParamsBundle.putFloat("topInset", PixelUtil.toDIPFromPixel(dipValue))
+        }
+        hyperParamsBundle?.getFloat("leftInset")?.let { dipValue ->
+            hyperParamsBundle.putFloat("leftInset", PixelUtil.toDIPFromPixel(dipValue))
+        }
+        hyperParamsBundle?.getFloat("rightInset")?.let { dipValue ->
+            hyperParamsBundle.putFloat("rightInset", PixelUtil.toDIPFromPixel(dipValue))
+        }
+        hyperParamsBundle?.getFloat("bottomInset")?.let { dipValue ->
+            hyperParamsBundle.putFloat("bottomInset", PixelUtil.toDIPFromPixel(dipValue))
+        }
+        return bundle
     }
 }

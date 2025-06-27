@@ -1,11 +1,15 @@
 package io.hyperswitch.demoapp
 
 import android.app.Activity
-import android.content.Intent
+import android.content.Context
+import android.util.Patterns
 import android.graphics.Color
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.View
+import android.widget.EditText
 import android.widget.TextView
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
@@ -25,9 +29,16 @@ import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import io.hyperswitch.lite.PaymentSession as PaymentSessionLite
+import androidx.core.content.edit
 
 
 class MainActivity : Activity() {
+
+    companion object {
+        private const val PREFS_NAME = "HyperswitchPrefs"
+        private const val KEY_SERVER_URL = "server_url"
+        private const val DEFAULT_SERVER_URL = "http://10.0.2.2:5252"
+    }
 
     lateinit var ctx: Activity;
     private var paymentIntentClientSecret: String = "clientSecret"
@@ -35,6 +46,8 @@ class MainActivity : Activity() {
     private var serverUrl = "http://10.0.2.2:5252"
     private lateinit var paymentSession: PaymentSession
     private lateinit var paymentSessionLite: PaymentSessionLite
+    private lateinit var editText : EditText
+
 
     private suspend fun fetchNetceteraApiKey(): String? =
         suspendCancellableCoroutine { continuation ->
@@ -55,6 +68,32 @@ class MainActivity : Activity() {
                     }
                 })
         }
+
+    private fun getSharedPreferences(): android.content.SharedPreferences {
+        return ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    private fun saveServerUrl(url: String) {
+        getSharedPreferences().edit { putString(KEY_SERVER_URL, url) }
+    }
+
+    private fun loadServerUrl(): String {
+        return getSharedPreferences().getString(KEY_SERVER_URL, DEFAULT_SERVER_URL) ?: DEFAULT_SERVER_URL
+    }
+
+    private fun isValidUrl(url: String): Boolean {
+        return Patterns.WEB_URL.matcher(url).matches()
+    }
+
+    private fun updateServerUrl(newUrl: String) {
+        if (isValidUrl(newUrl)) {
+            serverUrl = newUrl
+            saveServerUrl(newUrl)
+            setStatus("Reload Client Secret")
+        } else {
+            setStatus("Invalid URL format")
+        }
+    }
 
     private suspend fun getCustomisations(): PaymentSheet.Configuration {
         /**
@@ -212,6 +251,25 @@ class MainActivity : Activity() {
         setContentView(R.layout.main_activity)
 
         ctx = this
+        editText = ctx.findViewById<EditText>(R.id.ipAddressInput)
+        // Load saved URL or use default
+        serverUrl = loadServerUrl()
+        editText.setText(serverUrl)
+
+        // Add TextWatcher for URL validation
+        editText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+            override fun afterTextChanged(s: Editable?) {
+                s?.toString()?.let { newUrl ->
+                    if (newUrl.isNotEmpty()) {
+                        updateServerUrl(newUrl)
+                    }
+                }
+            }
+        })
 
         /**
          *
