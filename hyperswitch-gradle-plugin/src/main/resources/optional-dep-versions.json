@@ -1,0 +1,18 @@
+{
+  "1.0.8": {
+    "paypal": "0.0.7",
+    "kount": "0.0.6",
+    "scanCard": "0.0.7",
+    "klarna": "0.0.6",
+    "netcetera3ds": "0.0.6",
+    "samsungPay": "0.0.6"
+  },
+  "1.0.7": {
+    "paypal": "0.0.6",
+    "kount": "0.0.6",
+    "scanCard": "0.0.5",
+    "klarna": "0.0.6",
+    "netcetera3ds": "0.0.6",
+    "samsungPay": "0.0.6"
+  }
+}
