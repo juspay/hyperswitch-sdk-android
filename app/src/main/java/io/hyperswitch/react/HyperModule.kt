@@ -1,113 +1,91 @@
 package io.hyperswitch.react
 
+import android.view.View
+import android.view.ViewGroup
 import androidx.fragment.app.FragmentActivity
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
-import com.facebook.react.modules.core.DeviceEventManagerModule
 import io.hyperswitch.payments.googlepaylauncher.GooglePayCallbackManager
-import io.hyperswitch.payments.paymentlauncher.PaymentLauncher
 import io.hyperswitch.payments.view.WidgetLauncher
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
+import io.hyperswitch.view.BasePaymentWidget
+import io.hyperswitch.payments.launcher.PaymentMethod
 import org.json.JSONObject
 import java.util.concurrent.ConcurrentLinkedQueue
 
 class HyperModule internal constructor(private val rct: ReactApplicationContext) :
     ReactContextBaseJavaModule(rct) {
-
     companion object {
-        @JvmStatic
-        private var reactContext: ReactApplicationContext? = null
-
-        private val pendingEvents = ConcurrentLinkedQueue<Pair<String, Map<String, String?>>>()
-
+        // Static methods with unique signatures for reflection access from lite SDK
         @JvmStatic
         fun confirmStatic(tag: String, map: MutableMap<String, String?>) {
-            val writableMap = Arguments.createMap()
-            for ((key, value) in map) {
-                writableMap.putString(key, value)
-            }
-
-            if (reactContext != null && reactContext!!.hasCatalystInstance()) {
-                try {
-                    reactContext!!.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                        ?.emit(tag, writableMap)
-                } catch (e: Exception) {
-                    pendingEvents.add(Pair(tag, map))
-                }
-            } else {
-                pendingEvents.add(Pair(tag, map))
-            }
+            HyperEventEmitter.confirmStatic(tag, map)
         }
 
         @JvmStatic
         fun confirmCardStatic(map: MutableMap<String, String?>) {
-            confirmStatic("confirm", map)
+            HyperEventEmitter.confirmCardStatic(map)
         }
 
         @JvmStatic
         fun confirmECStatic(map: MutableMap<String, String?>) {
-            confirmStatic("confirmEC", map)
-        }
-
-        @JvmStatic
-        private fun processPendingEvents() {
-            if (reactContext == null || !reactContext!!.hasCatalystInstance()) {
-                return
-            }
-
-            val iterator = pendingEvents.iterator()
-            while (iterator.hasNext()) {
-                val (tag, map) = iterator.next()
-                    val writableMap = Arguments.createMap()
-                    for ((key, value) in map) {
-                        writableMap.putString(key, value)
-                    }
-                    reactContext!!.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                        ?.emit(tag, writableMap)
-                    iterator.remove()
-            }
-        }
-
-        @JvmStatic
-        fun onContextInitialized() {
-            processPendingEvents()
+            HyperEventEmitter.confirmECStatic(map)
         }
     }
 
     override fun getName(): String {
-        reactContext = rct
-        processPendingEvents()
+        HyperEventEmitter.initialize(rct)
         return "HyperModule"
     }
 
     // Using invalidate instead of deprecated onCatalystInstanceDestroy
     override fun invalidate() {
         super.invalidate()
-        reactContext = null
+        HyperEventEmitter.deinitialize()
     }
 
+    @ReactMethod
+    fun updateWidgetHeight(height: Int) {
+        val activity = currentActivity ?: return
+        activity.runOnUiThread {
+            // Find the first ExpressCheckoutWidget instance
+            val rootView = activity.findViewById<View>(android.R.id.content)
+            val widget = findFirstExpressCheckoutWidget(rootView)
 
+            // Update its height if found
+            widget?.setWidgetHeight(height)
+        }
+    }
+
+private fun findFirstExpressCheckoutWidget(rootView: View): BasePaymentWidget? {
+    if (rootView is BasePaymentWidget && rootView.getPaymentMethod() == "expressCheckout") {
+        return rootView
+    }
+    // Check child views
+    if (rootView is ViewGroup) {
+        for (i in 0 until rootView.childCount) {
+            val childView = rootView.getChildAt(i)
+            val result = findFirstExpressCheckoutWidget(childView)
+            if (result != null) {
+                return result
+            }
+        }
+    }
+
+    // Not found in this branch
+    return null
+}
     @ReactMethod
     fun sendMessageToNative(rnMessage: String) {
-            val jsonObject = JSONObject(rnMessage)
-
-            if (jsonObject.optBoolean("isReady", false)) {
-                reactContext = rct
-                onContextInitialized()
-                val paymentMethodType = jsonObject.optString("paymentMethodType", "")
-                when (paymentMethodType) {
-                    "google_pay" -> {
-                        WidgetLauncher.onGPayPaymentReadyWithUI.onReady(true)
-                    }
-                    "paypal" -> {
-                        WidgetLauncher.onPaypalPaymentReadyWithUI.onReady(true)
-                    }
-                }
-            }
+        val jsonObject = JSONObject(rnMessage)
+        if (jsonObject.optBoolean("isReady", false)) {
+//            HyperEventEmitter.initialize(rct)
+            WidgetLauncher.onPaymentReadyCallback(true)
+        }
     }
 
     // Method to launch Google Pay payment
@@ -151,17 +129,13 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     // Method to exit the widget
     @ReactMethod
     fun exitWidget(paymentResult: String, widgetType: String) {
-        when (widgetType) {
-            "google_pay" -> WidgetLauncher.onGPayPaymentResultCallBack(paymentResult)
-            "paypal" ->  WidgetLauncher.onPaypalPaymentResultCallBack(paymentResult)
-            "expressCheckout" -> {}
-        }
+        WidgetLauncher.onPaymentResultCallback(widgetType, paymentResult)
     }
 
     // Method to exit the card form
     @ReactMethod
     fun exitCardForm(paymentResult: String) {
-        PaymentLauncher.Companion.onPaymentResultCallBack(paymentResult)
+        WidgetLauncher.onPaymentResultCallback(PaymentMethod.CARD.apiValue, paymentResult)
     }
 
     // Method to launch widget payment sheet
@@ -181,7 +155,7 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     @ReactMethod
     fun addListener(eventName: String?) {
         if (listenerCount == 0) {
-            // Set up any upstream listeners or background tasks as necessary
+            HyperEventEmitter.initialize(rct)
         }
         listenerCount += 1
     }

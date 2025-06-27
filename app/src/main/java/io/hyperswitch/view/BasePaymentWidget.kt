@@ -3,6 +3,7 @@ package io.hyperswitch.view
 import android.content.Context
 import android.os.Bundle
 import android.util.AttributeSet
+import android.util.Log
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import io.hyperswitch.R
@@ -15,8 +16,8 @@ open class BasePaymentWidget @JvmOverloads constructor(
     defStyleAttr: Int = 0,
     defStyleRes: Int = 0,
 ) : FrameLayout(context, attrs, defStyleAttr, defStyleRes) {
-
-
+    
+    private var widgetHeight: Int = 150
     private var paymentMethod: String = ""
     fun getPaymentMethod(): String {
         return paymentMethod
@@ -64,11 +65,17 @@ open class BasePaymentWidget @JvmOverloads constructor(
         Utils.openReactView(context as AppCompatActivity, Bundle(), name, id)
     }
 
+    fun setWidgetHeight(height: Int) {
+        if (widgetHeight != height) {
+            widgetHeight = height
+            requestLayout()
+        }
+    }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(
             widthMeasureSpec,
-            MeasureSpec.makeMeasureSpec(150, MeasureSpec.EXACTLY)
+            MeasureSpec.makeMeasureSpec(widgetHeight, MeasureSpec.EXACTLY)
         )
     }
 }

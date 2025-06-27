@@ -1,6 +1,7 @@
 package io.hyperswitch.demoapp
 
 import android.app.Activity
+import android.content.Intent
 import android.content.Context
 import android.util.Patterns
 import android.graphics.Color
@@ -42,6 +43,9 @@ class MainActivity : Activity() {
 
     lateinit var ctx: Activity;
     private var paymentIntentClientSecret: String = "clientSecret"
+    private var ephemeralKey: String = "ephemeralKey"
+    private var paymentMethodClientSecret: String = "clientSecret"
+
     private var publishKey: String = ""
     private var serverUrl = "http://10.0.2.2:5252"
     private lateinit var paymentSession: PaymentSession
@@ -154,7 +158,6 @@ class MainActivity : Activity() {
             .displaySavedPaymentMethods(true)
             .disableBranding(true)
             .showVersionInfo(true)
-
         try {
             val netceteraApiKey = fetchNetceteraApiKey()
             netceteraApiKey?.let {
@@ -278,7 +281,8 @@ class MainActivity : Activity() {
          * */
 
         getCL()
-        findViewById<View>(R.id.reloadButton).setOnClickListener { getCL() }
+        findViewById<View>(R.id.reloadButton).setOnClickListener { getCL()
+        }
 
         /**
          *

@@ -14,17 +14,17 @@ import io.hyperswitch.HyperInterface
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.model.ConfirmPaymentIntentParams
 import io.hyperswitch.model.PaymentMethodCreateParams
+import io.hyperswitch.payments.expresscheckoutlauncher.ExpressCheckoutPaymentMethodLauncher
 import io.hyperswitch.payments.googlepaylauncher.GooglePayEnvironment
-import io.hyperswitch.payments.googlepaylauncher.GooglePayLauncher
 import io.hyperswitch.payments.googlepaylauncher.GooglePayPaymentMethodLauncher
-import io.hyperswitch.payments.paymentlauncher.PaymentLauncher
+import io.hyperswitch.payments.launcher.UnifiedPaymentLauncher
 import io.hyperswitch.payments.paymentlauncher.PaymentResult
-import io.hyperswitch.payments.paypallauncher.PayPalLauncher
 import io.hyperswitch.payments.paypallauncher.PayPalPaymentMethodLauncher
 import io.hyperswitch.view.BasePaymentWidget
-
 import org.json.JSONException
 import org.json.JSONObject
+import io.hyperswitch.payments.googlepaylauncher.Config as GooglePayConfig
+
 
 class WidgetActivity : AppCompatActivity(), HyperInterface {
     lateinit var ctx: Activity;
@@ -36,7 +36,10 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
     private lateinit var googlePayButton: BasePaymentWidget
     private lateinit var payPalButton: BasePaymentWidget
 
-    private lateinit var paymentLauncher: PaymentLauncher
+    private lateinit var cardPaymentLauncher: UnifiedPaymentLauncher
+    private lateinit var googlePayLauncherInstance: UnifiedPaymentLauncher
+    private lateinit var payPalLauncherInstance: UnifiedPaymentLauncher
+    private lateinit var ecLauncherInstance: UnifiedPaymentLauncher
 
 
     private fun setStatus(error: String) {
@@ -69,6 +72,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                                     initialiseSDK()
                                     setupGooglePayLauncher()
                                     setupPayPalLauncher()
+                                    setupECLauncher()
                                     ctx.findViewById<View>(R.id.confirmButton2).isEnabled = true
                                     ctx.findViewById<View>(R.id.googlePayButton2).isEnabled = true;
                                     ctx.findViewById<View>(R.id.payPalButton2).isEnabled = true;
@@ -108,47 +112,67 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         val paymentConfiguration: PaymentConfiguration = PaymentConfiguration.getInstance(
             applicationContext
         )
-        paymentLauncher = PaymentLauncher.Companion.create(
-            this,
-            paymentConfiguration.publishableKey,
-            paymentConfiguration.stripeAccountId,
-            ::onPaymentResult,
+        cardPaymentLauncher = UnifiedPaymentLauncher.createCardLauncher(
+            activity = this,
+            resultCallback = ::onPaymentResult
         )
     }
     private fun setupGooglePayLauncher() {
         googlePayButton = findViewById(R.id.googlePayButton2)
         googlePayButton.isEnabled = false
-
-        val googlePayLauncher = GooglePayLauncher(
+        googlePayLauncherInstance = UnifiedPaymentLauncher.createGooglePayLauncher(
             activity = this,
-            config = GooglePayLauncher.Config(
+            clientSecret = paymentIntentClientSecret,
+            config = GooglePayConfig(
                 environment = GooglePayEnvironment.Test,
                 merchantCountryCode = "US",
                 merchantName = "Widget Store"
             ),
             readyCallback = ::onGooglePayReady,
-            resultCallback = ::onGooglePayResult,
-            clientSecret = paymentIntentClientSecret
+            resultCallback = ::onGooglePayResult
         )
 
         googlePayButton.setOnClickListener {
-            googlePayLauncher.presentForPaymentIntent(paymentIntentClientSecret)
+            if (this::googlePayLauncherInstance.isInitialized) {
+                googlePayLauncherInstance.presentForPayment(paymentIntentClientSecret)
+            } else {
+                Toast.makeText(this, "Google Pay Launcher not initialized", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     private fun setupPayPalLauncher(){
         payPalButton = findViewById(R.id.payPalButton2)
         payPalButton.isEnabled = false
-
-        val payPalLauncher = PayPalLauncher(
+        payPalLauncherInstance = UnifiedPaymentLauncher.createPayPalLauncher(
             activity = this,
+            clientSecret = paymentIntentClientSecret,
             readyCallback = ::onPayPalReady,
-            resultCallback = ::onPayPalResult,
-            clientSecret = paymentIntentClientSecret
+            resultCallback = ::onPayPalResult
         )
 
         payPalButton.setOnClickListener {
-            payPalLauncher.presentForPaymentIntent(paymentIntentClientSecret)
+            if (this::payPalLauncherInstance.isInitialized) {
+                payPalLauncherInstance.presentForPayment(paymentIntentClientSecret)
+            } else {
+                Toast.makeText(this, "PayPal Launcher not initialized", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    private fun setupECLauncher(){
+        ecLauncherInstance = UnifiedPaymentLauncher.createExpressCheckoutLauncher(
+            activity = this,
+            clientSecret = paymentIntentClientSecret,
+            readyCallback = ::onExpressCheckoutReady,
+            resultCallback = ::onExpressCheckoutResult
+        )
+
+        findViewById<View>(R.id.confirmEC).setOnClickListener {
+            if (this::ecLauncherInstance.isInitialized) {
+                ecLauncherInstance.presentForPayment(paymentIntentClientSecret)
+            } else {
+                Toast.makeText(this, "Express Checkout Launcher not initialized", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -169,8 +193,8 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                 paymentIntentClientSecret
             )
 
-            if(this::paymentLauncher.isInitialized) {
-                paymentLauncher.confirm(confirmParams)
+            if(this::cardPaymentLauncher.isInitialized) {
+                cardPaymentLauncher.confirmCardPayment(confirmParams)
             } else {
                 Toast.makeText(this, "SDK is not initialised", Toast.LENGTH_SHORT).show()
             }
@@ -243,4 +267,23 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             }
         }
     }
+
+    private fun onExpressCheckoutReady(isReady: Boolean) {
+        googlePayButton.isEnabled = isReady
+    }
+
+    private fun onExpressCheckoutResult(paymentSheetResult: ExpressCheckoutPaymentMethodLauncher.Result) {
+        when(paymentSheetResult) {
+            is ExpressCheckoutPaymentMethodLauncher.Result.Canceled -> {
+                Toast.makeText(applicationContext, paymentSheetResult.data, Toast.LENGTH_LONG).show()
+            }
+            is ExpressCheckoutPaymentMethodLauncher.Result.Failed -> {
+                Toast.makeText(applicationContext, paymentSheetResult.error.message ?: "", Toast.LENGTH_LONG).show()
+            }
+            is ExpressCheckoutPaymentMethodLauncher.Result.Completed -> {
+                Toast.makeText(applicationContext, paymentSheetResult.paymentMethod.toString(), Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
 }
