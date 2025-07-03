@@ -2,7 +2,6 @@ package io.hyperswitch.demoapp
 
 import android.app.Activity
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
@@ -59,14 +58,12 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             .responseString(object : Handler<String?> {
                 override fun success(value: String?) {
                     try {
-                        Log.d("Backend Response", value.toString())
 
                         val result = value?.let { JSONObject(it) }
                         if (result != null) {
 
                             paymentIntentClientSecret = result.getString("clientSecret")
                             publishKey = result.getString("publishableKey")
-                        Log.d("CLIENTSECRET",paymentIntentClientSecret+publishKey)
 
                                 ctx.runOnUiThread {
                                     initialiseSDK()
@@ -82,13 +79,11 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
 
                         }
                     } catch (e: JSONException) {
-                        Log.d("Backend Response", e.toString())
                         setStatus("could not connect to the server")
                     }
                 }
 
                 override fun failure(error: FuelError) {
-                    Log.d("Backend Response", error.toString())
                     setStatus("could not connect to the server")
                 }
             })
