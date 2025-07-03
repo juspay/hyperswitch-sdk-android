@@ -55,7 +55,7 @@ class ExpressCheckoutPaymentMethodLauncher {
     annotation class ErrorCode
 
     companion object {
-        internal const val PRODUCT_USAGE_TOKEN = "GooglePayPaymentMethodLauncher"
+        internal const val PRODUCT_USAGE_TOKEN = "ExpressCheckoutPaymentMethodLauncher"
 
         // Generic internal error
         const val INTERNAL_ERROR = 1

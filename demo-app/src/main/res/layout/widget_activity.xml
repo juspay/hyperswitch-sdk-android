@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@android:color/white"
+    android:fitsSystemWindows="true"
+    tools:context=".WidgetActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:orientation="vertical"
+        android:paddingTop="?attr/actionBarSize"
+        >
+        <Button
+            android:id="@+id/reloadButton2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="20dp"
+            android:layout_weight="1"
+            android:background="@drawable/rounded_button"
+            android:text="Reload Client Secret"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            />
+        <io.hyperswitch.view.BasePaymentWidget
+            android:id="@+id/cardElement"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:layout_marginHorizontal="20dp"
+            app:paymentMethod="card"
+            />
+        <Button
+            android:textAllCaps="false"
+            android:id="@+id/confirmButton2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/rounded_button"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:text="Confirm Card"
+            android:layout_marginTop="20dp"
+            android:layout_marginHorizontal="20dp" />
+
+        <io.hyperswitch.view.BasePaymentWidget
+            android:id="@+id/googlePayButton2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:layout_marginHorizontal="20dp"
+            app:paymentMethod="google_pay"
+            />
+        <io.hyperswitch.view.BasePaymentWidget
+            android:id="@+id/payPalButton2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:layout_marginHorizontal="20dp"
+            app:paymentMethod="paypal"
+            />
+        <io.hyperswitch.view.BasePaymentWidget
+            android:id="@+id/expressCheckoutWidget"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:layout_marginHorizontal="20dp"
+            app:paymentMethod="expressCheckout"
+            />
+
+        <Button
+            android:textAllCaps="false"
+            android:id="@+id/confirmEC"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/rounded_button"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:text="Confirm EC"
+            android:layout_marginTop="20dp"
+            android:layout_marginHorizontal="20dp" />
+
+    </LinearLayout>
+</ScrollView>
