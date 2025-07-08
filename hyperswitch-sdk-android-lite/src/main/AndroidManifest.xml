@@ -16,7 +16,7 @@
             android:theme="@style/GooglePayTransparentTheme" />
         <activity 
             android:name="io.hyperswitch.lite.WebViewHostActivity"
-            android:theme="@style/WebViewFloatingTheme"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:windowSoftInputMode="adjustResize"
             android:windowIsFloating="true" />
 <!--        <activity-->
