@@ -14,6 +14,18 @@
             android:name="io.hyperswitch.payments.googlepaylauncher.GooglePayActivity"
             android:exported="false"
             android:theme="@style/GooglePayTransparentTheme" />
+        <activity 
+            android:name="io.hyperswitch.lite.WebViewHostActivity"
+            android:theme="@style/WebViewFloatingTheme"
+            android:windowSoftInputMode="adjustResize"
+            android:windowIsFloating="true" />
+<!--        <activity-->
+<!--            android:name="io.hyperswitch.lite.WebViewHostActivity"-->
+<!--            android:theme="@android:style/Theme.Translucent.NoTitleBar"-->
+<!--            android:windowSoftInputMode="adjustResize"-->
+<!--            android:windowIsFloating="true"-->
+<!--            android:windowIsTranslucent="true"-->
+<!--            android:windowBackground="@android:color/transparent" />-->
         <meta-data
             android:name="com.google.android.gms.wallet.api.enabled"
             android:value="true" />

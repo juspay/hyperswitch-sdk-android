@@ -3,7 +3,6 @@ package io.hyperswitch.lite
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
-import android.app.Fragment
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Message
@@ -21,6 +20,9 @@ import android.widget.RelativeLayout
 import io.hyperswitch.payments.googlepaylauncher.GooglePayCallbackManager
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
 import org.json.JSONObject
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import androidx.activity.OnBackPressedCallback
 
 open class WebViewFragment : Fragment() {
     private fun isScanCardAvailable(): Boolean {
@@ -36,8 +38,8 @@ open class WebViewFragment : Fragment() {
     private lateinit var mainWebView: WebView
     private val webViews = mutableListOf<WebView>()
 
-    //URL
     private lateinit var bundleUrl:String
+    private var pendingRequestBody: String? = null
 
     @Deprecated("Deprecated in Java")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,6 +49,22 @@ open class WebViewFragment : Fragment() {
         webViewContainer = RelativeLayout(context)
         webViews.add(mainWebView)
         webViewContainer.addView(mainWebView)
+        
+        // Register back press callback for FragmentActivity
+        activity?.let { act ->
+            if (act is FragmentActivity) {
+                val callback = object : OnBackPressedCallback(true) {
+                    override fun handleOnBackPressed() {
+                        if (!onBackPressed()) {
+                            // If fragment didn't handle it, disable this callback and let activity handle it
+                            isEnabled = false
+                            act.onBackPressedDispatcher.onBackPressed()
+                        }
+                    }
+                }
+                act.onBackPressedDispatcher.addCallback(this, callback)
+            }
+        }
     }
 
     @Deprecated("Deprecated in Java")
@@ -55,7 +73,39 @@ open class WebViewFragment : Fragment() {
     ): View {
         return webViewContainer
     }
-  
+
+    fun onBackPressed(): Boolean {
+        if (webViews.isNotEmpty() && webViews.last().canGoBack()) {
+            webViews.last().goBack()
+            return true
+        }
+
+        if (webViews.size > 1) {
+            val lastWebView = webViews.removeAt(webViews.size - 1)
+            webViewContainer.removeView(lastWebView)
+            return true
+        }
+        PaymentSheetCallbackManager.executeCallback("""{"type":"","code":"","message":"","status":"cancelled"}""")
+        
+        activity?.let { act ->
+            when (act) {
+                is WebViewHostActivity -> {
+                    act.finish()
+                }
+
+                is FragmentActivity -> {
+                    act.supportFragmentManager.beginTransaction().detach(this).commit()
+                }
+
+                else -> {
+                    act.supportFragmentManager.beginTransaction().detach(this).commit()
+                }
+            }
+        }
+
+        return true
+    }
+
     /**
      * Creates and configures a new WebView instance.
      *
@@ -67,11 +117,12 @@ open class WebViewFragment : Fragment() {
      */
     @SuppressLint("SetJavaScriptEnabled")
     private fun createWebView(): WebView {
-        return WebView(context).apply {
+        return WebView(requireContext()).apply {
             layoutParams = RelativeLayout.LayoutParams(
                 RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT
             )
             setBackgroundColor(Color.TRANSPARENT)
+
             settings.apply {
                 javaScriptEnabled = true
                 javaScriptCanOpenWindowsAutomatically = true
@@ -80,6 +131,8 @@ open class WebViewFragment : Fragment() {
                 allowContentAccess = false
                 allowFileAccess = false
                 setSupportMultipleWindows(true)
+                // isFocusable = true
+                // isFocusableInTouchMode = true
             }
 
             webViewClient = object : WebViewClient()
@@ -91,6 +144,12 @@ open class WebViewFragment : Fragment() {
 
                 override fun onPageFinished(view: WebView?, url: String?) {
                     super.onPageFinished(view, url)
+                    // Send pending request body if available
+                    pendingRequestBody?.let { requestBody ->
+                        val jsCode = """window.postMessage('{"initialProps":$requestBody}', '*');""".trimIndent()
+                        view?.evaluateJavascript(jsCode, null)
+                        pendingRequestBody = null 
+                    }
                 }
             }
 
@@ -113,8 +172,6 @@ open class WebViewFragment : Fragment() {
                     val transport = resultMsg.obj as WebView.WebViewTransport
                     transport.webView = newWebView
                     resultMsg.sendToTarget()
-
-
                     return true
                 }
 
@@ -132,17 +189,18 @@ open class WebViewFragment : Fragment() {
                         }
                         .create()
                     dialog.show()
-
                     return true
                 }
             }
-            
+
            val webAppInterface = if (isScanCardAvailable()) {
-            WebAppInterfaceWithScanCard(activity,this@WebViewFragment,this,bundleUrl)
+               activity?.let { WebAppInterfaceWithScanCard(it,this@WebViewFragment,this,bundleUrl) }
         } else {
-        WebAppInterfaceWithoutScanCard(activity,this@WebViewFragment,this,bundleUrl)
+               activity?.let { WebAppInterfaceWithoutScanCard(it,this@WebViewFragment,this,bundleUrl) }
     }
-        addJavascriptInterface(webAppInterface, "AndroidInterface")
+            if (webAppInterface != null) {
+                addJavascriptInterface(webAppInterface, "AndroidInterface")
+            }
             loadUrl(bundleUrl)
         }
     }
@@ -158,7 +216,7 @@ open class WebViewFragment : Fragment() {
      */
     @SuppressLint("SetJavaScriptEnabled")
     private fun createNewWebView(): WebView {
-        return WebView(context).apply {
+        return WebView(requireContext()).apply {
             layoutParams = RelativeLayout.LayoutParams(
                 RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT
             )
@@ -194,10 +252,13 @@ open class WebViewFragment : Fragment() {
      * @param requestBody The request body to send.
      */
     fun setRequestBody(requestBody: String) {
-        val jsCode =
-            """window.postMessage('{"initialProps":$requestBody}', '*');""".trimIndent()
-        println(jsCode)
-        mainWebView.evaluateJavascript(jsCode, null)
+        pendingRequestBody = requestBody
+        
+        // If WebView is already loaded, send immediately
+        if (::mainWebView.isInitialized) {
+            val jsCode = """window.postMessage('{"initialProps":$requestBody}', '*');""".trimIndent()
+            mainWebView.evaluateJavascript(jsCode, null)
+        }
     }
 
     /**
@@ -213,7 +274,7 @@ open class WebViewFragment : Fragment() {
             val javascriptFunction =
                 """window.postMessage(JSON.stringify({"googlePayData":  ${JSONObject(result)}}), '*');""".trimIndent()
 
-            activity.runOnUiThread {
+            activity?.runOnUiThread {
                 mainWebView.evaluateJavascript(javascriptFunction, null)
             }
         } catch (e: Exception) {
@@ -236,7 +297,16 @@ open class WebViewFragment : Fragment() {
             context.runOnUiThread {
                 webView.loadUrl(bundleUrl)
             }
-            context.fragmentManager.beginTransaction().detach(webFragment).commit()
+
+            when (context) {
+                is WebViewHostActivity -> {
+                    context.finish()
+                }
+
+                is FragmentActivity -> {
+                    context.supportFragmentManager.beginTransaction().detach(webFragment).commit()
+                }
+            }
         }
         @JavascriptInterface
         fun launchGPay(data: String) {
@@ -315,4 +385,3 @@ open class WebViewFragment : Fragment() {
 
     class WebAppInterfaceWithoutScanCard(context: Activity,webFragment: Fragment,webView:WebView,bundleUrl: String) :WebAppInterface(context, webFragment=webFragment,webView=webView,bundleUrl=bundleUrl)
     }
-
