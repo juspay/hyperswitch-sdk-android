@@ -1,6 +1,5 @@
 package io.hyperswitch.demoapp
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -12,6 +11,7 @@ import android.util.Patterns
 import android.view.View
 import android.widget.EditText
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
@@ -32,8 +32,14 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import io.hyperswitch.lite.PaymentSession as PaymentSessionLite
 
-
-class MainActivity : Activity() {
+/**
+ * Example MainActivity using AppCompatActivity
+ * 
+ * When using AppCompatActivity (or FragmentActivity), the WebViewFragment
+ * will be attached directly to this activity instead of launching a separate
+ * WebViewHostActivity. This provides a more integrated experience.
+ */
+class MainActivityAppCompat : AppCompatActivity() {
 
     companion object {
         private const val PREFS_NAME = "HyperswitchPrefs"
@@ -41,39 +47,17 @@ class MainActivity : Activity() {
         private const val DEFAULT_SERVER_URL = "http://10.0.2.2:5252"
     }
 
-    lateinit var ctx: Activity;
+    private lateinit var ctx: AppCompatActivity
     private var paymentIntentClientSecret: String = "clientSecret"
-    private var ephemeralKey: String = "ephemeralKey"
-    private var paymentMethodClientSecret: String = "clientSecret"
-
     private var publishKey: String = ""
     private var serverUrl = "http://10.0.2.2:5252"
     private lateinit var paymentSession: PaymentSession
     private lateinit var paymentSessionLite: PaymentSessionLite
-    private lateinit var editText : EditText
+    private lateinit var editText: EditText
 
-
-
-    override fun onStop() {
-        super.onStop()
-        Log.d("BackHandlerr", "Activity onStop() called")
-    }
-    override fun onPause() {
-        super.onPause()
-        Log.d("MainActivity", "onPause called, isFinishing: $isFinishing")
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.d("BackHandlerr", "Activity onDestroy() called")
-    }
-
-    override fun finish() {
-        Log.d("MainActivity", "❌ finish() called!", Throwable())
-        super.finish()
-    }
-
-
+    // No need to override onBackPressed() or handle back navigation manually
+    // The WebViewFragment will register its own OnBackPressedCallback
+    // and handle back navigation properly when attached to AppCompatActivity
 
     private suspend fun fetchNetceteraApiKey(): String? =
         suspendCancellableCoroutine { continuation ->
@@ -122,12 +106,6 @@ class MainActivity : Activity() {
     }
 
     private suspend fun getCustomisations(): PaymentSheet.Configuration {
-        /**
-         *
-         * Customisations
-         *
-         * */
-
         val primaryButtonShape = PaymentSheet.PrimaryButtonShape(32f, 0f)
         val address = PaymentSheet.Address.Builder()
             .city("city")
@@ -193,10 +171,9 @@ class MainActivity : Activity() {
     }
 
     private fun getCL() {
-
-        ctx.findViewById<View>(R.id.launchButton).isEnabled = false;
-        ctx.findViewById<View>(R.id.launchWebButton).isEnabled = false;
-        ctx.findViewById<View>(R.id.confirmButton).isEnabled = false;
+        findViewById<View>(R.id.launchButton).isEnabled = false
+        findViewById<View>(R.id.launchWebButton).isEnabled = false
+        findViewById<View>(R.id.confirmButton).isEnabled = false
 
         reset().get("$serverUrl/create-payment-intent", null)
             .responseString(object : Handler<String?> {
@@ -209,42 +186,31 @@ class MainActivity : Activity() {
                             paymentIntentClientSecret = result.getString("clientSecret")
                             publishKey = result.getString("publishableKey")
 
-                            /**
-                             *
-                             * Create Payment Session Object
-                             *
-                             * */
-
+                            // Create Payment Session Objects
+                            // Pass 'this' (AppCompatActivity) instead of regular Activity
                             paymentSession = PaymentSession(ctx, publishKey)
                             paymentSessionLite = PaymentSessionLite(ctx, publishKey)
 
-                            /**
-                             *
-                             * Initialise Payment Session
-                             *
-                             * */
-
+                            // Initialize Payment Sessions
                             paymentSession.initPaymentSession(paymentIntentClientSecret)
                             paymentSessionLite.initPaymentSession(paymentIntentClientSecret)
 
                             paymentSession.getCustomerSavedPaymentMethods { it ->
-
                                 val text =
                                     when (val data = it.getCustomerLastUsedPaymentMethodData()) {
                                         is PaymentMethod.Card -> arrayOf(
                                             data.cardScheme + " - " + data.cardNumber,
                                             true
                                         )
-
                                         is PaymentMethod.Wallet -> arrayOf(data.walletType, true)
                                         is PaymentMethod.Error -> arrayOf(data.message, false)
                                     }
 
                                 setStatus("Last Used PM: " + text[0])
 
-                                ctx.runOnUiThread {
-                                    ctx.findViewById<View>(R.id.confirmButton).isEnabled = true
-                                    ctx.findViewById<View>(R.id.confirmButton)
+                                runOnUiThread {
+                                    findViewById<View>(R.id.confirmButton).isEnabled = true
+                                    findViewById<View>(R.id.confirmButton)
                                         .setOnClickListener { _ ->
                                             it.confirmWithCustomerLastUsedPaymentMethod {
                                                 onPaymentResult(it)
@@ -253,9 +219,9 @@ class MainActivity : Activity() {
                                 }
                             }
 
-                            ctx.runOnUiThread {
-                                ctx.findViewById<View>(R.id.launchButton).isEnabled = true
-                                ctx.findViewById<View>(R.id.launchWebButton).isEnabled = true
+                            runOnUiThread {
+                                findViewById<View>(R.id.launchButton).isEnabled = true
+                                findViewById<View>(R.id.launchWebButton).isEnabled = true
                             }
                         }
                     } catch (e: JSONException) {
@@ -276,7 +242,8 @@ class MainActivity : Activity() {
         setContentView(R.layout.main_activity)
 
         ctx = this
-        editText = ctx.findViewById<EditText>(R.id.ipAddressInput)
+        editText = findViewById<EditText>(R.id.ipAddressInput)
+        
         // Load saved URL or use default
         serverUrl = loadServerUrl()
         editText.setText(serverUrl)
@@ -296,22 +263,13 @@ class MainActivity : Activity() {
             }
         })
 
-        /**
-         *
-         * Merchant API call to get Client Secret
-         *
-         * */
-
+        // Merchant API call to get Client Secret
         getCL()
-        findViewById<View>(R.id.reloadButton).setOnClickListener { getCL()
+        findViewById<View>(R.id.reloadButton).setOnClickListener { 
+            getCL()
         }
 
-        /**
-         *
-         * Launch Payment Sheet
-         *
-         * */
-
+        // Launch Payment Sheet (React Native SDK)
         findViewById<View>(R.id.launchButton).setOnClickListener {
             CoroutineScope(Dispatchers.Main).launch {
                 val customisations = getCustomisations()
@@ -319,6 +277,9 @@ class MainActivity : Activity() {
             }
         }
 
+        // Launch Payment Sheet (WebView SDK)
+        // When using AppCompatActivity, the WebViewFragment will be attached
+        // directly to this activity instead of launching a separate activity
         findViewById<View>(R.id.launchWebButton).setOnClickListener {
             CoroutineScope(Dispatchers.Main).launch {
                 paymentSessionLite.presentPaymentSheet(
@@ -328,11 +289,10 @@ class MainActivity : Activity() {
             }
         }
 
-        findViewById<View>(R.id.launchWidgetLayout).setOnClickListener{
-            val intent = Intent(this,WidgetActivity::class.java)
+        findViewById<View>(R.id.launchWidgetLayout).setOnClickListener {
+            val intent = Intent(this, WidgetActivity::class.java)
             startActivity(intent)
         }
-
     }
 
     private fun setStatus(error: String) {
@@ -346,11 +306,9 @@ class MainActivity : Activity() {
             is PaymentSheetResult.Canceled -> {
                 setStatus(paymentSheetResult.data)
             }
-
             is PaymentSheetResult.Failed -> {
                 setStatus(paymentSheetResult.error.message ?: "")
             }
-
             is PaymentSheetResult.Completed -> {
                 setStatus(paymentSheetResult.data)
             }
@@ -362,11 +320,9 @@ class MainActivity : Activity() {
             is PaymentResult.Canceled -> {
                 setStatus(paymentResult.data)
             }
-
             is PaymentResult.Failed -> {
                 setStatus(paymentResult.throwable.message ?: "")
             }
-
             is PaymentResult.Completed -> {
                 setStatus(paymentResult.data)
             }
