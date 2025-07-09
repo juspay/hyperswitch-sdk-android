@@ -326,22 +326,13 @@ open class WebViewFragment : Fragment() {
                     if (method.name == "onScanResult") {
                         @Suppress("UNCHECKED_CAST")
                         val result = args[0] as Map<String, Any?>
-                        val wrapperMap = mapOf("scanCardData" to result)
-                        val jsonResult = JSONObject(wrapperMap).toString()
+
                         context.runOnUiThread {
-                            // Escape the JSON string properly
                             val jsCode = """
-                                        window.postMessage("$jsonResult", '*');
-                                    """.trimIndent()
+                        window.postMessage(JSON.stringify({ scanCardData: ${JSONObject(result)} }), '*');
+                    """.trimIndent()
                             webView.evaluateJavascript(jsCode, null)
                         }
-//                        val jsonResult = JSONObject(result).toString()
-//                        context.runOnUiThread {
-//                            val jsCode = """
-//                        window.postMessage(JSON.stringify({ scanCardData: $jsonResult }), '*');
-//                    """.trimIndent()
-//                            webView.evaluateJavascript(jsCode, null)
-//                        }
                     }
                     null
                 }
@@ -355,10 +346,9 @@ open class WebViewFragment : Fragment() {
             } catch (e: Exception) {
                 Log.e("WebViewFragment", "Card scanning not available", e)
                 val result = mapOf("status" to "Failed", "error" to "Card scanning not available")
-                val jsonResult = JSONObject(result).toString()
                 context.runOnUiThread {
                     val jsCode = """
-                window.postMessage(JSON.stringify({ scanCardData: $jsonResult }), '*');
+                window.postMessage(JSON.stringify({ scanCardData: ${JSONObject(result)} }), '*');
             """.trimIndent()
                     webView.evaluateJavascript(jsCode, null)
                 }
