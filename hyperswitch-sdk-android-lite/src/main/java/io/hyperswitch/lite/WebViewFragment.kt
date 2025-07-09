@@ -5,12 +5,15 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.app.Fragment
 import android.graphics.Color
+import android.graphics.Rect
 import android.os.Bundle
 import android.os.Message
 import android.util.Log
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.webkit.JavascriptInterface
 import android.webkit.JsResult
 import android.webkit.WebChromeClient
@@ -35,6 +38,9 @@ open class WebViewFragment : Fragment() {
     private lateinit var webViewContainer: RelativeLayout
     private lateinit var mainWebView: WebView
     private val webViews = mutableListOf<WebView>()
+    
+    private var keyboardLayoutListener: ViewTreeObserver.OnGlobalLayoutListener? = null
+    private var isKeyboardShowing = false
 
     //URL
     private lateinit var bundleUrl:String
@@ -46,6 +52,7 @@ open class WebViewFragment : Fragment() {
         mainWebView = createWebView()
         webViewContainer = RelativeLayout(context)
         webViews.add(mainWebView)
+        webViewContainer.gravity = Gravity.BOTTOM
         webViewContainer.addView(mainWebView)
     }
 
@@ -53,7 +60,115 @@ open class WebViewFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
+        setupKeyboardHandling()
         return webViewContainer
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onResume() {
+        super.onResume()
+        // Ensure the container can receive focus for key events
+        webViewContainer.requestFocus()
+    }
+
+
+    /**
+     * Sets up keyboard visibility handling to adjust the view when keyboard appears/disappears.
+     * This mimics React Native's behavior of pushing content up when keyboard opens.
+     */
+    private fun setupKeyboardHandling() {
+        val rootView = activity?.window?.decorView?.findViewById<View>(android.R.id.content)
+        rootView?.let { contentView ->
+            keyboardLayoutListener = ViewTreeObserver.OnGlobalLayoutListener {
+                val rect = Rect()
+                contentView.getWindowVisibleDisplayFrame(rect)
+                val screenHeight = contentView.rootView.height
+                val keypadHeight = screenHeight - rect.bottom
+                
+                val isKeyboardNowShowing = keypadHeight > screenHeight * 0.15
+                
+                if (isKeyboardNowShowing != isKeyboardShowing) {
+                    isKeyboardShowing = isKeyboardNowShowing
+                    
+                    if (isKeyboardShowing) {
+                        adjustViewForKeyboard(keypadHeight)
+                    } else {
+                        resetViewPosition()
+                    }
+                }
+            }
+            contentView.viewTreeObserver.addOnGlobalLayoutListener(keyboardLayoutListener)
+        }
+    }
+    
+    /**
+     * Adjusts the WebView container position when keyboard appears.
+     * @param keyboardHeight The height of the keyboard
+     */
+    private fun adjustViewForKeyboard(keyboardHeight: Int) {
+        activity?.runOnUiThread {
+            val params = webViewContainer.layoutParams
+            params.height = webViewContainer.height - keyboardHeight
+            webViewContainer.layoutParams = params
+            
+            webViewContainer.requestLayout()
+            
+//            mainWebView.evaluateJavascript(
+//                """
+//                window.dispatchEvent(new Event('resize'));
+//
+//                setTimeout(() => {
+//                    if (document.activeElement &&
+//                        (document.activeElement.tagName === 'INPUT' ||
+//                         document.activeElement.tagName === 'TEXTAREA' ||
+//                         document.activeElement.tagName === 'SELECT')) {
+//                        const element = document.activeElement;
+//                        const elementRect = element.getBoundingClientRect();
+//                        const viewportHeight = window.innerHeight;
+//                        const elementCenter = elementRect.top + (elementRect.height / 2);
+//                        const viewportCenter = viewportHeight / 2;
+//                        const scrollOffset = elementCenter - viewportCenter;
+//                        window.scrollBy({
+//                            top: scrollOffset,
+//                            behavior: 'smooth'
+//                        });
+//                        element.scrollIntoView({
+//                            behavior: 'smooth',
+//                            block: 'center',
+//                            inline: 'center'
+//                        });
+//                    }
+//                }, 100);
+//                """.trimIndent(),
+//                null
+//            )
+        }
+    }
+    
+    /**
+     * Resets the view position when keyboard is hidden.
+     */
+    private fun resetViewPosition() {
+        activity?.runOnUiThread {
+            val params = webViewContainer.layoutParams
+            params.height = RelativeLayout.LayoutParams.MATCH_PARENT
+            webViewContainer.layoutParams = params
+            webViewContainer.requestLayout()
+            
+            mainWebView.evaluateJavascript(
+                "window.dispatchEvent(new Event('resize'));", 
+                null
+            )
+        }
+    }
+    
+    @Deprecated("Deprecated in Java")
+    override fun onDestroyView() {
+        super.onDestroyView()
+        keyboardLayoutListener?.let {
+            activity?.window?.decorView?.findViewById<View>(android.R.id.content)
+                ?.viewTreeObserver?.removeOnGlobalLayoutListener(it)
+        }
     }
   
     /**
