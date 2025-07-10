@@ -195,22 +195,11 @@ open class WebViewFragment : Fragment() {
                     view: WebView?, dialog: Boolean, userGesture: Boolean, resultMsg: Message
                 ): Boolean {
                     val newWebView = createNewWebView()
-                    newWebView.webViewClient = object : WebViewClient() {
-                        override fun shouldOverrideUrlLoading(
-                            view: WebView?,
-                            request: WebResourceRequest?
-                        ): Boolean {
-                            view?.loadUrl(request?.url.toString())
-                            return true
-                        }
-                    }
                     webViews.add(newWebView)
                     webViewContainer.addView(newWebView)
                     val transport = resultMsg.obj as WebView.WebViewTransport
                     transport.webView = newWebView
                     resultMsg.sendToTarget()
-
-
                     return true
                 }
 
