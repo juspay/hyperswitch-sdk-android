@@ -68,13 +68,7 @@ open class WebViewFragment : Fragment() {
 
     private fun setupBackPressHandling() {
         val keyListener = View.OnKeyListener { _, keyCode, event ->
-        setupBackPressHandling()
-    }
-
-    private fun setupBackPressHandling() {
-        val keyListener = View.OnKeyListener { _, keyCode, event ->
             if (keyCode == android.view.KeyEvent.KEYCODE_BACK && event.action == android.view.KeyEvent.ACTION_UP) {
-                return@OnKeyListener handleBackPress()
                 return@OnKeyListener handleBackPress()
             }
             false
