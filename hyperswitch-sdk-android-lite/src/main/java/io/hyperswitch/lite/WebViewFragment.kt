@@ -63,17 +63,38 @@ open class WebViewFragment : Fragment() {
     override fun onViewCreated(view: View?, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         // Set up back press handling after view is created
-        view?.isFocusableInTouchMode = true
-        view?.requestFocus()
-        view?.setOnKeyListener { _, keyCode, event ->
+        setupBackPressHandling()
+    }
+
+    private fun setupBackPressHandling() {
+        val keyListener = View.OnKeyListener { _, keyCode, event ->
             if (keyCode == android.view.KeyEvent.KEYCODE_BACK && event.action == android.view.KeyEvent.ACTION_UP) {
-                return@setOnKeyListener handleBackPress()
+                return@OnKeyListener handleBackPress()
             }
             false
         }
 
+        // Set key listener on multiple views
+        view?.apply {
+            isFocusableInTouchMode = true
+            requestFocus()
+            setOnKeyListener(keyListener)
+        }
+        
+        webViewContainer.apply {
+            isFocusableInTouchMode = true
+            requestFocus()
+            setOnKeyListener(keyListener)
+        }
+        
+        mainWebView.apply {
+            isFocusableInTouchMode = true
+            requestFocus()
+            setOnKeyListener(keyListener)
+        }
+
         webViewContainer.viewTreeObserver
-            .addOnGlobalLayoutListener { possiblyResizeChildOfContent(webViewContainer.layoutParams as FrameLayout.LayoutParams) }
+        .addOnGlobalLayoutListener { possiblyResizeChildOfContent(webViewContainer.layoutParams as FrameLayout.LayoutParams) }
     }
 
     /**
@@ -99,16 +120,11 @@ open class WebViewFragment : Fragment() {
             mainWebView.goBack()
             return true
         }
-        
         // Otherwise, remove the fragment (same as MainActivity's onBackPressed)
-        PaymentSheetCallbackManager.executeCallback("{\"status\":\"cancelled\"}")
-        activity.runOnUiThread {
-            mainWebView.loadUrl(bundleUrl)
-        }
         activity?.fragmentManager?.beginTransaction()?.detach(this)?.commit()
         return true
     }
-
+    
     private var usableHeightPrevious = 0
     private fun possiblyResizeChildOfContent(frameLayoutParams: FrameLayout.LayoutParams) {
         val usableHeightNow = computeUsableHeight()
@@ -132,7 +148,6 @@ open class WebViewFragment : Fragment() {
         webViewContainer.getWindowVisibleDisplayFrame(r)
         return r.bottom
     }
-
     /**
      * Creates and configures a new WebView instance.
      *
@@ -168,6 +183,10 @@ open class WebViewFragment : Fragment() {
 
                 override fun onPageFinished(view: WebView?, url: String?) {
                     super.onPageFinished(view, url)
+
+                    activity?.runOnUiThread {
+                        setupBackPressHandling()
+                    }
                 }
             }
 
