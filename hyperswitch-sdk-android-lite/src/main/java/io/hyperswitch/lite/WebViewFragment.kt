@@ -94,7 +94,7 @@ open class WebViewFragment : Fragment() {
         }
 
         webViewContainer.viewTreeObserver
-        .addOnGlobalLayoutListener { possiblyResizeChildOfContent(webViewContainer.layoutParams as FrameLayout.LayoutParams) }
+            .addOnGlobalLayoutListener { possiblyResizeChildOfContent(webViewContainer.layoutParams as FrameLayout.LayoutParams) }
     }
 
     /**
@@ -121,6 +121,10 @@ open class WebViewFragment : Fragment() {
             return true
         }
         // Otherwise, remove the fragment (same as MainActivity's onBackPressed)
+        PaymentSheetCallbackManager.executeCallback("{\"status\":\"cancelled\"}")
+        activity.runOnUiThread {
+            mainWebView.loadUrl(bundleUrl)
+        }
         activity?.fragmentManager?.beginTransaction()?.detach(this)?.commit()
         return true
     }
