@@ -55,7 +55,50 @@ open class WebViewFragment : Fragment() {
     ): View {
         return webViewContainer
     }
-  
+
+    @Deprecated("Deprecated in Java")
+    override fun onViewCreated(view: View?, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        // Set up back press handling after view is created
+        view?.isFocusableInTouchMode = true
+        view?.requestFocus()
+        view?.setOnKeyListener { _, keyCode, event ->
+            if (keyCode == android.view.KeyEvent.KEYCODE_BACK && event.action == android.view.KeyEvent.ACTION_UP) {
+                return@setOnKeyListener handleBackPress()
+            }
+            false
+        }
+    }
+
+    /**
+     * Handles the back press event.
+     * If there are multiple WebViews, it closes the topmost one.
+     * If the main WebView can go back, it navigates back.
+     * Otherwise, it removes the fragment.
+     *
+     * @return true if the back press was handled, false otherwise
+     */
+    fun handleBackPress(): Boolean {
+        // If there are multiple WebViews (popups), close the topmost one
+        if (webViews.size > 1) {
+            val lastWebView = webViews.last()
+            webViews.remove(lastWebView)
+            webViewContainer.removeView(lastWebView)
+            lastWebView.destroy()
+            return true
+        }
+        
+        // If the main WebView can go back, navigate back
+        if (::mainWebView.isInitialized && mainWebView.canGoBack()) {
+            mainWebView.goBack()
+            return true
+        }
+        
+        // Otherwise, remove the fragment (same as MainActivity's onBackPressed)
+        activity?.fragmentManager?.beginTransaction()?.remove(this)?.commit()
+        return true
+    }
+
     /**
      * Creates and configures a new WebView instance.
      *
@@ -136,7 +179,7 @@ open class WebViewFragment : Fragment() {
                     return true
                 }
             }
-            
+
            val webAppInterface = if (isScanCardAvailable()) {
             WebAppInterfaceWithScanCard(activity,this@WebViewFragment,this,bundleUrl)
         } else {
@@ -180,6 +223,7 @@ open class WebViewFragment : Fragment() {
                 override fun onCloseWindow(window: WebView) {
                     webViews.remove(window)
                     webViewContainer.removeView(window)
+                    window.destroy()
                 }
             }
         }
@@ -282,10 +326,10 @@ open class WebViewFragment : Fragment() {
                     if (method.name == "onScanResult") {
                         @Suppress("UNCHECKED_CAST")
                         val result = args[0] as Map<String, Any?>
-                        val jsonResult = JSONObject(result).toString()
+
                         context.runOnUiThread {
                             val jsCode = """
-                        window.postMessage(JSON.stringify({ scanCardData: $jsonResult }), '*');
+                        window.postMessage(JSON.stringify({ scanCardData: ${JSONObject(result)} }), '*');
                     """.trimIndent()
                             webView.evaluateJavascript(jsCode, null)
                         }
@@ -302,10 +346,9 @@ open class WebViewFragment : Fragment() {
             } catch (e: Exception) {
                 Log.e("WebViewFragment", "Card scanning not available", e)
                 val result = mapOf("status" to "Failed", "error" to "Card scanning not available")
-                val jsonResult = JSONObject(result).toString()
                 context.runOnUiThread {
                     val jsCode = """
-                window.postMessage(JSON.stringify({ scanCardData: $jsonResult }), '*');
+                window.postMessage(JSON.stringify({ scanCardData: ${JSONObject(result)} }), '*');
             """.trimIndent()
                     webView.evaluateJavascript(jsCode, null)
                 }
@@ -315,4 +358,3 @@ open class WebViewFragment : Fragment() {
 
     class WebAppInterfaceWithoutScanCard(context: Activity,webFragment: Fragment,webView:WebView,bundleUrl: String) :WebAppInterface(context, webFragment=webFragment,webView=webView,bundleUrl=bundleUrl)
     }
-
