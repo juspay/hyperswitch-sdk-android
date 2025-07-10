@@ -5,6 +5,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.app.Fragment
 import android.graphics.Color
+import android.graphics.Rect
 import android.os.Bundle
 import android.os.Message
 import android.util.Log
@@ -17,6 +18,8 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.RelativeLayout
 import io.hyperswitch.payments.googlepaylauncher.GooglePayCallbackManager
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
@@ -32,7 +35,7 @@ open class WebViewFragment : Fragment() {
         }
     }
 
-    private lateinit var webViewContainer: RelativeLayout
+    private lateinit var webViewContainer: FrameLayout
     private lateinit var mainWebView: WebView
     private val webViews = mutableListOf<WebView>()
 
@@ -44,7 +47,7 @@ open class WebViewFragment : Fragment() {
         super.onCreate(savedInstanceState)
         bundleUrl = getString(R.string.webViewUrl)
         mainWebView = createWebView()
-        webViewContainer = RelativeLayout(context)
+        webViewContainer = FrameLayout(context)
         webViews.add(mainWebView)
         webViewContainer.addView(mainWebView)
     }
@@ -68,6 +71,9 @@ open class WebViewFragment : Fragment() {
             }
             false
         }
+
+        webViewContainer.viewTreeObserver
+            .addOnGlobalLayoutListener { possiblyResizeChildOfContent(webViewContainer.layoutParams as FrameLayout.LayoutParams) }
     }
 
     /**
@@ -95,8 +101,36 @@ open class WebViewFragment : Fragment() {
         }
         
         // Otherwise, remove the fragment (same as MainActivity's onBackPressed)
-        activity?.fragmentManager?.beginTransaction()?.remove(this)?.commit()
+        PaymentSheetCallbackManager.executeCallback("{\"status\":\"cancelled\"}")
+        activity.runOnUiThread {
+            mainWebView.loadUrl(bundleUrl)
+        }
+        activity?.fragmentManager?.beginTransaction()?.detach(this)?.commit()
         return true
+    }
+
+    private var usableHeightPrevious = 0
+    private fun possiblyResizeChildOfContent(frameLayoutParams: FrameLayout.LayoutParams) {
+        val usableHeightNow = computeUsableHeight()
+
+        if (usableHeightNow != usableHeightPrevious) {
+            val usableHeightSansKeyboard = webViewContainer.rootView.height
+            val heightDifference = usableHeightSansKeyboard - usableHeightNow
+            if (heightDifference > (usableHeightSansKeyboard / 4)) {
+                frameLayoutParams.height = usableHeightSansKeyboard - heightDifference
+            } else {
+                val insets = webViewContainer.rootView.rootWindowInsets
+                frameLayoutParams.height = usableHeightSansKeyboard - (insets?.systemWindowInsetBottom ?: 0)
+            }
+            webViewContainer.requestLayout()
+            usableHeightPrevious = usableHeightNow
+        }
+    }
+
+    private fun computeUsableHeight(): Int {
+        val r = Rect()
+        webViewContainer.getWindowVisibleDisplayFrame(r)
+        return r.bottom
     }
 
     /**
@@ -111,8 +145,8 @@ open class WebViewFragment : Fragment() {
     @SuppressLint("SetJavaScriptEnabled")
     private fun createWebView(): WebView {
         return WebView(context).apply {
-            layoutParams = RelativeLayout.LayoutParams(
-                RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
             )
             setBackgroundColor(Color.TRANSPARENT)
             settings.apply {
