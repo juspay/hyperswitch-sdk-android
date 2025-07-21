@@ -138,7 +138,8 @@ class MainActivity : Activity() {
         val appearance: PaymentSheet.Appearance = PaymentSheet.Appearance(
             typography = PaymentSheet.Typography(
                 sizeScaleFactor = 1f,
-                fontResId = R.font.montserrat
+                fontResId = R.font.montserrat,
+                fontFamily = "bitcount single"
             ),
             primaryButton = primaryButton,
             colorsLight = color1,

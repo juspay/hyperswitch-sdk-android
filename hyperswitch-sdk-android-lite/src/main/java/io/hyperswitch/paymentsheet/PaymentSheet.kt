@@ -630,7 +630,12 @@ class PaymentSheet internal constructor(
          * The font used in text. This should be a resource ID value.
          */
         @FontRes
-        val fontResId: Int? = null
+        val fontResId: Int? = null,
+
+        /**
+         * The font used for lite SDK.
+         */
+        val fontFamily: String? = null
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -640,6 +645,9 @@ class PaymentSheet internal constructor(
                     }
                     if (fontResId != null) {
                         putInt("fontResId", fontResId)
+                    }
+                    if (fontFamily != null) {
+                        putString("family", fontFamily)
                     }
                 }
             }
