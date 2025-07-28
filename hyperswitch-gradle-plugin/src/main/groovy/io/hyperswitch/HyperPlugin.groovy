@@ -167,14 +167,18 @@ class HyperPlugin implements Plugin<Project> {
     private static Map loadOptionalDepVersions(Project project) {
         InputStream input = HyperPlugin.classLoader.getResourceAsStream("optional-dep-versions.json")
         if (input != null) {
-            def json = new JsonSlurper().parse(input)
-            return json instanceof Map ? json : [:]
+            try {
+                def json = new JsonSlurper().parse(input)
+                return json instanceof Map ? json : [:]
+            } catch (Exception e) {
+                project.logger.error("⚠️ Error parsing optional-dep-versions.json: ${e.message}. No optional deps will be auto-applied.")
+                return [:]
+            }
         } else {
             project.logger.warn("⚠️ optional-dep-versions.json not found in resources. No optional deps will be auto-applied.")
             return [:]
         }
     }
-    
     private static String findHighestVersion(Set<String> versions) {
         return versions ? versions.iterator().next() : null
     }
