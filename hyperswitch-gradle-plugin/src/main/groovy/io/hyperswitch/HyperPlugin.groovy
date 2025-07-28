@@ -138,16 +138,18 @@ class HyperPlugin implements Plugin<Project> {
             // Auto-enable if version is specified but not explicitly enabled
             boolean shouldEnable = dep.enabled
             if (!dep.enabled && dep.customVersion?.trim()) {
+                project.logger.warn("⚠️ '${dep.name}' has a custom version '${dep.customVersion}' but is not enabled (enabled=false). This may be unintended.")
                 shouldEnable = true
                 project.logger.warn("ℹ️ Auto-enabling ${dep.name} because version '${dep.customVersion}' was specified")
             }
-            
+
             project.logger.warn("Processing dependency ${dep.name}: enabled=${shouldEnable}, customVersion='${dep.customVersion}'")
-            
+
             if (shouldEnable) {
                 processDependency(project, dep, DEP_MAP, compatibleVersions, sdkVersionToUse)
             }
         }
+
     }
 
     private static void processDependency(Project project, Map dep, Map DEP_MAP, Map compatibleVersions, String sdkVersionToUse) {
