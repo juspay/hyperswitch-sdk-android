@@ -58,15 +58,14 @@ class HyperPlugin implements Plugin<Project> {
             project.logger.info("Available SDK versions: ${optionalDepVersions.keySet()}")
             project.logger.info("Highest SDK version found: ${highestSdkVersion ?: 'None'}")
 
+            String sdkVersionToUse = determineSdkVersion(extension, highestSdkVersion, project)
+            def compatibleVersions = getCompatibleVersions(optionalDepVersions, sdkVersionToUse, highestSdkVersion, project)
+
+            addCoreSdk(project, sdkVersionToUse)
             project.afterEvaluate {
-                String sdkVersionToUse = determineSdkVersion(extension, highestSdkVersion, project)
-                
-                def compatibleVersions = getCompatibleVersions(optionalDepVersions, sdkVersionToUse, highestSdkVersion, project)
-                
-                addCoreSdk(project, sdkVersionToUse)
                 addOptionalDependencies(project, extension, compatibleVersions, sdkVersionToUse)
-                configureAndroidSettings(project)
             }
+            configureAndroidSettings(project)
         }
     }
 
@@ -201,15 +200,9 @@ class HyperPlugin implements Plugin<Project> {
             }
             
             if (project.android) {
-                // Configure manifest placeholders
-                if (project.android.buildTypes.debug) {
-                    project.android.buildTypes.debug.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
-                }
-                if (project.android.buildTypes.release) {
-                    project.android.buildTypes.release.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
-                }
+                project.android.buildTypes.debug.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
+                project.android.buildTypes.release.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
                 
-                // Configure packaging options
                 project.android.packagingOptions.jniLibs.useLegacyPackaging = true
                 project.android.packagingOptions {
                     exclude "lib/**/libfabricjni.so"
