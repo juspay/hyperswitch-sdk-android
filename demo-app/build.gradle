@@ -39,6 +39,9 @@ android {
     }
 
     packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
         exclude "lib/**/libfabricjni.so"
         exclude "lib/**/libreact_codegen_rncore.so"
         exclude "lib/**/librninstance.so"
