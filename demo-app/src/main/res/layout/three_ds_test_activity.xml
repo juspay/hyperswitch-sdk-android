@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#F5F5F5">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="3DS Test Activity"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:gravity="center"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Test the 4 3DS functions by clicking the buttons below:"
+        android:textSize="16sp"
+        android:textColor="#666666"
+        android:gravity="center"
+        android:layout_marginBottom="32dp" />
+
+    <Button
+        android:id="@+id/btnInit3DS"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="1. Initialize 3DS SDK"
+        android:textSize="16sp"
+        android:layout_marginBottom="12dp"
+        android:background="#4CAF50"
+        android:textColor="@android:color/white"
+        android:padding="16dp" />
+
+    <Button
+        android:id="@+id/btnGenerateAReq"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="2. Generate AReq Parameters"
+        android:textSize="16sp"
+        android:layout_marginBottom="12dp"
+        android:background="#2196F3"
+        android:textColor="@android:color/white"
+        android:padding="16dp" />
+
+    <Button
+        android:id="@+id/btnReceiveChallenge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="3. Receive Challenge Parameters"
+        android:textSize="16sp"
+        android:layout_marginBottom="12dp"
+        android:background="#FF9800"
+        android:textColor="@android:color/white"
+        android:padding="16dp" />
+
+    <Button
+        android:id="@+id/btnDoChallenge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="4. Perform Challenge"
+        android:textSize="16sp"
+        android:layout_marginBottom="24dp"
+        android:background="#9C27B0"
+        android:textColor="@android:color/white"
+        android:padding="16dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Status:"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:text="Ready to test 3DS functions"
+        android:textSize="14sp"
+        android:textColor="#666666"
+        android:background="@android:color/white"
+        android:padding="12dp"
+        android:layout_marginBottom="16dp"
+        android:scrollbars="vertical" />
+
+    <Button
+        android:id="@+id/btnBack"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Back to Main"
+        android:textSize="16sp"
+        android:background="#757575"
+        android:textColor="@android:color/white"
+        android:padding="16dp" />
+
+</LinearLayout>

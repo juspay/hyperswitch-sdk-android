@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Network permissions for API calls -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <application
         android:allowBackup="true"
         android:extractNativeLibs="true"
@@ -24,6 +28,14 @@
         <activity android:name=".WidgetActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             >
+    </activity>
+        <activity android:name=".ThreeDSTestActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            >
+        </activity>
+    <activity android:name=".TridentTestActivity"
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+        >
     </activity>
     </application>
 
