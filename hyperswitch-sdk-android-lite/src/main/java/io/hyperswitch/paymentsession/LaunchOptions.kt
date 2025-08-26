@@ -95,6 +95,33 @@ class LaunchOptions(private val activity: Activity? = null) {
         })
     }
 
+    // Overloaded method for authentication
+    fun getAuthenticationBundle(
+        context: Context,
+        paymentIntentClientSecret: String
+    ): Bundle = Bundle().apply {
+        putBundle("props", Bundle().apply {
+            putString("type", "authentication")
+            putString(
+                "publishableKey",
+                PaymentConfiguration.getInstance(context).publishableKey
+            )
+            putString("clientSecret", paymentIntentClientSecret)
+            putString(
+                "customBackendUrl",
+                PaymentConfiguration.getInstance(context).customBackendUrl
+            )
+            putString("customLogUrl", PaymentConfiguration.getInstance(context).customLogUrl)
+            putBundle("customParams", PaymentConfiguration.getInstance(context).customParams)
+            putBundle("hyperParams", getHyperParams())
+        })
+    }
+
+    fun getAuthenticationBundle(
+        paymentIntentClientSecret: String
+    ): Bundle =
+        activity?.let { getAuthenticationBundle(it, paymentIntentClientSecret) } ?: Bundle()
+
     fun getBundleWithHyperParams(readableMap: Map<*, *>): Bundle = Bundle().apply {
         putBundle("props", toBundle(readableMap).apply {
             putBundle("hyperParams", getHyperParams())
