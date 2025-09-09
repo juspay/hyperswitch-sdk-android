@@ -39,34 +39,31 @@ class AuthenticationSession(
     }
 
     /**
-     * Initialize Authentication Session
-     * @param paymentIntentClientSecret The client secret for the payment intent
-     * @param authenticationConfiguration Configuration object containing 3DS SDK settings
+     * Initialize 3DS Session
+     * @param authIntentClientSecret The client secret for the authentication intent
+     * @param configuration Configuration object containing 3DS SDK settings
      * @param callback Callback to handle initialization result
      * @return Session object for further operations
      */
-    fun initAuthenticationSession(
-        paymentIntentClientSecret: String,
-        authenticationConfiguration: AuthenticationConfiguration,
+    fun initThreeDsSession(
+        authIntentClientSecret: String,
+        configuration: AuthenticationConfiguration,
         callback: (AuthenticationResult) -> Unit
     ): Session {
         try {
-            // Store the client secret for the session
-            AuthenticationSession.paymentIntentClientSecret = paymentIntentClientSecret
-            isPresented = false // This is for authentication, not presentation
+            AuthenticationSession.paymentIntentClientSecret = authIntentClientSecret
+            isPresented = false
             
-            // Create the bundle for React Native context
-            val bundle = launchOptions.getAuthenticationBundle(paymentIntentClientSecret)
+            // val bundle = launchOptions.getAuthenticationBundle(authIntentClientSecret)
             
-            // Recreate React context to ensure fresh state
             reactNativeUtils.recreateReactContext()
             
-            // Wait for React Native context to be ready
             waitForReactNativeContext { hyperHeadlessModule ->
                 if (hyperHeadlessModule != null) {
-                    // Update the session with the ready module
+                    hyperHeadlessModule.setInitAuthenticationSessionCallback(callback)
+                    android.util.Log.d("AuthenticationSession", "Registered callback with HyperHeadlessModule for error propagation")
+                    
                     currentSession?.let { session ->
-                        // Use reflection to update the hyperHeadlessModule field
                         try {
                             val field = session.javaClass.getDeclaredField("hyperHeadlessModule")
                             field.isAccessible = true
@@ -81,13 +78,12 @@ class AuthenticationSession(
                 }
             }
             
-            // Create and store session (will be updated when React Native is ready)
             currentSession = Session(
                 activity = activity,
                 publishableKey = publishableKey,
-                paymentIntentClientSecret = paymentIntentClientSecret,
-                uiCustomization = authenticationConfiguration.uiCustomization,
-                hyperHeadlessModule = null // Will be set when React Native is ready
+                paymentIntentClientSecret = authIntentClientSecret,
+                uiCustomization = configuration.uiCustomization,
+                hyperHeadlessModule = null
             )
 
             return currentSession!!
@@ -105,13 +101,25 @@ class AuthenticationSession(
     private fun waitForReactNativeContext(callback: (HyperHeadlessModule?) -> Unit) {
         val handler = android.os.Handler(android.os.Looper.getMainLooper())
         var retryCount = 0
-        val maxRetries = 20 // Increased retries
-        val retryDelayMs = 250L // Shorter delay
+        val maxRetries = 20
+        val retryDelayMs = 250L
 
         fun checkForModule() {
+            if (activity.isFinishing || activity.isDestroyed) {
+                android.util.Log.e("AuthenticationSession", "Activity is no longer available during React Native context wait")
+                callback(null)
+                return
+            }
+            
             val hyperHeadlessModule = io.hyperswitch.react.HyperHeadlessModule.getInstance()
             if (hyperHeadlessModule != null) {
                 android.util.Log.d("AuthenticationSession", "React Native context ready after $retryCount retries")
+                
+                // Set activity in both the old and new systems for compatibility
+                io.hyperswitch.react.HyperHeadlessModule.setChallengeActivity(activity)
+                io.hyperswitch.authentication.AuthActivityManager.setActivity(activity)
+                android.util.Log.d("AuthenticationSession", "Activity set in both HyperHeadlessModule and AuthActivityManager: $activity")
+                
                 callback(hyperHeadlessModule)
             } else if (retryCount < maxRetries) {
                 retryCount++

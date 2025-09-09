@@ -17,25 +17,21 @@ class ThreeDSTestActivity : Activity() {
     private lateinit var statusText: TextView
     private var publishKey: String = ""
     private var paymentIntentClientSecret: String = ""
-    
     // New merchant-facing API objects
     private lateinit var authenticationSession: AuthenticationSession
     private var session: Session? = null
     private var transaction: Transaction? = null
     private var aReqParams: AuthenticationRequestParameters? = null
     private var challengeParameters: ChallengeParameters? = null
-    
     // API credentials and data
     private val apiKey = ""
     private val profileId = ""
     private val baseUrl = "https://sandbox.hyperswitch.io"
     private var authenticationId: String? = null
-    
     // Eligibility response data
     private var threeDsServerTransactionId: String? = null
     private var messageVersion: String? = null
     private var directoryServerId: String? = null
-    
     // HTTP client - use singleton to avoid creating multiple instances
     private val httpClient by lazy {
         OkHttpClient.Builder()
@@ -54,10 +50,10 @@ class ThreeDSTestActivity : Activity() {
         paymentIntentClientSecret = intent.getStringExtra("clientSecret") ?: ""
 
         statusText = findViewById(R.id.statusText)
-        
+
         // Initialize AuthenticationSession using the new ReactNativeUtils pattern
         authenticationSession = AuthenticationSession(this, publishKey)
-        
+
         setupButtons()
     }
 
@@ -68,7 +64,12 @@ class ThreeDSTestActivity : Activity() {
         transaction = null
         aReqParams = null
         challengeParameters = null
-        
+
+        // Clear activity references to prevent memory leaks
+        io.hyperswitch.react.HyperHeadlessModule.clearChallengeActivity()
+        io.hyperswitch.authentication.AuthActivityManager.clearActivity()
+        Log.d("ThreeDSTest", "Cleared activity references")
+
         // Cancel any pending HTTP calls
         try {
             httpClient.dispatcher.executorService.shutdown()
@@ -110,9 +111,11 @@ class ThreeDSTestActivity : Activity() {
                 return
             }
 
+            setStatus("🔧 Initializing 3DS SDK...")
+
             // Create authentication configuration with merchant-provided 3DS SDK settings
             val authenticationConfiguration = AuthenticationConfiguration(
-                threeDsSdkApiKey = "test_api_key_123",
+                apiKey = "test_api_key_123",
                 environment = ThreeDSEnvironment.SANDBOX,
                 uiCustomization = UiCustomization(
                     toolbarCustomization = ToolbarCustomization(
@@ -123,14 +126,13 @@ class ThreeDSTestActivity : Activity() {
                 )
             )
 
-            session = authenticationSession.initAuthenticationSession(
-                paymentIntentClientSecret = paymentIntentClientSecret,
-                authenticationConfiguration = authenticationConfiguration
+            session = authenticationSession.initThreeDsSession(
+                authIntentClientSecret = paymentIntentClientSecret,
+                configuration = authenticationConfiguration
             ) { result ->
                 when (result) {
                     is AuthenticationResult.Success -> {
                         setStatus("✅ 3DS SDK initialized. Making API call to create authentication...")
-                        // Now make the first API call
                         createAuthenticationApiCall()
                     }
                     is AuthenticationResult.Error -> {
@@ -289,19 +291,19 @@ class ThreeDSTestActivity : Activity() {
                         Log.d("ThreeDSTest", "Eligibility Response: $responseBody")
                         try {
                             val jsonResponse = JSONObject(responseBody ?: "")
-                            
+
                             // Extract eligibility response data
                             val eligibilityParams = jsonResponse.optJSONObject("eligibility_response_params")
                             val threeDsData = eligibilityParams?.optJSONObject("ThreeDsData")
-                            
+
                             if (threeDsData != null) {
                                 threeDsServerTransactionId = threeDsData.optString("three_ds_server_transaction_id")
                                 messageVersion = threeDsData.optString("message_version")
                                 directoryServerId = threeDsData.optString("directory_server_id")
-                                
-                                setStatus("✅ Eligibility data received - Message Version: $messageVersion, DS ID: $directoryServerId")
+
+                                setStatus("✅ Eligibility completed - ready for transaction creation")
                             } else {
-                                setStatus("✅ Eligibility call completed but no ThreeDsData found")
+                                setStatus("✅ Eligibility completed - no 3DS data found")
                             }
                         } catch (e: Exception) {
                             setStatus("❌ Error parsing eligibility response: ${e.message}")
@@ -326,28 +328,20 @@ class ThreeDSTestActivity : Activity() {
                 return
             }
 
-            val dsId = directoryServerId ?: session!!.getDirectoryServerID()
-            val msgVersion = messageVersion ?: session!!.getMessageVersion()
-            val cardNetwork = session!!.getCardNetwork()
+            // Create transaction with values from eligibility response
+            transaction = session!!.createTransaction(directoryServerId, messageVersion, "VISA")
 
-            setStatus("📋 Using DS ID: $dsId, Message Version: $msgVersion")
-            Log.d("ThreeDSTest", "directoryServerId from eligibility: $directoryServerId")
-            Log.d("ThreeDSTest", "session.getDirectoryServerID(): ${session!!.getDirectoryServerID()}")
-            Log.d("ThreeDSTest", "messageVersion from eligibility: $messageVersion")
-            Log.d("ThreeDSTest", "session.getMessageVersion(): ${session!!.getMessageVersion()}")
+            setStatus("🔄 Generating AReq parameters...")
 
-            // Create transaction with real values from eligibility
-            transaction = session!!.createTransaction(dsId, msgVersion, cardNetwork)
-
-            setStatus("🔄 Transaction created. Generating AReq parameters...")
-            
-            // Generate AReq parameters using the new synchronous API
-            aReqParams = transaction!!.getAuthenticationRequestParameters()
-
-            if (aReqParams != null) {
-                setStatus("✅ AReq generated - SDK Transaction ID: ${aReqParams!!.sdkTransactionId}")
-            } else {
-                setStatus("❌ Failed to generate AReq parameters")
+            transaction!!.getAuthenticationRequestParameters { result ->
+                runOnUiThread {
+                    if (result != null) {
+                        aReqParams = result
+                        setStatus("✅ AReq generated - SDK Transaction ID: ${result.sdkTransactionID}")
+                    } else {
+                        setStatus("❌ Failed to generate AReq parameters")
+                    }
+                }
             }
 
         } catch (e: Exception) {
@@ -369,12 +363,12 @@ class ThreeDSTestActivity : Activity() {
                 put("device_channel", "APP")
                 put("threeds_method_comp_ind", "N")
                 put("sdk_information", JSONObject().apply {
-                    put("sdk_app_id", aReqParams!!.sdkAppId)
+                    put("sdk_app_id", aReqParams!!.sdkAppID)
                     put("sdk_enc_data", aReqParams!!.deviceData) // Map deviceData to sdk_enc_data
-                    put("sdk_trans_id", aReqParams!!.sdkTransactionId)
+                    put("sdk_trans_id", aReqParams!!.sdkTransactionID)
                     put("sdk_reference_number", aReqParams!!.sdkReferenceNumber)
                     put("sdk_max_timeout", aReqParams!!.sdkMaxTimeout)
-                    
+
                     // Parse and add sdk_ephem_pub_key if available
                     aReqParams!!.sdkEphemeralPublicKey?.let { ephemeralKey ->
                         try {
@@ -404,14 +398,14 @@ class ThreeDSTestActivity : Activity() {
             override fun onResponse(call: Call, response: Response) {
                 val responseBody = response.body?.string()
                 response.close()
-                
+
                 runOnUiThread {
                     if (response.isSuccessful) {
                         Log.d("ThreeDSTest", "Auth Response: $responseBody")
                         try {
                             val jsonResponse = JSONObject(responseBody ?: "")
                             val transStatus = jsonResponse.optString("trans_status", "")
-                            
+
                             if (transStatus == "C") {
                                 // Challenge required - extract challenge parameters
                                 challengeParameters = ChallengeParameters(
@@ -455,20 +449,24 @@ class ThreeDSTestActivity : Activity() {
                 setStatus("🔄 Challenge required, starting challenge flow...")
 
                 val challengeStatusReceiver = object : ChallengeStatusReceiver {
-                    override fun onSuccess(result: ChallengeResult) {
-                        setStatus("✅ Challenge completed successfully - Status: ${result.transStatus}")
+                    override fun completed(completionEvent: CompletionEvent) {
+                        setStatus("✅ Challenge completed successfully - Transaction ID: ${completionEvent.transactionId}")
                     }
 
-                    override fun onError(result: ChallengeResult) {
-                        setStatus("❌ Challenge failed - Status: ${result.transStatus}, Error: ${result.errorMessage}")
+                    override fun cancelled() {
+                        setStatus("🚫 Challenge cancelled by user")
                     }
 
-                    override fun onTimeout() {
+                    override fun timedout() {
                         setStatus("⏰ Challenge timed out")
                     }
 
-                    override fun onCancel() {
-                        setStatus("🚫 Challenge cancelled by user")
+                    override fun protocolError(protocolErrorEvent: ProtocolErrorEvent) {
+                        setStatus("❌ Protocol error - Error: ${protocolErrorEvent.errorMessage.errorDescription}")
+                    }
+
+                    override fun runtimeError(runtimeErrorEvent: RuntimeErrorEvent) {
+                        setStatus("❌ Runtime error - Error: ${runtimeErrorEvent.errorMessage}")
                     }
                 }
 
@@ -490,7 +488,7 @@ class ThreeDSTestActivity : Activity() {
             Log.e("ThreeDSTest", "Error in performChallenge", e)
         }
     }
-    
+
 
     private fun setStatus(message: String) {
         runOnUiThread {

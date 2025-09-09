@@ -12,7 +12,7 @@ class Session(
     private var hyperHeadlessModule: HyperHeadlessModule?
 ) {
     private var directoryServerID: String = "A000000004" // Default Visa DS ID
-    private var messageVersion: String = "2.3.1" // Default message version
+    private var messageVersion: String = "2.2.0" // Default message version
     private var cardNetwork: String = "VISA" // Default card network
     
     companion object {
@@ -31,7 +31,7 @@ class Session(
      * Get Message Version for the authentication transaction
      * @return Message Version
      */
-    fun getMessageVersion(): String {
+    fun getAuthRequestParams(): String {
         return messageVersion
     }
 
@@ -41,18 +41,19 @@ class Session(
 
     /**
      * Create a transaction for authentication
-     * @param dsId Directory Server ID
-     * @param messageVersion Message Version
+     * @param dsId Directory Server ID (optional, defaults to Visa DS ID)
+     * @param messageVersion Message Version (optional, defaults to "2.3.1")
+     * @param cardNetwork Card Network (optional, defaults to "VISA")
      * @return Transaction object
      */
     fun createTransaction(
-        dsId: String,
-        messageVersion: String,
-        cardNetwork: String
+        dsId: String? = null,
+        messageVersion: String? = null,
+        cardNetwork: String? = null
     ): Transaction {
-        this.directoryServerID = dsId
-        this.messageVersion = messageVersion
-        this.cardNetwork = cardNetwork
+        this.directoryServerID = dsId ?: this.directoryServerID
+        this.messageVersion = messageVersion ?: this.messageVersion
+        this.cardNetwork = cardNetwork ?: this.cardNetwork
 
         // Get the HyperHeadlessModule instance when creating transaction
         // This ensures React Native context is ready
@@ -64,21 +65,11 @@ class Session(
 
         return Transaction(
             activity = activity,
-            dsId = dsId,
-            messageVersion = messageVersion,
+            dsId = this.directoryServerID,
+            messageVersion = this.messageVersion,
             hyperHeadlessModule = currentModule
         )
     }
     
-    /**
-     * Accept Challenge Parameters from merchant
-     * Merchants should make their own API calls and pass the challenge parameters to this method
-     * @param challengeParameters Challenge parameters received from merchant's API calls
-     * @return Challenge Parameters
-     */
-    fun getChallengeParameters(challengeParameters: ChallengeParameters): ChallengeParameters {
-        Log.d(TAG, "Received challenge parameters from merchant. Status: ${challengeParameters.transStatus}")
-        return challengeParameters
-    }
 
 }

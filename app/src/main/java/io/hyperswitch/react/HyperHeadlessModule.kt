@@ -17,8 +17,6 @@ import io.hyperswitch.paymentsession.GetPaymentSessionCallBackManager
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentMethod
 import io.hyperswitch.paymentsession.PaymentSessionHandler
-import com.hyperswitchtrident3ds.HyperswitchTrident3dsModule
-
 class HyperHeadlessModule internal constructor(private val rct: ReactApplicationContext) :
     ReactContextBaseJavaModule(rct)
     //  HyperswitchTrident3dsModule.ActivityProvider 
@@ -28,11 +26,14 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
         return "HyperHeadless"
     }
 
-    // // Implementation of ActivityProvider interface
-    // override fun getCurrentChallengeActivity(): android.app.Activity? {
-    //     android.util.Log.d("HyperHeadless", "ActivityProvider.getCurrentChallengeActivity called - currentChallengeActivity: $currentChallengeActivity, rct.currentActivity: ${rct.currentActivity}")
-    //     return currentChallengeActivity ?: rct.currentActivity
-    // }
+    /**
+     * Get the current activity for 3DS operations
+     * This method can be called by any 3DS SDK via reflection
+     */
+    fun getCurrentActivityFor3DS(): android.app.Activity? {
+        android.util.Log.d("HyperHeadless", "getCurrentActivityFor3DS called - delegating to static getChallengeActivity()")
+        return getChallengeActivity()
+    }
 
     // Method to initialise the payment session
     @ReactMethod
@@ -184,20 +185,29 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
     }
 
     @ReactMethod
-    fun getMessageVersion(callback: Callback) {
-        android.util.Log.d("HyperHeadless", "getMessageVersion called - storing callback for manual execution")
-        storedGetMessageVersionCallback = callback
+    fun getAuthRequestParams(callback: Callback) {
+        android.util.Log.d("HyperHeadless", "getAuthRequestParams called - storing callback for manual execution")
+        storedGetAuthRequestParamsCallback = callback
         android.util.Log.d("HyperHeadless", "Callback stored successfully. Ready for manual execution.")
     }
 
     @ReactMethod
-    fun getChallengeParams(params: ReadableMap, callback: Callback) {
-        android.util.Log.d("HyperHeadless", "getChallengeParams called - storing callback and params for manual execution")
+    fun sendAReqAndReceiveChallengeParams(params: ReadableMap, callback: Callback) {
+        android.util.Log.d("HyperHeadless", "sendAReqAndReceiveChallengeParams called - storing callback and params")
+        android.util.Log.d("HyperHeadless", "Received params: ${params.toString()}")
         
-        storedGetChallengeParamsCallback = callback
-        storedGetChallengeParamsData = params
+        storedsendAReqAndReceiveChallengeParamsCallback = callback
+        storedsendAReqAndReceiveChallengeParamsData = params
         
-        android.util.Log.d("HyperHeadless", "Challenge params callback stored successfully. Ready for manual execution.")
+        android.util.Log.d("HyperHeadless", "Challenge params callback stored successfully. Data available for callback mechanism.")
+        android.util.Log.d("HyperHeadless", "Stored data status: ${params.getString("status")}")
+        
+        // Trigger any waiting auth parameters callback immediately when data arrives
+        authParametersCallback?.let { authCallback ->
+            android.util.Log.d("HyperHeadless", "Triggering auth parameters callback - data has arrived!")
+            authCallback(params)
+            authParametersCallback = null // Clear the callback after use
+        }
     }
 
     private var receiveChallengeCallback: ((String) -> Unit)? = null
@@ -205,10 +215,15 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
     
     private var currentChallengeActivity: android.app.Activity? = null
     
-    private var storedGetMessageVersionCallback: Callback? = null
-    private var storedGetChallengeParamsCallback: Callback? = null
-    private var storedGetChallengeParamsData: ReadableMap? = null
+    private var storedGetAuthRequestParamsCallback: Callback? = null
+    private var storedsendAReqAndReceiveChallengeParamsCallback: Callback? = null
+    private var storedsendAReqAndReceiveChallengeParamsData: ReadableMap? = null
     private var storedChallengeParameters: WritableMap? = null
+    
+
+    private var authParametersCallback: ((com.facebook.react.bridge.ReadableMap?) -> Unit)? = null
+
+    private var initAuthenticationSessionCallback: ((io.hyperswitch.authentication.AuthenticationResult) -> Unit)? = null
 
     @ReactMethod
     fun sendMessageToNative(message: String) {
@@ -217,20 +232,88 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
         try {
             val jsonObject = org.json.JSONObject(message)
             
-            when {
-                jsonObject.has("challengeResult") -> {
-                    receiveChallengeCallback?.invoke(message)
-                    receiveChallengeCallback = null
+            if (jsonObject.has("method")) {
+                val method = jsonObject.getString("method")
+                val status = jsonObject.optBoolean("status", false)
+                
+                android.util.Log.d("HyperHeadless", "Processing method-based message: method=$method, status=$status")
+                
+                if (!status) {
+                    val errorObject = jsonObject.optJSONObject("error")
+                    val errorMessage = errorObject?.optString("message") ?: "Unknown error"
+                    
+                    when (method) {
+                        "initialiseSdkFunc" -> {
+                            android.util.Log.d("HyperHeadless", "Routing initialiseSdkFunc error to initAuthenticationSession callback")
+                            initAuthenticationSessionCallback?.let { callback ->
+                                callback(io.hyperswitch.authentication.AuthenticationResult.Error(errorMessage))
+                                initAuthenticationSessionCallback = null
+                            } ?: run {
+                                android.util.Log.w("HyperHeadless", "No initAuthenticationSession callback registered for error: $errorMessage")
+                            }
+                        }
+                        
+                        "generateAReqParams" -> {
+                            android.util.Log.d("HyperHeadless", "Routing generateAReqParams error to callback mechanism")
+                            authParametersCallback?.let { callback ->
+                                android.util.Log.d("HyperHeadless", "Triggering auth parameters callback with null due to error")
+                                callback(null)
+                                authParametersCallback = null
+                            }
+                        }
+                        
+                        "generateChallenge" -> {
+                            android.util.Log.d("HyperHeadless", "Routing generateChallenge error to doChallenge callback")
+                            doChallengeCallback?.let { callback ->
+                                val errorResponse = "{\"status\":\"error\",\"message\":\"$errorMessage\"}"
+                                callback(errorResponse)
+                                doChallengeCallback = null
+                            } ?: run {
+                                android.util.Log.w("HyperHeadless", "No doChallenge callback registered for error: $errorMessage")
+                            }
+                        }
+                        
+                        else -> {
+                            android.util.Log.w("HyperHeadless", "Unknown method in error message: $method")
+                        }
+                    }
+                } else {
+                    // Handle success messages
+                    when (method) {
+                        "generateChallenge" -> {
+                            android.util.Log.d("HyperHeadless", "Routing generateChallenge success to doChallenge callback")
+                            doChallengeCallback?.let { callback ->
+                                android.util.Log.d("HyperHeadless", "Forwarding challenge success message to Transaction.kt")
+                                callback(message)
+                                doChallengeCallback = null
+                            } ?: run {
+                                android.util.Log.w("HyperHeadless", "No doChallenge callback registered for success message")
+                            }
+                        }
+                        
+                        else -> {
+                            android.util.Log.d("HyperHeadless", "Received success message for method: $method")
+                        }
+                    }
                 }
-                jsonObject.has("doChallengeResult") -> {
-                    doChallengeCallback?.invoke(message)
-                    doChallengeCallback = null
-                }
+                
+                return 
             }
+            
+            // when {
+            //     jsonObject.has("challengeResult") -> {
+            //         receiveChallengeCallback?.invoke(message)
+            //         receiveChallengeCallback = null
+            //     }
+            //     jsonObject.has("doChallengeResult") -> {
+            //         doChallengeCallback?.invoke(message)
+            //         doChallengeCallback = null
+            //     }
+            // }
         } catch (e: Exception) {
             android.util.Log.e("HyperHeadless", "Error parsing response: ${e.message}")
         }
-    }    
+    }
 
     fun initializeSDK(publishableKey: String) {
         try {
@@ -279,17 +362,22 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
         }
         
         doChallengeCallback = callback
-        currentChallengeActivity = activity
-        android.util.Log.d("HyperHeadless", "Stored currentChallengeActivity: $currentChallengeActivity")
-
-        val callback = storedGetChallengeParamsCallback
         
-        if (callback != null) {
+        currentChallengeActivity = activity
+        setChallengeActivity(activity)
+        
+        if (activity != null) {
+            io.hyperswitch.authentication.AuthActivityManager.setActivity(activity)
+            android.util.Log.d("HyperHeadless", "Activity set in AuthActivityManager: $activity")
+        }
+
+        val storedCallback = storedsendAReqAndReceiveChallengeParamsCallback
+        
+        if (storedCallback != null) {
             android.util.Log.d("HyperHeadless", "Triggering stored receiveChallengeParamsCallback with challenge parameters")
             
             try {
-                // Call the stored receiveChallengeParamsCallback with challenge parameters
-                callback.invoke(storedChallengeParameters!!)
+                storedCallback.invoke(storedChallengeParameters!!)
                 
                 android.util.Log.d("HyperHeadless", "receiveChallengeParamsCallback triggered successfully")
             } catch (e: Exception) {
@@ -304,28 +392,28 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
     
     
     /**
-     * Execute the stored getMessageVersion callback manually
+     * Execute the stored getAuthRequestParams callback manually
      * This triggers the ReScript generateAReqParamsCallback
      */
-    fun executeStoredGetMessageVersion(): Boolean {
-        android.util.Log.d("HyperHeadless", "executeStoredGetMessageVersion called")
+    fun executeStoredGetAuthRequestParams(): Boolean {
+        android.util.Log.d("HyperHeadless", "executeStoredGetAuthRequestParams called")
         
-        return storedGetMessageVersionCallback?.let { callback ->
-            android.util.Log.d("HyperHeadless", "Executing stored getMessageVersion callback")
+        return storedGetAuthRequestParamsCallback?.let { callback ->
+            android.util.Log.d("HyperHeadless", "Executing stored getAuthRequestParams callback")
             
             val params = Arguments.createMap()
-            params.putString("messageVersion", "2.3.1")
+            params.putString("messageVersion", "2.2.0")
             params.putString("directoryServerId", "A000000004") 
             params.putString("cardNetwork", "VISA")
             
             callback.invoke(params)
             
-            storedGetMessageVersionCallback = null
+            storedGetAuthRequestParamsCallback = null
             
-            android.util.Log.d("HyperHeadless", "getMessageVersion callback executed successfully")
+            android.util.Log.d("HyperHeadless", "getAuthRequestParams callback executed successfully")
             true
         } ?: run {
-            android.util.Log.w("HyperHeadless", "No stored getMessageVersion callback found")
+            android.util.Log.w("HyperHeadless", "No stored getAuthRequestParams callback found")
             false
         }
     }
@@ -334,46 +422,96 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
     /**
      * Check if there are stored callbacks ready for execution
      */
-    fun hasStoredGetMessageVersionCallback(): Boolean = storedGetMessageVersionCallback != null
+    fun hasStoredGetAuthRequestParamsCallback(): Boolean = storedGetAuthRequestParamsCallback != null
     
-    fun hasStoredGetChallengeParamsCallback(): Boolean = 
-        storedGetChallengeParamsCallback != null && storedGetChallengeParamsData != null
+    fun hasStoredsendAReqAndReceiveChallengeParamsCallback(): Boolean = 
+        storedsendAReqAndReceiveChallengeParamsCallback != null && storedsendAReqAndReceiveChallengeParamsData != null
     
     /**
      * Get the stored challenge params data (which contains aReqParams from generateAReqParamsCallback)
      * This is used by Transaction.getAuthenticationRequestParameters() to extract aReqParams
      */
     fun getStoredChallengeParamsData(): ReadableMap? {
-        android.util.Log.d("HyperHeadless", "getStoredChallengeParamsData called - returning aReqParams data: ${storedGetChallengeParamsData != null}")
-        return storedGetChallengeParamsData
+        android.util.Log.d("HyperHeadless", "getStoredChallengeParamsData called - returning aReqParams data: ${storedsendAReqAndReceiveChallengeParamsData != null}")
+        return storedsendAReqAndReceiveChallengeParamsData
     }
     
+
+
+    /**
+     * Set the callback for auth parameters (replaces CountDownLatch approach)
+     * This is called by Transaction to register a callback that will be triggered when data arrives
+     */
+    fun setAuthParametersCallback(callback: (com.facebook.react.bridge.ReadableMap?) -> Unit) {
+        android.util.Log.d("HyperHeadless", "Setting auth parameters callback")
+        authParametersCallback = callback
+    }
+
+    /**
+     * Set the init authentication session callback for error propagation
+     * This is called by AuthenticationSession to register its callback for error handling
+     */
+    fun setInitAuthenticationSessionCallback(callback: (io.hyperswitch.authentication.AuthenticationResult) -> Unit) {
+        android.util.Log.d("HyperHeadless", "Setting init authentication session callback for error propagation")
+        initAuthenticationSessionCallback = callback
+    }
+
     /**
      * Clear all stored callbacks (useful for cleanup)
      */
     fun clearStoredCallbacks() {
         android.util.Log.d("HyperHeadless", "Clearing all stored callbacks")
-        storedGetMessageVersionCallback = null
-        storedGetChallengeParamsCallback = null
-        storedGetChallengeParamsData = null
+        storedGetAuthRequestParamsCallback = null
+        storedsendAReqAndReceiveChallengeParamsCallback = null
+        storedsendAReqAndReceiveChallengeParamsData = null
         storedChallengeParameters = null
+        authParametersCallback = null
+        initAuthenticationSessionCallback = null
     }
 
-    // Companion object to provide static access to the module instance
     companion object {
         private var instance: HyperHeadlessModule? = null
+        
+        @Volatile
+        private var staticChallengeActivity: android.app.Activity? = null
         
         fun getInstance(): HyperHeadlessModule? = instance
         
         internal fun setInstance(module: HyperHeadlessModule) {
             instance = module
         }
+        
+        /**
+         * Static setter for challenge activity - can be called from anywhere
+         */
+        @JvmStatic
+        fun setChallengeActivity(activity: android.app.Activity?) {
+            android.util.Log.d("HyperHeadless", "Static setChallengeActivity called with: $activity")
+            staticChallengeActivity = activity
+        }
+        
+        /**
+         * Static getter for challenge activity - used by 3DS modules via reflection
+         */
+        @JvmStatic
+        fun getChallengeActivity(): android.app.Activity? {
+            val activity = staticChallengeActivity ?: instance?.rct?.currentActivity
+            android.util.Log.d("HyperHeadless", "Static getChallengeActivity returning: $activity (static: $staticChallengeActivity, rct: ${instance?.rct?.currentActivity})")
+            return activity
+        }
+        
+        /**
+         * Clear the static activity reference
+         */
+        @JvmStatic
+        fun clearChallengeActivity() {
+            android.util.Log.d("HyperHeadless", "Static clearChallengeActivity called")
+            staticChallengeActivity = null
+        }
     }
     
     init {
         setInstance(this)
-        // Set this module as the activity provider for the Trident 3DS module
-        // HyperswitchTrident3dsModule.setActivityProvider(this)
-        android.util.Log.d("HyperHeadless", "Activity provider set for Trident 3DS module")
+        android.util.Log.d("HyperHeadless", "HyperHeadlessModule initialized with direct activity management")
     }
 }

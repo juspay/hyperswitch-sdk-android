@@ -22,7 +22,7 @@ sealed class AuthenticationResult {
  * Authentication Configuration containing 3DS SDK settings
  */
 data class AuthenticationConfiguration(
-    val threeDsSdkApiKey: String,
+    val apiKey: String,
     val environment: String = ThreeDSEnvironment.SANDBOX,
     val uiCustomization: UiCustomization? = null
 )
@@ -70,13 +70,12 @@ data class ButtonCustomization(
  * Authentication Request Parameters (AReq)
  */
 data class AuthenticationRequestParameters(
-    val messageVersion: String,
-    val directoryServerId: String,
-    val sdkTransactionId: String,
-    val sdkAppId: String,
+    val sdkTransactionID: String,
+    val deviceData: String,
+    val sdkEphemeralPublicKey: String? = null,
+    val sdkAppID: String,
     val sdkReferenceNumber: String,
-    val deviceData: String, // This will be mapped to sdk_enc_data in API call
-    val sdkEphemeralPublicKey: String? = null, // For sdk_ephem_pub_key
+    val messageVersion: String,
     val sdkMaxTimeout: Int = 15 // Default timeout
 )
 
@@ -104,10 +103,43 @@ data class ChallengeResult(
 
 /**
  * Interface for receiving challenge status updates
+ * Following the pattern from HsChallengeManager
  */
 interface ChallengeStatusReceiver {
-    fun onSuccess(result: ChallengeResult)
-    fun onError(result: ChallengeResult)
-    fun onTimeout()
-    fun onCancel()
+    fun completed(completionEvent: CompletionEvent)
+    fun cancelled()
+    fun timedout()
+    fun protocolError(protocolErrorEvent: ProtocolErrorEvent)
+    fun runtimeError(runtimeErrorEvent: RuntimeErrorEvent)
 }
+
+/**
+ * Completion event for successful challenge completion
+ */
+data class CompletionEvent(
+    val transactionId: String,
+    val authenticationValue: String? = null,
+    val eci: String? = null
+)
+
+/**
+ * Protocol error event
+ */
+data class ProtocolErrorEvent(
+    val errorMessage: ErrorMessage
+)
+
+/**
+ * Runtime error event
+ */
+data class RuntimeErrorEvent(
+    val errorMessage: String
+)
+
+/**
+ * Error message structure
+ */
+data class ErrorMessage(
+    val errorDescription: String,
+    val errorCode: String? = null
+)
