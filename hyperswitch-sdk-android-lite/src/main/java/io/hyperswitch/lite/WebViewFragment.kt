@@ -163,7 +163,8 @@ open class WebViewFragment : Fragment() {
      */
     @SuppressLint("SetJavaScriptEnabled")
     private fun createWebView(): WebView {
-        return WebView(context).apply {
+        return try {
+            WebView(context).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
             )
@@ -187,13 +188,37 @@ open class WebViewFragment : Fragment() {
 
                 override fun onPageFinished(view: WebView?, url: String?) {
                     super.onPageFinished(view, url)
+                    // Re-establish focus and key listeners when page finishes
+                    // activity?.runOnUiThread {
+                    //     setupBackPressHandling()
+                    //     mainWebView.requestFocus()
+                    // }
                 }
             }
 
             webChromeClient = object : WebChromeClient() {
+                // override fun onProgressChanged(view: WebView?, newProgress: Int) {
+                //     super.onProgressChanged(view, newProgress)
+                //     if (newProgress == 100) {
+                //         val url = view?.url
+                //         Log.d("WebViewFragment", "Page loaded 100%: $url")
+                //         // Check if this is the problematic white screen
+                //         if (url != null && url.contains("stripe.com")) {
+                //             Log.d("WebViewFragment", "Stripe page detected, re-establishing focus")
+                //             activity?.runOnUiThread {
+                //                 // Force focus back to our views
+                //                 mainWebView.requestFocus()
+                //                 webViewContainer.requestFocus()
+                //                 view?.requestFocus()
+                //             }
+                //         }
+                //     }
+                // }
+
                 override fun onCreateWindow(
                     view: WebView?, dialog: Boolean, userGesture: Boolean, resultMsg: Message
                 ): Boolean {
+                    Log.d("WebViewFragment", "Creating new window")
                     val newWebView = createNewWebView()
                     webViews.add(newWebView)
                     webViewContainer.addView(newWebView)
@@ -227,8 +252,13 @@ open class WebViewFragment : Fragment() {
         } else {
         WebAppInterfaceWithoutScanCard(activity,this@WebViewFragment,this,bundleUrl)
     }
-        addJavascriptInterface(webAppInterface, "AndroidInterface")
-            loadUrl(bundleUrl)
+                addJavascriptInterface(webAppInterface, "AndroidInterface")
+                loadUrl(bundleUrl)
+            }
+        } catch (e: Exception) {
+            Log.e("WebViewFragment", "Failed to create WebView", e)
+            // Re-throw the exception to maintain existing error handling behavior
+            throw e
         }
     }
 
