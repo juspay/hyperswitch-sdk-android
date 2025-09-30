@@ -4,6 +4,7 @@ import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.lite.WebViewUtils
+import io.hyperswitch.lite.WebViewWarmUpHelper
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
 
@@ -29,6 +30,10 @@ open class DefaultPaymentSessionLauncherLite(
                 customParams
             )
         }
+        
+        // Early WebView warm-up to prevent Resources$NotFoundException crashes
+        // This happens before WebView preloading, ensuring WebViewFactory is initialized safely
+        WebViewWarmUpHelper.warmUpWhenIdle(activity)
     }
 
     // Method to initialize the payment session

@@ -13,6 +13,12 @@ import io.hyperswitch.paymentsheet.PaymentSheet
  */
 class WebViewUtils(private val activity: Activity) : SDKInterface {
 
+    init {
+        // Initialize WebView warm-up to prevent Resources$NotFoundException crashes
+        // This ensures WebViewFactory is initialized safely before any WebView instances are created
+        WebViewWarmUpHelper.warmUpWhenIdle(activity)
+    }
+
     /**
      * The WebViewFragment used for displaying payment sheets.
      *
