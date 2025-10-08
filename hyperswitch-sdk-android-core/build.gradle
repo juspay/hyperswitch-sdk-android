@@ -1,7 +1,8 @@
-apply plugin: "com.android.library"
-apply plugin: "org.jetbrains.kotlin.android"
-apply plugin: "kotlin-parcelize"
-//apply plugin: 'com.vanniktech.maven.publish'
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+    id 'kotlin-parcelize'
+}
 
 /**
  * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
@@ -9,22 +10,24 @@ apply plugin: "kotlin-parcelize"
 
 def enableProguardInReleaseBuilds = false
 
-def liteVersion = rootProject.hasProperty('liteVersion') ? liteVersion : version
+def coreVersion = rootProject.hasProperty('coreVersion') ? coreVersion : version
+
 
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'io.hyperswitch.lite'
+    namespace 'io.hyperswitch.core'
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName liteVersion
+        versionName coreVersion
         resConfigs "en"
         buildConfigField "String", "VERSION_NAME", "\"${liteVersion}\""
     }
+
     buildTypes {
         release {
             minifyEnabled enableProguardInReleaseBuilds
@@ -45,7 +48,6 @@ android {
 }
 
 dependencies {
-    api project(':hyperswitch-sdk-android-core')
     implementation("com.google.android.gms:play-services-wallet")
 
     constraints {
@@ -56,4 +58,3 @@ dependencies {
         }
     }
 }
-

@@ -9,7 +9,7 @@ import android.view.View
 import android.view.WindowInsets
 import android.webkit.WebSettings
 import io.hyperswitch.PaymentConfiguration
-import io.hyperswitch.lite.BuildConfig
+import io.hyperswitch.core.BuildConfig
 import io.hyperswitch.paymentsheet.PaymentSheet
 import org.json.JSONObject
 
