@@ -14,7 +14,7 @@ class DefaultPaymentSessionLauncher(
     customLogUrl: String?,
     customParams: Bundle?,
     private var reactNativeUtils: SDKInterface = ReactNativeUtils(activity)
-) : DefaultPaymentSessionLauncherLite(
+) : BasePaymentSessionLauncher(
     activity,
     publishableKey,
     customBackendUrl,

@@ -127,7 +127,7 @@ dependencies {
     implementation("com.google.android.material:material")
     implementation("com.google.android.gms:play-services-wallet")
     implementation("org.greenrobot:eventbus")
-    implementation project(':hyperswitch-sdk-android-lite')
+    api project(':hyperswitch-sdk-android-core')
     implementation('com.squareup.okhttp3:okhttp')
 
     constraints {
