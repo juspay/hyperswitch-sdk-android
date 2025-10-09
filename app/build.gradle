@@ -129,6 +129,7 @@ dependencies {
     implementation("org.greenrobot:eventbus")
     implementation project(':hyperswitch-sdk-android-lite')
     implementation('com.squareup.okhttp3:okhttp')
+    compileOnly project(':react-native-hyperswitch-unified-3ds')
 
     constraints {
         implementation("com.squareup.okhttp3:okhttp") {
@@ -136,7 +137,7 @@ dependencies {
                 prefer '3.3.0'
             }
         }
-        
+
         implementation("androidx.appcompat:appcompat") {
             version {
                 prefer '1.6.1'
