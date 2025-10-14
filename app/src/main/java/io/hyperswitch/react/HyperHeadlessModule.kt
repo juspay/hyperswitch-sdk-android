@@ -8,11 +8,9 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.payments.paymentlauncher.PaymentResult
-import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.isPresented
-import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.paymentIntentClientSecret
+import io.hyperswitch.paymentsession.Card
 import io.hyperswitch.paymentsession.ExitHeadlessCallBackManager
 import io.hyperswitch.paymentsession.GetPaymentSessionCallBackManager
-import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentMethod
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 
@@ -23,22 +21,6 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
         return "HyperHeadless"
     }
 
-    // Method to initialise the payment session
-    @ReactMethod
-    fun initialisePaymentSession(callback: Callback) {
-        if (GetPaymentSessionCallBackManager.getCallback() != null || !isPresented) {
-            callback.invoke(
-                Arguments.fromBundle(
-                    LaunchOptions().getBundle(
-                        rct,
-                        paymentIntentClientSecret ?: ""
-                    ).getBundle("props")
-                )
-            )
-        }
-    }
-
-    // Method to get the payment session
     @ReactMethod
     fun getPaymentSession(
         getPaymentMethodData: ReadableMap,
@@ -68,14 +50,14 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
             override fun confirmWithCustomerDefaultPaymentMethod(
                 cvc: String?, resultHandler: (PaymentResult) -> Unit
             ) {
-                getPaymentMethodData.getMap("_0")?.getString("payment_token")
+                getPaymentMethodData.getString("payment_token")
                     ?.let { confirmWithCustomerPaymentToken(it, cvc, resultHandler) }
             }
 
             override fun confirmWithCustomerLastUsedPaymentMethod(
                 cvc: String?, resultHandler: (PaymentResult) -> Unit
             ) {
-                getPaymentMethodData2.getMap("_0")?.getString("payment_token")
+                getPaymentMethodData2.getString("payment_token")
                     ?.let { confirmWithCustomerPaymentToken(it, cvc, resultHandler) }
             }
 
@@ -99,56 +81,69 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
     }
 
     private fun parseGetPaymentMethodData(readableMap: ReadableMap): PaymentMethod {
+        val paymentMethod = readableMap.getString("payment_method_str")
 
-        val tag = try {
-            readableMap.getString("TAG")
-        } catch (ex: Exception) {
-            ""
-        }
-        val dataObject: ReadableMap = readableMap.getMap("_0") ?: Arguments.createMap()
+        return if (paymentMethod != null) {
+            val cardMap = readableMap.getMap("card")
 
-        return when (tag) {
-            "SAVEDLISTCARD" -> {
-                PaymentMethod.Card(
-                    isDefaultPaymentMethod = dataObject.getBoolean("isDefaultPaymentMethod"),
-                    paymentToken = dataObject.getString("payment_token") ?: "",
-                    cardScheme = dataObject.getString("cardScheme") ?: "",
-                    name = dataObject.getString("name") ?: "",
-                    expiryDate = dataObject.getString("expiry_date") ?: "",
-                    cardNumber = dataObject.getString("cardNumber") ?: "",
-                    nickName = dataObject.getString("nick_name") ?: "",
-                    cardHolderName = dataObject.getString("cardHolderName") ?: "",
-                    requiresCVV = dataObject.getBoolean("requiresCVV"),
-                    created = dataObject.getString("created") ?: "",
-                    lastUsedAt = dataObject.getString("lastUsedAt") ?: "",
+            var card: Card? = null
+            if (cardMap != null) {
+                card = Card(
+                    scheme = cardMap.getString("scheme") ?: "",
+                    issuerCountry = cardMap.getString("issuer_country") ?: "",
+                    last4Digits = cardMap.getString("last4_digits") ?: "",
+                    expiryMonth = cardMap.getString("expiry_month") ?: "",
+                    expiryYear = cardMap.getString("expiry_year") ?: "",
+                    cardToken = cardMap.getString("card_token"),
+                    cardHolderName = cardMap.getString("card_holder_name") ?: "",
+                    cardFingerprint = cardMap.getString("card_fingerprint"),
+                    nickName = cardMap.getString("nick_name") ?: "",
+                    cardNetwork = cardMap.getString("card_network") ?: "",
+                    cardIsin = cardMap.getString("card_isin") ?: "",
+                    cardIssuer = cardMap.getString("card_issuer") ?: "",
+                    cardType = cardMap.getString("card_type") ?: "",
+                    savedToLocker = cardMap.getBoolean("saved_to_locker"),
                 )
             }
 
-            "SAVEDLISTWALLET" -> {
-                PaymentMethod.Wallet(
-                    isDefaultPaymentMethod = dataObject.getBoolean("isDefaultPaymentMethod"),
-                    paymentToken = dataObject.getString("payment_token") ?: "",
-                    walletType = dataObject.getString("walletType") ?: "",
-                    created = dataObject.getString("created") ?: "",
-                    lastUsedAt = dataObject.getString("lastUsedAt") ?: "",
-                )
+            val paymentExperienceArray = readableMap.getArray("payment_experience")
+            val paymentExperienceList = mutableListOf<String>()
+            if (paymentExperienceArray != null) {
+                for (i in 0 until paymentExperienceArray.size()) {
+                    paymentExperienceArray.getString(i)?.let { paymentExperienceList.add(it) }
+                }
             }
 
-            else -> {
-                PaymentMethod.Error(
-                    code = readableMap.getString("code") ?: "",
-                    message = readableMap.getString("message") ?: ""
-                )
-            }
+            PaymentMethod.PaymentMethodType(
+                paymentToken = readableMap.getString("payment_token") ?: "",
+                paymentMethodId = readableMap.getString("payment_method_id") ?: "",
+                customerId = readableMap.getString("customer_id") ?: "",
+                paymentMethod = readableMap.getString("payment_method_str") ?: "",
+                paymentMethodType = readableMap.getString("payment_method_type") ?: "",
+                paymentMethodIssuer = readableMap.getString("payment_method_issuer") ?: "",
+                paymentMethodIssuerCode = readableMap.getString("payment_method_issuer_code"),
+                recurringEnabled = readableMap.getBoolean("recurring_enabled"),
+                installmentPaymentEnabled = readableMap.getBoolean("installment_payment_enabled"),
+                paymentExperience = paymentExperienceList,
+                card = card,
+                metadata = readableMap.getString("metadata"),
+                created = readableMap.getString("created") ?: "",
+                bank = readableMap.getString("bank"),
+                surchargeDetails = readableMap.getString("surcharge_details"),
+                requiresCvv = readableMap.getBoolean("requires_cvv"),
+                lastUsedAt = readableMap.getString("last_used_at") ?: "",
+                defaultPaymentMethodSet = readableMap.getBoolean("default_payment_method_set"),
+            )
+        } else {
+            PaymentMethod.Error(
+                code = readableMap.getString("code") ?: "",
+                message = readableMap.getString("message") ?: ""
+            )
         }
     }
 
-
-    // Method to exit the headless mode
     @ReactMethod
     fun exitHeadless(status: String) {
         ExitHeadlessCallBackManager.executeCallback(status)
-        // reactInstanceManager?.currentReactContext?.destroy()
-        // reactInstanceManager?.destroy()
     }
 }
