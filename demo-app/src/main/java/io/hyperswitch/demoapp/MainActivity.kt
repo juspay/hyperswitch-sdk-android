@@ -313,6 +313,12 @@ class MainActivity : Activity() {
             startActivity(intent)
         }
 
+        findViewById<View>(R.id.launchAuthenticationButton).setOnClickListener{
+            val intent = Intent(this, ThreeDSTestActivity::class.java)
+            intent.putExtra("publishKey", publishKey)
+            intent.putExtra("clientSecret", paymentIntentClientSecret)
+            startActivity(intent)
+        }
     }
 
     private fun setStatus(error: String) {

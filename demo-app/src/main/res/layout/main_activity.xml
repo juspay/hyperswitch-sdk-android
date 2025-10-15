@@ -74,6 +74,18 @@
             android:textColor="#FFFFFF"
             android:textSize="20sp" />
 
+        <Button
+            android:id="@+id/launchAuthenticationButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="20dp"
+            android:layout_weight="1"
+            android:background="@drawable/rounded_button"
+            android:text="Launch 3DS Authentication"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp" />
+
         <TextView
             android:id="@+id/resultText"
             android:layout_width="match_parent"
