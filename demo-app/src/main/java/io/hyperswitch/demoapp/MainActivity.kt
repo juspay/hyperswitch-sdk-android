@@ -50,7 +50,7 @@ class MainActivity : Activity() {
     private var serverUrl = "http://10.0.2.2:5252"
     private lateinit var paymentSession: PaymentSession
     private lateinit var paymentSessionLite: PaymentSessionLite
-    private lateinit var editText : EditText
+    private lateinit var editText: EditText
 
 
     private suspend fun fetchNetceteraApiKey(): String? =
@@ -82,7 +82,8 @@ class MainActivity : Activity() {
     }
 
     private fun loadServerUrl(): String {
-        return getSharedPreferences().getString(KEY_SERVER_URL, DEFAULT_SERVER_URL) ?: DEFAULT_SERVER_URL
+        return getSharedPreferences().getString(KEY_SERVER_URL, DEFAULT_SERVER_URL)
+            ?: DEFAULT_SERVER_URL
     }
 
     private fun isValidUrl(url: String): Boolean {
@@ -143,7 +144,8 @@ class MainActivity : Activity() {
             ),
             primaryButton = primaryButton,
             colorsLight = color1,
-            colorsDark = color2
+            colorsDark = color2,
+            theme = PaymentSheet.Theme.Light
         )
 
         val configuration = PaymentSheet.Configuration.Builder("Example, Inc.")
@@ -210,12 +212,12 @@ class MainActivity : Activity() {
 
                                 val text =
                                     when (val data = it.getCustomerLastUsedPaymentMethodData()) {
-                                        is PaymentMethod.Card -> arrayOf(
-                                            data.cardScheme + " - " + data.cardNumber,
-                                            true
-                                        )
-
-                                        is PaymentMethod.Wallet -> arrayOf(data.walletType, true)
+                                        is PaymentMethod.PaymentMethodType ->
+                                            arrayOf(
+                                                data.card?.let { "${it.scheme} - ${it.last4Digits}" }
+                                                    ?: data.paymentMethodType,
+                                                true
+                                            )
                                         is PaymentMethod.Error -> arrayOf(data.message, false)
                                     }
 
@@ -255,12 +257,10 @@ class MainActivity : Activity() {
         setContentView(R.layout.main_activity)
 
         ctx = this
-        editText = ctx.findViewById<EditText>(R.id.ipAddressInput)
-        // Load saved URL or use default
+        editText = ctx.findViewById(R.id.ipAddressInput)
         serverUrl = loadServerUrl()
         editText.setText(serverUrl)
 
-        // Add TextWatcher for URL validation
         editText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
@@ -282,7 +282,8 @@ class MainActivity : Activity() {
          * */
 
         getCL()
-        findViewById<View>(R.id.reloadButton).setOnClickListener { getCL()
+        findViewById<View>(R.id.reloadButton).setOnClickListener {
+            getCL()
         }
 
         /**
@@ -307,8 +308,8 @@ class MainActivity : Activity() {
             }
         }
 
-        findViewById<View>(R.id.launchWidgetLayout).setOnClickListener{
-            val intent = Intent(this,WidgetActivity::class.java)
+        findViewById<View>(R.id.launchWidgetLayout).setOnClickListener {
+            val intent = Intent(this, WidgetActivity::class.java)
             startActivity(intent)
         }
 

@@ -9,16 +9,23 @@ import androidx.fragment.app.FragmentActivity
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactFragment
 import com.facebook.react.ReactInstanceManager
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.ReactContext
 import com.facebook.react.common.assets.ReactFontManager
+import com.facebook.react.jstasks.HeadlessJsTaskConfig
+import com.facebook.react.jstasks.HeadlessJsTaskContext
+import com.facebook.react.jstasks.HeadlessJsTaskEventListener
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.facebook.react.uimanager.PixelUtil
 import io.hyperswitch.BuildConfig
+import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.paymentIntentClientSecret
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
 
-class ReactNativeUtils(private val activity: Activity) : SDKInterface {
+class ReactNativeUtils(private val activity: Activity) : SDKInterface, HeadlessJsTaskEventListener {
 
     private var reactInstanceManager: ReactInstanceManager? = null
+    private var headlessTaskId: Int? = null
     private val launchOptions = LaunchOptions(activity)
 
     override fun initializeReactNativeInstance() {
@@ -42,14 +49,41 @@ class ReactNativeUtils(private val activity: Activity) : SDKInterface {
         reactInstanceManager?.let {
             val reactContext = it.currentReactContext
             activity.runOnUiThread {
-                if (reactContext == null || !reactContext.hasCatalystInstance()) {
-                    it.createReactContextInBackground()
-                } else {
-                    it.recreateReactContextInBackground()
-                }
+                it.createReactContextInBackground()
+            }
+            if (reactContext != null) {
+                invokeStartTask(reactContext)
+            } else {
+                it.addReactInstanceEventListener(object : ReactInstanceManager.ReactInstanceEventListener {
+                    override fun onReactContextInitialized(context: ReactContext) {
+                        invokeStartTask(context)
+                        it.removeReactInstanceEventListener(this)
+                    }
+                })
             }
         } ?: throw IllegalStateException("Payment Session Initialization Failed")
     }
+
+    private fun invokeStartTask(reactContext: ReactContext) {
+        val taskConfig = HeadlessJsTaskConfig("HyperHeadless", Arguments.fromBundle(
+            LaunchOptions().getBundle(
+                reactContext,
+                paymentIntentClientSecret ?: ""
+            )
+        ), 5000, true, null)
+
+        val headlessJsTaskContext = HeadlessJsTaskContext.Companion.getInstance(reactContext)
+        headlessJsTaskContext.addTaskEventListener(this)
+        activity.runOnUiThread {
+            headlessTaskId?.let {
+                headlessJsTaskContext.finishTask(it)
+            }
+            headlessTaskId = headlessJsTaskContext.startTask(taskConfig)
+        }
+    }
+
+    override fun onHeadlessJsTaskFinish(taskId: Int) {}
+    override fun onHeadlessJsTaskStart(taskId: Int) {}
 
     override fun presentSheet(
         paymentIntentClientSecret: String,
