@@ -1,40 +1,22 @@
 apply plugin: "com.android.library"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "kotlin-parcelize"
-//apply plugin: 'com.vanniktech.maven.publish'
 
-/**
- * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
- */
-
-def enableProguardInReleaseBuilds = false
-
-def liteVersion = rootProject.hasProperty('liteVersion') ? liteVersion : version
+group = "io.hyperswitch"
+version = liteSdkVersion
 
 android {
-    ndkVersion rootProject.ext.ndkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
-    compileSdk rootProject.ext.compileSdkVersion
-
     namespace 'io.hyperswitch.lite'
+    compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName liteVersion
-        resConfigs "en"
-        buildConfigField "String", "VERSION_NAME", "\"${liteVersion}\""
+        consumerProguardFiles "consumer-rules.pro"
+        buildConfigField "String", "VERSION_NAME", "\"${liteSdkVersion}\""
     }
     buildTypes {
         release {
-            minifyEnabled enableProguardInReleaseBuilds
-            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
-
-            debuggable false
-            jniDebuggable false
-            renderscriptDebuggable false
-            pseudoLocalesEnabled false
-            zipAlignEnabled true
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
         buildTypes.all { buildType ->
             if (!['debug', 'release'].contains(buildType.name)) {
@@ -45,15 +27,7 @@ android {
 }
 
 dependencies {
-    api project(':hyperswitch-sdk-android-core')
-    implementation("com.google.android.gms:play-services-wallet")
-
-    constraints {
-        implementation("com.google.android.gms:play-services-wallet") {
-            version {
-                prefer '16.0.1'
-            }
-        }
-    }
+    api project(':hyperswitch-sdk-android-api')
+    implementation project(':hyperswitch-sdk-android-webview-utils')
 }
 

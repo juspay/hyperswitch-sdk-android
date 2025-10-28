@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">Demo App Lite</string>
+    <string name="ip_address">IP Address</string>
+    <string name="reload_client_secret">Reload Client Secret</string>
+    <string name="launch_payment_sheet">Launch Payment Sheet</string>
+</resources>

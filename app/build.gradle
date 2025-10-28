@@ -3,6 +3,9 @@ apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "kotlin-parcelize"
 apply plugin: "io.hyperswitch.react"
 
+group = "io.hyperswitch"
+version = sdkVersion
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -75,33 +78,18 @@ def enableProguardInReleaseBuilds = false
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
 android {
-    ndkVersion rootProject.ext.ndkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
-    compileSdk rootProject.ext.compileSdkVersion
-
     namespace 'io.hyperswitch'
+    compileSdk rootProject.ext.compileSdkVersion
+    ndkVersion rootProject.ext.ndkVersion
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName version
-        resConfigs "en"
-        resValue 'string', "CODE_PUSH_APK_BUILD_TIME", String.format("\"%d\"", System.currentTimeMillis())
-        buildConfigField "String", "VERSION_NAME", "\"${version}\""
-        buildConfigField "boolean", "IS_HERMES_ENABLED", hermesEnabled
-        buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", newArchEnabled
+        buildConfigField "String", "VERSION_NAME", "\"${sdkVersion}\""
+        consumerProguardFiles "consumer-rules.pro"
     }
     buildTypes {
         release {
             minifyEnabled enableProguardInReleaseBuilds
-            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
-            consumerProguardFiles "consumer-rules.pro"
-
-            debuggable false
-            jniDebuggable false
-            renderscriptDebuggable false
-            pseudoLocalesEnabled false
-            zipAlignEnabled true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
         buildTypes.all { buildType ->
             if (!['debug', 'release'].contains(buildType.name)) {
@@ -113,7 +101,7 @@ android {
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
-    implementation("com.facebook.react:react-android")
+    api("com.facebook.react:react-android")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
@@ -121,51 +109,6 @@ dependencies {
         implementation jscFlavor
     }
     implementation("in.juspay:hyperotareact:0.0.1-xota.10")
-    implementation("androidx.appcompat:appcompat")
-    implementation("androidx.activity:activity-ktx")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("com.google.android.material:material")
-    implementation("com.google.android.gms:play-services-wallet")
-    implementation("org.greenrobot:eventbus")
-    api project(':hyperswitch-sdk-android-core')
-    implementation('com.squareup.okhttp3:okhttp')
-
-    constraints {
-        implementation("com.squareup.okhttp3:okhttp") {
-            version {
-                prefer '3.3.0'
-            }
-        }
-        
-        implementation("androidx.appcompat:appcompat") {
-            version {
-                prefer '1.6.1'
-            }
-        }
-        implementation("androidx.activity:activity-ktx") {
-            version {
-                prefer '1.6.1'
-            }
-        }
-        implementation("androidx.compose.ui:ui-graphics") {
-            version {
-                prefer '1.4.3'
-            }
-        }
-        implementation("com.google.android.material:material") {
-            version {
-                prefer '1.9.0'
-            }
-        }
-        implementation("com.google.android.gms:play-services-wallet") {
-            version {
-                prefer '19.2.1'
-            }
-        }
-        implementation("org.greenrobot:eventbus") {
-            version {
-                prefer '3.3.1'
-            }
-        }
-    }
+    implementation project(':hyperswitch-sdk-android-logger')
+    api project(':hyperswitch-sdk-android-api')
 }
