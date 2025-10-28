@@ -1,22 +1,6 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
-
-gradle.startParameter.excludedTaskNames.addAll(
-        gradle.startParameter.taskNames.findAll {
-            it.contains("testClasses")
-        }
-)
-
 buildscript {
-    ext {
-        buildToolsVersion = "35.0.0"
-        minSdkVersion = 24
-        compileSdkVersion = 35
-        targetSdkVersion = 35
-        ndkVersion = "27.1.12297006"
-        kotlinVersion = "2.0.21"
-        kotlin_version = "2.0.21"
-        androidXBrowser = "1.5.0"
-    }
+    apply from: 'dependencies.gradle'
+
     repositories {
         google()
         mavenCentral()
@@ -28,18 +12,10 @@ buildscript {
     }
 }
 
-/*
-plugins {
-    id 'com.vanniktech.maven.publish' version "0.30.0"
-}
-*/
-
 apply plugin: "io.hyperswitch.rootproject"
-apply plugin: 'maven-publish'
-//apply plugin: 'signing'
+apply plugin: "maven-publish"
 
 rootProject.allprojects {
-    // apply plugin: 'com.vanniktech.maven.publish'
     repositories {
         google()
         mavenCentral()
@@ -50,83 +26,32 @@ rootProject.allprojects {
             url "https://jitpack.io"
         }
         maven {
-            url 'https://x.klarnacdn.net/mobile-sdk/'
-        }
-        maven {
             url("$rootDir/../node_modules/detox/Detox-android")
         }
-        maven { url "https://maven.juspay.in/hyper-sdk/" }
-    }
-    /*
-    afterEvaluate { project ->
-        if (tasks.findByPath(':react-native-klarna-inapp-sdk:compileDebugUnitTestJavaWithJavac')) {
-            tasks.findByPath(':react-native-klarna-inapp-sdk:compileDebugUnitTestJavaWithJavac').enabled = false
-        }
-        if (tasks.findByPath(':react-native-klarna-inapp-sdk:compileReleaseUnitTestJavaWithJavac')) {
-            tasks.findByPath(':react-native-klarna-inapp-sdk:compileReleaseUnitTestJavaWithJavac').enabled = false
-        }
-        if (project.plugins.hasPlugin('com.android.library') && !excludedLibs.contains(project.name)) {
-            println("PRO1 [$project]")
-
-            mavenPublishing {
-                // configure(new com.vanniktech.maven.publish.AndroidSingleVariantLibrary("release", false, false))
-
-                publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
-                signAllPublications()
-
-                coordinates("io.hyperswitch.${project.name}", project.name, project.version)
-
-                pom {
-                    name = project.name
-                    description = 'Your project description'
-                    url = 'http://www.hyperswitch.io'
-                    licenses {
-                        license {
-                            name = 'The Apache License, Version 2.0'
-                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                        }
-                    }
-                    developers {
-                        developer {
-                            id = 'ChiragKV-Juspay'
-                            name = 'Chirag KV'
-                            email = 'chirag.kv@juspay.in'
-                        }
-                    }
-                    scm {
-                        connection = 'scm:git:git://github.com/juspay/hyperswitch-sdk-android.git'
-                        developerConnection = 'scm:git:ssh://git@github.com:juspay/hyperswitch-sdk-android.git'
-                        url = 'https://github.com/hyperswitch/hyperswitch-sdk-android'
-                    }
-                }
-            }
+        maven {
+            url "https://maven.juspay.in/hyper-sdk/"
         }
     }
-     */
 }
 
 def runtimeDeps = [
-        'react-native-gesture-handler',
         'react-native-inappbrowser-reborn',
-        'react-native-pager-view',
-        'react-native-safe-area-context',
-        'react-native-screens',
         'react-native-svg',
         'sentry_react-native',
 ]
 
 def runtimeDepsExcluded = [
-        'demo-app'
+        'demo-app',
+        'demo-app-lite'
 ]
 
 def runtimeDepsOptional = [
-        'react-native-reanimated',
         'react-native-hyperswitch-kount',
         'react-native-hyperswitch-paypal',
-        'react-native-klarna-inapp-sdk',
-        'react-native-hyperswitch-scancard',
         'react-native-hyperswitch-netcetera-3ds',
-        'react-native-hyperswitch-samsung-pay',      
+        'react-native-hyperswitch-samsung-pay',
+        'react-native-hyperswitch-scancard',
+        'react-native-klarna-inapp-sdk',
 ]
 
 def configurePomMetadata = { root ->
@@ -153,19 +78,19 @@ def configurePomMetadata = { root ->
 
 subprojects {
 
-    def disableTaskIfPresent = { taskPath ->
-        def task = tasks.findByPath(taskPath)
-        if (task) task.enabled = false
-    }
+    // def disableTaskIfPresent = { taskPath ->
+    //     def task = tasks.findByPath(taskPath)
+    //     if (task) task.enabled = false
+    // }
 
-    disableTaskIfPresent(':react-native-klarna-inapp-sdk:compileDebugUnitTestJavaWithJavac')
-    disableTaskIfPresent(':react-native-klarna-inapp-sdk:compileReleaseUnitTestJavaWithJavac')
+    // disableTaskIfPresent(':react-native-klarna-inapp-sdk:compileDebugUnitTestJavaWithJavac')
+    // disableTaskIfPresent(':react-native-klarna-inapp-sdk:compileReleaseUnitTestJavaWithJavac')
     // disableTaskIfPresent(':react-native-klarna-inapp-sdk:testReleaseUnitTest')
     // disableTaskIfPresent(':react-native-hyperswitch-paypal:lintDebug')
 
     def isAppProject = project.name == 'app'
     def isLiteProject = project.name == 'hyperswitch-sdk-android-lite'
-    def pomVersion = isAppProject ? project.version : (isLiteProject ? liteVersion : extVersion)
+    def pomVersion = isAppProject ? project.version : (isLiteProject ? liteSdkVersion : libsVersion)
 
     def configurePom = { pom ->
         def root = pom.asNode()
@@ -174,11 +99,10 @@ subprojects {
         def dependencies = root.appendNode('dependencies')
         configurations.getByName('releaseCompileClasspath').getResolvedConfiguration().getFirstLevelModuleDependencies().each {
             if (!runtimeDepsOptional.contains(it.moduleName)) {
-                def isLiteProjectSub = it.moduleName == 'hyperswitch-sdk-android-lite'
                 def dependency = dependencies.appendNode('dependency')
                 dependency.appendNode('groupId', it.moduleGroup)
                 dependency.appendNode('artifactId', it.moduleName)
-                dependency.appendNode('version', (runtimeDeps.contains(it.moduleName) ? extVersion : (isLiteProjectSub ? liteVersion : it.moduleVersion)))
+                dependency.appendNode('version', (runtimeDeps.contains(it.moduleName) ? extVersion : it.moduleVersion))
             }
         }
     }
@@ -201,8 +125,4 @@ subprojects {
             }
         }
     }
-
-//    signing {
-//        sign publishing.publications
-//    }
 }

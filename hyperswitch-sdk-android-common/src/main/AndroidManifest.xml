@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <activity
+            android:name="io.hyperswitch.redirect.RedirectActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/HyperTransparentTheme">
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="${applicationId}.hyperswitch" />
+                <data android:host="" tools:ignore="AppLinkUrlError" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="io.hyperswitch.payments.GooglePayActivity"
+            android:exported="false"
+            android:theme="@style/HyperTransparentTheme" />
+
+        <meta-data
+            android:name="com.google.android.gms.wallet.api.enabled"
+            android:value="true" />
+    </application>
+</manifest>

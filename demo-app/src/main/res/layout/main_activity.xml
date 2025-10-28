@@ -9,19 +9,21 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_gravity="center"
+        android:maxWidth="320dp"
         android:orientation="vertical">
 
         <EditText
             android:id="@+id/ipAddressInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="25dp"
+            android:layout_margin="20dp"
             android:layout_weight="1"
+            android:autofillHints="http://"
             android:ems="10"
-            android:textSize="32dp"
-            android:hint="IP Address"
+            android:textSize="32sp"
+            android:hint="@string/ip_address"
             android:inputType="text"
             android:textAlignment="center"
             />
@@ -33,7 +35,7 @@
             android:layout_margin="20dp"
             android:layout_weight="1"
             android:background="@drawable/rounded_button"
-            android:text="Reload Client Secret"
+            android:text="@string/reload_client_secret"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:textSize="20sp" />
@@ -45,19 +47,7 @@
             android:layout_margin="20dp"
             android:layout_weight="1"
             android:background="@drawable/rounded_button"
-            android:text="Launch Payment Sheet"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp" />
-
-        <Button
-            android:id="@+id/launchWebButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="20dp"
-            android:layout_weight="1"
-            android:background="@drawable/rounded_button"
-            android:text="Launch Payment Sheet Lite"
+            android:text="@string/launch_payment_sheet"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:textSize="20sp" />
@@ -69,7 +59,7 @@
             android:layout_margin="20dp"
             android:layout_weight="1"
             android:background="@drawable/rounded_button"
-            android:text="Launch Widget Layout"
+            android:text="@string/launch_widget_layout"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:textSize="20sp" />
@@ -90,7 +80,7 @@
             android:layout_margin="20dp"
             android:layout_weight="1"
             android:background="@drawable/rounded_button"
-            android:text="Confirm with Last Used PM"
+            android:text="@string/confirm_with_last_used_pm"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:textSize="20sp" />

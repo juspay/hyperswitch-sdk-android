@@ -13,32 +13,13 @@
         tools:replace="android:name"
         tools:targetApi="tiramisu">
         <activity
-            android:name=".react.RedirectActivity"
-            android:exported="true"
-            android:launchMode="singleTask"
-            android:theme="@style/HyperTransparentTheme">
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data android:scheme="${applicationId}.hyperswitch" />
-                <data android:host="" tools:ignore="AppLinkUrlError" />
-            </intent-filter>
-        </activity>
-        <activity
             android:name=".react.HyperActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
             android:exported="false"
             android:launchMode="singleTask"
-            android:theme="@style/HyperTransparentTheme"
+            android:theme="@style/HyperAppCompatTransparentTheme"
             android:enableOnBackInvokedCallback="false"
             android:windowSoftInputMode="adjustResize" />
-
-        <meta-data
-            android:name="com.google.android.gms.wallet.api.enabled"
-            android:value="true" />
     </application>
 
 </manifest>

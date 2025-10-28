@@ -14,5 +14,5 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex -> ex.autol
 
 rootProject.name = 'io.hyperswitch'
 
-include ':app', ':demo-app', ':hyperswitch-sdk-android-lite', ':hyperswitch-scan-card-lite'
+include ':app', ':demo-app', ':demo-app-lite', ':hyperswitch-sdk-android-lite', ':hyperswitch-scan-card-lite', ':hyperswitch-sdk-android-api', ':hyperswitch-sdk-android-logger', ':hyperswitch-sdk-android-common', ':hyperswitch-sdk-android-webview-utils', ':hyperswitch-sdk-android-click-to-pay'
 includeBuild('../node_modules/@react-native/gradle-plugin')

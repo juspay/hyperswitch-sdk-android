@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ip_address">IP Address</string>
+    <string name="reload_client_secret">Reload Client Secret</string>
+    <string name="launch_payment_sheet">Launch Payment Sheet</string>
+    <string name="launch_widget_layout">Launch Widget Layout</string>
+    <string name="confirm_with_last_used_pm">Confirm with Last Used PM</string>
+</resources>
