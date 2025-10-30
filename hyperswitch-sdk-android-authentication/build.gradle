@@ -4,14 +4,16 @@ plugins {
 }
 
 group = "io.hyperswitch"
-version = libsVersion
+version = coreVersion
 
 android {
-    namespace 'io.hyperswitch.hyperswitchScanCardLite'
+    namespace 'io.hyperswitch.authentication'
     compileSdk rootProject.ext.compileSdkVersion
 
     defaultConfig {
         minSdk rootProject.ext.minSdkVersion
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
     }
 
@@ -21,18 +23,8 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-    buildFeatures {
-        viewBinding true
-    }
 }
 
 dependencies {
-    implementation 'io.hyperswitch:base-release:1.0.0'
-    implementation 'io.hyperswitch:camera-core-release:1.0.0'
-    implementation 'io.hyperswitch:cardscan-release:1.0.0'
-    implementation 'io.hyperswitch:hscardscan-release:1.0.0'
-
-    implementation libs.androidx.activity
-    implementation libs.litert
-    api libs.litertSupport
+    api project(':hyperswitch-sdk-android-click-to-pay')
 }

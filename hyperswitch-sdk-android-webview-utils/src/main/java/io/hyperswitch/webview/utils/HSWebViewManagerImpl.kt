@@ -16,6 +16,8 @@ import android.webkit.CookieManager
 import android.webkit.DownloadListener
 import android.webkit.WebSettings
 import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.core.view.ViewCompat
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
 import org.json.JSONException
@@ -64,7 +66,8 @@ class HSWebViewManagerImpl(
     }
 
     fun createViewInstance(webView: HSWebView): HSWebViewWrapper {
-        setupWebChromeClient(webView)
+        webView.webViewClient = WebViewClient()
+//        setupWebChromeClient(webView)
         mWebViewConfig.configWebView(webView)
         val settings = webView.settings
         settings.builtInZoomControls = true
@@ -362,6 +365,14 @@ class HSWebViewManagerImpl(
             }
             "clearHistory" -> webView.clearHistory()
         }
+    }
+
+
+    fun evaluateJavascriptWithFallback(
+        viewWrapper: HSWebViewWrapper,
+        jsCode: String?,
+    ) {
+        viewWrapper.webView.evaluateJavascriptWithFallback(jsCode)
     }
 
     fun setMixedContentMode(

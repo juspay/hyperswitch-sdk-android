@@ -3,6 +3,9 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+group = "io.hyperswitch"
+version = coreVersion
+
 android {
     namespace 'io.hyperswitch.common'
     compileSdk rootProject.ext.compileSdkVersion

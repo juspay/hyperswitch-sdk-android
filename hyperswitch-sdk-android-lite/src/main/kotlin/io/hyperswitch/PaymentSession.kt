@@ -2,6 +2,7 @@ package io.hyperswitch
 
 import android.app.Activity
 import android.os.Bundle
+import io.hyperswitch.lite.DefaultPaymentSessionLauncherLite
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSessionLauncher
 import io.hyperswitch.paymentsheet.PaymentSheet

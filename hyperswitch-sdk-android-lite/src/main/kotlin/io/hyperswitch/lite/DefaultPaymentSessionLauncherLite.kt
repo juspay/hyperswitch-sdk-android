@@ -1,8 +1,7 @@
-package io.hyperswitch
+package io.hyperswitch.lite
 
 import android.app.Activity
 import android.os.Bundle
-import io.hyperswitch.lite.WebViewUtils
 import io.hyperswitch.paymentsession.BasePaymentSessionLauncher
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
