@@ -94,8 +94,47 @@ data class CheckoutResponse(
     val clientSecret: String,
     val amount: Int,
     val currency: String,
-    val tokenData: TokenData,
-    val transStatus: String
+    val authenticationConnector: String,
+    val force3dsChallenge: Boolean,
+    val returnUrl: String?,
+    val createdAt: String,
+    val profileId: String,
+    val psd2ScaExemptionType: String?,
+    val acquirerDetails: AcquirerDetails?,
+    val threedsServerTransactionId: String?,
+    val maximumSupported3dsVersion: String?,
+    val connectorAuthenticationId: String?,
+    val threeDsMethodData: String?,
+    val threeDsMethodUrl: String?,
+    val messageVersion: String?,
+    val connectorMetadata: String?,
+    val directoryServerId: String?,
+    val tokenData: TokenData?,
+    val billing: String?,
+    val shipping: String?,
+    val browserInformation: String?,
+    val email: String?,
+    val transStatus: String,
+    val acsUrl: String?,
+    val challengeRequest: String?,
+    val acsReferenceNumber: String?,
+    val acsTransId: String?,
+    val acsSignedContent: String?,
+    val threeDsRequestorUrl: String?,
+    val threeDsRequestorAppUrl: String?,
+    val eci: String?,
+    val errorMessage: String?,
+    val errorCode: String?,
+    val profileAcquirerId: String?
+)
+
+/**
+ * Acquirer details for the transaction
+ */
+data class AcquirerDetails(
+    val acquirerBin: String?,
+    val acquirerMerchantId: String?,
+    val merchantCountryCode: String?
 )
 
 /**
@@ -103,7 +142,7 @@ data class CheckoutResponse(
  */
 data class TokenData(
     val networkToken: String,
-    val tavv: String,
+    val cryptogram: String,
     val tokenExpirationMonth: String,
     val tokenExpirationYear: String
 )

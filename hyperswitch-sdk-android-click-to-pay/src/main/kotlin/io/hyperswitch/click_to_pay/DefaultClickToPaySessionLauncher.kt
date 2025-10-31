@@ -5,7 +5,9 @@ import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.WebSettings
 import android.widget.FrameLayout
+import android.widget.FrameLayout.LayoutParams
 import io.hyperswitch.click_to_pay.models.*
 import io.hyperswitch.webview.utils.Arguments
 import io.hyperswitch.webview.utils.Callback
@@ -42,11 +44,6 @@ class DefaultClickToPaySessionLauncher(
      */
     init {
         activity.runOnUiThread {
-            parentView = FrameLayout(activity).apply {
-                layoutParams = FrameLayout.LayoutParams(1, 1)
-                visibility = View.GONE
-            }
-
             val onMessage = object: Callback {
                 override fun invoke(args: Map<String, Any?>) {
                     println(args)
@@ -73,14 +70,20 @@ class DefaultClickToPaySessionLauncher(
 
             hSWebViewManagerImpl.setJavaScriptEnabled(hSWebViewWrapper, true)
             hSWebViewManagerImpl.setMessagingEnabled(hSWebViewWrapper, true)
+            hSWebViewManagerImpl.setJavaScriptCanOpenWindowsAutomatically(hSWebViewWrapper, true)
             hSWebViewManagerImpl.setScalesPageToFit(hSWebViewWrapper, true)
+            hSWebViewManagerImpl.setMixedContentMode(hSWebViewWrapper, "compatibility")
+            hSWebViewManagerImpl.setThirdPartyCookiesEnabled(hSWebViewWrapper, true)
+            hSWebViewManagerImpl.setCacheEnabled(hSWebViewWrapper, true)
 
-            hSWebViewWrapper.webView.setBackgroundColor(Color.RED)
-
-            parentView?.addView(hSWebViewWrapper)
+            hSWebViewWrapper.layoutParams = LayoutParams(
+                1,
+                1
+            )
+            hSWebViewWrapper.visibility = View.GONE
 
             val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
-            rootView.addView(parentView)
+            rootView.addView(hSWebViewWrapper)
             loadUrl()
         }
     }
@@ -101,7 +104,7 @@ class DefaultClickToPaySessionLauncher(
                   }
             
                   async function initHyper() {
-                      try {
+                      try {                      
                           if (typeof Hyper === 'undefined') {
                               window.HSAndroidInterface.postMessage(JSON.stringify({
                                   "sdkInitialised": false,
@@ -142,6 +145,7 @@ class DefaultClickToPaySessionLauncher(
         """.trimIndent()
 
         val map = Arguments.createMap()
+//        map.putString("uri", "https://google.com")
         map.putString("html", baseHtml)
         map.putString("baseUrl", "https://secure.checkout.visa.com")
         hSWebViewManagerImpl.loadSource(hSWebViewWrapper, map)
@@ -413,24 +417,68 @@ class DefaultClickToPaySessionLauncher(
         
         // Parse the response
         val jsonObject = JSONObject(responseJson)
-//        val data = jsonObject.getJSONObject("data")
-//        val tokenDataObj = data.getJSONObject("tokenData")
-//
-//        return@withContext CheckoutResponse(
-//            authenticationId = data.getString("authenticationId"),
-//            merchantId = data.getString("merchantId"),
-//            status = data.getString("status"),
-//            clientSecret = data.getString("clientSecret"),
-//            amount = data.getInt("amount"),
-//            currency = data.getString("currency"),
-//            tokenData = TokenData(
-//                networkToken = tokenDataObj.getString("networkToken"),
-//                tavv = tokenDataObj.getString("tavv"),
-//                tokenExpirationMonth = tokenDataObj.getString("tokenExpirationMonth"),
-//                tokenExpirationYear = tokenDataObj.getString("tokenExpirationYear")
-//            ),
-//            transStatus = data.getString("transStatus")
-//        )
-        return@withContext null
+        val data = jsonObject.getJSONObject("data")
+        
+        // Parse token_data if present
+        val tokenDataObj = data.optJSONObject("token_data")
+        val tokenData = tokenDataObj?.let {
+            TokenData(
+                networkToken = it.optString("network_token", ""),
+                cryptogram = it.optString("cryptogram", ""),
+                tokenExpirationMonth = it.optString("token_expiration_month", ""),
+                tokenExpirationYear = it.optString("token_expiration_year", "")
+            )
+        }
+        
+        // Parse acquirer_details if present
+        val acquirerDetailsObj = data.optJSONObject("acquirer_details")
+        val acquirerDetails = acquirerDetailsObj?.let {
+            AcquirerDetails(
+                acquirerBin = it.optString("acquirer_bin", "").takeIf { s -> s.isNotEmpty() },
+                acquirerMerchantId = it.optString("acquirer_merchant_id", "").takeIf { s -> s.isNotEmpty() },
+                merchantCountryCode = it.optString("merchant_country_code", "").takeIf { s -> s.isNotEmpty() }
+            )
+        }
+
+        return@withContext CheckoutResponse(
+            authenticationId = data.optString("authentication_id", ""),
+            merchantId = data.optString("merchant_id", ""),
+            status = data.optString("status", ""),
+            clientSecret = data.optString("client_secret", ""),
+            amount = data.optInt("amount", 0),
+            currency = data.optString("currency", ""),
+            authenticationConnector = data.optString("authentication_connector", ""),
+            force3dsChallenge = data.optBoolean("force_3ds_challenge", false),
+            returnUrl = data.optString("return_url", "").takeIf { it.isNotEmpty() },
+            createdAt = data.optString("created_at", ""),
+            profileId = data.optString("profile_id", ""),
+            psd2ScaExemptionType = data.optString("psd2_sca_exemption_type", "").takeIf { it.isNotEmpty() },
+            acquirerDetails = acquirerDetails,
+            threedsServerTransactionId = data.optString("threeds_server_transaction_id", "").takeIf { it.isNotEmpty() },
+            maximumSupported3dsVersion = data.optString("maximum_supported_3ds_version", "").takeIf { it.isNotEmpty() },
+            connectorAuthenticationId = data.optString("connector_authentication_id", "").takeIf { it.isNotEmpty() },
+            threeDsMethodData = data.optString("three_ds_method_data", "").takeIf { it.isNotEmpty() },
+            threeDsMethodUrl = data.optString("three_ds_method_url", "").takeIf { it.isNotEmpty() },
+            messageVersion = data.optString("message_version", "").takeIf { it.isNotEmpty() },
+            connectorMetadata = data.optString("connector_metadata", "").takeIf { it.isNotEmpty() },
+            directoryServerId = data.optString("directory_server_id", "").takeIf { it.isNotEmpty() },
+            tokenData = tokenData,
+            billing = data.optString("billing", "").takeIf { it.isNotEmpty() },
+            shipping = data.optString("shipping", "").takeIf { it.isNotEmpty() },
+            browserInformation = data.optString("browser_information", "").takeIf { it.isNotEmpty() },
+            email = data.optString("email", "").takeIf { it.isNotEmpty() },
+            transStatus = data.optString("trans_status", ""),
+            acsUrl = data.optString("acs_url", "").takeIf { it.isNotEmpty() },
+            challengeRequest = data.optString("challenge_request", "").takeIf { it.isNotEmpty() },
+            acsReferenceNumber = data.optString("acs_reference_number", "").takeIf { it.isNotEmpty() },
+            acsTransId = data.optString("acs_trans_id", "").takeIf { it.isNotEmpty() },
+            acsSignedContent = data.optString("acs_signed_content", "").takeIf { it.isNotEmpty() },
+            threeDsRequestorUrl = data.optString("three_ds_requestor_url", "").takeIf { it.isNotEmpty() },
+            threeDsRequestorAppUrl = data.optString("three_ds_requestor_app_url", "").takeIf { it.isNotEmpty() },
+            eci = data.optString("eci", "").takeIf { it.isNotEmpty() },
+            errorMessage = data.optString("error_message", "").takeIf { it.isNotEmpty() },
+            errorCode = data.optString("error_code", "").takeIf { it.isNotEmpty() },
+            profileAcquirerId = data.optString("profile_acquirer_id", "").takeIf { it.isNotEmpty() }
+        )
     }
 }

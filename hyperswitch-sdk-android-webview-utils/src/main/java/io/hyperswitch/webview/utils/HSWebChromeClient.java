@@ -2,16 +2,20 @@ package io.hyperswitch.webview.utils;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Message;
+import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.ConsoleMessage;
+import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
@@ -74,18 +78,74 @@ public class HSWebChromeClient extends WebChromeClient /*implements LifecycleEve
 
         final WebView newWebView = new WebView(view.getContext());
 
-        if(mHasOnOpenWindowEvent) {
-            newWebView.setWebViewClient(new WebViewClient(){
-                @Override
-                public boolean shouldOverrideUrlLoading (WebView subview, String url) {
-                    WritableMap event = Arguments.createMap();
-                    event.putString("targetUrl", url);
+        WebSettings settings = newWebView.getSettings();
 
-                    ((HSWebView) view).dispatchEvent(event);
+        settings.setJavaScriptEnabled(true);
+        settings.setSupportMultipleWindows(true);
+        settings.setJavaScriptCanOpenWindowsAutomatically(true);
 
-                    return true;
+        settings.setBuiltInZoomControls(true);
+
+        settings.setDisplayZoomControls(false);
+        settings.setDomStorageEnabled(true);
+        settings.setAllowFileAccess(false);
+        settings.setAllowFileAccess(false);
+        settings.setAllowFileAccessFromFileURLs(false);
+        settings.setAllowUniversalAccessFromFileURLs(false);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        CookieManager.getInstance().setAcceptThirdPartyCookies(newWebView, true);
+
+        newWebView.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+
+//        if(mHasOnOpenWindowEvent) {
+//            newWebView.setWebViewClient(new WebViewClient(){
+//                @Override
+//                public boolean shouldOverrideUrlLoading (WebView subview, String url) {
+//                    WritableMap event = Arguments.createMap();
+//                    event.putString("targetUrl", url);
+//
+//                    ((HSWebView) view).dispatchEvent(event);
+//
+//                    return true;
+//                }
+//            });
+//        }
+
+        newWebView.setWebViewClient(new WebViewClient(){
+            @Override
+            public boolean shouldOverrideUrlLoading (WebView subview, String url) {
+                WritableMap event = Arguments.createMap();
+                event.putString("targetUrl", url);
+                ((HSWebView) view).dispatchEvent(event);
+
+                // Actually load the URL!
+                subview.loadUrl(url);
+                return true;
+            }
+        });
+
+        newWebView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onCloseWindow(WebView window) {
+                // Remove the WebView from parent when window.close() is called
+                ViewGroup parent = (ViewGroup) window.getParent();
+                if (parent != null) {
+                    parent.removeView(window);
                 }
-            });
+                window.destroy();
+            }
+        });
+
+        newWebView.setBackgroundColor(Color.GREEN);
+
+        ViewGroup parent = (ViewGroup) view.getParent().getParent();
+        if (parent != null) {
+            parent.addView(newWebView);
         }
 
         final WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;

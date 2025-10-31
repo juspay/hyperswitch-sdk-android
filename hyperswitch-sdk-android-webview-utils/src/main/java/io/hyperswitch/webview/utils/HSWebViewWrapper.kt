@@ -3,6 +3,7 @@ package io.hyperswitch.webview.utils
 import android.content.Context
 import android.graphics.Color
 import android.view.View
+import android.view.ViewGroup
 import android.webkit.WebView
 import android.widget.FrameLayout
 

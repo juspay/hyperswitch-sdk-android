@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.webkit.CookieManager
 import android.webkit.DownloadListener
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -66,8 +67,7 @@ class HSWebViewManagerImpl(
     }
 
     fun createViewInstance(webView: HSWebView): HSWebViewWrapper {
-        webView.webViewClient = WebViewClient()
-//        setupWebChromeClient(webView)
+        setupWebChromeClient(webView)
         mWebViewConfig.configWebView(webView)
         val settings = webView.settings
         settings.builtInZoomControls = true
@@ -84,8 +84,25 @@ class HSWebViewManagerImpl(
         webView.layoutParams =
             ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
             )
+
+        webView.webViewClient = object : HSWebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                // Load all URLs in the same WebView, don't open externally
+                view.loadUrl(request.url.toString())
+                return true
+            }
+
+            override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+                view.loadUrl(url)
+                return true
+            }
+        }
+
+
+        webView.setBackgroundColor(Color.BLUE);
+
 
         if (BuildConfig.DEBUG) {
             WebView.setWebContentsDebuggingEnabled(true)
