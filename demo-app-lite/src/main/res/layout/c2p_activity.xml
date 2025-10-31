@@ -21,36 +21,60 @@
             android:layout_margin="20dp"
             android:layout_weight="1"
             android:background="@drawable/rounded_button"
-            android:text="Initialise Click To Pay"
+            android:text="Initialise Auth"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:textSize="20sp" />
 
-        <EditText
-            android:id="@+id/ipAddressInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="20dp"
-            android:layout_weight="1"
-            android:autofillHints="http://"
-            android:ems="10"
-            android:textSize="32sp"
-            android:hint="@string/ip_address"
-            android:inputType="text"
-            android:textAlignment="center"
-            />
-
         <Button
-            android:id="@+id/launchButton"
+            android:id="@+id/initC2P"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="20dp"
             android:layout_weight="1"
             android:background="@drawable/rounded_button"
-            android:text="@string/launch_payment_sheet"
+            android:text="Initialise Click To Pay"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:textSize="20sp" />
+        <Button
+            android:id="@+id/getUserType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="20dp"
+            android:layout_weight="1"
+            android:background="@drawable/rounded_button"
+            android:text="Initialise UserType"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp" />
+
+
+<!--        <EditText-->
+<!--            android:id="@+id/ipAddressInput"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_margin="20dp"-->
+<!--            android:layout_weight="1"-->
+<!--            android:autofillHints="http://"-->
+<!--            android:ems="10"-->
+<!--            android:textSize="32sp"-->
+<!--            android:hint="@string/ip_address"-->
+<!--            android:inputType="text"-->
+<!--            android:textAlignment="center"-->
+<!--            />-->
+
+<!--        <Button-->
+<!--            android:id="@+id/launchButton"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_margin="20dp"-->
+<!--            android:layout_weight="1"-->
+<!--            android:background="@drawable/rounded_button"-->
+<!--            android:text="@string/launch_payment_sheet"-->
+<!--            android:textAllCaps="false"-->
+<!--            android:textColor="#FFFFFF"-->
+<!--            android:textSize="20sp" />-->
 
         <TextView
             android:id="@+id/resultText"

@@ -3,4 +3,5 @@
     <string name="ip_address">IP Address</string>
     <string name="reload_client_secret">Reload Client Secret</string>
     <string name="launch_payment_sheet">Launch Payment Sheet</string>
+    <string name="open_c2p">Open Click to pay</string>
 </resources>

@@ -13,7 +13,7 @@ interface AuthenticationSessionLauncher {
 
     suspend fun initClickToPaySession(
         request3DSAuthentication: Boolean,
-    ): ClickToPaySession
+    ): ClickToPaySession?
 
     suspend fun initClickToPaySession(
         clientSecret: String?,
@@ -21,7 +21,7 @@ interface AuthenticationSessionLauncher {
         authenticationId: String?,
         merchantId: String?,
         request3DSAuthentication: Boolean,
-    ): ClickToPaySession
+    ): ClickToPaySession?
 
     suspend fun initThreeDSSession()
 }

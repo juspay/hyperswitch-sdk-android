@@ -20,7 +20,7 @@ class LaunchOptions(
     private fun getHyperParams(configuration: PaymentSheet.Configuration? = null): Bundle =
         Bundle().apply {
             putString("appId", context?.packageName)
-            putString("country", context?.resources?.configuration?.locales[0]?.country)
+            putString("country", context?.resources?.configuration?.locale?.country)
             putString("user-agent", getUserAgent(context))
             putDouble("launchTime", getCurrentTime())
             putString("sdkVersion", sdkVersion)
@@ -50,7 +50,7 @@ class LaunchOptions(
     private fun getHyperParamsMap(map: Map<*, *>): Map<*, *> =
         (map["hyperParams"] as? Map<*, *> ?: mutableMapOf<String, Any?>()).apply {
             plus(Pair("appId", context?.packageName))
-            plus(Pair("country", context?.resources?.configuration?.locales[0]?.country))
+            plus(Pair("country", context?.resources?.configuration?.locale?.country))
             plus(Pair("user-agent", getUserAgent(context)))
             plus(Pair("launchTime", getCurrentTime()))
             plus(Pair("sdkVersion", sdkVersion))

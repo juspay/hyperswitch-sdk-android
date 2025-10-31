@@ -36,7 +36,7 @@ class DefaultClickToPaySessionLauncher(
     private var parentView: FrameLayout? = null
     private lateinit var hSWebViewManagerImpl: HSWebViewManagerImpl
     private lateinit var hSWebViewWrapper: HSWebViewWrapper
-    
+    private var isSdkInitialized = false
     private val pendingRequests = ConcurrentHashMap<String, CancellableContinuation<String>>()
 
     /**
@@ -56,9 +56,11 @@ class DefaultClickToPaySessionLauncher(
                         } else {
                             if (jsonObject.has("sdkInitialised")) {
                                 println("SDK Initialised: ${jsonObject.getBoolean("sdkInitialised")}")
+                                isSdkInitialized = jsonObject.getBoolean("sdkInitialised")
                             }
                             if (jsonObject.has("clickToPaySession")) {
                                 println("Click to Pay Session: ${jsonObject.getBoolean("clickToPaySession")}")
+                            }else{
                             }
                         }
                     }
@@ -172,13 +174,24 @@ class DefaultClickToPaySessionLauncher(
                               authenticationId: "$authenticationId",
                               merchantId: "$merchantId",
                         });
+                        if (!authenticationSession){
+                            throw Exception("Authentication session is empty");
+                            return;
+                        }
                         window.clickToPaySession = await authenticationSession.initClickToPaySession({
                               request3DSAuthentication: $request3DSAuthentication,
                         });
+                        if (window.clickToPaySession && window.clickToPaySession["error"]){
+                         window.HSAndroidInterface.postMessage(JSON.stringify({
+                            requestId: "$requestId",
+                            data: { error : window.clickToPaySession["error"], success: false }
+                        }));
+                        }else{
                         window.HSAndroidInterface.postMessage(JSON.stringify({
                             requestId: "$requestId",
                             data: { success: true }
                         }));
+                        }
                     } catch (error) {
                         window.HSAndroidInterface.postMessage(JSON.stringify({
                             requestId: "$requestId",
@@ -193,9 +206,8 @@ class DefaultClickToPaySessionLauncher(
         val jsonObject = JSONObject(responseJson)
         val data = jsonObject.getJSONObject("data")
         val success = data.optBoolean("success", false)
-        
         if (!success) {
-            val error = data.optString("error", "Unknown error")
+            val error = data.optJSONObject("error")
             throw Exception("Failed to initialize Click to Pay session: $error")
         }
     }
@@ -203,7 +215,7 @@ class DefaultClickToPaySessionLauncher(
     /**
      * Check if a customer has an existing Click to Pay profile
      */
-    override suspend fun isCustomerPresent(request: CustomerPresenceRequest): CustomerPresenceResponse? = withContext(Dispatchers.Main) {
+    override suspend fun isCustomerPresent(request: CustomerPresenceRequest?): CustomerPresenceResponse? = withContext(Dispatchers.Main) {
         val requestId = UUID.randomUUID().toString()
         
         val responseJson = suspendCancellableCoroutine<String> { continuation ->
@@ -211,8 +223,9 @@ class DefaultClickToPaySessionLauncher(
             
             val jsCode = """
                 (async function() {
+                    try{
                     const isCustomerPresent = await window.clickToPaySession.isCustomerPresent({
-                        ${request.email?.let {
+                        ${request?.email?.let {
                             "email: \"${request.email}\""
                         }?:""}
                     });
@@ -220,12 +233,22 @@ class DefaultClickToPaySessionLauncher(
                         requestId: "$requestId",
                         data: isCustomerPresent
                     }));
+                    }catch(e){
+                        window.HSAndroidInterface.postMessage(JSON.stringify({
+                            requestId: "$requestId",
+                                error : "clickToPaySession is not properly initialized"
+                        }));
+                    }
                 })();
             """.trimIndent()
             hSWebViewManagerImpl.evaluateJavascriptWithFallback(hSWebViewWrapper, jsCode)
         }
         
         val jsonObject = JSONObject(responseJson)
+        if (!jsonObject.isNull("error")){
+            val error = jsonObject.getString("error")
+            throw Exception("Failed to check customer presence: $error")
+        }
         val data = jsonObject.getJSONObject("data")
         return@withContext CustomerPresenceResponse(
             customerPresent = data.optBoolean("customerPresent", false)
@@ -243,17 +266,30 @@ class DefaultClickToPaySessionLauncher(
             
             val jsCode = """
                 (async function() {
+                try{
                     const userType = await window.clickToPaySession.getUserType();
                     window.HSAndroidInterface.postMessage(JSON.stringify({
                         requestId: "$requestId",
                         data: userType
                     }));
+                    }catch(e){
+                    window.HSAndroidInterface.postMessage(JSON.stringify({
+                        requestId: "$requestId",
+                        data: {
+                        error : e?.message
+                        }
+                    }));
+                    }
                 })();
             """.trimIndent()
             hSWebViewManagerImpl.evaluateJavascriptWithFallback(hSWebViewWrapper, jsCode)
         }
         
         val jsonObject = JSONObject(responseJson)
+        if (!jsonObject.isNull("error")){
+            val error = jsonObject.getString("error")
+            throw Exception("Failed to get user type: $error")
+        }
         val data = jsonObject.getJSONObject("data")
         val statusCodeStr = data.optString("statusCode", "NO_CARDS_PRESENT")
         return@withContext CardsStatusResponse(

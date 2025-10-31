@@ -74,7 +74,7 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
         )
     }
 
-    suspend fun isCustomerPresent(request: CustomerPresenceRequest): CustomerPresenceResponse? {
+    suspend fun isCustomerPresent(request: CustomerPresenceRequest?): CustomerPresenceResponse? {
         return clickToPaySessionLauncher.isCustomerPresent(request)
     }
 
