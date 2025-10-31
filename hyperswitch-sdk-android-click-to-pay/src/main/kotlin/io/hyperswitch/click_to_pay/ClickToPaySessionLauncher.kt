@@ -21,7 +21,7 @@ interface ClickToPaySessionLauncher {
      * @param request Customer identification details (email or mobile number)
      * @return CustomerPresenceResponse indicating if customer exists
      */
-    suspend fun isCustomerPresent(request: CustomerPresenceRequest): CustomerPresenceResponse?
+    suspend fun isCustomerPresent(request: CustomerPresenceRequest?): CustomerPresenceResponse?
     
     /**
      * Retrieve the status of customer's saved cards

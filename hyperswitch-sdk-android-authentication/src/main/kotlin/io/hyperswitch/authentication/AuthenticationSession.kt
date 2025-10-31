@@ -78,13 +78,13 @@ class AuthenticationSession(
         )
     }
 
-    suspend fun initClickToPaySession(): ClickToPaySession {
+    suspend fun initClickToPaySession(): ClickToPaySession? {
         return initClickToPaySession(true)
     }
 
     suspend fun initClickToPaySession(
         request3DSAuthentication: Boolean
-    ): ClickToPaySession {
+    ): ClickToPaySession? {
         return authenticationSessionLauncher.initClickToPaySession(
             request3DSAuthentication
         )
@@ -95,7 +95,7 @@ class AuthenticationSession(
         profileId: String,
         authenticationId: String,
         merchantId: String
-    ): ClickToPaySession {
+    ): ClickToPaySession? {
         return authenticationSessionLauncher.initClickToPaySession(
             clientSecret,
             profileId,
@@ -111,7 +111,7 @@ class AuthenticationSession(
         authenticationId: String,
         merchantId: String,
         request3DSAuthentication: Boolean
-    ): ClickToPaySession {
+    ): ClickToPaySession? {
         return authenticationSessionLauncher.initClickToPaySession(
             clientSecret,
             profileId,

@@ -41,7 +41,7 @@ class DefaultAuthenticationSessionLauncher(
 
     override suspend fun initClickToPaySession(
         request3DSAuthentication: Boolean
-    ): ClickToPaySession {
+    ): ClickToPaySession? {
         return initClickToPaySession(
             clientSecret,
             profileId,
@@ -57,15 +57,15 @@ class DefaultAuthenticationSessionLauncher(
         authenticationId: String?,
         merchantId: String?,
         request3DSAuthentication: Boolean
-    ): ClickToPaySession {
-        clickToPaySession.initClickToPaySession(
-            clientSecret,
-            profileId,
-            authenticationId,
-            merchantId,
-            request3DSAuthentication
-        )
-        return clickToPaySession
+    ): ClickToPaySession? {
+            clickToPaySession.initClickToPaySession(
+                clientSecret,
+                profileId,
+                authenticationId,
+                merchantId,
+                request3DSAuthentication
+            )
+            return clickToPaySession
     }
 
     override suspend fun initThreeDSSession() {}

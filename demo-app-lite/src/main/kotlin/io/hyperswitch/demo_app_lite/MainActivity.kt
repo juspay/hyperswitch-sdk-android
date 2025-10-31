@@ -1,6 +1,7 @@
 package io.hyperswitch.demo_app_lite
 
 import android.app.Activity
+import android.content.Intent
 import android.util.Patterns
 import android.os.Bundle
 import android.text.Editable
@@ -186,6 +187,10 @@ class MainActivity : Activity() {
         editText = ctx.findViewById(R.id.ipAddressInput)
         serverUrl = loadServerUrl()
         editText.setText(serverUrl)
+        ctx.findViewById<View>(R.id.openC2P).setOnClickListener {
+            val intent = Intent(ctx, ClickToPayExample::class.java)
+            startActivity(intent)
+        }
 
         editText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
