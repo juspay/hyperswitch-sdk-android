@@ -3,6 +3,9 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+group = "io.hyperswitch"
+version = coreVersion
+
 android {
     namespace 'io.hyperswitch.click_to_pay'
     compileSdk rootProject.ext.compileSdkVersion
@@ -21,5 +24,7 @@ android {
 }
 
 dependencies {
-    implementation project(':hyperswitch-sdk-android-webview-utils')
+    implementation libs.kotlin.coroutines
+    implementation libs.kotlin.coroutinesAndroid
+    api project(':hyperswitch-sdk-android-webview-utils')
 }

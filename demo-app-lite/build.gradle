@@ -27,7 +27,7 @@ android {
 
 dependencies {
     implementation project(':hyperswitch-sdk-android-lite')
-    implementation project(':hyperswitch-sdk-android-click-to-pay')
+    implementation project(':hyperswitch-sdk-android-authentication')
 //    implementation project(':hyperswitch-scan-card-lite')
     implementation libs.fuel
     implementation libs.androidx.preference
