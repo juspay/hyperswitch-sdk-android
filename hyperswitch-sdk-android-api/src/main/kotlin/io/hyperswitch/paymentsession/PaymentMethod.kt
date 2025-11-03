@@ -40,69 +40,63 @@ data class Card(
 }
 
 /**
- * Sealed class representing different payment method states
+ * Represents a valid payment method with all details
  */
-sealed class PaymentMethod {
-
-    /**
-     * Represents a valid payment method with all details
-     */
-    data class PaymentMethodType(
-        val paymentToken: String,
-        val paymentMethodId: String,
-        val customerId: String,
-        val paymentMethod: String,
-        val paymentMethodType: String,
-        val paymentMethodIssuer: String,
-        val paymentMethodIssuerCode: String?,
-        val recurringEnabled: Boolean,
-        val installmentPaymentEnabled: Boolean,
-        val paymentExperience: List<String>,
-        val card: Card?,
-        val metadata: String?,
-        val created: String,
-        val bank: String?,
-        val surchargeDetails: String?,
-        val requiresCvv: Boolean,
-        val lastUsedAt: String,
-        val defaultPaymentMethodSet: Boolean,
-    ) : PaymentMethod() {
-        fun toMap(): HashMap<String, Any?> {
-            return HashMap<String, Any?>().apply {
-                this["payment_token"] = paymentToken
-                this["payment_method_id"] = paymentMethodId
-                this["customer_id"] = customerId
-                this["payment_method"] = paymentMethod
-                this["payment_method_type"] = paymentMethodType
-                this["payment_method_issuer"] = paymentMethodIssuer
-                this["payment_method_issuer_code"] = paymentMethodIssuerCode
-                this["recurring_enabled"] = recurringEnabled
-                this["installment_payment_enabled"] = installmentPaymentEnabled
-                this["payment_experience"] = paymentExperience
-                this["card"] = card?.toMap()
-                this["metadata"] = metadata
-                this["created"] = created
-                this["bank"] = bank
-                this["surcharge_details"] = surchargeDetails
-                this["requires_cvv"] = requiresCvv
-                this["last_used_at"] = lastUsedAt
-                this["default_payment_method_set"] = defaultPaymentMethodSet
-            }
+data class PaymentMethod(
+    val paymentToken: String,
+    val paymentMethodId: String,
+    val customerId: String,
+    val paymentMethod: String,
+    val paymentMethodType: String,
+    val paymentMethodIssuer: String,
+    val paymentMethodIssuerCode: String?,
+    val recurringEnabled: Boolean,
+    val installmentPaymentEnabled: Boolean,
+    val paymentExperience: List<String>,
+    val card: Card?,
+    val metadata: String?,
+    val created: String,
+    val bank: String?,
+    val surchargeDetails: String?,
+    val requiresCvv: Boolean,
+    val lastUsedAt: String,
+    val defaultPaymentMethodSet: Boolean,
+) {
+    fun toMap(): HashMap<String, Any?> {
+        return HashMap<String, Any?>().apply {
+            this["payment_token"] = paymentToken
+            this["payment_method_id"] = paymentMethodId
+            this["customer_id"] = customerId
+            this["payment_method"] = paymentMethod
+            this["payment_method_type"] = paymentMethodType
+            this["payment_method_issuer"] = paymentMethodIssuer
+            this["payment_method_issuer_code"] = paymentMethodIssuerCode
+            this["recurring_enabled"] = recurringEnabled
+            this["installment_payment_enabled"] = installmentPaymentEnabled
+            this["payment_experience"] = paymentExperience
+            this["card"] = card?.toMap()
+            this["metadata"] = metadata
+            this["created"] = created
+            this["bank"] = bank
+            this["surcharge_details"] = surchargeDetails
+            this["requires_cvv"] = requiresCvv
+            this["last_used_at"] = lastUsedAt
+            this["default_payment_method_set"] = defaultPaymentMethodSet
         }
     }
+}
 
-    /**
-     * Represents an error state in payment method retrieval
-     */
-    data class Error(
-        val code: String,
-        val message: String,
-    ) : PaymentMethod() {
-        fun toMap(): HashMap<String, Any> {
-            return HashMap<String, Any>().apply {
-                this["code"] = code
-                this["message"] = message
-            }
+/**
+ * Represents an error state in payment method retrieval
+ */
+data class PMError(
+    val code: String,
+    override val message: String,
+) : Throwable(message) {
+    fun toMap(): HashMap<String, Any> {
+        return HashMap<String, Any>().apply {
+            this["code"] = code
+            this["message"] = message
         }
     }
 }

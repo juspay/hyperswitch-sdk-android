@@ -15,6 +15,7 @@ import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.PaymentSession
 import io.hyperswitch.payments.paymentlauncher.PaymentResult
+import io.hyperswitch.paymentsession.PMError
 import io.hyperswitch.paymentsession.PaymentMethod
 import io.hyperswitch.paymentsheet.AddressDetails
 import io.hyperswitch.paymentsheet.PaymentSheet
@@ -163,13 +164,15 @@ class MainActivity : Activity() {
 
                             paymentSession.initPaymentSession(paymentIntentClientSecret)
                             paymentSession.getCustomerSavedPaymentMethods { it ->
-                                val text =
-                                    when (val data = it.getCustomerLastUsedPaymentMethodData()) {
-                                        is PaymentMethod.PaymentMethodType ->
-                                            data.card?.let { "${it.scheme} - ${it.last4Digits}" }
+                                val text = it.getCustomerLastUsedPaymentMethodData().fold(
+                                    onSuccess = { data ->
+                                        data.card?.let { "${it.scheme} - ${it.last4Digits}" }
                                             ?: data.paymentMethodType
-                                        is PaymentMethod.Error -> data.message
+                                    },
+                                    onFailure = { error ->
+                                        (error as? PMError)?.message ?: "Unknown error"
                                     }
+                                )
 
                                 setStatus("Last Used PM: $text")
 

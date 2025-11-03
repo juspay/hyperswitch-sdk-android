@@ -4,10 +4,10 @@ plugins {
 }
 
 group = "io.hyperswitch"
-version = coreVersion
+version = scancardVersion
 
 android {
-    namespace 'io.hyperswitch.hyperswitchScanCardLite'
+    namespace 'io.hyperswitch.scancard'
     compileSdk rootProject.ext.compileSdkVersion
 
     defaultConfig {
@@ -32,7 +32,8 @@ dependencies {
     implementation 'io.hyperswitch:cardscan-release:1.0.0'
     implementation 'io.hyperswitch:hscardscan-release:1.0.0'
 
-    implementation libs.androidx.activity
+    implementation libs.androidx.fragment
+    implementation libs.androidx.constraintLayout
     implementation libs.litert
     api libs.litertSupport
 }

@@ -5,61 +5,155 @@
     android:layout_height="match_parent"
     android:background="@android:color/white"
     android:fitsSystemWindows="true"
-    tools:context=".MainActivity">
+    tools:context=".ClickToPayExample">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:maxWidth="320dp"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:padding="20dp">
 
-        <Button
-            android:id="@+id/initialize"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="20dp"
-            android:layout_weight="1"
-            android:background="@drawable/rounded_button"
-            android:text="Initialise Click To Pay"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp" />
-
-        <EditText
-            android:id="@+id/ipAddressInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="20dp"
-            android:layout_weight="1"
-            android:autofillHints="http://"
-            android:ems="10"
-            android:textSize="32sp"
-            android:hint="@string/ip_address"
-            android:inputType="text"
-            android:textAlignment="center"
-            />
-
-        <Button
-            android:id="@+id/launchButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="20dp"
-            android:layout_weight="1"
-            android:background="@drawable/rounded_button"
-            android:text="@string/launch_payment_sheet"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp" />
-
+        <!-- Title -->
         <TextView
-            android:id="@+id/resultText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="20dp"
-            android:layout_weight="1"
+            android:text="Click to Pay Demo - Step by Step"
+            android:textSize="24sp"
+            android:textStyle="bold"
             android:gravity="center"
-            android:textSize="20sp" />
+            android:layout_marginBottom="20dp"
+            android:textColor="#000000" />
+
+        <!-- Step 1: Get Authentication Credentials -->
+        <Button
+            android:id="@+id/btnStep1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/rounded_button"
+            android:text="Step 1: Get Authentication Credentials"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp" />
+
+        <!-- Step 2: Initialize Authentication Session -->
+        <Button
+            android:id="@+id/btnStep2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/rounded_button"
+            android:text="Step 2: Initialize Authentication Session"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp"
+            android:enabled="false" />
+
+        <!-- Step 3: Initialize Click to Pay Session -->
+        <Button
+            android:id="@+id/btnStep3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/rounded_button"
+            android:text="Step 3: Initialize Click to Pay Session"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp"
+            android:enabled="false" />
+
+        <!-- Step 4: Check Customer Presence -->
+        <Button
+            android:id="@+id/btnStep4"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/rounded_button"
+            android:text="Step 4: Check Customer Presence"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp"
+            android:enabled="false" />
+
+        <!-- Step 5: Get Customer Cards -->
+        <Button
+            android:id="@+id/btnStep5"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/rounded_button"
+            android:text="Step 5: Get Customer Cards"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp"
+            android:enabled="false" />
+
+        <!-- Step 6: Select Card and Checkout -->
+        <Button
+            android:id="@+id/btnStep6"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/rounded_button"
+            android:text="Step 6: Select Card &amp; Checkout"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp"
+            android:enabled="false" />
+
+        <!-- Card Scan Button -->
+        <Button
+            android:id="@+id/btnScanCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:background="@drawable/rounded_button"
+            android:text="Scan Card (Google Pay)"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp" />
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#CCCCCC"
+            android:layout_marginVertical="16dp" />
+
+        <!-- Result Text -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:background="#F5F5F5">
+            
+            <TextView
+                android:id="@+id/resultText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Click 'Initialize Click To Pay' to begin"
+                android:textSize="16sp"
+                android:textColor="#333333"
+                android:lineSpacingExtra="4dp"
+                android:padding="16dp" />
+        </ScrollView>
+
+        <!-- Instructions -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Instructions:\n\n• Click each step button in sequence\n• Each button will be enabled after the previous step completes\n• Watch the result area for detailed progress\n• Check Logcat for detailed logs (tag: ClickToPay)"
+            android:textSize="14sp"
+            android:textColor="#666666"
+            android:lineSpacingExtra="2dp" />
 
     </LinearLayout>
 

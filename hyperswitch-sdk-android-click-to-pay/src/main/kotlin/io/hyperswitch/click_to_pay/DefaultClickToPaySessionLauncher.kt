@@ -1,12 +1,8 @@
 package io.hyperswitch.click_to_pay
 
 import android.app.Activity
-import android.graphics.Color
 import android.os.Bundle
-import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebSettings
-import android.widget.FrameLayout
 import android.widget.FrameLayout.LayoutParams
 import io.hyperswitch.click_to_pay.models.*
 import io.hyperswitch.webview.utils.Arguments
@@ -23,8 +19,19 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.resume
 
 /**
- * Default implementation of ClickToPaySessionLauncher
- * Handles Click to Pay session lifecycle and WebView-based operations
+ * Default implementation of ClickToPaySessionLauncher.
+ * 
+ * Manages Click to Pay session lifecycle using WebView-based JavaScript bridge.
+ * Handles SDK initialization, customer verification, card management, and payment processing.
+ *
+ * @property activity The Android activity context
+ * @property publishableKey The publishable API key for authentication
+ * @property customBackendUrl Optional custom backend URL for API calls
+ * @property customLogUrl Optional custom URL for logging
+ * @property customParams Optional additional parameters
+ * @property hSWebViewManagerImpl WebView manager for JavaScript execution
+ * @property hSWebViewWrapper Wrapper for the WebView instance
+ * @property pendingRequests Map of pending async requests awaiting responses
  */
 class DefaultClickToPaySessionLauncher(
     private val activity: Activity,
@@ -33,34 +40,20 @@ class DefaultClickToPaySessionLauncher(
     private val customLogUrl: String? = null,
     private val customParams: Bundle? = null,
 ): ClickToPaySessionLauncher {
-    private var parentView: FrameLayout? = null
     private lateinit var hSWebViewManagerImpl: HSWebViewManagerImpl
     private lateinit var hSWebViewWrapper: HSWebViewWrapper
     
     private val pendingRequests = ConcurrentHashMap<String, CancellableContinuation<String>>()
 
-    /**
-     * Initialize the Click to Pay session
-     */
     init {
         activity.runOnUiThread {
-            val onMessage = object: Callback {
-                override fun invoke(args: Map<String, Any?>) {
-                    println(args)
-                    (args["data"] as? String)?.let { jsonString ->
-                        val jsonObject = JSONObject(jsonString)
-
-                        val requestId = jsonObject.optString("requestId", "")
-                        if (requestId.isNotEmpty()) {
-                            pendingRequests.remove(requestId)?.resume(jsonString)
-                        } else {
-                            if (jsonObject.has("sdkInitialised")) {
-                                println("SDK Initialised: ${jsonObject.getBoolean("sdkInitialised")}")
-                            }
-                            if (jsonObject.has("clickToPaySession")) {
-                                println("Click to Pay Session: ${jsonObject.getBoolean("clickToPaySession")}")
-                            }
-                        }
+            val onMessage = Callback { args ->
+                println(args)
+                (args["data"] as? String)?.let { jsonString ->
+                    val jsonObject = JSONObject(jsonString)
+                    val requestId = jsonObject.optString("requestId", "")
+                    if (requestId.isNotEmpty()) {
+                        pendingRequests.remove(requestId)?.resume(jsonString)
                     }
                 }
             }
@@ -76,81 +69,140 @@ class DefaultClickToPaySessionLauncher(
             hSWebViewManagerImpl.setThirdPartyCookiesEnabled(hSWebViewWrapper, true)
             hSWebViewManagerImpl.setCacheEnabled(hSWebViewWrapper, true)
 
-            hSWebViewWrapper.layoutParams = LayoutParams(
-                1,
-                1
-            )
-            hSWebViewWrapper.visibility = View.GONE
+            hSWebViewWrapper.layoutParams = LayoutParams(1, 1)
 
             val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
             rootView.addView(hSWebViewWrapper)
-            loadUrl()
         }
     }
 
-    private fun loadUrl() {
-
-        val baseHtml = """
-            <!DOCTYPE html>
-            <html lang="en">
-              <head>
-                <script>
-                  function handleScriptError() {
-                      console.error('Failed to load HyperLoader.js');
-                      window.HSAndroidInterface.postMessage(JSON.stringify({
-                          "sdkInitialised": false,
-                          "error": "Script load failed"
-                      }));
-                  }
-            
-                  async function initHyper() {
-                      try {                      
-                          if (typeof Hyper === 'undefined') {
-                              window.HSAndroidInterface.postMessage(JSON.stringify({
-                                  "sdkInitialised": false,
-                                  "error": "Hyper is not defined"
-                              }));
-                          }
-            
-                          window.hyperInstance = Hyper.init("$publishableKey", {
-                              ${customBackendUrl?.let { 
-                                  "customBackendUrl: \"$customBackendUrl\","
-                              }?:""}
-                              ${customLogUrl?.let {
-                                  "customLogUrl: \"$customLogUrl\","
-                              }?:""}
-                          });
-            
-                          window.HSAndroidInterface.postMessage(JSON.stringify({
-                              "sdkInitialised": true
-                          }));
-                      } catch (error) {
-                          console.error('Hyper initialization failed:', error);
-                          window.HSAndroidInterface.postMessage(JSON.stringify({
-                              "sdkInitialised": false,
-                              "error": error.message
-                          }));
-                      }
-                  }
-                </script>
-                <script
-                  src="https://beta.hyperswitch.io/v2/HyperLoader.js"
-                  onload="initHyper()"
-                  onerror="handleScriptError()"
-                  async="true"
-                ></script>
-              </head>
-              <body></body>
-            </html>
-        """.trimIndent()
-
-        val map = Arguments.createMap()
-//        map.putString("uri", "https://google.com")
-        map.putString("html", baseHtml)
-        map.putString("baseUrl", "https://secure.checkout.visa.com")
-        hSWebViewManagerImpl.loadSource(hSWebViewWrapper, map)
+    /**
+     * Initializes the Click to Pay SDK by loading the HyperLoader script.
+     * 
+     * Creates an HTML page with the HyperLoader.js script and initializes
+     * the Hyper instance with the provided configuration.
+     *
+     * @throws Exception if SDK initialization fails with error details
+     */
+    @Throws(Exception::class)
+    override suspend fun initialize() {
+        loadUrl()
     }
 
+    /**
+     * Loads the SDK initialization HTML into the WebView.
+     * 
+     * Creates and loads an HTML page containing the HyperLoader.js script
+     * and initialization code. Waits for the SDK to initialize successfully.
+     *
+     * @param requestId Unique identifier for tracking this request
+     * @throws Exception if script loading or initialization fails
+     */
+    private suspend fun loadUrl(requestId: String = UUID.randomUUID().toString()) = withContext(Dispatchers.Main) {
+        val responseJson = suspendCancellableCoroutine { continuation ->
+            pendingRequests[requestId] = continuation
+
+            val baseHtml = """
+                <!DOCTYPE html>
+                <html lang="en">
+                  <head>
+                    <script>
+                      function handleScriptError() {
+                          console.error('Failed to load HyperLoader.js');
+                          window.HSAndroidInterface.postMessage(JSON.stringify({
+                              requestId: "$requestId",
+                              data: {
+                                  error: {
+                                      type: "ScriptLoadError",
+                                      message: "Failed to load HyperLoader.js"
+                                  }
+                              }
+                          }));
+                      }
+                
+                      async function initHyper() {
+                          try {     
+                              if (typeof Hyper === 'undefined') {
+                                  window.HSAndroidInterface.postMessage(JSON.stringify({
+                                      requestId: "$requestId",
+                                      data: {
+                                          error: {
+                                              type: "HyperUndefinedError",
+                                              message: "Hyper is not defined"
+                                          }
+                                      }
+                                  }));
+                                  return;
+                              }
+                              window.hyperInstance = Hyper.init("$publishableKey", {
+                                  ${customBackendUrl?.let { 
+                                      "customBackendUrl: \"$customBackendUrl\","
+                                  }?:""}
+                                  ${customLogUrl?.let {
+                                      "customLogUrl: \"$customLogUrl\","
+                                  }?:""}
+                              });                
+                              window.HSAndroidInterface.postMessage(JSON.stringify({
+                                  requestId: "$requestId",
+                                  data: {
+                                      sdkInitialised: true
+                                  }
+                              }));
+                          } catch (error) {
+                              window.HSAndroidInterface.postMessage(JSON.stringify({
+                                  requestId: "$requestId",
+                                  data: {
+                                      error: {
+                                          type: "HyperInitializationError",
+                                          message: error.message
+                                      }
+                                  }
+                              }));
+                          }
+                      }
+                    </script>
+                    <script
+                      src="https://beta.hyperswitch.io/v2/HyperLoader.js"
+                      onload="initHyper()"
+                      onerror="handleScriptError()"
+                      async="true"
+                    ></script>
+                  </head>
+                  <body></body>
+                </html>
+            """.trimIndent()
+
+            val map = Arguments.createMap()
+            map.putString("html", baseHtml)
+            map.putString("baseUrl", "https://secure.checkout.visa.com")
+            hSWebViewManagerImpl.loadSource(hSWebViewWrapper, map)
+        }
+        
+        val jsonObject = JSONObject(responseJson)
+        val data = jsonObject.getJSONObject("data")
+        
+        val error = data.optJSONObject("error")
+        if (error != null) {
+            val errorType = error.optString("type", "Unknown")
+            val errorMessage = error.optString("message", "Unknown error")
+            throw Exception("Failed to load URL - Type: $errorType, Message: $errorMessage")
+        }
+    }
+
+    /**
+     * Initializes a Click to Pay session with payment credentials.
+     * 
+     * Creates an authentication session and initializes Click to Pay
+     * with the provided merchant and payment information.
+     *
+     * @param clientSecret The client secret from the payment intent
+     * @param profileId The merchant profile identifier
+     * @param authenticationId The authentication session identifier
+     * @param merchantId The merchant identifier
+     * @param request3DSAuthentication Whether to request 3DS authentication
+     * @throws Exception if session initialization fails
+     */
+    @Throws(Exception::class)
     override suspend fun initClickToPaySession(
         clientSecret: String?,
         profileId: String?,
@@ -160,7 +212,7 @@ class DefaultClickToPaySessionLauncher(
     ) = withContext(Dispatchers.Main) {
         val requestId = UUID.randomUUID().toString()
         
-        val responseJson = suspendCancellableCoroutine<String> { continuation ->
+        val responseJson = suspendCancellableCoroutine { continuation ->
             pendingRequests[requestId] = continuation
             
             val jsCode = """
@@ -172,17 +224,23 @@ class DefaultClickToPaySessionLauncher(
                               authenticationId: "$authenticationId",
                               merchantId: "$merchantId",
                         });
-                        window.clickToPaySession = await authenticationSession.initClickToPaySession({
+                        window.ClickToPaySession = await authenticationSession.initClickToPaySession({
                               request3DSAuthentication: $request3DSAuthentication,
                         });
+                        const data = window.ClickToPaySession.error ? window.ClickToPaySession : { success: true }
                         window.HSAndroidInterface.postMessage(JSON.stringify({
                             requestId: "$requestId",
-                            data: { success: true }
+                            data: data
                         }));
                     } catch (error) {
                         window.HSAndroidInterface.postMessage(JSON.stringify({
                             requestId: "$requestId",
-                            data: { success: false, error: error.message }
+                            data: {
+                                error: {
+                                    type: "InitClickToPaySessionError",
+                                    message: error.message
+                                }
+                            }
                         }));
                     }
                 })();
@@ -192,34 +250,55 @@ class DefaultClickToPaySessionLauncher(
         
         val jsonObject = JSONObject(responseJson)
         val data = jsonObject.getJSONObject("data")
-        val success = data.optBoolean("success", false)
         
-        if (!success) {
-            val error = data.optString("error", "Unknown error")
-            throw Exception("Failed to initialize Click to Pay session: $error")
+        val error = data.optJSONObject("error")
+        if (error != null) {
+            val errorType = error.optString("type", "Unknown")
+            val errorMessage = error.optString("message", "Unknown error")
+            throw Exception("Failed to initialize Click to Pay session - Type: $errorType, Message: $errorMessage")
         }
     }
 
     /**
-     * Check if a customer has an existing Click to Pay profile
+     * Checks if a customer has an existing Click to Pay profile.
+     * 
+     * Queries the Click to Pay service to determine if the customer
+     * is enrolled based on their email or mobile number.
+     *
+     * @param request Customer identification details
+     * @return CustomerPresenceResponse indicating enrollment status
+     * @throws Exception if the check fails
      */
+    @Throws(Exception::class)
     override suspend fun isCustomerPresent(request: CustomerPresenceRequest): CustomerPresenceResponse? = withContext(Dispatchers.Main) {
         val requestId = UUID.randomUUID().toString()
         
-        val responseJson = suspendCancellableCoroutine<String> { continuation ->
+        val responseJson = suspendCancellableCoroutine { continuation ->
             pendingRequests[requestId] = continuation
             
             val jsCode = """
                 (async function() {
-                    const isCustomerPresent = await window.clickToPaySession.isCustomerPresent({
-                        ${request.email?.let {
-                            "email: \"${request.email}\""
-                        }?:""}
-                    });
-                    window.HSAndroidInterface.postMessage(JSON.stringify({
-                        requestId: "$requestId",
-                        data: isCustomerPresent
-                    }));
+                    try {
+                        const isCustomerPresent = await window.ClickToPaySession.isCustomerPresent({
+                            ${request.email?.let {
+                                "email: \"${request.email}\""
+                            }?:""}
+                        });
+                        window.HSAndroidInterface.postMessage(JSON.stringify({
+                            requestId: "$requestId",
+                            data: isCustomerPresent
+                        }));
+                    } catch (error) {
+                        window.HSAndroidInterface.postMessage(JSON.stringify({
+                            requestId: "$requestId",
+                            data: {
+                                error: {
+                                    type: "IsCustomerPresentError",
+                                    message: error.message
+                                }
+                            }
+                        }));
+                    }
                 })();
             """.trimIndent()
             hSWebViewManagerImpl.evaluateJavascriptWithFallback(hSWebViewWrapper, jsCode)
@@ -227,15 +306,30 @@ class DefaultClickToPaySessionLauncher(
         
         val jsonObject = JSONObject(responseJson)
         val data = jsonObject.getJSONObject("data")
+        
+        val error = data.optJSONObject("error")
+        if (error != null) {
+            val errorType = error.optString("type", "Unknown")
+            val errorMessage = error.optString("message", "Unknown error")
+            throw Exception("Failed to check customer presence - Type: $errorType, Message: $errorMessage")
+        }
+        
         return@withContext CustomerPresenceResponse(
             customerPresent = data.optBoolean("customerPresent", false)
         )
     }
 
     /**
-     * Retrieve the status of customer's saved cards
+     * Retrieves the status of customer's saved cards.
+     * 
+     * Determines whether the customer has recognized cards available
+     * or if additional authentication (OTP) is required.
+     *
+     * @return CardsStatusResponse with status code
+     * @throws Exception if retrieval fails
      */
-    override suspend fun getUserType(): CardsStatusResponse? = withContext(Dispatchers.Main) {
+    @Throws(Exception::class)
+    override suspend fun getUserType(): CardsStatusResponse = withContext(Dispatchers.Main) {
         val requestId = UUID.randomUUID().toString()
         
         val responseJson = suspendCancellableCoroutine<String> { continuation ->
@@ -243,11 +337,23 @@ class DefaultClickToPaySessionLauncher(
             
             val jsCode = """
                 (async function() {
-                    const userType = await window.clickToPaySession.getUserType();
-                    window.HSAndroidInterface.postMessage(JSON.stringify({
-                        requestId: "$requestId",
-                        data: userType
-                    }));
+                    try {
+                        const userType = await window.ClickToPaySession.getUserType();
+                        window.HSAndroidInterface.postMessage(JSON.stringify({
+                            requestId: "$requestId",
+                            data: userType
+                        }));
+                    } catch (error) {
+                        window.HSAndroidInterface.postMessage(JSON.stringify({
+                            requestId: "$requestId",
+                            data: {
+                                error: {
+                                    type: "GetUserTypeError",
+                                    message: error.message
+                                }
+                            }
+                        }));
+                    }
                 })();
             """.trimIndent()
             hSWebViewManagerImpl.evaluateJavascriptWithFallback(hSWebViewWrapper, jsCode)
@@ -255,6 +361,14 @@ class DefaultClickToPaySessionLauncher(
         
         val jsonObject = JSONObject(responseJson)
         val data = jsonObject.getJSONObject("data")
+        
+        val error = data.optJSONObject("error")
+        if (error != null) {
+            val errorType = error.optString("type", "Unknown")
+            val errorMessage = error.optString("message", "Unknown error")
+            throw Exception("Failed to get user type - Type: $errorType, Message: $errorMessage")
+        }
+        
         val statusCodeStr = data.optString("statusCode", "NO_CARDS_PRESENT")
         return@withContext CardsStatusResponse(
             statusCode = StatusCode.valueOf(statusCodeStr)
@@ -262,28 +376,56 @@ class DefaultClickToPaySessionLauncher(
     }
 
     /**
-     * Get the list of recognized cards for the customer
+     * Gets the list of recognized cards for the customer.
+     * 
+     * Retrieves all cards associated with the customer's Click to Pay profile.
+     * Parses card details including digital card data and billing address.
+     *
+     * @return List of RecognizedCard objects with complete card information
+     * @throws Exception if card retrieval fails
      */
-    override suspend fun getRecognizedCards(): List<RecognizedCard>? = withContext(Dispatchers.Main) {
+    @Throws(Exception::class)
+    override suspend fun getRecognizedCards(): List<RecognizedCard> = withContext(Dispatchers.Main) {
         val requestId = UUID.randomUUID().toString()
         
-        val responseJson = suspendCancellableCoroutine<String> { continuation ->
+        val responseJson = suspendCancellableCoroutine { continuation ->
             pendingRequests[requestId] = continuation
             
             val jsCode = """
                 (async function() {
-                    const cards = await window.clickToPaySession.getRecognizedCards();
-                    window.HSAndroidInterface.postMessage(JSON.stringify({
-                        requestId: "$requestId",
-                        data: cards
-                    }));
+                    try {
+                        const cards = await window.ClickToPaySession.getRecognizedCards();
+                        window.HSAndroidInterface.postMessage(JSON.stringify({
+                            requestId: "$requestId",
+                            data: cards
+                        }));
+                    } catch (error) {
+                        window.HSAndroidInterface.postMessage(JSON.stringify({
+                            requestId: "$requestId",
+                            data: {
+                                error: {
+                                    type: "GetRecognizedCardsError",
+                                    message: error.message
+                                }
+                            }
+                        }));
+                    }
                 })();
             """.trimIndent()
             hSWebViewManagerImpl.evaluateJavascriptWithFallback(hSWebViewWrapper, jsCode)
         }
         
         val jsonObject = JSONObject(responseJson)
-        val cardsArray = jsonObject.getJSONArray("data")
+        val data = jsonObject.get("data")
+        
+        if (data is JSONObject && data.has("error")) {
+            val error = data.getJSONObject("error")
+            val errorType = error.optString("type", "Unknown")
+            val errorMessage = error.optString("message", "Unknown error")
+            throw Exception("Failed to get recognized cards - Type: $errorType, Message: $errorMessage")
+        }
+        
+        val cardsArray = data as org.json.JSONArray
         val cards = mutableListOf<RecognizedCard>()
         
         for (i in 0 until cardsArray.length()) {
@@ -326,9 +468,17 @@ class DefaultClickToPaySessionLauncher(
     }
 
     /**
-     * Validate customer authentication with OTP
+     * Validates customer authentication with OTP.
+     * 
+     * Verifies the OTP entered by the customer and retrieves their
+     * recognized cards upon successful validation.
+     *
+     * @param otpValue The OTP value entered by the customer
+     * @return List of RecognizedCard objects if validation successful
+     * @throws Exception if OTP validation fails
      */
-    override suspend fun validateCustomerAuthentication(otpValue: String): List<RecognizedCard>? = withContext(Dispatchers.Main) {
+    @Throws(Exception::class)
+    override suspend fun validateCustomerAuthentication(otpValue: String): List<RecognizedCard> = withContext(Dispatchers.Main) {
         val requestId = UUID.randomUUID().toString()
         
         val responseJson = suspendCancellableCoroutine<String> { continuation ->
@@ -336,20 +486,41 @@ class DefaultClickToPaySessionLauncher(
             
             val jsCode = """
                 (async function() {
-                    const cards = await window.clickToPaySession.validateCustomerAuthentication({
-                        value: "$otpValue"
-                    });
-                    window.HSAndroidInterface.postMessage(JSON.stringify({
-                        requestId: "$requestId",
-                        data: cards
-                    }));
+                    try {
+                        const cards = await window.ClickToPaySession.validateCustomerAuthentication({
+                            value: "$otpValue"
+                        });
+                        window.HSAndroidInterface.postMessage(JSON.stringify({
+                            requestId: "$requestId",
+                            data: cards
+                        }));
+                    } catch (error) {
+                        window.HSAndroidInterface.postMessage(JSON.stringify({
+                            requestId: "$requestId",
+                            data: {
+                                error: {
+                                    type: "ValidateCustomerAuthenticationError",
+                                    message: error.message
+                                }
+                            }
+                        }));
+                    }
                 })();
             """.trimIndent()
             hSWebViewManagerImpl.evaluateJavascriptWithFallback(hSWebViewWrapper, jsCode)
         }
         
         val jsonObject = JSONObject(responseJson)
-        val cardsArray = jsonObject.getJSONArray("data")
+        val data = jsonObject.get("data")
+        
+        if (data is JSONObject && data.has("error")) {
+            val error = data.getJSONObject("error")
+            val errorType = error.optString("type", "Unknown")
+            val errorMessage = error.optString("message", "Unknown error")
+            throw Exception("Failed to validate customer authentication - Type: $errorType, Message: $errorMessage")
+        }
+        
+        val cardsArray = data as org.json.JSONArray
         val cards = mutableListOf<RecognizedCard>()
         
         for (i in 0 until cardsArray.length()) {
@@ -392,8 +563,17 @@ class DefaultClickToPaySessionLauncher(
     }
 
     /**
-     * Checkout with a selected card
+     * Processes checkout with a selected card.
+     * 
+     * Initiates payment processing using the customer's selected Click to Pay card.
+     * Parses the complete checkout response including transaction details,
+     * token data, and 3DS information.
+     *
+     * @param request CheckoutRequest containing card ID and preferences
+     * @return CheckoutResponse with complete transaction details
+     * @throws Exception if checkout fails
      */
+    @Throws(Exception::class)
     override suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse? = withContext(Dispatchers.Main) {
         val requestId = UUID.randomUUID().toString()
         
@@ -402,24 +582,41 @@ class DefaultClickToPaySessionLauncher(
 
             val jsCode = """
                 (async function() {
-                    const checkoutResponse = await window.clickToPaySession.checkoutWithCard({
-                        srcDigitalCardId: "${request.srcDigitalCardId}",
-                        rememberMe: ${request.rememberMe}
-                    });
-                    window.HSAndroidInterface.postMessage(JSON.stringify({
-                        requestId: "$requestId",
-                        data: checkoutResponse
-                    }));
+                    try {
+                        const checkoutResponse = await window.ClickToPaySession.checkoutWithCard({
+                            srcDigitalCardId: "${request.srcDigitalCardId}",
+                            rememberMe: ${request.rememberMe}
+                        });
+                        window.HSAndroidInterface.postMessage(JSON.stringify({
+                            requestId: "$requestId",
+                            data: checkoutResponse
+                        }));
+                    } catch (error) {
+                        window.HSAndroidInterface.postMessage(JSON.stringify({
+                            requestId: "$requestId",
+                            data: {
+                                error: {
+                                    type: "CheckoutWithCardError",
+                                    message: error.message
+                                }
+                            }
+                        }));
+                    }
                 })();
             """.trimIndent()
             hSWebViewManagerImpl.evaluateJavascriptWithFallback(hSWebViewWrapper, jsCode)
         }
         
-        // Parse the response
         val jsonObject = JSONObject(responseJson)
         val data = jsonObject.getJSONObject("data")
         
-        // Parse token_data if present
+        val error = data.optJSONObject("error")
+        if (error != null) {
+            val errorType = error.optString("type", "Unknown")
+            val errorMessage = error.optString("message", "Unknown error")
+            throw Exception("Failed to checkout with card - Type: $errorType, Message: $errorMessage")
+        }
+        
         val tokenDataObj = data.optJSONObject("token_data")
         val tokenData = tokenDataObj?.let {
             TokenData(
@@ -430,7 +627,6 @@ class DefaultClickToPaySessionLauncher(
             )
         }
         
-        // Parse acquirer_details if present
         val acquirerDetailsObj = data.optJSONObject("acquirer_details")
         val acquirerDetails = acquirerDetailsObj?.let {
             AcquirerDetails(

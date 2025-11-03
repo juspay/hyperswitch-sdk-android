@@ -3,9 +3,9 @@ package io.hyperswitch.paymentsession
 import io.hyperswitch.payments.paymentlauncher.PaymentResult
 
 interface PaymentSessionHandler {
-    fun getCustomerDefaultSavedPaymentMethodData(): PaymentMethod
-    fun getCustomerLastUsedPaymentMethodData(): PaymentMethod
-    fun getCustomerSavedPaymentMethodData(): Array<PaymentMethod>
+    fun getCustomerDefaultSavedPaymentMethodData(): Result<PaymentMethod>
+    fun getCustomerLastUsedPaymentMethodData(): Result<PaymentMethod>
+    fun getCustomerSavedPaymentMethodData(): Result<List<PaymentMethod>>
     fun confirmWithCustomerDefaultPaymentMethod(
         cvc: String? = null, resultHandler: (PaymentResult) -> Unit
     )

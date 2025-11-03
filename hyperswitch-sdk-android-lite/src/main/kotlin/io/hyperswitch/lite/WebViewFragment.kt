@@ -540,8 +540,8 @@ open class WebViewFragment : Fragment() {
         fun launchScanCard(data: String) {
             try {
                 val scanCardCallbackClass =
-                    Class.forName("io.hyperswitch.hyperswitchScanCardLite.ScanCardCallback")
-                val scanCardManagerClass = Class.forName("io.hyperswitch.hyperswitchScanCardLite.ScanCardManager")
+                    Class.forName("io.hyperswitch.scancard.ScanCardCallback")
+                val scanCardManagerClass = Class.forName("io.hyperswitch.scancard.ScanCardManager")
 
                 val callback =
                     java.lang.reflect.Proxy.newProxyInstance(

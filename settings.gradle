@@ -7,12 +7,20 @@ pluginManagement {
     includeBuild('../node_modules/@react-native/gradle-plugin')
     includeBuild('hyperswitch-gradle-plugin')
 }
-plugins {
-    id("io.hyperswitch.settings") version "0.75.2"
-}
+plugins { id("com.facebook.react.settings") }
 extensions.configure(com.facebook.react.ReactSettingsExtension) { ex -> ex.autolinkLibrariesFromCommand() }
 
 rootProject.name = 'io.hyperswitch'
 
-include ':app', ':demo-app', ':demo-app-lite', ':hyperswitch-sdk-android-lite', ':hyperswitch-scan-card-lite', ':hyperswitch-sdk-android-api', ':hyperswitch-sdk-android-logger', ':hyperswitch-sdk-android-common', ':hyperswitch-sdk-android-webview-utils', ':hyperswitch-sdk-android-click-to-pay', ':hyperswitch-sdk-android-authentication'
+include ':app'
+include ':demo-app'
+include ':demo-app-lite'
+include ':hyperswitch-sdk-android-api'
+include ':hyperswitch-sdk-android-authentication'
+include ':hyperswitch-sdk-android-click-to-pay'
+include ':hyperswitch-sdk-android-common'
+include ':hyperswitch-sdk-android-lite'
+include ':hyperswitch-sdk-android-logger'
+include ':hyperswitch-sdk-android-scancard'
+include ':hyperswitch-sdk-android-webview-utils'
 includeBuild('../node_modules/@react-native/gradle-plugin')

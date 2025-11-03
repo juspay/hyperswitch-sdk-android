@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "io.hyperswitch"
-version = coreVersion
+version = commonVersion
 
 android {
     namespace 'io.hyperswitch.common'

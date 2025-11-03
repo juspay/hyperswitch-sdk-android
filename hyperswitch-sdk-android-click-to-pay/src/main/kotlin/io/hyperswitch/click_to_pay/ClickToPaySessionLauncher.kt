@@ -3,11 +3,38 @@ package io.hyperswitch.click_to_pay
 import io.hyperswitch.click_to_pay.models.*
 
 /**
- * Interface for Click to Pay session launcher
- * Defines the contract for managing Click to Pay sessions and operations
+ * Interface defining the contract for Click to Pay session management.
+ * 
+ * This interface provides methods for managing Click to Pay sessions,
+ * customer verification, card retrieval, and payment processing.
  */
 interface ClickToPaySessionLauncher {
 
+    /**
+     * Initializes the Click to Pay SDK.
+     * 
+     * Loads required resources and prepares the SDK for use.
+     * Must be called before any other Click to Pay operations.
+     *
+     * @throws Exception if SDK initialization fails
+     */
+    @Throws(Exception::class)
+    suspend fun initialize()
+
+    /**
+     * Initializes a Click to Pay session with payment credentials.
+     * 
+     * Sets up the session with merchant and payment information required
+     * for Click to Pay operations.
+     *
+     * @param clientSecret The client secret from the payment intent
+     * @param profileId The merchant profile identifier
+     * @param authenticationId The authentication session identifier
+     * @param merchantId The merchant identifier
+     * @param request3DSAuthentication Whether to request 3DS authentication
+     * @throws Exception if session initialization fails
+     */
+    @Throws(Exception::class)
     suspend fun initClickToPaySession(
         clientSecret: String?,
         profileId: String?,
@@ -17,35 +44,65 @@ interface ClickToPaySessionLauncher {
     )
 
     /**
-     * Check if a customer has an existing Click to Pay profile
+     * Checks if a customer has an existing Click to Pay profile.
+     * 
+     * Verifies whether the customer is enrolled in Click to Pay
+     * based on their email or mobile number.
+     *
      * @param request Customer identification details (email or mobile number)
      * @return CustomerPresenceResponse indicating if customer exists
+     * @throws Exception if the check fails
      */
+    @Throws(Exception::class)
     suspend fun isCustomerPresent(request: CustomerPresenceRequest): CustomerPresenceResponse?
     
     /**
-     * Retrieve the status of customer's saved cards
-     * @return CardsStatusResponse with status code
+     * Retrieves the status of customer's saved cards.
+     * 
+     * Determines whether the customer has recognized cards available
+     * or if additional authentication is required.
+     *
+     * @return CardsStatusResponse with status code indicating card availability
+     * @throws Exception if retrieval fails
      */
+    @Throws(Exception::class)
     suspend fun getUserType(): CardsStatusResponse?
     
     /**
-     * Get the list of recognized cards for the customer
-     * @return List of RecognizedCard objects
+     * Gets the list of recognized cards for the customer.
+     * 
+     * Retrieves all cards associated with the customer's Click to Pay profile
+     * that can be used for payment.
+     *
+     * @return List of RecognizedCard objects with card details
+     * @throws Exception if card retrieval fails
      */
+    @Throws(Exception::class)
     suspend fun getRecognizedCards(): List<RecognizedCard>?
     
     /**
-     * Validate customer authentication with OTP
+     * Validates customer authentication with OTP.
+     * 
+     * Verifies the OTP entered by the customer and returns their
+     * recognized cards upon successful validation.
+     *
      * @param otpValue The OTP value entered by the customer
      * @return List of RecognizedCard objects if validation successful
+     * @throws Exception if OTP validation fails
      */
+    @Throws(Exception::class)
     suspend fun validateCustomerAuthentication(otpValue: String): List<RecognizedCard>?
     
     /**
-     * Checkout with a selected card
-     * @param request CheckoutRequest containing card details and preferences
-     * @return CheckoutResponse with transaction details
+     * Processes checkout with a selected card.
+     * 
+     * Initiates payment processing using the customer's selected
+     * Click to Pay card.
+     *
+     * @param request CheckoutRequest containing card ID and preferences
+     * @return CheckoutResponse with transaction details and status
+     * @throws Exception if checkout fails
      */
+    @Throws(Exception::class)
     suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse?
 }

@@ -1,3 +1,7 @@
+gradle.startParameter.excludedTaskNames.addAll(
+    gradle.startParameter.taskNames.findAll { it.contains("testClasses") }
+)
+
 buildscript {
     apply from: 'dependencies.gradle'
 
@@ -7,12 +11,12 @@ buildscript {
     }
     dependencies {
         classpath("com.android.tools.build:gradle")
+        classpath("com.facebook.react:react-native-gradle-plugin")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
-        classpath("io.hyperswitch:react-native-gradle-plugin:0.75.2.1")
     }
 }
 
-apply plugin: "io.hyperswitch.rootproject"
+apply plugin: "com.facebook.react.rootproject"
 apply plugin: "maven-publish"
 
 rootProject.allprojects {
@@ -48,9 +52,9 @@ def runtimeDepsExcluded = [
 def runtimeDepsOptional = [
         'react-native-hyperswitch-kount',
         'react-native-hyperswitch-paypal',
-        'react-native-hyperswitch-netcetera-3ds',
-        'react-native-hyperswitch-samsung-pay',
-        'react-native-hyperswitch-scancard',
+        'juspay-tech_react-native-hyperswitch-netcetera-3ds',
+        'juspay-tech_react-native-hyperswitch-samsung-pay',
+        'juspay-tech_react-native-hyperswitch-scancard',
         'react-native-klarna-inapp-sdk',
 ]
 
@@ -76,52 +80,39 @@ def configurePomMetadata = { root ->
     developerNode.appendNode('email', 'shivam.shashank@juspay.in')
 }
 
-subprojects {
+gradle.projectsEvaluated {
+    subprojects {
+        def configurePom = { pom ->
+            def root = pom.asNode()
+            configurePomMetadata(root)
 
-    // def disableTaskIfPresent = { taskPath ->
-    //     def task = tasks.findByPath(taskPath)
-    //     if (task) task.enabled = false
-    // }
-
-    // disableTaskIfPresent(':react-native-klarna-inapp-sdk:compileDebugUnitTestJavaWithJavac')
-    // disableTaskIfPresent(':react-native-klarna-inapp-sdk:compileReleaseUnitTestJavaWithJavac')
-    // disableTaskIfPresent(':react-native-klarna-inapp-sdk:testReleaseUnitTest')
-    // disableTaskIfPresent(':react-native-hyperswitch-paypal:lintDebug')
-
-    def isAppProject = project.name == 'app'
-    def isLiteProject = project.name == 'hyperswitch-sdk-android-lite'
-    def pomVersion = isAppProject ? project.version : (isLiteProject ? liteSdkVersion : libsVersion)
-
-    def configurePom = { pom ->
-        def root = pom.asNode()
-        configurePomMetadata(root)
-
-        def dependencies = root.appendNode('dependencies')
-        configurations.getByName('releaseCompileClasspath').getResolvedConfiguration().getFirstLevelModuleDependencies().each {
-            if (!runtimeDepsOptional.contains(it.moduleName)) {
-                def dependency = dependencies.appendNode('dependency')
-                dependency.appendNode('groupId', it.moduleGroup)
-                dependency.appendNode('artifactId', it.moduleName)
-                dependency.appendNode('version', (runtimeDeps.contains(it.moduleName) ? libsVersion : it.moduleVersion))
-            }
-        }
-    }
-
-    publishing {
-        publications {
-            if (!runtimeDepsExcluded.contains(project.name)) {
-                "$project.name"(MavenPublication) {
-                    groupId = project.group
-                    artifactId = isAppProject ? 'hyperswitch-sdk-android' : project.name
-                    version = pomVersion
-                    artifact "$buildDir/outputs/aar/$project.name-release.aar"
-                    pom.withXml(configurePom)
+            def dependencies = root.appendNode('dependencies')
+            configurations.getByName('releaseCompileClasspath').getResolvedConfiguration().getFirstLevelModuleDependencies().each {
+                if (!runtimeDepsOptional.contains(it.moduleName)) {
+                    def dependency = dependencies.appendNode('dependency')
+                    dependency.appendNode('groupId', it.moduleGroup)
+                    dependency.appendNode('artifactId', it.moduleName)
+                    dependency.appendNode('version', (runtimeDeps.contains(it.moduleName) ? rnlibVersion : it.moduleVersion))
                 }
             }
         }
-        repositories {
-            maven {
-                url("${project.rootDir}/maven")
+
+        publishing {
+            publications {
+                if (!runtimeDepsExcluded.contains(project.name)) {
+                    "$project.name"(MavenPublication) {
+                        groupId = project.group
+                        artifactId = project.name == 'app' ? 'hyperswitch-sdk-android' : project.name
+                        version = project.version
+                        artifact "$buildDir/outputs/aar/$project.name-release.aar"
+                        pom.withXml(configurePom)
+                    }
+                }
+            }
+            repositories {
+                maven {
+                    url("${project.rootDir}/maven")
+                }
             }
         }
     }

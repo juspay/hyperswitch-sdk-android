@@ -11,6 +11,7 @@ import io.hyperswitch.payments.paymentlauncher.PaymentResult
 import io.hyperswitch.paymentsession.Card
 import io.hyperswitch.paymentsession.ExitHeadlessCallBackManager
 import io.hyperswitch.paymentsession.GetPaymentSessionCallBackManager
+import io.hyperswitch.paymentsession.PMError
 import io.hyperswitch.paymentsession.PaymentMethod
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 
@@ -29,22 +30,24 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
         callback: Callback
     ) {
         val handler = object : PaymentSessionHandler {
-            override fun getCustomerDefaultSavedPaymentMethodData(): PaymentMethod {
+            override fun getCustomerDefaultSavedPaymentMethodData(): Result<PaymentMethod> {
                 return parseGetPaymentMethodData(getPaymentMethodData)
             }
 
-            override fun getCustomerLastUsedPaymentMethodData(): PaymentMethod {
+            override fun getCustomerLastUsedPaymentMethodData(): Result<PaymentMethod> {
                 return parseGetPaymentMethodData(getPaymentMethodData2)
             }
 
-            override fun getCustomerSavedPaymentMethodData(): Array<PaymentMethod> {
+            override fun getCustomerSavedPaymentMethodData(): Result<List<PaymentMethod>> {
                 val array = mutableListOf<PaymentMethod>()
                 for (i in 0 until getPaymentMethodDataArray.size()) {
                     getPaymentMethodDataArray.getMap(i)?.let {
-                        array.add(parseGetPaymentMethodData(it))
+                        parseGetPaymentMethodData(it).onSuccess { paymentMethod ->
+                            array.add(paymentMethod)
+                        }
                     }
                 }
-                return array.toTypedArray()
+                return Result.success(array)
             }
 
             override fun confirmWithCustomerDefaultPaymentMethod(
@@ -80,7 +83,7 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
         GetPaymentSessionCallBackManager.executeCallback(handler)
     }
 
-    private fun parseGetPaymentMethodData(readableMap: ReadableMap): PaymentMethod {
+    private fun parseGetPaymentMethodData(readableMap: ReadableMap): Result<PaymentMethod> {
         val paymentMethod = readableMap.getString("payment_method_str")
 
         return if (paymentMethod != null) {
@@ -114,7 +117,7 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
                 }
             }
 
-            PaymentMethod.PaymentMethodType(
+            Result.success(PaymentMethod(
                 paymentToken = readableMap.getString("payment_token") ?: "",
                 paymentMethodId = readableMap.getString("payment_method_id") ?: "",
                 customerId = readableMap.getString("customer_id") ?: "",
@@ -133,12 +136,12 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
                 requiresCvv = readableMap.getBoolean("requires_cvv"),
                 lastUsedAt = readableMap.getString("last_used_at") ?: "",
                 defaultPaymentMethodSet = readableMap.getBoolean("default_payment_method_set"),
-            )
+            ))
         } else {
-            PaymentMethod.Error(
+            Result.failure(PMError(
                 code = readableMap.getString("code") ?: "",
                 message = readableMap.getString("message") ?: ""
-            )
+            ))
         }
     }
 

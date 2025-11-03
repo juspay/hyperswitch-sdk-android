@@ -17,6 +17,11 @@ dependencies {
 
     // Add the Android Gradle Plugin dependency
     implementation 'com.android.tools.build:gradle:8.5.0'
+    
+    // Test dependencies
+    testImplementation 'org.spockframework:spock-core:2.3-groovy-3.0'
+    testImplementation gradleTestKit()
+    testImplementation 'junit:junit:4.13.2'
 }
 
 gradlePlugin {
@@ -38,7 +43,7 @@ java {
 }
 
 group = 'io.hyperswitch'
-version = '0.1.7'
+version = '0.1.8'
 
 task sourcesJar(type: Jar) {
     from sourceSets.main.allSource

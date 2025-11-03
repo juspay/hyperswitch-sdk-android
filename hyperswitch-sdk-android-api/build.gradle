@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.hyperswitch"
-version = coreVersion
+version = apiVersion
 
 android {
     namespace 'io.hyperswitch.api'

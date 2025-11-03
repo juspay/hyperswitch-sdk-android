@@ -3,15 +3,47 @@ package io.hyperswitch
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
+enum HyperFeature {
+    SCANCARD('juspay-tech_react-native-hyperswitch-scancard', 'rnlibVersion'),
+    NETCETERA('juspay-tech_react-native-hyperswitch-netcetera-3ds', 'rnlibVersion')
+
+    final String artifactId
+    final String versionProperty
+
+    HyperFeature(String artifactId, String versionProperty) {
+        this.artifactId = artifactId
+        this.versionProperty = versionProperty
+    }
+
+    static HyperFeature fromString(String name) {
+        String normalizedName = name.replaceAll('([a-z])([A-Z])', '$1_$2').toUpperCase()
+        try {
+            return valueOf(normalizedName)
+        } catch (IllegalArgumentException e) {
+            return null
+        }
+    }
+}
+
 class HyperPluginExtension {
     String sdkVersion = null
+    List<Object> features = []
+
+    void features(List<Object> featureList) {
+        this.features = featureList
+    }
+
+    void setFeatures(List<Object> featureList) {
+        this.features = featureList
+    }
 }
 
 class HyperPlugin implements Plugin<Project> {
     static final String FALLBACK_SDK_VERSION = "+"
-  
+
     void apply(Project project) {
-        def extension = project.extensions.create('hyperswitch', HyperPluginExtension)
+        def extension = project.extensions.create('hyper', HyperPluginExtension)
+        
         project.plugins.withId('com.android.application') {
             try {
                 project.repositories {
@@ -37,10 +69,38 @@ class HyperPlugin implements Plugin<Project> {
                                 "      • Add `maven { url 'https://maven.juspay.in/hyper-sdk' }`\n")
             }
 
-                String sdkVersionToUse = extension.sdkVersion ?: getVersionFromResources()
+            project.afterEvaluate {
+                String sdkVersionToUse = extension.sdkVersion ?: getVersionFromGradleProperties(project, 'sdkVersion') ?: getVersionFromResources('sdkVersion') ?: FALLBACK_SDK_VERSION
                 project.dependencies {
                     implementation "io.hyperswitch:hyperswitch-sdk-android:${sdkVersionToUse}"
                 }
+
+                if (extension.features) {
+                    extension.features.each { feature ->
+                        HyperFeature hyperFeature = null
+                        
+                        if (feature instanceof HyperFeature) {
+                            hyperFeature = feature
+                        } else if (feature instanceof String) {
+                            hyperFeature = HyperFeature.fromString(feature)
+                        }
+
+                        if (hyperFeature != null) {
+                            String featureVersion = getVersionFromGradleProperties(project, hyperFeature.versionProperty) ?: 
+                                                   getVersionFromResources(hyperFeature.versionProperty) ?: 
+                                                   FALLBACK_SDK_VERSION
+                            
+                            project.dependencies {
+                                implementation "io.hyperswitch:${hyperFeature.artifactId}:${featureVersion}"
+                            }
+                            
+                            project.logger.info("Added Hyperswitch feature: ${hyperFeature.artifactId}:${featureVersion}")
+                        } else {
+                            project.logger.warn("Unknown Hyperswitch feature: ${feature}")
+                        }
+                    }
+                }
+            }
 
             try {
                 if (project.android) {
@@ -89,17 +149,27 @@ class HyperPlugin implements Plugin<Project> {
         }
     }
 
-    private static String getVersionFromResources() {
+    private static String getVersionFromGradleProperties(Project project, String propertyName) {
+        try {
+            if (project.hasProperty(propertyName)) {
+                return project.property(propertyName)
+            }
+        } catch (Exception ignored) {
+        }
+        return null
+    }
+
+    private static String getVersionFromResources(String propertyName) {
         try {
             InputStream inputStream = HyperPlugin.class.getResourceAsStream("/version.properties")
             if (inputStream != null) {
                 Properties properties = new Properties()
                 properties.load(inputStream)
                 inputStream.close()
-                return properties.getProperty("sdk.version", FALLBACK_SDK_VERSION)
+                return properties.getProperty(propertyName, null)
             }
         } catch (Exception ignored) {
         }
-        return FALLBACK_SDK_VERSION
+        return null
     }
 }

@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="webViewUrl">http://10.0.2.2:8082</string>
+    <string name="webViewUrl">https://beta.hyperswitch.io/mobile/1.7.3/index.html</string>
 </resources>

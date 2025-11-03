@@ -5,8 +5,16 @@ import android.os.Bundle
 import io.hyperswitch.click_to_pay.ClickToPaySession
 
 /**
- * Default implementation of AuthenticationSessionLauncher for the lite SDK
- * Handles authentication session lifecycle and configuration
+ * Default implementation of AuthenticationSessionLauncher.
+ * 
+ * This class manages the lifecycle of authentication and Click to Pay sessions,
+ * handling initialization, credential storage, and session creation.
+ *
+ * @property clickToPaySession The underlying Click to Pay session instance
+ * @property clientSecret Stored client secret from payment intent
+ * @property profileId Stored merchant profile identifier
+ * @property authenticationId Stored authentication session identifier
+ * @property merchantId Stored merchant identifier
  */
 class DefaultAuthenticationSessionLauncher(
     activity: Activity,
@@ -27,6 +35,31 @@ class DefaultAuthenticationSessionLauncher(
     private var authenticationId: String? = null
     private var merchantId: String? = null
 
+    /**
+     * Initializes the Click to Pay SDK.
+     * 
+     * Loads required resources and prepares the SDK for use.
+     * Must be called before any Click to Pay operations.
+     *
+     * @throws Exception if SDK initialization fails
+     */
+    @Throws(Exception::class)
+    override suspend fun initialize() {
+        clickToPaySession.initialise()
+    }
+
+    /**
+     * Stores authentication credentials for subsequent operations.
+     * 
+     * These credentials are used when initializing Click to Pay sessions
+     * without explicitly providing them each time.
+     *
+     * @param clientSecret The client secret from the payment intent
+     * @param profileId The merchant profile identifier
+     * @param authenticationId The authentication session identifier
+     * @param merchantId The merchant identifier
+     */
+    @Throws(Exception::class)
     override suspend fun initAuthenticationSession(
         clientSecret: String,
         profileId: String,
@@ -39,6 +72,16 @@ class DefaultAuthenticationSessionLauncher(
         this.merchantId = merchantId
     }
 
+    /**
+     * Initializes a Click to Pay session using stored credentials.
+     * 
+     * Uses credentials previously set via initAuthenticationSession.
+     *
+     * @param request3DSAuthentication Whether to request 3DS authentication
+     * @return The initialized ClickToPaySession instance
+     * @throws Exception if session initialization fails or credentials are not set
+     */
+    @Throws(Exception::class)
     override suspend fun initClickToPaySession(
         request3DSAuthentication: Boolean
     ): ClickToPaySession {
@@ -51,6 +94,20 @@ class DefaultAuthenticationSessionLauncher(
         )
     }
 
+    /**
+     * Initializes a Click to Pay session with explicit credentials.
+     * 
+     * Allows initializing a session without calling initAuthenticationSession first.
+     *
+     * @param clientSecret The client secret from the payment intent
+     * @param profileId The merchant profile identifier
+     * @param authenticationId The authentication session identifier
+     * @param merchantId The merchant identifier
+     * @param request3DSAuthentication Whether to request 3DS authentication
+     * @return The initialized ClickToPaySession instance
+     * @throws Exception if session initialization fails
+     */
+    @Throws(Exception::class)
     override suspend fun initClickToPaySession(
         clientSecret: String?,
         profileId: String?,
@@ -68,5 +125,11 @@ class DefaultAuthenticationSessionLauncher(
         return clickToPaySession
     }
 
+    /**
+     * Initializes a 3DS authentication session.
+     * 
+     * Currently a no-op placeholder for future 3DS functionality.
+     */
+    @Throws(Exception::class)
     override suspend fun initThreeDSSession() {}
 }

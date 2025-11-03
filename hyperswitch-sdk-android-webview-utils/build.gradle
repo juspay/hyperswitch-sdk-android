@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "io.hyperswitch"
-version = coreVersion
+version = webviewVersion
 
 android {
     namespace 'io.hyperswitch.webview.utils'

@@ -1,6 +1,7 @@
 package io.hyperswitch.demo_app_lite
 
 import android.app.Activity
+import android.content.Intent
 import android.util.Patterns
 import android.os.Bundle
 import android.text.Editable
@@ -221,6 +222,10 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.launchButton).setOnClickListener {
             val customisations = getCustomisations()
             paymentSession.presentPaymentSheet(customisations, ::onPaymentSheetResult)
+        }
+
+        findViewById<View>(R.id.c2pButton).setOnClickListener {
+            startActivity(Intent(this, ClickToPayExample::class.java))
         }
     }
 

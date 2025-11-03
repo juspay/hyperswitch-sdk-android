@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "io.hyperswitch"
-version = coreVersion
+version = logVersion
 
 android {
     namespace 'io.hyperswitch.logger'

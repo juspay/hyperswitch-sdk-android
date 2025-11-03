@@ -1,7 +1,7 @@
 apply plugin: "com.android.library"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "kotlin-parcelize"
-apply plugin: "io.hyperswitch.react"
+apply plugin: "com.facebook.react"
 
 group = "io.hyperswitch"
 version = sdkVersion

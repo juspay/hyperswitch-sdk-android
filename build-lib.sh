@@ -27,8 +27,8 @@ cd hyperswitch-gradle-plugin
 cd ..
 echo "Generating artifacts for Hyperswitch Android SDK."
 # ./gradlew clean
-./gradlew assembleRelease --continue
-./gradlew publish --continue
+./gradlew assembleRelease
+./gradlew publish
 
 cd maven/io/hyperswitch || exit 1
 

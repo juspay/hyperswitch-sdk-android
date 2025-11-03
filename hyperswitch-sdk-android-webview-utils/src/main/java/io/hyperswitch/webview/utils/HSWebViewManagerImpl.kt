@@ -100,10 +100,6 @@ class HSWebViewManagerImpl(
             }
         }
 
-
-        webView.setBackgroundColor(Color.BLUE);
-
-
         if (BuildConfig.DEBUG) {
             WebView.setWebContentsDebuggingEnabled(true)
         }

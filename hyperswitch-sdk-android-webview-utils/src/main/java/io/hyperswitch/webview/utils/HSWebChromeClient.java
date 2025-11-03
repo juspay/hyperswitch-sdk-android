@@ -3,12 +3,14 @@ package io.hyperswitch.webview.utils;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Message;
 import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.webkit.ConsoleMessage;
 import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
@@ -141,10 +143,18 @@ public class HSWebChromeClient extends WebChromeClient /*implements LifecycleEve
             }
         });
 
-        newWebView.setBackgroundColor(Color.GREEN);
-
         ViewGroup parent = (ViewGroup) view.getParent().getParent();
         if (parent != null) {
+            WindowInsets windowInsets = parent.getRootView().getRootWindowInsets();
+            if (windowInsets != null) {
+                Insets insets = windowInsets.getInsets(
+                        WindowInsets.Type.statusBars()
+                                | WindowInsets.Type.displayCutout()
+                                | WindowInsets.Type.navigationBars()
+                                | WindowInsets.Type.captionBar()
+                );
+                parent.setPadding(insets.left, insets.top, insets.right, insets.bottom);
+            }
             parent.addView(newWebView);
         }
 
