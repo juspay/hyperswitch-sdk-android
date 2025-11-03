@@ -92,7 +92,7 @@ gradle.projectsEvaluated {
                     def dependency = dependencies.appendNode('dependency')
                     dependency.appendNode('groupId', it.moduleGroup)
                     dependency.appendNode('artifactId', it.moduleName)
-                    dependency.appendNode('version', (runtimeDeps.contains(it.moduleName) ? rnlibVersion : it.moduleVersion))
+                    dependency.appendNode('version', runtimeDeps.contains(it.moduleName) ? rnlibVersion : it.moduleVersion)
                 }
             }
         }
@@ -103,7 +103,7 @@ gradle.projectsEvaluated {
                     "$project.name"(MavenPublication) {
                         groupId = project.group
                         artifactId = project.name == 'app' ? 'hyperswitch-sdk-android' : project.name
-                        version = project.version
+                        version = runtimeDeps.contains(project.name) || runtimeDepsOptional.contains(project.name) ? rnlibVersion : project.version
                         artifact "$buildDir/outputs/aar/$project.name-release.aar"
                         pom.withXml(configurePom)
                     }
