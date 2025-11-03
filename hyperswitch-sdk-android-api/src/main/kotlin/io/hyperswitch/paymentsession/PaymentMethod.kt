@@ -1,6 +1,69 @@
 package io.hyperswitch.paymentsession
 
 /**
+ * Sealed class representing different payment method types
+ */
+sealed class PaymentMethodType {
+    data object WALLET : PaymentMethodType()
+    data object CARD : PaymentMethodType()
+    data object CARD_REDIRECT : PaymentMethodType()
+    data object PAY_LATER : PaymentMethodType()
+    data object BANK_REDIRECT : PaymentMethodType()
+    data object OPEN_BANKING : PaymentMethodType()
+    data object BANK_DEBIT : PaymentMethodType()
+    data object BANK_TRANSFER : PaymentMethodType()
+    data object CRYPTO : PaymentMethodType()
+    data object REWARD : PaymentMethodType()
+    data object GIFT_CARD : PaymentMethodType()
+    data class OTHERS(val value: String) : PaymentMethodType()
+
+    companion object {
+        /**
+         * Converts a string value to the corresponding PaymentMethodType
+         * @param value The string representation of the payment method
+         * @return The corresponding PaymentMethodType, returns OTHERS(value) for unrecognized types
+         */
+        fun fromString(value: String): PaymentMethodType {
+            return when (value.lowercase()) {
+                "wallet" -> WALLET
+                "card" -> CARD
+                "card_redirect" -> CARD_REDIRECT
+                "pay_later" -> PAY_LATER
+                "bank_redirect" -> BANK_REDIRECT
+                "open_banking" -> OPEN_BANKING
+                "bank_debit" -> BANK_DEBIT
+                "bank_transfer" -> BANK_TRANSFER
+                "crypto" -> CRYPTO
+                "reward" -> REWARD
+                "gift_card" -> GIFT_CARD
+                else -> OTHERS(value)
+            }
+        }
+    }
+
+    /**
+     * Converts the PaymentMethodType to its string representation
+     * @return The string representation of the payment method type
+     */
+    fun toStringValue(): String {
+        return when (this) {
+            is WALLET -> "wallet"
+            is CARD -> "card"
+            is CARD_REDIRECT -> "card_redirect"
+            is PAY_LATER -> "pay_later"
+            is BANK_REDIRECT -> "bank_redirect"
+            is OPEN_BANKING -> "open_banking"
+            is BANK_DEBIT -> "bank_debit"
+            is BANK_TRANSFER -> "bank_transfer"
+            is CRYPTO -> "crypto"
+            is REWARD -> "reward"
+            is GIFT_CARD -> "gift_card"
+            is OTHERS -> this.value
+        }
+    }
+}
+
+/**
  * Represents card payment method details
  */
 data class Card(
@@ -46,7 +109,7 @@ data class PaymentMethod(
     val paymentToken: String,
     val paymentMethodId: String,
     val customerId: String,
-    val paymentMethod: String,
+    val paymentMethod: PaymentMethodType,
     val paymentMethodType: String,
     val paymentMethodIssuer: String,
     val paymentMethodIssuerCode: String?,
@@ -67,7 +130,7 @@ data class PaymentMethod(
             this["payment_token"] = paymentToken
             this["payment_method_id"] = paymentMethodId
             this["customer_id"] = customerId
-            this["payment_method"] = paymentMethod
+            this["payment_method"] = paymentMethod.toStringValue()
             this["payment_method_type"] = paymentMethodType
             this["payment_method_issuer"] = paymentMethodIssuer
             this["payment_method_issuer_code"] = paymentMethodIssuerCode

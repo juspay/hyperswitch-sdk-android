@@ -13,6 +13,7 @@ import io.hyperswitch.paymentsession.ExitHeadlessCallBackManager
 import io.hyperswitch.paymentsession.GetPaymentSessionCallBackManager
 import io.hyperswitch.paymentsession.PMError
 import io.hyperswitch.paymentsession.PaymentMethod
+import io.hyperswitch.paymentsession.PaymentMethodType
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 
 class HyperHeadlessModule internal constructor(private val rct: ReactApplicationContext) :
@@ -121,7 +122,7 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
                 paymentToken = readableMap.getString("payment_token") ?: "",
                 paymentMethodId = readableMap.getString("payment_method_id") ?: "",
                 customerId = readableMap.getString("customer_id") ?: "",
-                paymentMethod = readableMap.getString("payment_method_str") ?: "",
+                paymentMethod = PaymentMethodType.fromString(readableMap.getString("payment_method_str") ?: ""),
                 paymentMethodType = readableMap.getString("payment_method_type") ?: "",
                 paymentMethodIssuer = readableMap.getString("payment_method_issuer") ?: "",
                 paymentMethodIssuerCode = readableMap.getString("payment_method_issuer_code"),

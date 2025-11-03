@@ -24,6 +24,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
+import io.hyperswitch.paymentsession.PaymentMethodType
 
 class MainActivity : Activity() {
     lateinit var ctx: Activity
@@ -250,15 +251,6 @@ class MainActivity : Activity() {
             val customisations = getCustomisations()
             paymentSession.presentPaymentSheet(customisations, ::onPaymentSheetResult)
         }
-
-//        findViewById<View>(R.id.launchWebButton).setOnClickListener {
-//            CoroutineScope(Dispatchers.Main).launch {
-//                paymentSessionLite.presentPaymentSheet(
-//                    getCustomisations(),
-//                    ::onPaymentSheetResult
-//                )
-//            }
-//        }
 
         findViewById<View>(R.id.launchWidgetLayout).setOnClickListener {
             val intent = Intent(this, WidgetActivity::class.java)
