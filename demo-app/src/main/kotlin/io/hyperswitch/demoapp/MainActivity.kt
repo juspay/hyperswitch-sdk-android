@@ -23,6 +23,12 @@ import org.json.JSONException
 import org.json.JSONObject
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+//import androidx.core.graphics.toColorIntimport java.io.File
+
 
 class MainActivity : Activity() {
     lateinit var ctx: Activity
@@ -33,7 +39,13 @@ class MainActivity : Activity() {
     private val keyServerUrl = "server_url"
     private var serverUrl = "http://10.0.2.2:5252"
     private lateinit var paymentSession: PaymentSession
+//    private lateinit var paymentSessionLite: PaymentSessionLite
     private lateinit var editText: EditText
+
+    // Performance tracking
+    private lateinit var mainSdkPerfTracker: SDKPerformanceTracker
+    private lateinit var perfExporter: PerformanceExporter
+    private var mainSdkMetrics: SDKPerformanceTracker.SDKMetrics? = null
 
     private fun fetchNetceteraApiKey() = {
         reset().get("$serverUrl/netcetera-sdk-api-key").responseString(object : Handler<String?> {
@@ -58,7 +70,8 @@ class MainActivity : Activity() {
     }
 
     private fun loadServerUrl(): String {
-        return getSharedPreferences().getString(keyServerUrl, serverUrl) ?: serverUrl
+        return getSharedPreferences().getString(keyServerUrl, serverUrl)
+            ?: serverUrl
     }
 
     private fun isValidUrl(url: String): Boolean {
@@ -133,6 +146,13 @@ class MainActivity : Activity() {
 
     private fun getCL() {
 
+//         ctx.findViewById<View>(R.id.launchButton).isEnabled = false
+// //        ctx.findViewById<View>(R.id.launchWebButton).isEnabled = false
+//         ctx.findViewById<View>(R.id.confirmButton).isEnabled = false
+
+//         // Track API call latency
+        val apiStartTime = android.os.SystemClock.elapsedRealtime()
+        
         ctx.findViewById<View>(R.id.launchButton).isEnabled = false
         ctx.findViewById<View>(R.id.confirmButton).isEnabled = false
 
@@ -140,6 +160,11 @@ class MainActivity : Activity() {
             .responseString(object : Handler<String?> {
                 override fun success(value: String?) {
                     try {
+                        // Record API latency
+                        val apiLatency = android.os.SystemClock.elapsedRealtime() - apiStartTime
+//                        mainSdkApiTracker.getLatencies() // This ensures the list is initialized
+                        Log.d("SDK_PERF", "Create Payment Intent API took ${apiLatency}ms")
+
                         Log.d("Backend Response", value.toString())
 
                         val result = value?.let { JSONObject(it) }
@@ -157,11 +182,16 @@ class MainActivity : Activity() {
 
                             /**
                              *
-                             * Initialise Payment Session
+                             * Initialise Payment Session (with init time tracking)
                              *
                              * */
 
+                            // Track Main SDK initialization
+//                            mainSdkPerfTracker.startInitTracking()
                             paymentSession.initPaymentSession(paymentIntentClientSecret)
+//                            mainSdkPerfTracker.endInitTracking()
+
+
                             paymentSession.getCustomerSavedPaymentMethods { it ->
                                 val text =
                                     when (val data = it.getCustomerLastUsedPaymentMethodData()) {
@@ -209,9 +239,15 @@ class MainActivity : Activity() {
 
         ctx = this
         editText = ctx.findViewById(R.id.ipAddressInput)
+
         serverUrl = loadServerUrl()
         editText.setText(serverUrl)
 
+        // Initialize performance trackers and exporter BEFORE getCL()
+        mainSdkPerfTracker = SDKPerformanceTracker(ctx)
+        perfExporter = PerformanceExporter(ctx)
+
+        // Add TextWatcher for URL validation
         editText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
@@ -239,23 +275,24 @@ class MainActivity : Activity() {
 
         /**
          *
-         * Launch Payment Sheet
+         * Launch Main Payment Sheet (with performance tracking)
          *
          * */
 
         findViewById<View>(R.id.launchButton).setOnClickListener {
-            val customisations = getCustomisations()
-            paymentSession.presentPaymentSheet(customisations, ::onPaymentSheetResult)
-        }
+            CoroutineScope(Dispatchers.Main).launch {
+                // Capture button click time for performance tracking (Unix timestamp)
+                val buttonClickTime = System.currentTimeMillis()
+                Log.d("SDK_PERF_CLICK", "Main SDK button clicked at: $buttonClickTime")
 
-//        findViewById<View>(R.id.launchWebButton).setOnClickListener {
-//            CoroutineScope(Dispatchers.Main).launch {
-//                paymentSessionLite.presentPaymentSheet(
-//                    getCustomisations(),
-//                    ::onPaymentSheetResult
-//                )
-//            }
-//        }
+                // Start tracking BEFORE opening SDK
+                mainSdkPerfTracker.startTracking()
+                Log.d("SDK_PERF", "Started tracking Main SDK")
+
+                val customisations = getCustomisations()
+                paymentSession.presentPaymentSheet(customisations, ::onMainSdkPaymentSheetResult)
+            }
+        }
 
         findViewById<View>(R.id.launchWidgetLayout).setOnClickListener {
             val intent = Intent(this, WidgetActivity::class.java)
@@ -267,6 +304,33 @@ class MainActivity : Activity() {
     private fun setStatus(error: String) {
         runOnUiThread {
             findViewById<TextView>(R.id.resultText).text = error
+        }
+    }
+
+    /**
+     * Main SDK Payment Sheet Result with Performance Tracking
+     */
+    private fun onMainSdkPaymentSheetResult(paymentSheetResult: PaymentSheetResult) {
+        // Stop tracking AFTER SDK completes
+        val metrics = mainSdkPerfTracker.stopTracking("Main SDK")
+        mainSdkMetrics = metrics
+
+        // Export as JSON only
+        val json = perfExporter.exportAsJson(metrics)
+        perfExporter.saveToFile(json, "main_sdk_${System.currentTimeMillis()}.json")
+
+        when (paymentSheetResult) {
+            is PaymentSheetResult.Canceled -> {
+                setStatus("Main SDK - ${paymentSheetResult.data}")
+            }
+
+            is PaymentSheetResult.Failed -> {
+                setStatus("Main SDK - ${paymentSheetResult.error.message ?: ""}")
+            }
+
+            is PaymentSheetResult.Completed -> {
+                setStatus("Main SDK - ${paymentSheetResult.data}")
+            }
         }
     }
 

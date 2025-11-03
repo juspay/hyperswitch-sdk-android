@@ -20,6 +20,9 @@ import org.json.JSONException
 import org.json.JSONObject
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : Activity() {
     lateinit var ctx: Activity
@@ -31,6 +34,10 @@ class MainActivity : Activity() {
     private var serverUrl = "http://10.0.2.2:5252"
     private lateinit var paymentSession: PaymentSession
     private lateinit var editText: EditText
+
+    private lateinit var liteSdkPerfTracker: SDKPerformanceTracker
+    private lateinit var perfExporter: PerformanceExporter
+    private var liteSdkMetrics: SDKPerformanceTracker.SDKMetrics? = null
 
     private fun fetchNetceteraApiKey() = {
         reset().get("$serverUrl/netcetera-sdk-api-key").responseString(object : Handler<String?> {
@@ -187,6 +194,9 @@ class MainActivity : Activity() {
         serverUrl = loadServerUrl()
         editText.setText(serverUrl)
 
+        liteSdkPerfTracker = SDKPerformanceTracker(ctx)
+        perfExporter = PerformanceExporter(ctx)
+
         editText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
@@ -219,14 +229,48 @@ class MainActivity : Activity() {
          * */
 
         findViewById<View>(R.id.launchButton).setOnClickListener {
-            val customisations = getCustomisations()
-            paymentSession.presentPaymentSheet(customisations, ::onPaymentSheetResult)
+            CoroutineScope(Dispatchers.Main).launch {
+                // Capture button click time for click-to-SDK latency
+                val buttonClickTime = System.currentTimeMillis()
+                Log.d("SDK_PERF_CLICK", "Lite SDK button clicked at: $buttonClickTime")
+ 
+                // Start tracking BEFORE opening SDK
+                liteSdkPerfTracker.startTracking()
+                Log.d("SDK_PERF", "Started tracking Lite SDK")
+
+                val customisations = getCustomisations()
+                paymentSession.presentPaymentSheet(customisations, ::onLiteSdkPaymentSheetResult)
+            }
         }
     }
 
     private fun setStatus(error: String) {
         runOnUiThread {
             findViewById<TextView>(R.id.resultText).text = error
+        }
+    }
+
+    private fun onLiteSdkPaymentSheetResult(paymentSheetResult: PaymentSheetResult) {
+        // Stop tracking AFTER SDK completes
+        val metrics = liteSdkPerfTracker.stopTracking("Lite SDK")
+        liteSdkMetrics = metrics
+
+        // Export as JSON only
+        val json = perfExporter.exportAsJson(metrics)
+        perfExporter.saveToFile(json, "lite_sdk_${System.currentTimeMillis()}.json")
+
+        when (paymentSheetResult) {
+            is PaymentSheetResult.Canceled -> {
+                setStatus("Lite SDK - ${paymentSheetResult.data}")
+            }
+
+            is PaymentSheetResult.Failed -> {
+                setStatus("Lite SDK - ${paymentSheetResult.error.message ?: ""}")
+            }
+
+            is PaymentSheetResult.Completed -> {
+                setStatus("Lite SDK - ${paymentSheetResult.data}")
+            }
         }
     }
 
