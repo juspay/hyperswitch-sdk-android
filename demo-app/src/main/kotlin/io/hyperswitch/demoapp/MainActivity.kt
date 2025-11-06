@@ -10,6 +10,7 @@ import android.util.Log
 import android.view.View
 import android.widget.EditText
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
@@ -26,7 +27,7 @@ import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import io.hyperswitch.paymentsession.PaymentMethodType
 
-class MainActivity : Activity() {
+class MainActivity : AppCompatActivity() {
     lateinit var ctx: Activity
     private var publishableKey: String = ""
     private var paymentIntentClientSecret: String = "clientSecret"
@@ -37,7 +38,7 @@ class MainActivity : Activity() {
     private lateinit var paymentSession: PaymentSession
     private lateinit var editText: EditText
 
-    private fun fetchNetceteraApiKey() = {
+    private fun fetchNetceteraApiKey() {
         reset().get("$serverUrl/netcetera-sdk-api-key").responseString(object : Handler<String?> {
             override fun success(value: String?) {
                 try {
@@ -126,9 +127,9 @@ class MainActivity : Activity() {
                 .allowsDelayedPaymentMethods(true).displaySavedPaymentMethodsCheckbox(true)
                 .displaySavedPaymentMethods(true).disableBranding(true).showVersionInfo(true)
 
-//        netceteraApiKey?.let {
-//            configuration.netceteraSDKApiKey(it)
-//        }
+        netceteraApiKey?.let {
+            configuration.netceteraSDKApiKey(it)
+        }
 
         return configuration.build()
     }

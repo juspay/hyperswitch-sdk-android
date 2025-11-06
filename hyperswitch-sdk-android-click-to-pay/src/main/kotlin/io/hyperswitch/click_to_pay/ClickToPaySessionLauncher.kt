@@ -54,7 +54,7 @@ interface ClickToPaySessionLauncher {
      * @throws Exception if the check fails
      */
     @Throws(Exception::class)
-    suspend fun isCustomerPresent(request: CustomerPresenceRequest): CustomerPresenceResponse?
+    suspend fun isCustomerPresent(request: CustomerPresenceRequest): CustomerPresenceResponse
     
     /**
      * Retrieves the status of customer's saved cards.
@@ -63,10 +63,10 @@ interface ClickToPaySessionLauncher {
      * or if additional authentication is required.
      *
      * @return CardsStatusResponse with status code indicating card availability
-     * @throws Exception if retrieval fails
+     * @throws ClickToPayException if retrieval fails with error details
      */
-    @Throws(Exception::class)
-    suspend fun getUserType(): CardsStatusResponse?
+    @Throws(ClickToPayException::class)
+    suspend fun getUserType(): CardsStatusResponse
     
     /**
      * Gets the list of recognized cards for the customer.
@@ -78,7 +78,7 @@ interface ClickToPaySessionLauncher {
      * @throws Exception if card retrieval fails
      */
     @Throws(Exception::class)
-    suspend fun getRecognizedCards(): List<RecognizedCard>?
+    suspend fun getRecognizedCards(): List<RecognizedCard>
     
     /**
      * Validates customer authentication with OTP.
@@ -88,10 +88,10 @@ interface ClickToPaySessionLauncher {
      *
      * @param otpValue The OTP value entered by the customer
      * @return List of RecognizedCard objects if validation successful
-     * @throws Exception if OTP validation fails
+     * @throws ClickToPayException if OTP validation fails with error details
      */
-    @Throws(Exception::class)
-    suspend fun validateCustomerAuthentication(otpValue: String): List<RecognizedCard>?
+    @Throws(ClickToPayException::class)
+    suspend fun validateCustomerAuthentication(otpValue: String): List<RecognizedCard>
     
     /**
      * Processes checkout with a selected card.
@@ -104,5 +104,5 @@ interface ClickToPaySessionLauncher {
      * @throws Exception if checkout fails
      */
     @Throws(Exception::class)
-    suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse?
+    suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse
 }

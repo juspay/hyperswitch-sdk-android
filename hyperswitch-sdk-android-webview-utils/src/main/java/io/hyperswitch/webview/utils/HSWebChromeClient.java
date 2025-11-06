@@ -2,11 +2,9 @@ package io.hyperswitch.webview.utils;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Message;
-import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -77,8 +75,7 @@ public class HSWebChromeClient extends WebChromeClient /*implements LifecycleEve
 
     @Override
     public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
-
-        final WebView newWebView = new WebView(view.getContext());
+        final HSWebView newWebView = new HSWebView(view.getContext(), args -> {});
 
         WebSettings settings = newWebView.getSettings();
 
@@ -145,6 +142,7 @@ public class HSWebChromeClient extends WebChromeClient /*implements LifecycleEve
 
         ViewGroup parent = (ViewGroup) view.getParent().getParent();
         if (parent != null) {
+            HSWebViewWrapper hsView = new HSWebViewWrapper(view.getContext(), newWebView);
             WindowInsets windowInsets = parent.getRootView().getRootWindowInsets();
             if (windowInsets != null) {
                 Insets insets = windowInsets.getInsets(
@@ -153,9 +151,9 @@ public class HSWebChromeClient extends WebChromeClient /*implements LifecycleEve
                                 | WindowInsets.Type.navigationBars()
                                 | WindowInsets.Type.captionBar()
                 );
-                parent.setPadding(insets.left, insets.top, insets.right, insets.bottom);
+                hsView.setPadding(insets.left, insets.top, insets.right, insets.bottom);
             }
-            parent.addView(newWebView);
+            parent.addView(hsView);
         }
 
         final WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;

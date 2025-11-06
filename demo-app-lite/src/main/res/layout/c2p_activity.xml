@@ -18,7 +18,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Click to Pay Demo - Step by Step"
+            android:text="Click to Pay Demo"
             android:textSize="24sp"
             android:textStyle="bold"
             android:gravity="center"
@@ -38,88 +38,21 @@
             android:textSize="16sp"
             android:padding="12dp" />
 
-        <!-- Step 2: Initialize Authentication Session -->
-        <Button
-            android:id="@+id/btnStep2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:background="@drawable/rounded_button"
-            android:text="Step 2: Initialize Authentication Session"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:padding="12dp"
-            android:enabled="false" />
+        <ImageView
+            android:id="@+id/rotatingView"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_margin="20dp"
+            android:layout_gravity="center"
+            android:background="@android:color/holo_red_dark" />
 
-        <!-- Step 3: Initialize Click to Pay Session -->
-        <Button
-            android:id="@+id/btnStep3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:background="@drawable/rounded_button"
-            android:text="Step 3: Initialize Click to Pay Session"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:padding="12dp"
-            android:enabled="false" />
-
-        <!-- Step 4: Check Customer Presence -->
-        <Button
-            android:id="@+id/btnStep4"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:background="@drawable/rounded_button"
-            android:text="Step 4: Check Customer Presence"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:padding="12dp"
-            android:enabled="false" />
-
-        <!-- Step 5: Get Customer Cards -->
-        <Button
-            android:id="@+id/btnStep5"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:background="@drawable/rounded_button"
-            android:text="Step 5: Get Customer Cards"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:padding="12dp"
-            android:enabled="false" />
-
-        <!-- Step 6: Select Card and Checkout -->
-        <Button
-            android:id="@+id/btnStep6"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:background="@drawable/rounded_button"
-            android:text="Step 6: Select Card &amp; Checkout"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:padding="12dp"
-            android:enabled="false" />
-
-        <!-- Card Scan Button -->
-        <Button
-            android:id="@+id/btnScanCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            android:background="@drawable/rounded_button"
-            android:text="Scan Card (Google Pay)"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:padding="12dp" />
+        <ImageView
+            android:id="@+id/rotatingView2"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_margin="20dp"
+            android:layout_gravity="center"
+            android:background="@android:color/holo_blue_bright" />
 
         <!-- Divider -->
         <View
