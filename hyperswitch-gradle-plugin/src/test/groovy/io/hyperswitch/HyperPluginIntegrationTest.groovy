@@ -30,7 +30,7 @@ class HyperPluginIntegrationTest extends Specification {
 
     def "plugin should add main SDK dependency when no features specified"() {
         when:
-        project.extensions.hyper.sdkVersion = '1.2.3'
+        project.extensions.hyper.sdkVersion = '1.2.4'
         project.evaluate()
 
         then:
@@ -38,14 +38,14 @@ class HyperPluginIntegrationTest extends Specification {
         dependencies.any { 
             it.group == 'io.hyperswitch' && 
             it.name == 'hyperswitch-sdk-android' && 
-            it.version == '1.2.3' 
+            it.version == '1.2.4' 
         }
     }
 
     def "plugin should add feature dependencies when features are specified as strings"() {
         when:
         project.extensions.hyper.features = ['scancard', 'netcetera']
-        project.extensions.hyper.sdkVersion = '1.2.3'
+        project.extensions.hyper.sdkVersion = '1.2.4'
         project.ext.rnlibVersion = '1.0.0'
         project.evaluate()
 
@@ -74,7 +74,7 @@ class HyperPluginIntegrationTest extends Specification {
     def "plugin should add feature dependencies when features are specified as enums"() {
         when:
         project.extensions.hyper.features = [HyperFeature.SCANCARD, HyperFeature.NETCETERA]
-        project.extensions.hyper.sdkVersion = '1.2.3'
+        project.extensions.hyper.sdkVersion = '1.2.4'
         project.ext.rnlibVersion = '1.0.0'
         project.evaluate()
 
@@ -133,7 +133,7 @@ class HyperPluginIntegrationTest extends Specification {
     def "plugin should handle empty features list"() {
         when:
         project.extensions.hyper.features = []
-        project.extensions.hyper.sdkVersion = '1.2.3'
+        project.extensions.hyper.sdkVersion = '1.2.4'
         project.evaluate()
 
         then:
