@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Unified 3DS Demo"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="32dp" />
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Ready to test 3DS authentication"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:layout_marginBottom="32dp"
+        android:minHeight="100dp" />
+
+    <Button
+        android:id="@+id/btnInit3DS"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="1. Initialize 3DS"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/btnGenerateAReq"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="2. Create Transaction &amp; Get AReq"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/btnReceiveChallenge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="3. Make Authentication API Call"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/btnDoChallenge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="4. Perform Challenge"
+        android:layout_marginBottom="8dp" />
+
+</LinearLayout>
