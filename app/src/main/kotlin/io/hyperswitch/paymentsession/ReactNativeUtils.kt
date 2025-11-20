@@ -6,9 +6,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.addCallback
 import androidx.fragment.app.FragmentActivity
-import com.facebook.react.ReactApplication
 import com.facebook.react.internal.featureflags.ReactNativeFeatureFlags
-import com.facebook.react.ReactFragment
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactInstanceEventListener
 import com.facebook.react.ReactNativeHost
@@ -21,6 +19,7 @@ import com.facebook.react.jstasks.HeadlessJsTaskContext
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.facebook.react.uimanager.PixelUtil
 import io.hyperswitch.BuildConfig
+import io.hyperswitch.HyperswitchSDK
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.paymentIntentClientSecret
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
@@ -37,9 +36,11 @@ class ReactNativeUtils(private val activity: Activity) : SDKInterface {
     @SuppressLint("VisibleForTests")
     override fun initializeReactNativeInstance() {
         reactContext = try {
-            val application = (activity.application as ReactApplication)
-            reactHost = application.reactHost
-            reactNativeHost = application.reactNativeHost
+            // Get ReactNativeHost from HyperSDK singleton instead of casting Application to ReactApplication
+            // This allows merchants to use their own Application class without extending MainApplication
+            reactNativeHost = HyperswitchSDK.getReactNativeHost()
+            reactHost = HyperswitchSDK.getReactHost()
+            
             if (ReactNativeFeatureFlags.enableBridgelessArchitecture()) {
                 val reactHost = checkNotNull(reactHost) { "ReactHost is not initialized in New Architecture" }
                 reactHost.currentReactContext
@@ -47,9 +48,9 @@ class ReactNativeUtils(private val activity: Activity) : SDKInterface {
                 val reactInstanceManager = reactNativeHost?.reactInstanceManager
                 reactInstanceManager?.currentReactContext
             }
-        } catch (ex: ClassCastException) {
+        } catch (ex: IllegalStateException) {
             throw IllegalStateException(
-                "Application is not a ReactApplication. " + "Please ensure you've set up React Native correctly.",
+                "HyperSDK not initialized. Please call HyperSDK.initialize() in your Application.onCreate()",
                 ex
             )
         } catch (ex: RuntimeException) {
