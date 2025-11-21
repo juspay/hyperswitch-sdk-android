@@ -28,6 +28,7 @@ android {
 
 dependencies {
     implementation (project(":hyperswitch-sdk-android-threeDS-trident"))
+    implementation (project(":hyperswitch-sdk-android-authentication"))
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 

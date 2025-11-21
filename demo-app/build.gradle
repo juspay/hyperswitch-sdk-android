@@ -82,6 +82,10 @@ android {
 
 dependencies {
     implementation project(':app')
+    implementation project(':hyperswitch-sdk-android-threeDS-trident')
+
+//    implementation "io.hyperswitch:modular-3ds-api:1.0.0"
+//    implementation "io.hyperswitch:modular-3ds-trident:1.0.0"
 
     implementation libs.fuel
     implementation libs.kotlin.coroutines

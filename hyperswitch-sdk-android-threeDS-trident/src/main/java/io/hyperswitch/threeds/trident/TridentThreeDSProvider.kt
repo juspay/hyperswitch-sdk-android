@@ -98,7 +98,7 @@ class TridentThreeDSProvider : ThreeDSProvider {
                 isInitialized = false
                 callback.onInitializationFailure(
                     ThreeDSError(
-                        code = "INIT_FAILED",
+                        code = ThreeDSError.INIT_FAILED,
                         message = "Failed to initialize Trident SDK: ${e.message}",
                         details = e.toString(),
                         errorType = ErrorType.PROVIDER_ERROR
@@ -138,7 +138,7 @@ class TridentThreeDSProvider : ThreeDSProvider {
 
             callback.onTransactionFailure(
                 ThreeDSError(
-                    code = "SDK_NOT_READY",
+                    code = ThreeDSError.SDK_NOT_READY,
                     message = errorMessage,
                     details = "Ensure provider is initialized and context is set before creating transactions",
                     errorType = ErrorType.PROVIDER_ERROR
@@ -196,7 +196,7 @@ class TridentThreeDSProvider : ThreeDSProvider {
                         Log.e("TridentProvider", "Authentication request parameters were null")
                         callback.onTransactionFailure(
                             ThreeDSError(
-                                code = "TRANSACTION_FAILED",
+                                code = ThreeDSError.TRANSACTION_FAILED,
                                 message = "Failed to get authentication parameters",
                                 details = "Authentication request parameters were null",
                                 errorType = ErrorType.PROVIDER_ERROR
@@ -210,7 +210,7 @@ class TridentThreeDSProvider : ThreeDSProvider {
             Log.e("TridentProvider", "Exception in createTransaction: ${e.message}", e)
             callback.onTransactionFailure(
                 ThreeDSError(
-                    code = "TRANSACTION_ERROR",
+                    code = ThreeDSError.TRANSACTION_ERROR,
                     message = "Transaction creation error: ${e.message}",
                     details = e.toString(),
                     errorType = ErrorType.PROVIDER_ERROR
@@ -226,7 +226,7 @@ class TridentThreeDSProvider : ThreeDSProvider {
         if (!isInitialized) {
             callback.onAuthParametersFailure(
                 ThreeDSError(
-                    code = "NOT_INITIALIZED",
+                    code = ThreeDSError.NOT_INITIALIZED,
                     message = "Provider not initialized",
                     details = null,
                     errorType = ErrorType.PROVIDER_ERROR
@@ -259,7 +259,7 @@ class TridentThreeDSProvider : ThreeDSProvider {
                 } else {
                     callback.onAuthParametersFailure(
                         ThreeDSError(
-                            code = "AUTH_PARAMS_FAILED",
+                            code = ThreeDSError.AUTH_PARAMS_FAILED,
                             message = "Failed to get authentication parameters",
                             details = "Trident SDK returned null parameters",
                             errorType = ErrorType.PROVIDER_ERROR
@@ -269,7 +269,7 @@ class TridentThreeDSProvider : ThreeDSProvider {
             } else {
                 callback.onAuthParametersFailure(
                     ThreeDSError(
-                        code = "TRANSACTION_NOT_FOUND",
+                        code = ThreeDSError.TRANSACTION_NOT_FOUND,
                         message = "Transaction not found",
                         details = "No transaction found with ID: $transactionId",
                         errorType = ErrorType.PROVIDER_ERROR
@@ -280,7 +280,7 @@ class TridentThreeDSProvider : ThreeDSProvider {
         } catch (e: Exception) {
             callback.onAuthParametersFailure(
                 ThreeDSError(
-                    code = "AUTH_PARAMS_ERROR",
+                    code = ThreeDSError.AUTH_PARAMS_ERROR,
                     message = "Authentication parameters error: ${e.message}",
                     details = e.toString(),
                     errorType = ErrorType.PROVIDER_ERROR
@@ -298,7 +298,7 @@ class TridentThreeDSProvider : ThreeDSProvider {
         if (!isInitialized) {
             callback.onChallengeFailure(
                 ThreeDSError(
-                    code = "NOT_INITIALIZED",
+                    code = ThreeDSError.NOT_INITIALIZED,
                     message = "Provider not initialized",
                     details = null,
                     errorType = ErrorType.PROVIDER_ERROR
@@ -341,7 +341,7 @@ class TridentThreeDSProvider : ThreeDSProvider {
                     override fun timedout() {
                         callback.onChallengeFailure(
                             ThreeDSError(
-                                code = "CHALLENGE_TIMEOUT",
+                                code = ThreeDSError.CHALLENGE_TIMEOUT,
                                 message = "Challenge timed out",
                                 details = "Challenge flow timed out",
                                 errorType = ErrorType.CHALLENGE_ERROR
@@ -352,7 +352,7 @@ class TridentThreeDSProvider : ThreeDSProvider {
                     override fun protocolError(protocolErrorEvent: ProtocolErrorEvent) {
                         callback.onChallengeFailure(
                             ThreeDSError(
-                                code = "PROTOCOL_ERROR",
+                                code = ThreeDSError.PROTOCOL_ERROR,
                                 message = "Protocol error during challenge",
                                 details = protocolErrorEvent.errorMessage?.errorDescription ?: "Unknown protocol error",
                                 errorType = ErrorType.CHALLENGE_ERROR
@@ -363,7 +363,7 @@ class TridentThreeDSProvider : ThreeDSProvider {
                     override fun runtimeError(runtimeErrorEvent: RuntimeErrorEvent) {
                         callback.onChallengeFailure(
                             ThreeDSError(
-                                code = "RUNTIME_ERROR",
+                                code = ThreeDSError.RUNTIME_ERROR,
                                 message = "Runtime error during challenge",
                                 details = runtimeErrorEvent.errorMessage ?: "Unknown runtime error",
                                 errorType = ErrorType.CHALLENGE_ERROR
@@ -385,7 +385,7 @@ class TridentThreeDSProvider : ThreeDSProvider {
             } else {
                 callback.onChallengeFailure(
                     ThreeDSError(
-                        code = "TRANSACTION_NOT_FOUND",
+                        code = ThreeDSError.TRANSACTION_NOT_FOUND,
                         message = "Transaction not found for challenge",
                         details = "No current transaction available",
                         errorType = ErrorType.PROVIDER_ERROR
@@ -396,7 +396,7 @@ class TridentThreeDSProvider : ThreeDSProvider {
         } catch (e: Exception) {
             callback.onChallengeFailure(
                 ThreeDSError(
-                    code = "CHALLENGE_ERROR",
+                    code = ThreeDSError.CHALLENGE_ERROR,
                     message = "Challenge error: ${e.message}",
                     details = e.toString(),
                     errorType = ErrorType.PROVIDER_ERROR

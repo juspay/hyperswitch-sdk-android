@@ -80,8 +80,8 @@ class ThreeDSTransaction internal constructor(
 
             override fun onChallengeFailure(error: ThreeDSError) {
                 when (error.code) {
-                    "CHALLENGE_TIMEOUT" -> challengeStatusReceiver.timedout()
-                    "PROTOCOL_ERROR" -> challengeStatusReceiver.protocolError(
+                    ThreeDSError.CHALLENGE_TIMEOUT -> challengeStatusReceiver.timedout()
+                    ThreeDSError.PROTOCOL_ERROR -> challengeStatusReceiver.protocolError(
                         ProtocolErrorEvent(ErrorMessage(error.message))
                     )
                     else -> challengeStatusReceiver.runtimeError(

@@ -15,6 +15,8 @@ rootProject.name = 'io.hyperswitch'
 include ':app'
 include ':demo-app'
 include ':demo-app-lite'
+include ':demo-app-threeds'
+
 include ':hyperswitch-sdk-android-api'
 include ':hyperswitch-sdk-android-authentication'
 include ':hyperswitch-sdk-android-click-to-pay'
@@ -26,4 +28,3 @@ include ':hyperswitch-sdk-android-webview-utils'
 includeBuild('../node_modules/@react-native/gradle-plugin')
 include ':hyperswitch-sdk-android-threeDS'
 include ':hyperswitch-sdk-android-threeDS-trident'
-include ':demo-app-threeds'

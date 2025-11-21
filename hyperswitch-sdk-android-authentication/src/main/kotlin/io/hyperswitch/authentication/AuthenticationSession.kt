@@ -153,4 +153,21 @@ class AuthenticationSession(
             request3DSAuthentication
         )
     }
+
+    /**
+     * Initializes a 3DS authentication session.
+     * 
+     * Creates a ThreeDSAuthenticationSession and initializes it with the provided configuration.
+     *
+     * @param clientSecret The client secret from the payment intent
+     * @param configuration The 3DS configuration settings
+     * @param callback Callback with result containing the initialized ThreeDSService or error
+     */
+    fun initThreeDSSession(
+        clientSecret: String,
+        configuration: io.hyperswitch.threeds.models.ThreeDSConfiguration,
+        callback: (io.hyperswitch.threeds.api.ThreeDSResult<io.hyperswitch.threeds.api.ThreeDSService>) -> Unit
+    ) {
+        authenticationSessionLauncher.initThreeDSSession(clientSecret, configuration, callback)
+    }
 }

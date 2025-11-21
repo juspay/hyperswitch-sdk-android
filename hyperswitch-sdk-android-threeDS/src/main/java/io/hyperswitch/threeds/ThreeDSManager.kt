@@ -84,7 +84,7 @@ class ThreeDSManager private constructor() {
             if (provider == null) {
                 callback.onInitializationFailure(
                     ThreeDSError(
-                        code = "NO_PROVIDER",
+                        code = ThreeDSError.NO_PROVIDER,
                         message = "No suitable 3DS provider found",
                         details = "Available providers: ${getAvailableProviders()}",
                         errorType = ErrorType.CONFIGURATION_ERROR
@@ -112,7 +112,7 @@ class ThreeDSManager private constructor() {
         } catch (e: Exception) {
             callback.onInitializationFailure(
                 ThreeDSError(
-                    code = "INIT_EXCEPTION",
+                    code = ThreeDSError.INIT_EXCEPTION,
                     message = "Initialization failed with exception",
                     details = e.message,
                     errorType = ErrorType.INITIALIZATION_ERROR
@@ -134,7 +134,7 @@ class ThreeDSManager private constructor() {
         if (provider == null || !isInitialized) {
             callback.onTransactionFailure(
                 ThreeDSError(
-                    code = "NOT_INITIALIZED",
+                    code = ThreeDSError.NOT_INITIALIZED,
                     message = "ThreeDSManager is not initialized",
                     details = "Call initialize() first",
                     errorType = ErrorType.CONFIGURATION_ERROR
@@ -159,7 +159,7 @@ class ThreeDSManager private constructor() {
         if (provider == null || !isInitialized) {
             callback.onAuthParametersFailure(
                 ThreeDSError(
-                    code = "NOT_INITIALIZED",
+                    code = ThreeDSError.NOT_INITIALIZED,
                     message = "ThreeDSManager is not initialized",
                     details = "Call initialize() first",
                     errorType = ErrorType.CONFIGURATION_ERROR
@@ -191,7 +191,7 @@ class ThreeDSManager private constructor() {
         if (provider == null || !isInitialized) {
             callback.onChallengeFailure(
                 ThreeDSError(
-                    code = "NOT_INITIALIZED",
+                    code = ThreeDSError.NOT_INITIALIZED,
                     message = "ThreeDSManager is not initialized",
                     details = "Call initialize() first",
                     errorType = ErrorType.CONFIGURATION_ERROR

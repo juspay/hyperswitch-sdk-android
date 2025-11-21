@@ -10,6 +10,7 @@ import io.hyperswitch.threeds.api.*
 import io.hyperswitch.threeds.models.ChallengeParameters
 import io.hyperswitch.threeds.provider.ProviderRegistry
 import io.hyperswitch.threeds.trident.TridentProviderFactory
+import io.hyperswitch.authentication.AuthenticationSession
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -23,7 +24,7 @@ class MainActivity : Activity() {
     private var paymentIntentClientSecret: String = ""
 
     // New merchant-facing API objects
-    private lateinit var authenticationSession: ThreeDSAuthenticationSession
+    private lateinit var authenticationSession: AuthenticationSession
     private var service: ThreeDSService? = null
     private var transaction: ThreeDSTransaction? = null
     private var aReqParams: AuthenticationRequestParameters? = null
@@ -57,12 +58,11 @@ class MainActivity : Activity() {
         // Register providers for testing
         ProviderRegistry.registerProvider(TridentProviderFactory())
 
-        // // Initialize ThreeDSAuthenticationSession using the new unified 3DS library
-        // // Providers are now auto-discovered - no manual registration needed!
-        authenticationSession = ThreeDSAuthenticationSession(this, publishKey)
 
-        // Log discovered providers for verification
-        // logDiscoveredProviders()
+        authenticationSession = AuthenticationSession(
+            activity = this,
+            publishableKey = publishKey
+        )
 
         setupButtons()
     }
@@ -115,19 +115,17 @@ class MainActivity : Activity() {
             val configuration = io.hyperswitch.threeds.models.ThreeDSConfiguration(
                 environment = ThreeDSEnvironment.SANDBOX,
                 preferredProvider = io.hyperswitch.threeds.models.ThreeDSProviderType.TRIDENT,
-                uiCustomization = null,
-                timeout = 600000L
+                uiCustomization = null
             )
 
-            // Clean callback pattern with when() statement
-            authenticationSession.initThreeDsSession(
+            authenticationSession.initThreeDSSession(
                 clientSecret = paymentIntentClientSecret,
                 configuration = configuration
             ) { result ->
                 when (result) {
                     is ThreeDSResult.Success -> {
                         service = result.value
-                        setStatus("✅ 3DS SDK initialized. Making API call to create authentication...")
+                        setStatus("✅ 3DS SDK initialized via Authentication SDK. Making API call to create authentication...")
                         createAuthenticationApiCall()
                     }
                     is ThreeDSResult.Error -> {
@@ -206,7 +204,7 @@ class MainActivity : Activity() {
             put("payment_method", "card")
             put("payment_method_data", JSONObject().apply {
                 put("card", JSONObject().apply {
-                    put("card_number", "424242424242424242")
+                    put("card_number", "5522604003479299")
                     put("card_exp_month", "02")
                     put("card_exp_year", "30")
                     put("card_holder_name", "joseph Doe")
@@ -381,7 +379,7 @@ class MainActivity : Activity() {
                     put("sdk_enc_data", aReqParams!!.deviceData) // Map deviceData to sdk_enc_data
                     put("sdk_trans_id", aReqParams!!.sdkTransactionID)
                     put("sdk_reference_number", aReqParams!!.sdkReferenceNumber)
-                    put("sdk_max_timeout", aReqParams!!.sdkMaxTimeout)
+                    put("sdk_max_timeout", 5)
 
                     // Parse and add sdk_ephem_pub_key if available
                     aReqParams!!.sdkEphemeralPublicKey?.let { ephemeralKey ->

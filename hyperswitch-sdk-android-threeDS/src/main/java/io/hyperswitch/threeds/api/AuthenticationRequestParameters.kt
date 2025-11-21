@@ -10,6 +10,5 @@ data class AuthenticationRequestParameters(
     val sdkAppID: String?,
     val sdkReferenceNumber: String?,
     val sdkEphemeralPublicKey: String?,
-    val deviceData: String,
-    val sdkMaxTimeout: Int = 5
+    val deviceData: String
 )
