@@ -97,4 +97,8 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
     suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse? {
         return clickToPaySessionLauncher.checkoutWithCard(request)
     }
+
+    suspend fun signOut(): SignOutResponse{
+        return clickToPaySessionLauncher.signOut()
+    }
 }

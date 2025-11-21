@@ -83,50 +83,50 @@ class DefaultClickToPaySessionLauncher(
         
         return RecognizedCard(
             srcDigitalCardId = cardObj.optString("srcDigitalCardId", ""),
-            panBin = cardObj.optString("panBin", "").takeIf { it.isNotEmpty() },
-            panLastFour = cardObj.optString("panLastFour", "").takeIf { it.isNotEmpty() },
-            panExpirationMonth = cardObj.optString("panExpirationMonth", "").takeIf { it.isNotEmpty() },
-            panExpirationYear = cardObj.optString("panExpirationYear", "").takeIf { it.isNotEmpty() },
-            tokenLastFour = cardObj.optString("tokenLastFour", "").takeIf { it.isNotEmpty() },
-            tokenBinRange = cardObj.optString("tokenBinRange", "").takeIf { it.isNotEmpty() },
+            panBin = safeReturnStringValue(cardObj, "panBin"),
+            panLastFour = safeReturnStringValue(cardObj, "panLastFour"),
+            panExpirationMonth = safeReturnStringValue(cardObj, "panExpirationMonth"),
+            panExpirationYear = safeReturnStringValue(cardObj, "panExpirationYear"),
+            tokenLastFour = safeReturnStringValue(cardObj, "tokenLastFour"),
+            tokenBinRange = safeReturnStringValue(cardObj, "tokenBinRange"),
             digitalCardData = digitalCardDataObj?.let {
                 DigitalCardData(
-                    status = it.optString("status", "").takeIf { s -> s.isNotEmpty() },
-                    presentationName = it.optString("presentationName", "").takeIf { s -> s.isNotEmpty() },
-                    descriptorName = it.optString("descriptorName", "").takeIf { s -> s.isNotEmpty() },
-                    artUri = it.optString("artUri", "").takeIf { s -> s.isNotEmpty() },
+                    status = safeReturnStringValue(it, "status"),
+                    presentationName = safeReturnStringValue(it, "presentationName"),
+                    descriptorName = it.optString("descriptorName", ""),
+                    artUri = safeReturnStringValue(it, "artUri"),
                     artHeight = it.optInt("artHeight", -1).takeIf { h -> h > 0 },
                     artWidth = it.optInt("artWidth", -1).takeIf { w -> w > 0 },
                     authenticationMethods = authMethods,
                     pendingEvents = pendingEvents
                 )
             },
-            countryCode = cardObj.optString("countryCode", "").takeIf { it.isNotEmpty() },
+            countryCode = safeReturnStringValue(cardObj, "countryCode"),
             maskedBillingAddress = maskedBillingAddressObj?.let { obj ->
                 if (obj.length() > 0) {
                     MaskedBillingAddress(
-                        addressId = obj.optString("addressId", "").takeIf { it.isNotEmpty() },
-                        name = obj.optString("name", "").takeIf { it.isNotEmpty() },
-                        line1 = obj.optString("line1", "").takeIf { it.isNotEmpty() },
-                        line2 = obj.optString("line2", "").takeIf { it.isNotEmpty() },
-                        line3 = obj.optString("line3", "").takeIf { it.isNotEmpty() },
-                        city = obj.optString("city", "").takeIf { it.isNotEmpty() },
-                        state = obj.optString("state", "").takeIf { it.isNotEmpty() },
-                        countryCode = obj.optString("countryCode", "").takeIf { it.isNotEmpty() },
-                        zip = obj.optString("zip", "").takeIf { it.isNotEmpty() }
+                        addressId = safeReturnStringValue(obj, "addressId"),
+                        name = safeReturnStringValue(obj, "name"),
+                        line1 = safeReturnStringValue(obj, "line1"),
+                        line2 = safeReturnStringValue(obj, "line2"),
+                        line3 = safeReturnStringValue(obj, "line3"),
+                        city = safeReturnStringValue(obj, "city"),
+                        state = safeReturnStringValue(obj, "state"),
+                        countryCode = safeReturnStringValue(obj, "countryCode"),
+                        zip = safeReturnStringValue(obj, "zip")
                     )
                 } else null
             },
-            dateOfCardCreated = cardObj.optString("dateOfCardCreated", "").takeIf { it.isNotEmpty() },
-            dateOfCardLastUsed = cardObj.optString("dateOfCardLastUsed", "").takeIf { it.isNotEmpty() },
-            paymentAccountReference = cardObj.optString("paymentAccountReference", "").takeIf { it.isNotEmpty() },
-            paymentCardDescriptor = cardObj.optString("paymentCardDescriptor", "").takeIf { it.isNotEmpty() },
-            paymentCardType = cardObj.optString("paymentCardType", "").takeIf { it.isNotEmpty() },
+            dateOfCardCreated = safeReturnStringValue(cardObj, "dateOfCardCreated"),
+            dateOfCardLastUsed = safeReturnStringValue(cardObj, "dateOfCardLastUsed"),
+            paymentAccountReference = safeReturnStringValue(cardObj, "paymentAccountReference"),
+            paymentCardDescriptor = CardType.valueOf(cardObj.optString("paymentCardDescriptor", "unknown").uppercase()),
+            paymentCardType = safeReturnStringValue(cardObj, "paymentCardType"),
             dcf = dcfObj?.let {
                 DCF(
-                    name = it.optString("name", "").takeIf { s -> s.isNotEmpty() },
-                    uri = it.optString("uri", "").takeIf { s -> s.isNotEmpty() },
-                    logoUri = it.optString("logoUri", "").takeIf { s -> s.isNotEmpty() }
+                    name = safeReturnStringValue(it, "name"),
+                    uri = safeReturnStringValue(it, "uri"),
+                    logoUri = safeReturnStringValue(it, "logoUri")
                 )
             },
             digitalCardFeatures = cardObj.optJSONObject("digitalCardFeatures")?.let { emptyMap() }
@@ -201,7 +201,7 @@ class DefaultClickToPaySessionLauncher(
      */
     private suspend fun loadUrl(requestId: String = UUID.randomUUID().toString()) {
         val baseHtml =
-            "<!DOCTYPE html><html><head><script>function handleScriptError(){console.error('Failed to load HyperLoader.js');window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'ScriptLoadError',message:'Failed to load HyperLoader.js'}}}));}async function initHyper(){try{if(typeof Hyper==='undefined'){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperUndefinedError',message:'Hyper is not defined'}}}));return;}window.hyperInstance=Hyper.init('$publishableKey',{${customBackendUrl?.let { "customBackendUrl:'$customBackendUrl'," } ?: ""}${customLogUrl?.let { "customLogUrl:'$customLogUrl'," } ?: ""}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{sdkInitialised:true}}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperInitializationError',message:error.message}}}))}}</script><script src='https://beta.hyperswitch.io/v2/HyperLoader.js' onload='initHyper()' onerror='handleScriptError()' async></script></head><body></body></html>"
+            "<!DOCTYPE html><html><head><script>function handleScriptError(){console.error('ClickToPay','Failed to load HyperLoader.js');window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'ScriptLoadError',message:'Failed to load HyperLoader.js'}}}));}async function initHyper(){try{if(typeof Hyper==='undefined'){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperUndefinedError',message:'Hyper is not defined'}}}));return;}window.hyperInstance=Hyper.init('$publishableKey',{${customBackendUrl?.let { "customBackendUrl:'$customBackendUrl'," } ?: ""}${customLogUrl?.let { "customLogUrl:'$customLogUrl'," } ?: ""}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{sdkInitialised:true}}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperInitializationError',message:error.message}}}))}}</script><script src='https://beta.hyperswitch.io/web/2025.11.20.00-c2p-headless/v2/HyperLoader.js' onload='initHyper()' onerror='handleScriptError()' async></script></head><body></body></html>".trimMargin()
 
         val responseJson = withContext(Dispatchers.Main) {
             suspendCancellableCoroutine { continuation ->
@@ -264,7 +264,7 @@ class DefaultClickToPaySessionLauncher(
             if (error != null) {
                 val errorType = error.optString("type", "Unknown")
                 val errorMessage = error.optString("message", "Unknown error")
-                throw Exception("Failed to initialize Click to Pay session - Type: $errorType, Message: $errorMessage")
+                throw Exception("ClickToPay: Failed to initialize Click to Pay session - Type: $errorType, Message: $errorMessage")
             }
         }
     }
@@ -346,7 +346,7 @@ class DefaultClickToPaySessionLauncher(
                 )
             }
 
-            val statusCodeStr = data.optString("statusCode", "NO_CARDS_PRESENT")
+            val statusCodeStr = data.optString("statusCode", "NO_CARDS_PRESENT").uppercase()
             CardsStatusResponse(
                 statusCode = StatusCode.valueOf(statusCodeStr)
             )
@@ -438,6 +438,14 @@ class DefaultClickToPaySessionLauncher(
         }
     }
 
+    private fun safeReturnStringValue(
+        obj: JSONObject,
+        key: String,
+        fallback: String = ""
+    ): String? {
+        return obj.optString(key, fallback).takeIf { it.isNotEmpty() }
+    }
+
     /**
      * Processes checkout with a selected card.
      *
@@ -481,30 +489,23 @@ class DefaultClickToPaySessionLauncher(
 
                 VaultTokenData(
                     type = tokenType,
-                    cardNumber = vtd.optString("card_number", "").takeIf { it.isNotEmpty() },
-                    cardCvc = vtd.optString("card_cvc", "").takeIf { it.isNotEmpty() },
-                    cardExpiryMonth = vtd.optString("card_expiry_month", "")
-                        .takeIf { it.isNotEmpty() },
-                    cardExpiryYear = vtd.optString("card_expiry_year", "")
-                        .takeIf { it.isNotEmpty() },
-                    paymentToken = vtd.optString("payment_token", "").takeIf { it.isNotEmpty() },
-                    tokenCryptogram = vtd.optString("token_cryptogram", "")
-                        .takeIf { it.isNotEmpty() },
-                    tokenExpirationMonth = vtd.optString("token_expiration_month", "")
-                        .takeIf { it.isNotEmpty() },
-                    tokenExpirationYear = vtd.optString("token_expiration_year", "")
-                        .takeIf { it.isNotEmpty() }
+                    cardNumber = safeReturnStringValue(vtd, "card_number"),
+                    cardCvc = safeReturnStringValue(vtd, "card_cvc"),
+                    cardExpiryMonth = safeReturnStringValue(vtd, "card_expiry_month"),
+                    cardExpiryYear = safeReturnStringValue(vtd, "card_expiry_year"),
+                    paymentToken = safeReturnStringValue(vtd, "payment_token"),
+                    tokenCryptogram = safeReturnStringValue(vtd, "token_cryptogram"),
+                    tokenExpirationMonth = safeReturnStringValue(vtd, "token_expiration_month"),
+                    tokenExpirationYear = safeReturnStringValue(vtd, "token_expiration_year")
                 )
             }
 
             val acquirerDetailsObj = data.optJSONObject("acquirer_details")
-            val acquirerDetails = acquirerDetailsObj?.let {
+            val acquirerDetails = acquirerDetailsObj?.let { it ->
                 AcquirerDetails(
-                    acquirerBin = it.optString("acquirer_bin", "").takeIf { s -> s.isNotEmpty() },
-                    acquirerMerchantId = it.optString("acquirer_merchant_id", "")
-                        .takeIf { s -> s.isNotEmpty() },
-                    merchantCountryCode = it.optString("merchant_country_code", "")
-                        .takeIf { s -> s.isNotEmpty() }
+                    acquirerBin = safeReturnStringValue(it, "acquirer_bin"),
+                    acquirerMerchantId = safeReturnStringValue(it, "acquirer_merchant_id"),
+                    merchantCountryCode = safeReturnStringValue(it, "merchant_country_code")
                 )
             }
 
@@ -516,61 +517,77 @@ class DefaultClickToPaySessionLauncher(
             }
 
             CheckoutResponse(
-                authenticationId = data.optString("authentication_id", "")
-                    .takeIf { it.isNotEmpty() },
-                merchantId = data.optString("merchant_id", "").takeIf { it.isNotEmpty() },
+                authenticationId = safeReturnStringValue(data, "authentication_id"),
+                merchantId = safeReturnStringValue(data, "merchant_id"),
                 status = authStatus,
-                clientSecret = data.optString("client_secret", "").takeIf { it.isNotEmpty() },
+                clientSecret = safeReturnStringValue(data, "client_secret"),
                 amount = data.optInt("amount", -1).takeIf { it >= 0 },
-                currency = data.optString("currency", "").takeIf { it.isNotEmpty() },
-                authenticationConnector = data.optString("authentication_connector", "")
-                    .takeIf { it.isNotEmpty() },
+                currency = safeReturnStringValue(data, "currency"),
+                authenticationConnector = safeReturnStringValue(
+                    data,
+                    "authentication_connector",
+                ),
                 force3dsChallenge = data.optBoolean("force_3ds_challenge", false),
-                returnUrl = data.optString("return_url", "").takeIf { it.isNotEmpty() },
-                createdAt = data.optString("created_at", "").takeIf { it.isNotEmpty() },
-                profileId = data.optString("profile_id", "").takeIf { it.isNotEmpty() },
-                psd2ScaExemptionType = data.optString("psd2_sca_exemption_type", "")
-                    .takeIf { it.isNotEmpty() },
+                returnUrl = safeReturnStringValue(data, "return_url"),
+                createdAt = safeReturnStringValue(data, "created_at"),
+                profileId = safeReturnStringValue(data, "profile_id"),
+                psd2ScaExemptionType = safeReturnStringValue(data, "psd2_sca_exemption_type"),
                 acquirerDetails = acquirerDetails,
-                threedsServerTransactionId = data.optString("threeds_server_transaction_id", "")
-                    .takeIf { it.isNotEmpty() },
-                maximumSupported3dsVersion = data.optString("maximum_supported_3ds_version", "")
-                    .takeIf { it.isNotEmpty() },
-                connectorAuthenticationId = data.optString("connector_authentication_id", "")
-                    .takeIf { it.isNotEmpty() },
-                threeDsMethodData = data.optString("three_ds_method_data", "")
-                    .takeIf { it.isNotEmpty() },
-                threeDsMethodUrl = data.optString("three_ds_method_url", "")
-                    .takeIf { it.isNotEmpty() },
-                messageVersion = data.optString("message_version", "").takeIf { it.isNotEmpty() },
-                connectorMetadata = data.optString("connector_metadata", "")
-                    .takeIf { it.isNotEmpty() },
-                directoryServerId = data.optString("directory_server_id", "")
-                    .takeIf { it.isNotEmpty() },
+                threedsServerTransactionId = safeReturnStringValue(
+                    data,
+                    "threeds_server_transaction_id",
+                ),
+                maximumSupported3dsVersion = safeReturnStringValue(
+                    data,
+                    "maximum_supported_3ds_version",
+                ),
+                connectorAuthenticationId = safeReturnStringValue(
+                    data,
+                    "connector_authentication_id"
+                ),
+                threeDsMethodData = safeReturnStringValue(data, "three_ds_method_data"),
+                threeDsMethodUrl = safeReturnStringValue(data, "three_ds_method_url"),
+                messageVersion = safeReturnStringValue(data, "message_version"),
+                connectorMetadata = safeReturnStringValue(data, "connector_metadata"),
+                directoryServerId = safeReturnStringValue(data, "directory_server_id"),
                 vaultTokenData = vaultTokenData,
-                billing = data.optString("billing", "").takeIf { it.isNotEmpty() },
-                shipping = data.optString("shipping", "").takeIf { it.isNotEmpty() },
-                browserInformation = data.optString("browser_information", "")
-                    .takeIf { it.isNotEmpty() },
-                email = data.optString("email", "").takeIf { it.isNotEmpty() },
-                transStatus = data.optString("trans_status", "").takeIf { it.isNotEmpty() },
-                acsUrl = data.optString("acs_url", "").takeIf { it.isNotEmpty() },
-                challengeRequest = data.optString("challenge_request", "")
-                    .takeIf { it.isNotEmpty() },
-                acsReferenceNumber = data.optString("acs_reference_number", "")
-                    .takeIf { it.isNotEmpty() },
-                acsTransId = data.optString("acs_trans_id", "").takeIf { it.isNotEmpty() },
-                acsSignedContent = data.optString("acs_signed_content", "")
-                    .takeIf { it.isNotEmpty() },
-                threeDsRequestorUrl = data.optString("three_ds_requestor_url", "")
-                    .takeIf { it.isNotEmpty() },
-                threeDsRequestorAppUrl = data.optString("three_ds_requestor_app_url", "")
-                    .takeIf { it.isNotEmpty() },
-                eci = data.optString("eci", "").takeIf { it.isNotEmpty() },
-                errorMessage = data.optString("error_message", "").takeIf { it.isNotEmpty() },
-                errorCode = data.optString("error_code", "").takeIf { it.isNotEmpty() },
-                profileAcquirerId = data.optString("profile_acquirer_id", "")
-                    .takeIf { it.isNotEmpty() }
+                billing = safeReturnStringValue(data, "billing"),
+                shipping = safeReturnStringValue(data, "shipping"),
+                browserInformation = safeReturnStringValue(data, "browser_information"),
+                email = safeReturnStringValue(data, "email"),
+                transStatus = safeReturnStringValue(data, "trans_status"),
+                acsUrl = safeReturnStringValue(data, "acs_url"),
+                challengeRequest = safeReturnStringValue(data, "challenge_request"),
+                acsReferenceNumber = safeReturnStringValue(data, "acs_reference_number"),
+                acsTransId = safeReturnStringValue(data, "acs_trans_id"),
+                acsSignedContent = safeReturnStringValue(data, "acs_signed_content"),
+                threeDsRequestorUrl = safeReturnStringValue(data, "three_ds_requestor_url"),
+                threeDsRequestorAppUrl = safeReturnStringValue(
+                    data,
+                    "three_ds_requestor_app_url",
+                    ),
+                eci = safeReturnStringValue(data, "eci"),
+                errorMessage = safeReturnStringValue(data, "error_message"),
+                errorCode = safeReturnStringValue(data, "error_code"),
+                profileAcquirerId = safeReturnStringValue(data, "profile_acquirer_id")
+            )
+        }
+    }
+
+    override suspend fun signOut(): SignOutResponse {
+        ensureWebViewInitialized()
+        val requestId = UUID.randomUUID().toString()
+        val jsCode = "(async function(){try{const signOutResponse = await window.ClickToPaySession.signOut();window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data: signOutResponse }));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{ error:{type:'SignOutError',message:error.message}}}))}})();".trimMargin()
+        val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
+        return withContext(Dispatchers.Default) {
+            val jsonObject = JSONObject(responseJson)
+            val data = jsonObject.optJSONObject("data")
+            val error = jsonObject.optJSONObject("error")
+            if (error != null){
+                throw Exception("ClickToPay: Failed to SignOut because SignOutError : ${error.optString("message", "Error")} ")
+            }
+            SignOutResponse(
+                recognized = data?.optBoolean("recognized", false)
             )
         }
     }

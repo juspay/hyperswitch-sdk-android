@@ -49,7 +49,7 @@ enum class ClickToPayErrorType {
 class ClickToPayException(
     message: String,
     val type: ClickToPayErrorType
-) : Exception(message)
+) : Exception("ClickToPay: ${type}: ${message}")
 
 /**
  * Request to check if a customer has an existing Click to Pay profile
@@ -107,7 +107,7 @@ data class RecognizedCard(
     val dateOfCardCreated: String? = null,
     val dateOfCardLastUsed: String? = null,
     val paymentAccountReference: String? = null,
-    val paymentCardDescriptor: String? = null,
+    val paymentCardDescriptor: CardType? = null,
     val paymentCardType: String? = null,
     val dcf: DCF? = null,
     val digitalCardFeatures: Map<String, Any>? = null
@@ -249,4 +249,14 @@ data class VaultTokenData(
     val tokenCryptogram: String? = null,
     val tokenExpirationMonth: String? = null,
     val tokenExpirationYear: String? = null
+)
+
+enum class CardType {
+    VISA,
+    MASTERCARD,
+    UNKNOWN
+}
+
+data class SignOutResponse(
+    val recognized : Boolean? = false
 )

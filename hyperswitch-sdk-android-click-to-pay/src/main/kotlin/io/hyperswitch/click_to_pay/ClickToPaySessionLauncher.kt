@@ -105,4 +105,7 @@ interface ClickToPaySessionLauncher {
      */
     @Throws(Exception::class)
     suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse
+
+    @Throws(Exception::class)
+    suspend fun signOut(): SignOutResponse
 }
