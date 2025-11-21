@@ -3,10 +3,12 @@ package io.hyperswitch.react
 import android.os.Bundle
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
+import com.facebook.react.ReactNativeHost
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
 import com.facebook.react.defaults.DefaultReactActivityDelegate
 import com.proyecto26.inappbrowser.ChromeTabsDismissedEvent
 import com.proyecto26.inappbrowser.ChromeTabsManagerActivity
+import io.hyperswitch.HyperswitchSDK
 import io.hyperswitch.redirect.RedirectEvent
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
@@ -26,6 +28,10 @@ class HyperActivity : ReactActivity() {
     override fun createReactActivityDelegate(): ReactActivityDelegate {
         return object : DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled) {
             override fun getLaunchOptions(): Bundle = intent.getBundleExtra("configuration")!!
+            
+            override fun getReactNativeHost(): ReactNativeHost {
+                return HyperswitchSDK.getReactNativeHost()
+            }
         }
     }
 
