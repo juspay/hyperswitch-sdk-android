@@ -3,15 +3,12 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
-group = "io.hyperswitch"
-version = authVersion
-
 android {
-    namespace 'io.hyperswitch.authentication'
-    compileSdk rootProject.ext.compileSdkVersion
+    namespace 'io.hyperswitch.threeds.trident'
+    compileSdk 36
 
     defaultConfig {
-        minSdk rootProject.ext.minSdkVersion
+        minSdk 24
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -23,9 +20,16 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
 }
 
 dependencies {
-    api project(':hyperswitch-sdk-android-click-to-pay')
-    api project(':hyperswitch-sdk-android-threeDS')
+    api(project(":hyperswitch-sdk-android-threeDS"))
+
+    implementation("in.juspay:trident:1.0.8-rc.04")
+    implementation("in.juspay:hypersmshandler:2.1.25")
+
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
 }
