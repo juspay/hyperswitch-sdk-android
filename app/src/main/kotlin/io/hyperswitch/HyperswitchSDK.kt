@@ -55,14 +55,14 @@ object HyperswitchSDK {
 
     internal fun getReactNativeHost(): ReactNativeHost {
         val host = checkNotNull(reactNativeHost) {
-            "HyperSDK not initialized. Call HyperSDK.initialize() in Application.onCreate()"
+            "HyperswitchSDK not initialized. Call HyperswitchSDK.initialize() in Application.onCreate()"
         }
         return host
     }
 
     internal fun getReactHost(): ReactHost? {
         check(isInitialized) {
-            "HyperSDK not initialized. Call HyperSDK.initialize() in Application.onCreate()"
+            "HyperswitchSDK not initialized. Call HyperswitchSDK.initialize() in Application.onCreate()"
         }
         return reactHost
     }
