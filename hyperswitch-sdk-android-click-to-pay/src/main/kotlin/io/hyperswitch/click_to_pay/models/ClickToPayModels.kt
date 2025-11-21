@@ -201,6 +201,7 @@ data class CheckoutResponse(
     val connectorMetadata: String?,
     val directoryServerId: String?,
     val vaultTokenData: VaultTokenData?,
+    val paymentMethodData : PaymentMethodData?,
     val billing: String?,
     val shipping: String?,
     val browserInformation: String?,
@@ -218,7 +219,6 @@ data class CheckoutResponse(
     val errorCode: String?,
     val profileAcquirerId: String?
 )
-
 /**
  * Acquirer details for the transaction
  */
@@ -236,11 +236,27 @@ enum class VaultTokenType {
     NETWORK_TOKEN
 }
 
+enum class PaymentMethodType{
+    CARD_DATA,
+    NETWORK_TOKEN_DATA
+}
 /**
  * Vault token data returned after successful checkout
  */
 data class VaultTokenData(
     val type: VaultTokenType?,
+    val cardNumber: String? = null,
+    val cardCvc: String? = null,
+    val cardExpiryMonth: String? = null,
+    val cardExpiryYear: String? = null,
+    val paymentToken: String? = null,
+    val tokenCryptogram: String? = null,
+    val tokenExpirationMonth: String? = null,
+    val tokenExpirationYear: String? = null
+)
+
+data class PaymentMethodData(
+    val type: PaymentMethodType?,
     val cardNumber: String? = null,
     val cardCvc: String? = null,
     val cardExpiryMonth: String? = null,

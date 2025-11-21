@@ -499,6 +499,27 @@ class DefaultClickToPaySessionLauncher(
                     tokenExpirationYear = safeReturnStringValue(vtd, "token_expiration_year")
                 )
             }
+            val paymentMethodDataObj = data.optJSONObject("payment_method_data")
+            val paymentMethodData = paymentMethodDataObj?.let { vtd ->
+                val typeStr = vtd.optString("type", "").uppercase()
+                val tokenType = try {
+                    PaymentMethodType.valueOf(typeStr)
+                } catch (e: IllegalArgumentException) {
+                    null
+                }
+
+                PaymentMethodData(
+                    type = tokenType,
+                    cardNumber = safeReturnStringValue(vtd, "card_number"),
+                    cardCvc = safeReturnStringValue(vtd, "card_cvc"),
+                    cardExpiryMonth = safeReturnStringValue(vtd, "card_expiry_month"),
+                    cardExpiryYear = safeReturnStringValue(vtd, "card_expiry_year"),
+                    paymentToken = safeReturnStringValue(vtd, "payment_token"),
+                    tokenCryptogram = safeReturnStringValue(vtd, "token_cryptogram"),
+                    tokenExpirationMonth = safeReturnStringValue(vtd, "token_expiration_month"),
+                    tokenExpirationYear = safeReturnStringValue(vtd, "token_expiration_year")
+                )
+            }
 
             val acquirerDetailsObj = data.optJSONObject("acquirer_details")
             val acquirerDetails = acquirerDetailsObj?.let { it ->
@@ -551,6 +572,7 @@ class DefaultClickToPaySessionLauncher(
                 connectorMetadata = safeReturnStringValue(data, "connector_metadata"),
                 directoryServerId = safeReturnStringValue(data, "directory_server_id"),
                 vaultTokenData = vaultTokenData,
+                paymentMethodData = paymentMethodData,
                 billing = safeReturnStringValue(data, "billing"),
                 shipping = safeReturnStringValue(data, "shipping"),
                 browserInformation = safeReturnStringValue(data, "browser_information"),
