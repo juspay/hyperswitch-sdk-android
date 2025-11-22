@@ -120,7 +120,7 @@ class DefaultClickToPaySessionLauncher(
             dateOfCardCreated = safeReturnStringValue(cardObj, "dateOfCardCreated"),
             dateOfCardLastUsed = safeReturnStringValue(cardObj, "dateOfCardLastUsed"),
             paymentAccountReference = safeReturnStringValue(cardObj, "paymentAccountReference"),
-            paymentCardDescriptor = CardType.valueOf(cardObj.optString("paymentCardDescriptor", "unknown").uppercase()),
+            paymentCardDescriptor = CardType.from(cardObj.optString("paymentCardDescriptor", "unknown")),
             paymentCardType = safeReturnStringValue(cardObj, "paymentCardType"),
             dcf = dcfObj?.let {
                 DCF(
@@ -348,7 +348,9 @@ class DefaultClickToPaySessionLauncher(
 
             val statusCodeStr = data.optString("statusCode", "NO_CARDS_PRESENT").uppercase()
             CardsStatusResponse(
-                statusCode = StatusCode.valueOf(statusCodeStr)
+                statusCode = try { StatusCode.valueOf(statusCodeStr)} catch(e: Exception){
+                    StatusCode.NO_CARDS_PRESENT
+                }
             )
         }
     }
@@ -478,55 +480,55 @@ class DefaultClickToPaySessionLauncher(
                 throw Exception("Failed to checkout with card - Type: $errorType, Message: $errorMessage")
             }
 
-            val vaultTokenDataObj = data.optJSONObject("vault_token_data")
+            val vaultTokenDataObj = data.optJSONObject("vaultTokenData")
             val vaultTokenData = vaultTokenDataObj?.let { vtd ->
                 val typeStr = vtd.optString("type", "").uppercase()
                 val tokenType = try {
-                    VaultTokenType.valueOf(typeStr)
+                    DataType.valueOf(typeStr)
                 } catch (e: IllegalArgumentException) {
                     null
                 }
 
                 VaultTokenData(
                     type = tokenType,
-                    cardNumber = safeReturnStringValue(vtd, "card_number"),
-                    cardCvc = safeReturnStringValue(vtd, "card_cvc"),
-                    cardExpiryMonth = safeReturnStringValue(vtd, "card_expiry_month"),
-                    cardExpiryYear = safeReturnStringValue(vtd, "card_expiry_year"),
-                    networkToken = safeReturnStringValue(vtd, "network_token"),
-                    networkTokenCryptogram = safeReturnStringValue(vtd, "network_token_cryptogram"),
-                    networkTokenExpiryMonth = safeReturnStringValue(vtd, "network_token_expiry_month"),
-                    networkTokenExpiryYear = safeReturnStringValue(vtd, "network_token_expiry_year")
+                    cardNumber = safeReturnStringValue(vtd, "cardNumber"),
+                    cardCvc = safeReturnStringValue(vtd, "cardCvc"),
+                    cardExpiryMonth = safeReturnStringValue(vtd, "cardExpiryMonth"),
+                    cardExpiryYear = safeReturnStringValue(vtd, "cardExpiryYear"),
+                    networkToken = safeReturnStringValue(vtd, "networkToken"),
+                    networkTokenCryptogram = safeReturnStringValue(vtd, "networkTokenCryptogram"),
+                    networkTokenExpiryMonth = safeReturnStringValue(vtd, "networkTokenExpiryMonth"),
+                    networkTokenExpiryYear = safeReturnStringValue(vtd, "networkTokenExpiryYear")
                 )
             }
-            val paymentMethodDataObj = data.optJSONObject("payment_method_data")
+            val paymentMethodDataObj = data.optJSONObject("paymentMethodData")
             val paymentMethodData = paymentMethodDataObj?.let { vtd ->
                 val typeStr = vtd.optString("type", "").uppercase()
                 val tokenType = try {
-                    PaymentMethodType.valueOf(typeStr)
+                    DataType.valueOf(typeStr)
                 } catch (e: IllegalArgumentException) {
                     null
                 }
 
                 PaymentMethodData(
                     type = tokenType,
-                    cardNumber = safeReturnStringValue(vtd, "card_number"),
-                    cardCvc = safeReturnStringValue(vtd, "card_cvc"),
-                    cardExpiryMonth = safeReturnStringValue(vtd, "card_expiry_month"),
-                    cardExpiryYear = safeReturnStringValue(vtd, "card_expiry_year"),
-                    networkToken = safeReturnStringValue(vtd, "network_token"),
-                    networkTokenCryptogram = safeReturnStringValue(vtd, "network_token_cryptogram"),
-                    networkTokenExpiryMonth = safeReturnStringValue(vtd, "network_token_expiry_month"),
-                    networkTokenExpiryYear = safeReturnStringValue(vtd, "network_token_expiry_year")
+                    cardNumber = safeReturnStringValue(vtd, "cardNumber"),
+                    cardCvc = safeReturnStringValue(vtd, "cardCvc"),
+                    cardExpiryMonth = safeReturnStringValue(vtd, "cardExpiryMonth"),
+                    cardExpiryYear = safeReturnStringValue(vtd, "cardExpiryYear"),
+                    networkToken = safeReturnStringValue(vtd, "networkToken"),
+                    networkTokenCryptogram = safeReturnStringValue(vtd, "networkTokenCryptogram"),
+                    networkTokenExpiryMonth = safeReturnStringValue(vtd, "networkTokenExpiryMonth"),
+                    networkTokenExpiryYear = safeReturnStringValue(vtd, "networkTokenExpiryYear")
                 )
             }
 
-            val acquirerDetailsObj = data.optJSONObject("acquirer_details")
+            val acquirerDetailsObj = data.optJSONObject("acquirerDetails")
             val acquirerDetails = acquirerDetailsObj?.let { it ->
                 AcquirerDetails(
-                    acquirerBin = safeReturnStringValue(it, "acquirer_bin"),
-                    acquirerMerchantId = safeReturnStringValue(it, "acquirer_merchant_id"),
-                    merchantCountryCode = safeReturnStringValue(it, "merchant_country_code")
+                    acquirerBin = safeReturnStringValue(it, "acquirerBin"),
+                    acquirerMerchantId = safeReturnStringValue(it, "acquirerMerchantId"),
+                    merchantCountryCode = safeReturnStringValue(it, "merchantCountryCode")
                 )
             }
 
@@ -538,60 +540,60 @@ class DefaultClickToPaySessionLauncher(
             }
 
             CheckoutResponse(
-                authenticationId = safeReturnStringValue(data, "authentication_id"),
-                merchantId = safeReturnStringValue(data, "merchant_id"),
+                authenticationId = safeReturnStringValue(data, "authenticationId"),
+                merchantId = safeReturnStringValue(data, "merchantId"),
                 status = authStatus,
-                clientSecret = safeReturnStringValue(data, "client_secret"),
+                clientSecret = safeReturnStringValue(data, "clientSecret"),
                 amount = data.optInt("amount", -1).takeIf { it >= 0 },
                 currency = safeReturnStringValue(data, "currency"),
                 authenticationConnector = safeReturnStringValue(
                     data,
-                    "authentication_connector",
+                    "authenticationConnector",
                 ),
-                force3dsChallenge = data.optBoolean("force_3ds_challenge", false),
-                returnUrl = safeReturnStringValue(data, "return_url"),
-                createdAt = safeReturnStringValue(data, "created_at"),
-                profileId = safeReturnStringValue(data, "profile_id"),
-                psd2ScaExemptionType = safeReturnStringValue(data, "psd2_sca_exemption_type"),
+                force3dsChallenge = data.optBoolean("force3dsChallenge", false),
+                returnUrl = safeReturnStringValue(data, "returnUrl"),
+                createdAt = safeReturnStringValue(data, "createdAt"),
+                profileId = safeReturnStringValue(data, "profileId"),
+                psd2ScaExemptionType = safeReturnStringValue(data, "psd2ScaExemptionType"),
                 acquirerDetails = acquirerDetails,
                 threedsServerTransactionId = safeReturnStringValue(
                     data,
-                    "threeds_server_transaction_id",
+                    "threeDsServerTransactionId",
                 ),
                 maximumSupported3dsVersion = safeReturnStringValue(
                     data,
-                    "maximum_supported_3ds_version",
+                    "maximumSupported3dsVersion",
                 ),
                 connectorAuthenticationId = safeReturnStringValue(
                     data,
-                    "connector_authentication_id"
+                    "connectorAuthenticationId"
                 ),
-                threeDsMethodData = safeReturnStringValue(data, "three_ds_method_data"),
-                threeDsMethodUrl = safeReturnStringValue(data, "three_ds_method_url"),
-                messageVersion = safeReturnStringValue(data, "message_version"),
-                connectorMetadata = safeReturnStringValue(data, "connector_metadata"),
-                directoryServerId = safeReturnStringValue(data, "directory_server_id"),
+                threeDsMethodData = safeReturnStringValue(data, "threeDsMethod_data"),
+                threeDsMethodUrl = safeReturnStringValue(data, "threeDsMethodUrl"),
+                messageVersion = safeReturnStringValue(data, "messageVersion"),
+                connectorMetadata = safeReturnStringValue(data, "connectorMetadata"),
+                directoryServerId = safeReturnStringValue(data, "directoryServerId"),
                 vaultTokenData = vaultTokenData,
                 paymentMethodData = paymentMethodData,
                 billing = safeReturnStringValue(data, "billing"),
                 shipping = safeReturnStringValue(data, "shipping"),
-                browserInformation = safeReturnStringValue(data, "browser_information"),
+                browserInformation = safeReturnStringValue(data, "browserInformation"),
                 email = safeReturnStringValue(data, "email"),
-                transStatus = safeReturnStringValue(data, "trans_status"),
-                acsUrl = safeReturnStringValue(data, "acs_url"),
-                challengeRequest = safeReturnStringValue(data, "challenge_request"),
-                acsReferenceNumber = safeReturnStringValue(data, "acs_reference_number"),
-                acsTransId = safeReturnStringValue(data, "acs_trans_id"),
-                acsSignedContent = safeReturnStringValue(data, "acs_signed_content"),
-                threeDsRequestorUrl = safeReturnStringValue(data, "three_ds_requestor_url"),
+                transStatus = safeReturnStringValue(data, "transStatus"),
+                acsUrl = safeReturnStringValue(data, "acsUrl"),
+                challengeRequest = safeReturnStringValue(data, "challengeRequest"),
+                acsReferenceNumber = safeReturnStringValue(data, "acsReferenceNumber"),
+                acsTransId = safeReturnStringValue(data, "acsTransId"),
+                acsSignedContent = safeReturnStringValue(data, "acsSignedContent"),
+                threeDsRequestorUrl = safeReturnStringValue(data, "threeDsRequestorUrl"),
                 threeDsRequestorAppUrl = safeReturnStringValue(
                     data,
-                    "three_ds_requestor_app_url",
+                    "threeDsRequestorAppUrl",
                     ),
                 eci = safeReturnStringValue(data, "eci"),
-                errorMessage = safeReturnStringValue(data, "error_message"),
-                errorCode = safeReturnStringValue(data, "error_code"),
-                profileAcquirerId = safeReturnStringValue(data, "profile_acquirer_id")
+                errorMessage = safeReturnStringValue(data, "errorMessage"),
+                errorCode = safeReturnStringValue(data, "errorCode"),
+                profileAcquirerId = safeReturnStringValue(data, "profileAcquirerId")
             )
         }
     }
