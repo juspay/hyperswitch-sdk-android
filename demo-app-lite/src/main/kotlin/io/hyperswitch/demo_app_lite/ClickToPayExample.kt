@@ -5,6 +5,8 @@ import android.animation.AnimatorListenerAdapter
 import android.app.AlertDialog
 import android.os.Bundle
 import android.text.InputType
+import android.view.View.INVISIBLE
+import android.view.View.VISIBLE
 import android.view.animation.LinearInterpolator
 import android.widget.Button
 import android.widget.EditText
@@ -17,6 +19,7 @@ import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.authentication.AuthenticationSession
+import io.hyperswitch.click_to_pay.ClickToPaySession
 import io.hyperswitch.click_to_pay.models.*
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -25,6 +28,7 @@ class ClickToPayExample : AppCompatActivity() {
 
     private lateinit var resultText: TextView
     private lateinit var btnStart: Button
+    private lateinit var signOut: Button
     private var recognizedCards: List<RecognizedCard>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,6 +37,8 @@ class ClickToPayExample : AppCompatActivity() {
 
         resultText = findViewById(R.id.resultText)
         btnStart = findViewById(R.id.btnStep1)
+        signOut = findViewById(R.id.signOut)
+        signOut.visibility = INVISIBLE
 
         btnStart.text = "Start Click to Pay Flow"
         btnStart.setOnClickListener { startClickToPayFlow() }
@@ -126,6 +132,10 @@ class ClickToPayExample : AppCompatActivity() {
             )
             val clickToPaySession = authSession.initClickToPaySession()
             updateResultText("✓ Sessions initialized\nChecking customer...")
+            signOut.visibility = VISIBLE
+            signOut.setOnClickListener {
+                signOut(clickToPaySession)
+            }
 
             // Step 4: Check customer presence
             val customerPresent = clickToPaySession.isCustomerPresent(CustomerPresenceRequest())
@@ -206,13 +216,26 @@ class ClickToPayExample : AppCompatActivity() {
                     )
                     Toast.makeText(this@ClickToPayExample, "Payment completed!", Toast.LENGTH_SHORT)
                         .show()
+
                 } else {
                     showError("Payment failed")
+                    signOut.visibility = INVISIBLE
                 }
             } catch (e: Exception) {
                 showError("Checkout error: ${e.message}")
+                signOut.visibility = INVISIBLE
             } finally {
                 btnStart.isEnabled = true
+            }
+        }
+    }
+    private fun signOut(session: ClickToPaySession){
+        lifecycleScope.launch {
+
+            val response = session.signOut()
+            if (response.recognized == false){
+                signOut.visibility = INVISIBLE
+                updateResultText(response.toString())
             }
         }
     }

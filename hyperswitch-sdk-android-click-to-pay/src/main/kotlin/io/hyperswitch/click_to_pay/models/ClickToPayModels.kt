@@ -11,14 +11,14 @@ enum class ClickToPayErrorType {
     CONSUMER_ID_MISSING,
     CONSUMER_ID_FORMAT_UNSUPPORTED,
     CONSUMER_ID_FORMAT_INVALID,
-    
+
     // validateCustomerAuthentication errors
     OTP_SEND_FAILED,
     VALIDATION_DATA_MISSING,
     VALIDATION_DATA_EXPIRED,
     VALIDATION_DATA_INVALID,
     RETRIES_EXCEEDED,
-    
+
     // Standard errors
     UNKNOWN_ERROR,
     REQUEST_TIMEOUT,
@@ -29,7 +29,7 @@ enum class ClickToPayErrorType {
     NOT_FOUND,
     RATE_LIMIT_EXCEEDED,
     SERVICE_ERROR,
-    
+
     // SDK errors
     SCRIPT_LOAD_ERROR,
     HYPER_UNDEFINED_ERROR,
@@ -38,7 +38,7 @@ enum class ClickToPayErrorType {
     IS_CUSTOMER_PRESENT_ERROR,
     GET_RECOGNIZED_CARDS_ERROR,
     CHECKOUT_WITH_CARD_ERROR,
-    
+
     // Fallback
     ERROR
 }
@@ -49,7 +49,7 @@ enum class ClickToPayErrorType {
 class ClickToPayException(
     message: String,
     val type: ClickToPayErrorType
-) : Exception(message)
+) : Exception("ClickToPay: ${type}: ${message}")
 
 /**
  * Request to check if a customer has an existing Click to Pay profile
@@ -107,7 +107,7 @@ data class RecognizedCard(
     val dateOfCardCreated: String? = null,
     val dateOfCardLastUsed: String? = null,
     val paymentAccountReference: String? = null,
-    val paymentCardDescriptor: String? = null,
+    val paymentCardDescriptor: CardType? = null,
     val paymentCardType: String? = null,
     val dcf: DCF? = null,
     val digitalCardFeatures: Map<String, Any>? = null
@@ -201,6 +201,7 @@ data class CheckoutResponse(
     val connectorMetadata: String?,
     val directoryServerId: String?,
     val vaultTokenData: VaultTokenData?,
+    val paymentMethodData: PaymentMethodData?,
     val billing: String?,
     val shipping: String?,
     val browserInformation: String?,
@@ -231,22 +232,53 @@ data class AcquirerDetails(
 /**
  * Vault token data type enum
  */
-enum class VaultTokenType {
-    CARD_TOKEN,
-    NETWORK_TOKEN
+enum class DataType {
+    CARD_DATA,
+    NETWORK_TOKEN_DATA
 }
-
 /**
  * Vault token data returned after successful checkout
  */
 data class VaultTokenData(
-    val type: VaultTokenType?,
+    val type: DataType?,
     val cardNumber: String? = null,
     val cardCvc: String? = null,
     val cardExpiryMonth: String? = null,
     val cardExpiryYear: String? = null,
-    val paymentToken: String? = null,
-    val tokenCryptogram: String? = null,
-    val tokenExpirationMonth: String? = null,
-    val tokenExpirationYear: String? = null
+    val networkToken: String? = null,
+    val networkTokenCryptogram: String? = null,
+    val networkTokenExpiryMonth: String? = null,
+    val networkTokenExpiryYear: String? = null
+)
+
+data class PaymentMethodData(
+    val type: DataType?,
+    val cardNumber: String? = null,
+    val cardCvc: String? = null,
+    val cardExpiryMonth: String? = null,
+    val cardExpiryYear: String? = null,
+    val networkToken: String? = null,
+    val networkTokenCryptogram: String? = null,
+    val networkTokenExpiryMonth: String? = null,
+    val networkTokenExpiryYear: String? = null
+)
+
+enum class CardType {
+    VISA,
+    MASTERCARD,
+    UNKNOWN;
+
+    companion object {
+        fun from(value: String?): CardType {
+            return try {
+                valueOf(value?.uppercase() ?: "UNKNOWN")
+            } catch (e: Exception) {
+                UNKNOWN
+            }
+        }
+    }
+}
+
+data class SignOutResponse(
+    val recognized: Boolean? = false
 )
