@@ -201,7 +201,7 @@ class DefaultClickToPaySessionLauncher(
      */
     private suspend fun loadUrl(requestId: String = UUID.randomUUID().toString()) {
         val baseHtml =
-            "<!DOCTYPE html><html><head><script>function handleScriptError(){console.error('ClickToPay','Failed to load HyperLoader.js');window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'ScriptLoadError',message:'Failed to load HyperLoader.js'}}}));}async function initHyper(){try{if(typeof Hyper==='undefined'){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperUndefinedError',message:'Hyper is not defined'}}}));return;}window.hyperInstance=Hyper.init('$publishableKey',{${customBackendUrl?.let { "customBackendUrl:'$customBackendUrl'," } ?: ""}${customLogUrl?.let { "customLogUrl:'$customLogUrl'," } ?: ""}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{sdkInitialised:true}}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperInitializationError',message:error.message}}}))}}</script><script src='https://beta.hyperswitch.io/web/2025.11.21.00-c2p-headless/v2/HyperLoader.js' onload='initHyper()' onerror='handleScriptError()' async></script></head><body></body></html>".trimMargin()
+            "<!DOCTYPE html><html><head><script>function handleScriptError(){console.error('ClickToPay','Failed to load HyperLoader.js');window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'ScriptLoadError',message:'Failed to load HyperLoader.js'}}}));}async function initHyper(){try{if(typeof Hyper==='undefined'){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperUndefinedError',message:'Hyper is not defined'}}}));return;}window.hyperInstance=Hyper.init('$publishableKey',{${customBackendUrl?.let { "customBackendUrl:'$customBackendUrl'," } ?: ""}${customLogUrl?.let { "customLogUrl:'$customLogUrl'," } ?: ""}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{sdkInitialised:true}}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperInitializationError',message:error.message}}}))}}</script><script src='https://beta.hyperswitch.io/web/2025.11.21.01-c2p-headless/v2/HyperLoader.js' onload='initHyper()' onerror='handleScriptError()' async></script></head><body></body></html>".trimMargin()
 
         val responseJson = withContext(Dispatchers.Main) {
             suspendCancellableCoroutine { continuation ->
@@ -493,10 +493,10 @@ class DefaultClickToPaySessionLauncher(
                     cardCvc = safeReturnStringValue(vtd, "card_cvc"),
                     cardExpiryMonth = safeReturnStringValue(vtd, "card_expiry_month"),
                     cardExpiryYear = safeReturnStringValue(vtd, "card_expiry_year"),
-                    paymentToken = safeReturnStringValue(vtd, "payment_token"),
-                    tokenCryptogram = safeReturnStringValue(vtd, "token_cryptogram"),
-                    tokenExpirationMonth = safeReturnStringValue(vtd, "token_expiration_month"),
-                    tokenExpirationYear = safeReturnStringValue(vtd, "token_expiration_year")
+                    networkToken = safeReturnStringValue(vtd, "network_token"),
+                    networkTokenCryptogram = safeReturnStringValue(vtd, "network_token_cryptogram"),
+                    networkTokenExpiryMonth = safeReturnStringValue(vtd, "network_token_expiry_month"),
+                    networkTokenExpiryYear = safeReturnStringValue(vtd, "network_token_expiry_year")
                 )
             }
             val paymentMethodDataObj = data.optJSONObject("payment_method_data")
@@ -514,10 +514,10 @@ class DefaultClickToPaySessionLauncher(
                     cardCvc = safeReturnStringValue(vtd, "card_cvc"),
                     cardExpiryMonth = safeReturnStringValue(vtd, "card_expiry_month"),
                     cardExpiryYear = safeReturnStringValue(vtd, "card_expiry_year"),
-                    paymentToken = safeReturnStringValue(vtd, "payment_token"),
-                    tokenCryptogram = safeReturnStringValue(vtd, "token_cryptogram"),
-                    tokenExpirationMonth = safeReturnStringValue(vtd, "token_expiration_month"),
-                    tokenExpirationYear = safeReturnStringValue(vtd, "token_expiration_year")
+                    networkToken = safeReturnStringValue(vtd, "network_token"),
+                    networkTokenCryptogram = safeReturnStringValue(vtd, "network_token_cryptogram"),
+                    networkTokenExpiryMonth = safeReturnStringValue(vtd, "network_token_expiry_month"),
+                    networkTokenExpiryYear = safeReturnStringValue(vtd, "network_token_expiry_year")
                 )
             }
 

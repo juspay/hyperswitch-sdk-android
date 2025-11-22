@@ -232,11 +232,11 @@ data class AcquirerDetails(
  * Vault token data type enum
  */
 enum class VaultTokenType {
-    CARD_TOKEN,
-    NETWORK_TOKEN
+    CARD_DATA,
+    NETWORK_TOKEN_DATA
 }
 
-enum class PaymentMethodType{
+enum class PaymentMethodType {
     CARD_DATA,
     NETWORK_TOKEN_DATA
 }
@@ -249,10 +249,10 @@ data class VaultTokenData(
     val cardCvc: String? = null,
     val cardExpiryMonth: String? = null,
     val cardExpiryYear: String? = null,
-    val paymentToken: String? = null,
-    val tokenCryptogram: String? = null,
-    val tokenExpirationMonth: String? = null,
-    val tokenExpirationYear: String? = null
+    val networkToken: String? = null,
+    val networkTokenCryptogram: String? = null,
+    val networkTokenExpiryMonth: String? = null,
+    val networkTokenExpiryYear: String? = null
 )
 
 data class PaymentMethodData(
@@ -261,10 +261,10 @@ data class PaymentMethodData(
     val cardCvc: String? = null,
     val cardExpiryMonth: String? = null,
     val cardExpiryYear: String? = null,
-    val paymentToken: String? = null,
-    val tokenCryptogram: String? = null,
-    val tokenExpirationMonth: String? = null,
-    val tokenExpirationYear: String? = null
+    val networkToken: String? = null,
+    val networkTokenCryptogram: String? = null,
+    val networkTokenExpiryMonth: String? = null,
+    val networkTokenExpiryYear: String? = null
 )
 
 enum class CardType {
