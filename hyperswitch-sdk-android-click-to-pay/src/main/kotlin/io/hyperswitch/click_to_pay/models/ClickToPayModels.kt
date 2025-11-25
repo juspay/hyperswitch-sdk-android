@@ -40,7 +40,11 @@ enum class ClickToPayErrorType {
     CHECKOUT_WITH_CARD_ERROR,
 
     // Fallback
-    ERROR
+    ERROR,
+
+    // USER ACTIONS
+    CHANGE_CARD,
+    SWITCH_USER;
 }
 
 /**

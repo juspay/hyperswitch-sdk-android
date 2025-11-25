@@ -18,7 +18,7 @@ interface ClickToPaySessionLauncher {
      *
      * @throws Exception if SDK initialization fails
      */
-    @Throws(Exception::class)
+    @Throws(ClickToPayException::class)
     suspend fun initialize()
 
     /**
@@ -34,7 +34,7 @@ interface ClickToPaySessionLauncher {
      * @param request3DSAuthentication Whether to request 3DS authentication
      * @throws Exception if session initialization fails
      */
-    @Throws(Exception::class)
+    @Throws(ClickToPayException::class)
     suspend fun initClickToPaySession(
         clientSecret: String?,
         profileId: String?,
@@ -53,7 +53,7 @@ interface ClickToPaySessionLauncher {
      * @return CustomerPresenceResponse indicating if customer exists
      * @throws Exception if the check fails
      */
-    @Throws(Exception::class)
+    @Throws(ClickToPayException::class)
     suspend fun isCustomerPresent(request: CustomerPresenceRequest): CustomerPresenceResponse
     
     /**
@@ -77,7 +77,7 @@ interface ClickToPaySessionLauncher {
      * @return List of RecognizedCard objects with card details
      * @throws Exception if card retrieval fails
      */
-    @Throws(Exception::class)
+    @Throws(ClickToPayException::class)
     suspend fun getRecognizedCards(): List<RecognizedCard>
     
     /**
@@ -103,9 +103,9 @@ interface ClickToPaySessionLauncher {
      * @return CheckoutResponse with transaction details and status
      * @throws Exception if checkout fails
      */
-    @Throws(Exception::class)
+    @Throws(ClickToPayException::class)
     suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse
 
-    @Throws(Exception::class)
+    @Throws(ClickToPayException::class)
     suspend fun signOut(): SignOutResponse
 }

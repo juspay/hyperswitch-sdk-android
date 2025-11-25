@@ -108,7 +108,7 @@ class ClickToPayExample : AppCompatActivity() {
                         } else {
                             updateResultText("Failed: Create Authentication Result is null")
                         }
-                    } catch (e: Exception) {
+                    } catch (e: ClickToPayException) {
                         updateResultText("Failed: ${e.message}")
                     }
                 }
