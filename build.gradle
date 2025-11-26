@@ -97,6 +97,12 @@ gradle.projectsEvaluated {
             }
         }
 
+        def androidSourcesJar = tasks.register('androidSourcesJar', Jar) {
+            archiveClassifier.set('sources')
+            from android.sourceSets.main.java.srcDirs
+            from android.sourceSets.main.kotlin.srcDirs
+        }
+
         publishing {
             publications {
                 if (!runtimeDepsExcluded.contains(project.name)) {
@@ -105,6 +111,7 @@ gradle.projectsEvaluated {
                         artifactId = project.name == 'app' ? 'hyperswitch-sdk-android' : project.name
                         version = runtimeDeps.contains(project.name) || runtimeDepsOptional.contains(project.name) ? rnlibVersion : project.version
                         artifact "$buildDir/outputs/aar/$project.name-release.aar"
+                        artifact androidSourcesJar
                         pom.withXml(configurePom)
                     }
                 }
