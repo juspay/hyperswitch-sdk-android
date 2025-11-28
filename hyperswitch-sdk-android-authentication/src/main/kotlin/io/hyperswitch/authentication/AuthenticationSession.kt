@@ -3,6 +3,7 @@ package io.hyperswitch.authentication
 import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.click_to_pay.ClickToPaySession
+import io.hyperswitch.click_to_pay.models.ClickToPayException
 
 /**
  * Main entry point for authentication and Click to Pay sessions.
@@ -131,9 +132,9 @@ class AuthenticationSession(
      * Initializes a Click to Pay session with default 3DS authentication enabled.
      *
      * @return ClickToPaySession instance for managing Click to Pay operations
-     * @throws Exception if session initialization fails
+     * @throws ClickToPayException if session initialization fails
      */
-    @Throws(Exception::class)
+    @Throws(ClickToPayException::class)
     suspend fun initClickToPaySession(): ClickToPaySession {
         return initClickToPaySession(true)
     }
@@ -143,9 +144,9 @@ class AuthenticationSession(
      *
      * @param request3DSAuthentication Whether to request 3DS authentication
      * @return ClickToPaySession instance for managing Click to Pay operations
-     * @throws Exception if session initialization fails
+     * @throws ClickToPayException if session initialization fails
      */
-    @Throws(Exception::class)
+    @Throws(ClickToPayException::class)
     suspend fun initClickToPaySession(
         request3DSAuthentication: Boolean
     ): ClickToPaySession {

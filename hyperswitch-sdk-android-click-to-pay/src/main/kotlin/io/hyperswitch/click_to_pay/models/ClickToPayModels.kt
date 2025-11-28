@@ -40,7 +40,21 @@ enum class ClickToPayErrorType {
     CHECKOUT_WITH_CARD_ERROR,
 
     // Fallback
-    ERROR
+    ERROR,
+
+    // USER ACTIONS
+    CHANGE_CARD,
+    SWITCH_USER;
+
+    companion object {
+        fun from(value: String?): ClickToPayErrorType {
+            return try {
+                ClickToPayErrorType.valueOf(value?.uppercase() ?: "ERROR")
+            } catch (_ : IllegalArgumentException) {
+                ERROR
+            }
+        }
+    }
 }
 
 /**
@@ -48,8 +62,11 @@ enum class ClickToPayErrorType {
  */
 class ClickToPayException(
     message: String,
-    val type: ClickToPayErrorType
-) : Exception("ClickToPay: ${type}: ${message}")
+    errorType: String
+) : Exception("ClickToPay: $errorType: $message"){
+    val reason = message
+    val type = ClickToPayErrorType.from(errorType)
+}
 
 /**
  * Request to check if a customer has an existing Click to Pay profile
@@ -80,7 +97,17 @@ data class CustomerPresenceResponse(
 enum class StatusCode {
     TRIGGERED_CUSTOMER_AUTHENTICATION,
     NO_CARDS_PRESENT,
-    RECOGNIZED_CARDS_PRESENT
+    RECOGNIZED_CARDS_PRESENT;
+
+    companion object {
+        fun from(value: String?): StatusCode {
+            return try {
+                StatusCode.valueOf(value?.uppercase() ?: "NO_CARDS_PRESENT")
+            } catch (_ : IllegalArgumentException) {
+                NO_CARDS_PRESENT
+            }
+        }
+    }
 }
 
 /**

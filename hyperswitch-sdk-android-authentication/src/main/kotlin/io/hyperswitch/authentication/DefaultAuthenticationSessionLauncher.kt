@@ -3,6 +3,7 @@ package io.hyperswitch.authentication
 import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.click_to_pay.ClickToPaySession
+import io.hyperswitch.click_to_pay.models.ClickToPayException
 
 /**
  * Default implementation of AuthenticationSessionLauncher.
@@ -79,9 +80,9 @@ class DefaultAuthenticationSessionLauncher(
      *
      * @param request3DSAuthentication Whether to request 3DS authentication
      * @return The initialized ClickToPaySession instance
-     * @throws Exception if session initialization fails or credentials are not set
+     * @throws ClickToPayException if session initialization fails or credentials are not set
      */
-    @Throws(Exception::class)
+    @Throws(ClickToPayException::class)
     override suspend fun initClickToPaySession(
         request3DSAuthentication: Boolean
     ): ClickToPaySession {
@@ -105,9 +106,9 @@ class DefaultAuthenticationSessionLauncher(
      * @param merchantId The merchant identifier
      * @param request3DSAuthentication Whether to request 3DS authentication
      * @return The initialized ClickToPaySession instance
-     * @throws Exception if session initialization fails
+     * @throws ClickToPayException if session initialization fails
      */
-    @Throws(Exception::class)
+    @Throws(ClickToPayException::class)
     override suspend fun initClickToPaySession(
         clientSecret: String?,
         profileId: String?,

@@ -108,7 +108,7 @@ class ClickToPayExample : AppCompatActivity() {
                         } else {
                             updateResultText("Failed: Create Authentication Result is null")
                         }
-                    } catch (e: Exception) {
+                    } catch (e: ClickToPayException) {
                         updateResultText("Failed: ${e.message}")
                     }
                 }
@@ -164,7 +164,7 @@ class ClickToPayExample : AppCompatActivity() {
         }
     }
 
-    private fun showOTPDialog(session: io.hyperswitch.click_to_pay.ClickToPaySession) {
+    private fun showOTPDialog(session: ClickToPaySession) {
         val input = EditText(this).apply {
             inputType = InputType.TYPE_CLASS_NUMBER
             hint = "Enter OTP"
@@ -187,12 +187,12 @@ class ClickToPayExample : AppCompatActivity() {
             .show()
     }
 
-    private fun showCardSelection(session: io.hyperswitch.click_to_pay.ClickToPaySession) {
+    private fun showCardSelection(session: ClickToPaySession, errorMessage : String? = "") {
         val cards = recognizedCards ?: return
         updateResultText("✓ Found ${cards.size} card(s)\nSelect a card to checkout")
 
         AlertDialog.Builder(this)
-            .setTitle("Select Card")
+            .setTitle(errorMessage ?: "Select Card")
             .setItems(cards.map { "**** ${it.panLastFour}" }.toTypedArray()) { _, which ->
                 checkout(session, cards[which])
             }
@@ -221,9 +221,17 @@ class ClickToPayExample : AppCompatActivity() {
                     showError("Payment failed")
                     signOut.visibility = INVISIBLE
                 }
-            } catch (e: Exception) {
-                showError("Checkout error: ${e.message}")
-                signOut.visibility = INVISIBLE
+            } catch (e: ClickToPayException) {
+                if (e.type == ClickToPayErrorType.CHANGE_CARD){
+                    Toast.makeText(this@ClickToPayExample,"You should not change card", Toast.LENGTH_LONG )
+                    showCardSelection(session, "You cannot change card, Select card")
+                }else if (e.type == ClickToPayErrorType.SWITCH_USER){
+                    Toast.makeText(this@ClickToPayExample,"You should not change user", Toast.LENGTH_LONG )
+                    showCardSelection(session, "You cannot change user, select card")
+                }else {
+                    showError("Checkout error: ${e.reason}")
+                    signOut.visibility = INVISIBLE
+                }
             } finally {
                 btnStart.isEnabled = true
             }
