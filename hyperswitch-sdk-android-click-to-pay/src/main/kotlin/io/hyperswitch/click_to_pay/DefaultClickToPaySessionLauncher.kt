@@ -143,7 +143,7 @@ class DefaultClickToPaySessionLauncher(
      * Initializes the WebView components asynchronously on the main thread.
      * This method is idempotent and can be called multiple times safely.
      *
-     * @throws Exception if WebView initialization fails
+     * @throws ClickToPayException if WebView initialization fails
      */
     private suspend fun ensureWebViewInitialized() {
         if (isWebViewInitialized) return
@@ -172,10 +172,12 @@ class DefaultClickToPaySessionLauncher(
             hSWebViewManagerImpl.setMixedContentMode(hSWebViewWrapper, "compatibility")
             hSWebViewManagerImpl.setThirdPartyCookiesEnabled(hSWebViewWrapper, true)
             hSWebViewManagerImpl.setCacheEnabled(hSWebViewWrapper, true)
-
+            hSWebViewWrapper.isFocusable = false
+            hSWebViewWrapper.isFocusableInTouchMode = false
             hSWebViewWrapper.layoutParams = LayoutParams(1, 1)
-            hSWebViewWrapper.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
-
+            hSWebViewWrapper.contentDescription = ""
+            hSWebViewWrapper.importantForAccessibility =
+                View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
             val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
             rootView.addView(hSWebViewWrapper)
 
@@ -189,7 +191,7 @@ class DefaultClickToPaySessionLauncher(
      * Creates an HTML page with the HyperLoader.js script and initializes
      * the Hyper instance with the provided configuration.
      *
-     * @throws Exception if SDK initialization fails with error details
+     * @throws ClickToPayException if SDK initialization fails with error details
      */
     @Throws(ClickToPayException::class)
     override suspend fun initialize() {
@@ -204,7 +206,7 @@ class DefaultClickToPaySessionLauncher(
      * and initialization code. Waits for the SDK to initialize successfully.
      *
      * @param requestId Unique identifier for tracking this request
-     * @throws Exception if script loading or initialization fails
+     * @throws ClickToPayException if script loading or initialization fails
      */
     private suspend fun loadUrl(requestId: String = UUID.randomUUID().toString()) {
         val baseHtml =
@@ -231,7 +233,7 @@ class DefaultClickToPaySessionLauncher(
                 val errorMessage = error.optString("message", "Unknown error")
                 throw ClickToPayException(
                     "Failed to load URL - Type: $errorType, Message: $errorMessage",
-                    ClickToPayErrorType.SCRIPT_LOAD_ERROR
+                    "SCRIPT_LOAD_ERROR"
                 )
             }
         }
@@ -248,7 +250,7 @@ class DefaultClickToPaySessionLauncher(
      * @param authenticationId The authentication session identifier
      * @param merchantId The merchant identifier
      * @param request3DSAuthentication Whether to request 3DS authentication
-     * @throws Exception if session initialization fails
+     * @throws ClickToPayException if session initialization fails
      */
     @Throws(ClickToPayException::class)
     override suspend fun initClickToPaySession(
@@ -276,7 +278,7 @@ class DefaultClickToPaySessionLauncher(
                 val errorMessage = error.optString("message", "Unknown error")
                 throw ClickToPayException(
                     "Failed to initialize Click to Pay session - Type: $errorType, Message: $errorMessage",
-                    type = ClickToPayErrorType.INIT_CLICK_TO_PAY_SESSION_ERROR
+                    "INIT_CLICK_TO_PAY_SESSION_ERROR"
                 )
             }
         }
@@ -290,7 +292,7 @@ class DefaultClickToPaySessionLauncher(
      *
      * @param request Customer identification details
      * @return CustomerPresenceResponse indicating enrollment status
-     * @throws Exception if the check fails
+     * @throws ClickToPayException if the check fails
      */
     @Throws(ClickToPayException::class)
     override suspend fun isCustomerPresent(request: CustomerPresenceRequest): CustomerPresenceResponse {
@@ -309,13 +311,9 @@ class DefaultClickToPaySessionLauncher(
             val error = data.optJSONObject("error")
             if (error != null) {
                 val errorType = error.optString("type", "ERROR")
-                val errorMessage = error.optString("message", "Unknown error")
+                val errorMessage = error.optString("message", "Unknown Error")
                 throw ClickToPayException(
-                    errorMessage, type = try {
-                        ClickToPayErrorType.valueOf(errorType)
-                    } catch (_: IllegalArgumentException) {
-                        ClickToPayErrorType.ERROR
-                    }
+                    "Failed to get customer present: $errorMessage", errorType
                 )
             }
 
@@ -332,7 +330,7 @@ class DefaultClickToPaySessionLauncher(
      * or if additional authentication (OTP) is required.
      *
      * @return CardsStatusResponse with status code
-     * @throws Exception if retrieval fails
+     * @throws ClickToPayException if retrieval fails
      */
     @Throws(ClickToPayException::class)
     override suspend fun getUserType(): CardsStatusResponse {
@@ -351,26 +349,15 @@ class DefaultClickToPaySessionLauncher(
             val error = data.optJSONObject("error")
             if (error != null) {
                 val typeString = error.optString("type", "ERROR")
-                val errorMessage = error.optString("message", "Unknown error")
-
-                val errorType = try {
-                    ClickToPayErrorType.valueOf(typeString)
-                } catch (_: IllegalArgumentException) {
-                    ClickToPayErrorType.ERROR
-                }
-
+                val errorMessage = error.optString("message", "Unknown Error")
                 throw ClickToPayException(
-                    message = errorMessage, type = errorType
+                    message = "Failed to get user type : $errorMessage", typeString
                 )
             }
 
             val statusCodeStr = data.optString("statusCode", "NO_CARDS_PRESENT").uppercase()
             CardsStatusResponse(
-                statusCode = try {
-                    StatusCode.valueOf(statusCodeStr)
-                } catch (_: IllegalArgumentException) {
-                    StatusCode.NO_CARDS_PRESENT
-                }
+                statusCode = StatusCode.from(statusCodeStr)
             )
         }
     }
@@ -382,7 +369,7 @@ class DefaultClickToPaySessionLauncher(
      * Parses card details including digital card data and billing address.
      *
      * @return List of RecognizedCard objects with complete card information
-     * @throws Exception if card retrieval fails
+     * @throws ClickToPayException if card retrieval fails
      */
     @Throws(ClickToPayException::class)
     override suspend fun getRecognizedCards(): List<RecognizedCard> {
@@ -404,11 +391,7 @@ class DefaultClickToPaySessionLauncher(
                 val errorMessage = error.optString("message", "Unknown error")
                 throw ClickToPayException(
                     "Failed to get recognized cards - Type: $errorType, Message: $errorMessage",
-                    type = try {
-                        ClickToPayErrorType.valueOf(errorType)
-                    } catch (_: IllegalArgumentException) {
-                        ClickToPayErrorType.ERROR
-                    }
+                    errorType
                 )
             }
 
@@ -427,7 +410,7 @@ class DefaultClickToPaySessionLauncher(
      *
      * @param otpValue The OTP value entered by the customer
      * @return List of RecognizedCard objects if validation successful
-     * @throws Exception if OTP validation fails
+     * @throws ClickToPayException if OTP validation fails
      */
     @Throws(ClickToPayException::class)
     override suspend fun validateCustomerAuthentication(otpValue: String): List<RecognizedCard> {
@@ -448,14 +431,8 @@ class DefaultClickToPaySessionLauncher(
                 val typeString = error.optString("type", "ERROR")
                 val errorMessage = error.optString("message", "Unknown error")
 
-                val errorType = try {
-                    ClickToPayErrorType.valueOf(typeString)
-                } catch (_: IllegalArgumentException) {
-                    ClickToPayErrorType.ERROR
-                }
-
                 throw ClickToPayException(
-                    message = errorMessage, type = errorType
+                    "Failed to Validate customer : $errorMessage", typeString
                 )
             }
 
@@ -481,7 +458,7 @@ class DefaultClickToPaySessionLauncher(
      *
      * @param request CheckoutRequest containing card ID and preferences
      * @return CheckoutResponse with complete transaction details
-     * @throws Exception if checkout fails
+     * @throws ClickToPayException if checkout fails
      */
     @Throws(ClickToPayException::class)
     override suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse {
@@ -502,11 +479,7 @@ class DefaultClickToPaySessionLauncher(
                 val errorType = error.optString("type", "ERROR")
                 val errorMessage = error.optString("message", "Unknown error")
                 throw ClickToPayException(
-                    message = errorMessage, type = try {
-                        ClickToPayErrorType.valueOf(errorType.uppercase())
-                    } catch (e: IllegalArgumentException) {
-                        ClickToPayErrorType.ERROR
-                    }
+                    errorMessage, errorType
                 )
             }
 
@@ -627,6 +600,12 @@ class DefaultClickToPaySessionLauncher(
         }
     }
 
+    /**
+     * Processes signOut to clear the cookies
+     *
+     * @return SignOutResponse with transaction details and status
+     * @throws ClickToPayException if checkout fails
+     */
     override suspend fun signOut(): SignOutResponse {
         ensureWebViewInitialized()
         val requestId = UUID.randomUUID().toString()
@@ -638,12 +617,11 @@ class DefaultClickToPaySessionLauncher(
             val data = jsonObject.optJSONObject("data")
             val error = jsonObject.optJSONObject("error")
             if (error != null) {
+                val errorMessage = error.optString(
+                    "message", "SignOut Error"
+                )
                 throw ClickToPayException(
-                    "Failed to SignOut because SignOutError : ${
-                        error.optString(
-                            "message", "Error"
-                        )
-                    } ", ClickToPayErrorType.ERROR
+                    "Failed to SignOut : $errorMessage", "ERROR"
                 )
             }
             SignOutResponse(

@@ -101,11 +101,16 @@ interface ClickToPaySessionLauncher {
      *
      * @param request CheckoutRequest containing card ID and preferences
      * @return CheckoutResponse with transaction details and status
-     * @throws Exception if checkout fails
+     * @throws ClickToPayException if checkout fails
      */
     @Throws(ClickToPayException::class)
     suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse
-
+    /**
+     * Processes signOut to clear the cookies
+     *
+     * @return SignOutResponse with transaction details and status
+     * @throws ClickToPayException if checkout fails
+     */
     @Throws(ClickToPayException::class)
     suspend fun signOut(): SignOutResponse
 }
