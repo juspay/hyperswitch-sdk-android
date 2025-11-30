@@ -1,0 +1,41 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'io.hyperswitch.demo_app_threeds'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "io.hyperswitch.demo_app_threeds"
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+}
+
+dependencies {
+    implementation (project(":hyperswitch-sdk-android-threeDS-trident"))
+    implementation (project(":hyperswitch-sdk-android-authentication"))
+
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+
+    implementation libs.fuel
+    implementation libs.kotlin.coroutines
+    implementation libs.androidx.preference
+    implementation 'org.slf4j:slf4j-nop:2.0.17'
+    androidTestImplementation('com.wix:detox:+')
+}

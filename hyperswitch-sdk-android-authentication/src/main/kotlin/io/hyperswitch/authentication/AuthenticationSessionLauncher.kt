@@ -82,8 +82,13 @@ interface AuthenticationSessionLauncher {
      * This method sets up the necessary components for handling
      * 3D Secure authentication flows.
      *
-     * @throws Exception if 3DS session initialization fails
+     * @param clientSecret The client secret from the payment intent
+     * @param configuration The 3DS configuration settings
+     * @param callback Callback with result containing the initialized ThreeDSService or error
      */
-    @Throws(Exception::class)
-    suspend fun initThreeDSSession()
+    fun initThreeDSSession(
+        clientSecret: String,
+        configuration: io.hyperswitch.threeds.models.ThreeDSConfiguration,
+        callback: (io.hyperswitch.threeds.api.ThreeDSResult<io.hyperswitch.threeds.api.ThreeDSService>) -> Unit
+    )
 }

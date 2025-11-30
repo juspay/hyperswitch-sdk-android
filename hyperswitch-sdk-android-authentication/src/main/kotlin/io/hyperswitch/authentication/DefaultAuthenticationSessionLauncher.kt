@@ -18,8 +18,8 @@ import io.hyperswitch.click_to_pay.models.ClickToPayException
  * @property merchantId Stored merchant identifier
  */
 class DefaultAuthenticationSessionLauncher(
-    activity: Activity,
-    publishableKey: String,
+    private val activity: Activity,
+    private val publishableKey: String,
     customBackendUrl: String? = null,
     customLogUrl: String? = null,
     customParams: Bundle? = null,
@@ -128,9 +128,39 @@ class DefaultAuthenticationSessionLauncher(
 
     /**
      * Initializes a 3DS authentication session.
-     * 
-     * Currently a no-op placeholder for future 3DS functionality.
+     *
+     * @param clientSecret The client secret from the payment intent
+     * @param configuration The 3DS configuration settings
+     * @param callback Callback with result containing the initialized ThreeDSService or error
      */
-    @Throws(Exception::class)
-    override suspend fun initThreeDSSession() {}
+    override fun initThreeDSSession(
+        clientSecret: String,
+        configuration: io.hyperswitch.threeds.models.ThreeDSConfiguration,
+        callback: (io.hyperswitch.threeds.api.ThreeDSResult<io.hyperswitch.threeds.api.ThreeDSService>) -> Unit
+    ) {
+        try {
+            val threeDSSession = io.hyperswitch.threeds.api.ThreeDSAuthenticationSession(
+                activity = activity,
+                apiKey = publishableKey
+            )
+            
+            threeDSSession.initThreeDsSession(
+                clientSecret = clientSecret,
+                configuration = configuration,
+                callback = callback
+            )
+        } catch (e: Exception) {
+            callback(
+                io.hyperswitch.threeds.api.ThreeDSResult.Error(
+                    message = e.message ?: "Unknown error during 3DS initialization",
+                    error = io.hyperswitch.threeds.models.ThreeDSError(
+                        code = io.hyperswitch.threeds.models.ThreeDSError.INIT_EXCEPTION,
+                        message = e.message ?: "Unknown error",
+                        details = e.toString(),
+                        errorType = io.hyperswitch.threeds.models.ErrorType.INITIALIZATION_ERROR
+                    )
+                )
+            )
+        }
+    }
 }
