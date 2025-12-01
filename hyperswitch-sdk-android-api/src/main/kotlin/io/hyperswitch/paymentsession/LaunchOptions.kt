@@ -8,6 +8,8 @@ import android.view.View
 import android.view.WindowInsets
 import android.webkit.WebSettings
 import androidx.annotation.RequiresApi
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import org.json.JSONObject
@@ -16,6 +18,19 @@ class LaunchOptions(
     private val context: Context? = null,
     private val sdkVersion: String
 ) {
+
+    private fun isGooglePlayServicesAvailable(context: Context?): Boolean {
+         try {
+            context?.let {
+                val availability = GoogleApiAvailability.getInstance()
+                val result = availability.isGooglePlayServicesAvailable(context)
+                return result == ConnectionResult.SUCCESS
+            }
+             return true
+        } catch (_: Exception) {
+             return false
+        }
+    }
 
     private fun getHyperParams(configuration: PaymentSheet.Configuration? = null): Bundle =
         Bundle().apply {
@@ -28,6 +43,7 @@ class LaunchOptions(
             putString("os_type", "android")
             putString("os_version", Build.VERSION.RELEASE)
             putString("deviceBrand", Build.BRAND)
+            putBoolean("gPaySupport", isGooglePlayServicesAvailable(context))
             val edgeInsets = getBottomInset(context)
             if(edgeInsets!=null) {
                 putFloat("topInset", edgeInsets.top)
