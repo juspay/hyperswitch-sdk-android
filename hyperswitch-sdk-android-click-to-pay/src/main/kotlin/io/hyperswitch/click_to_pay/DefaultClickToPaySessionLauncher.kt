@@ -153,16 +153,12 @@ class DefaultClickToPaySessionLauncher(
      * @param targetView The view that should remain accessible
      */
     private fun setModalAccessibility(root: ViewGroup, targetView: View) {
-        // 1. Identify all ancestors of the target view.
-        // We must NOT hide these, or the target becomes unreachable.
         val ancestors = HashSet<View>()
         var parent = targetView.parent
         while (parent is View) {
             ancestors.add(parent as View)
             parent = parent.parent
         }
-
-        // 2. Start recursion
         hideViewsRecursively(root, targetView, ancestors)
     }
 
@@ -180,26 +176,19 @@ class DefaultClickToPaySessionLauncher(
         ancestors: HashSet<View>
     ) {
         if (currentView == targetView) {
-            // We found the target; do not hide it, do not recurse further.
             return
         }
 
         if (ancestors.contains(currentView)) {
-            // This is a parent of the target. We cannot hide it.
-            // We must dig deeper to find siblings to hide.
             if (currentView is ViewGroup) {
                 for (i in 0 until currentView.childCount) {
                     hideViewsRecursively(currentView.getChildAt(i), targetView, ancestors)
                 }
             }
         } else {
-            // This is a sibling or an unrelated branch. Hide it.
             if (!originalAccessibility.containsKey(currentView)) {
                 originalAccessibility[currentView] = currentView.importantForAccessibility
             }
-            
-            // Use NO_HIDE_DESCENDANTS to ensure children are also ignored
-            // This avoids the need to recurse further down this branch.
             currentView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
         }
     }
