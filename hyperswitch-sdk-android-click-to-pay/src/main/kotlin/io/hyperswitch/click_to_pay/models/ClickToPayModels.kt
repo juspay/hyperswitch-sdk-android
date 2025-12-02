@@ -44,7 +44,7 @@ enum class ClickToPayErrorType {
 
     // USER ACTIONS
     CHANGE_CARD,
-    SWITCH_USER;
+    SWITCH_CONSUMER;
 
     companion object {
         fun from(value: String?): ClickToPayErrorType {
@@ -62,7 +62,7 @@ enum class ClickToPayErrorType {
  */
 class ClickToPayException(
     message: String,
-    errorType: String
+    val errorType: String
 ) : Exception("ClickToPay: $errorType: $message"){
     val reason = message
     val type = ClickToPayErrorType.from(errorType)

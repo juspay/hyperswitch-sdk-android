@@ -99,10 +99,11 @@ class HSWebViewManagerImpl(
                 return true
             }
         }
+        WebView.setWebContentsDebuggingEnabled(false)
 
-        if (BuildConfig.DEBUG) {
-            WebView.setWebContentsDebuggingEnabled(true)
-        }
+//        if (BuildConfig.DEBUG) {
+//            WebView.setWebContentsDebuggingEnabled(true)
+//        }
         webView.setDownloadListener(
             DownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
 //                val module = webView.reactApplicationContext.getNativeModule(HSWebViewModule::class.java) ?: return@DownloadListener

@@ -225,7 +225,7 @@ class ClickToPayExample : AppCompatActivity() {
                 if (e.type == ClickToPayErrorType.CHANGE_CARD){
                     Toast.makeText(this@ClickToPayExample,"You should not change card", Toast.LENGTH_LONG )
                     showCardSelection(session, "You cannot change card, Select card")
-                }else if (e.type == ClickToPayErrorType.SWITCH_USER){
+                } else if (e.type == ClickToPayErrorType.SWITCH_CONSUMER){
                     Toast.makeText(this@ClickToPayExample,"You should not change user", Toast.LENGTH_LONG )
                     showCardSelection(session, "You cannot change user, select card")
                 }else {

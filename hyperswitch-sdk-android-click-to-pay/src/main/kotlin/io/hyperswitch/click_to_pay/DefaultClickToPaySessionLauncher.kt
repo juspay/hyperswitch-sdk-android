@@ -4,6 +4,7 @@ import android.app.Activity
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.WebView
 import android.widget.FrameLayout.LayoutParams
 import io.hyperswitch.click_to_pay.models.*
 import io.hyperswitch.webview.utils.Arguments
@@ -16,6 +17,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.util.UUID
+import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.resume
 
@@ -139,6 +141,70 @@ class DefaultClickToPaySessionLauncher(
             digitalCardFeatures = cardObj.optJSONObject("digitalCardFeatures")?.let { emptyMap() })
     }
 
+    // Use WeakHashMap to prevent memory leaks if restore is never called
+    private val originalAccessibility = WeakHashMap<View, Int>()
+
+    /**
+     * Sets modal accessibility mode by hiding all views except the target view.
+     * This implementation correctly handles view hierarchy by not hiding ancestors
+     * of the target view, preventing the target from becoming inaccessible.
+     *
+     * @param root The root ViewGroup to start the traversal from
+     * @param targetView The view that should remain accessible
+     */
+    private fun setModalAccessibility(root: ViewGroup, targetView: View) {
+        val ancestors = HashSet<View>()
+        var parent = targetView.parent
+        while (parent is View) {
+            ancestors.add(parent as View)
+            parent = parent.parent
+        }
+        hideViewsRecursively(root, targetView, ancestors)
+    }
+
+    /**
+     * Recursively hides views from accessibility services while preserving
+     * the target view and its ancestor chain.
+     *
+     * @param currentView The current view being processed
+     * @param targetView The view that should remain accessible
+     * @param ancestors Set of ancestor views that must not be hidden
+     */
+    private fun hideViewsRecursively(
+        currentView: View,
+        targetView: View,
+        ancestors: HashSet<View>
+    ) {
+        if (currentView == targetView) {
+            return
+        }
+
+        if (ancestors.contains(currentView)) {
+            if (currentView is ViewGroup) {
+                for (i in 0 until currentView.childCount) {
+                    hideViewsRecursively(currentView.getChildAt(i), targetView, ancestors)
+                }
+            }
+        } else {
+            if (!originalAccessibility.containsKey(currentView)) {
+                originalAccessibility[currentView] = currentView.importantForAccessibility
+            }
+            currentView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+        }
+    }
+
+    /**
+     * Restores the original accessibility settings for all modified views.
+     * This method should be called when modal accessibility mode is no longer needed.
+     */
+    private fun restoreAccessibility() {
+        for ((view, originalValue) in originalAccessibility) {
+            view.importantForAccessibility = originalValue
+        }
+        originalAccessibility.clear()
+    }
+
+
     /**
      * Initializes the WebView components asynchronously on the main thread.
      * This method is idempotent and can be called multiple times safely.
@@ -150,7 +216,6 @@ class DefaultClickToPaySessionLauncher(
 
         withContext(Dispatchers.Main) {
             if (isWebViewInitialized) return@withContext
-
             val onMessage = Callback { args ->
                 println(args)
                 (args["data"] as? String)?.let { jsonString ->
@@ -175,7 +240,7 @@ class DefaultClickToPaySessionLauncher(
             hSWebViewWrapper.isFocusable = false
             hSWebViewWrapper.isFocusableInTouchMode = false
             hSWebViewWrapper.layoutParams = LayoutParams(1, 1)
-            hSWebViewWrapper.contentDescription = ""
+            hSWebViewWrapper.contentDescription = "Click to Pay"
             hSWebViewWrapper.importantForAccessibility =
                 View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
             val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
@@ -463,12 +528,17 @@ class DefaultClickToPaySessionLauncher(
     @Throws(ClickToPayException::class)
     override suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse {
         ensureWebViewInitialized()
+        setModalAccessibility(
+            activity.findViewById<ViewGroup>(android.R.id.content),
+            hSWebViewWrapper
+        )
+
         val requestId = UUID.randomUUID().toString()
 
         val jsCode =
             "(async function(){try{const checkoutResponse=await window.ClickToPaySession.checkoutWithCard({srcDigitalCardId:'${request.srcDigitalCardId}',rememberMe:${request.rememberMe}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:checkoutResponse}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'CheckoutWithCardError',message:error.message}}}))}})();"
-
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
+        restoreAccessibility()
 
         return withContext(Dispatchers.Default) {
             val jsonObject = JSONObject(responseJson)
