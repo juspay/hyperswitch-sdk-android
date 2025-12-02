@@ -4,6 +4,7 @@ import android.app.Activity
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.WebView
 import android.widget.FrameLayout.LayoutParams
 import io.hyperswitch.click_to_pay.models.*
 import io.hyperswitch.webview.utils.Arguments
@@ -139,6 +140,33 @@ class DefaultClickToPaySessionLauncher(
             digitalCardFeatures = cardObj.optJSONObject("digitalCardFeatures")?.let { emptyMap() })
     }
 
+    private val originalAccessibility = mutableMapOf<View, Int>()
+
+        private fun hideOtherViewsFromAccessibility(root: ViewGroup, webView: View) {
+        for (i in 0 until root.childCount) {
+            val child = root.getChildAt(i)
+
+            if (child != webView) {
+                if (!originalAccessibility.containsKey(child)) {
+                    originalAccessibility[child] = child.importantForAccessibility
+                }
+
+                child.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            }
+
+            if (child is ViewGroup) {
+                hideOtherViewsFromAccessibility(child, webView)
+            }
+        }
+    }
+        private fun restoreAccessibility() {
+            for ((view, originalValue) in originalAccessibility) {
+                view.importantForAccessibility = originalValue
+            }
+            originalAccessibility.clear()
+        }
+
+
     /**
      * Initializes the WebView components asynchronously on the main thread.
      * This method is idempotent and can be called multiple times safely.
@@ -150,7 +178,6 @@ class DefaultClickToPaySessionLauncher(
 
         withContext(Dispatchers.Main) {
             if (isWebViewInitialized) return@withContext
-
             val onMessage = Callback { args ->
                 println(args)
                 (args["data"] as? String)?.let { jsonString ->
@@ -175,9 +202,8 @@ class DefaultClickToPaySessionLauncher(
             hSWebViewWrapper.isFocusable = false
             hSWebViewWrapper.isFocusableInTouchMode = false
             hSWebViewWrapper.layoutParams = LayoutParams(1, 1)
-            hSWebViewWrapper.contentDescription = ""
-            hSWebViewWrapper.importantForAccessibility =
-                View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+            hSWebViewWrapper.contentDescription = "Click to Pay"
+            hSWebViewWrapper.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
             val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
             rootView.addView(hSWebViewWrapper)
 
@@ -463,12 +489,13 @@ class DefaultClickToPaySessionLauncher(
     @Throws(ClickToPayException::class)
     override suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse {
         ensureWebViewInitialized()
+        hideOtherViewsFromAccessibility(activity.findViewById<ViewGroup>(android.R.id.content), hSWebViewWrapper)
+
         val requestId = UUID.randomUUID().toString()
 
-        val jsCode =
-            "(async function(){try{const checkoutResponse=await window.ClickToPaySession.checkoutWithCard({srcDigitalCardId:'${request.srcDigitalCardId}',rememberMe:${request.rememberMe}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:checkoutResponse}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'CheckoutWithCardError',message:error.message}}}))}})();"
-
+        val jsCode = "(async function(){try{const checkoutResponse=await window.ClickToPaySession.checkoutWithCard({srcDigitalCardId:'${request.srcDigitalCardId}',rememberMe:${request.rememberMe}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:checkoutResponse}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'CheckoutWithCardError',message:error.message}}}))}})();"
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
+        restoreAccessibility()
 
         return withContext(Dispatchers.Default) {
             val jsonObject = JSONObject(responseJson)
