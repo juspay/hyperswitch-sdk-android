@@ -87,7 +87,7 @@ class DefaultClickToPaySessionLauncher(
         }
 
         return RecognizedCard(
-            srcDigitalCardId = cardObj.optString("srcDigitalCardId", ""),
+            srcDigitalCardId = safeReturnStringValue(cardObj, "srcDigitalCardId") ?: "",
             panBin = safeReturnStringValue(cardObj, "panBin"),
             panLastFour = safeReturnStringValue(cardObj, "panLastFour"),
             panExpirationMonth = safeReturnStringValue(cardObj, "panExpirationMonth"),
@@ -189,7 +189,8 @@ class DefaultClickToPaySessionLauncher(
             if (!originalAccessibility.containsKey(currentView)) {
                 originalAccessibility[currentView] = currentView.importantForAccessibility
             }
-            currentView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+            currentView.importantForAccessibility =
+                View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
         }
     }
 
@@ -420,9 +421,9 @@ class DefaultClickToPaySessionLauncher(
                 )
             }
 
-            val statusCodeStr = data.optString("statusCode", "NO_CARDS_PRESENT").uppercase()
+            val statusCodeStr = safeReturnStringValue(data, "statusCode") ?: "NO_CARDS_PRESENT"
             CardsStatusResponse(
-                statusCode = StatusCode.from(statusCodeStr)
+                statusCode = StatusCode.from(statusCodeStr.uppercase())
             )
         }
     }
@@ -509,9 +510,9 @@ class DefaultClickToPaySessionLauncher(
     }
 
     private fun safeReturnStringValue(
-        obj: JSONObject, key: String, fallback: String = ""
+        obj: JSONObject, key: String
     ): String? {
-        return obj.optString(key, fallback).takeIf { it.isNotEmpty() }
+        return obj.optString(key).takeIf { it.isNotEmpty() && it != "null" }
     }
 
     /**
