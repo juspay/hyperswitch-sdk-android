@@ -497,7 +497,7 @@ class DefaultClickToPaySessionLauncher(
                 val errorMessage = error.optString("message", "Unknown error")
 
                 throw ClickToPayException(
-                    "Failed to Validate customer : $errorMessage", typeString
+                    errorMessage, typeString
                 )
             }
 
@@ -513,6 +513,30 @@ class DefaultClickToPaySessionLauncher(
     ): String? {
         return obj.optString(key).takeIf { it.isNotEmpty() && it != "null" }
     }
+
+
+    private fun parsePaymentData(obj: JSONObject?): PaymentData? {
+        obj ?: return null
+        val typeStr = obj.optString("type", "").uppercase()
+        val tokenType = runCatching { DataType.valueOf(typeStr) }.getOrNull()
+
+        return when (tokenType) {
+            DataType.CARD_DATA -> PaymentData.CardData(
+                cardNumber = safeReturnStringValue(obj, "cardNumber"),
+                cardCvc = safeReturnStringValue(obj, "cardCvc"),
+                cardExpiryMonth = safeReturnStringValue(obj, "cardExpiryMonth"),
+                cardExpiryYear = safeReturnStringValue(obj, "cardExpiryYear"),
+            )
+            DataType.NETWORK_TOKEN_DATA -> PaymentData.NetworkTokenData(
+                networkToken = safeReturnStringValue(obj, "networkToken"),
+                networkTokenCryptogram = safeReturnStringValue(obj, "networkTokenCryptogram"),
+                networkTokenExpiryMonth = safeReturnStringValue(obj, "networkTokenExpiryMonth"),
+                networkTokenExpiryYear = safeReturnStringValue(obj, "networkTokenExpiryYear")
+            )
+            else -> null
+        }
+    }
+
 
     /**
      * Processes checkout with a selected card.
@@ -554,59 +578,9 @@ class DefaultClickToPaySessionLauncher(
             }
 
             val vaultTokenDataObj = data.optJSONObject("vaultTokenData")
-            val vaultTokenData = vaultTokenDataObj?.let { vtd ->
-                val typeStr = vtd.optString("type", "").uppercase()
-                val tokenType = try {
-                    DataType.valueOf(typeStr)
-                } catch (e: IllegalArgumentException) {
-                    null
-                }
-                if (tokenType ==DataType.CARD_DATA) {
-                    PaymentData.CardData(
-                        cardNumber = safeReturnStringValue(vtd, "cardNumber"),
-                        cardCvc = safeReturnStringValue(vtd, "cardCvc"),
-                        cardExpiryMonth = safeReturnStringValue(vtd, "cardExpiryMonth"),
-                        cardExpiryYear = safeReturnStringValue(vtd, "cardExpiryYear"),
-                    )
-                }else if(tokenType ==DataType.NETWORK_TOKEN_DATA){
-                    PaymentData.NetworkTokenData(
-                        networkToken = safeReturnStringValue(vtd, "networkToken"),
-                        networkTokenCryptogram = safeReturnStringValue(vtd, "networkTokenCryptogram"),
-                        networkTokenExpiryMonth = safeReturnStringValue(vtd, "networkTokenExpiryMonth"),
-                        networkTokenExpiryYear = safeReturnStringValue(vtd, "networkTokenExpiryYear")
-                    )
-                }else{
-                    null
-                }
-
-            }
+            val vaultTokenData = parsePaymentData(vaultTokenDataObj)
             val paymentMethodDataObj = data.optJSONObject("paymentMethodData")
-            val paymentMethodData = paymentMethodDataObj?.let { vtd ->
-                val typeStr = vtd.optString("type", "").uppercase()
-                val tokenType = try {
-                    DataType.valueOf(typeStr)
-                } catch (e: IllegalArgumentException) {
-                    null
-                }
-
-                if (tokenType ==DataType.CARD_DATA) {
-                    PaymentData.CardData(
-                        cardNumber = safeReturnStringValue(vtd, "cardNumber"),
-                        cardCvc = safeReturnStringValue(vtd, "cardCvc"),
-                        cardExpiryMonth = safeReturnStringValue(vtd, "cardExpiryMonth"),
-                        cardExpiryYear = safeReturnStringValue(vtd, "cardExpiryYear"),
-                    )
-                }else if(tokenType ==DataType.NETWORK_TOKEN_DATA){
-                    PaymentData.NetworkTokenData(
-                        networkToken = safeReturnStringValue(vtd, "networkToken"),
-                        networkTokenCryptogram = safeReturnStringValue(vtd, "networkTokenCryptogram"),
-                        networkTokenExpiryMonth = safeReturnStringValue(vtd, "networkTokenExpiryMonth"),
-                        networkTokenExpiryYear = safeReturnStringValue(vtd, "networkTokenExpiryYear")
-                    )
-                }else{
-                    null
-                }
-            }
+            val paymentMethodData = parsePaymentData(paymentMethodDataObj)
 
             val acquirerDetailsObj = data.optJSONObject("acquirerDetails")
             val acquirerDetails = acquirerDetailsObj?.let { it ->

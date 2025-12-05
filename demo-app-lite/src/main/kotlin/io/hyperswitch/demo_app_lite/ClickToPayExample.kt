@@ -122,44 +122,48 @@ class ClickToPayExample : AppCompatActivity() {
     private fun initClickToPay(credentials: Credentials) {
         lifecycleScope.launch {
             // Step 2 & 3: Initialize sessions (now non-blocking)
-            val authSession =
-                AuthenticationSession(this@ClickToPayExample, credentials.publishableKey)
-            authSession.initAuthenticationSession(
-                credentials.clientSecret,
-                credentials.profileId,
-                credentials.authenticationId,
-                credentials.merchantId
-            )
-            val clickToPaySession = authSession.initClickToPaySession()
-            updateResultText("✓ Sessions initialized\nChecking customer...")
-            signOut.visibility = VISIBLE
-            signOut.setOnClickListener {
-                signOut(clickToPaySession)
-            }
-
-            // Step 4: Check customer presence
-            val customerPresent = clickToPaySession.isCustomerPresent(CustomerPresenceRequest())
-            if (customerPresent?.customerPresent != true) {
-                showError("Customer not found in Click to Pay")
-                return@launch
-            }
-            updateResultText("✓ Customer found\nRetrieving cards...")
-
-            // Step 5: Get cards
-            val cardsStatus = clickToPaySession.getUserType()
-            when (cardsStatus?.statusCode) {
-                StatusCode.RECOGNIZED_CARDS_PRESENT -> {
-                    recognizedCards = clickToPaySession.getRecognizedCards()
-                    showCardSelection(clickToPaySession)
+            try {
+                val authSession =
+                    AuthenticationSession(this@ClickToPayExample, credentials.publishableKey)
+                authSession.initAuthenticationSession(
+                    credentials.clientSecret,
+                    credentials.profileId,
+                    credentials.authenticationId,
+                    credentials.merchantId
+                )
+                val clickToPaySession = authSession.initClickToPaySession()
+                updateResultText("✓ Sessions initialized\nChecking customer...")
+                signOut.visibility = VISIBLE
+                signOut.setOnClickListener {
+                    signOut(clickToPaySession)
                 }
 
-                StatusCode.TRIGGERED_CUSTOMER_AUTHENTICATION -> {
-                    showOTPDialog(clickToPaySession)
+                // Step 4: Check customer presence
+                val customerPresent = clickToPaySession.isCustomerPresent(CustomerPresenceRequest())
+                if (customerPresent?.customerPresent != true) {
+                    showError("Customer not found in Click to Pay")
+                    return@launch
                 }
+                updateResultText("✓ Customer found\nRetrieving cards...")
 
-                else -> {
-                    showError("No cards found")
+                // Step 5: Get cards
+                val cardsStatus = clickToPaySession.getUserType()
+                when (cardsStatus?.statusCode) {
+                    StatusCode.RECOGNIZED_CARDS_PRESENT -> {
+                        recognizedCards = clickToPaySession.getRecognizedCards()
+                        showCardSelection(clickToPaySession)
+                    }
+
+                    StatusCode.TRIGGERED_CUSTOMER_AUTHENTICATION -> {
+                        showOTPDialog(clickToPaySession)
+                    }
+
+                    else -> {
+                        showError("No cards found")
+                    }
                 }
+            }catch(e: Exception){
+                e.printStackTrace()
             }
         }
     }
@@ -179,7 +183,7 @@ class ClickToPayExample : AppCompatActivity() {
                         recognizedCards =
                             session.validateCustomerAuthentication(input.text.toString())
                         showCardSelection(session)
-                    } catch (e: Exception) {
+                    } catch (e: ClickToPayException) {
                         showError("Invalid OTP: ${e.message}")
                     }
                 }
