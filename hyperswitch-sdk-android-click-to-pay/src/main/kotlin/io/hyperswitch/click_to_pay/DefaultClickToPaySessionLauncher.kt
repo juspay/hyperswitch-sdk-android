@@ -10,15 +10,15 @@ import io.hyperswitch.webview.utils.Arguments
 import io.hyperswitch.webview.utils.Callback
 import io.hyperswitch.webview.utils.HSWebViewManagerImpl
 import io.hyperswitch.webview.utils.HSWebViewWrapper
-import kotlinx.coroutines.CancellableContinuation
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import org.json.JSONObject
+import java.lang.ref.WeakReference
 import java.util.UUID
 import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * Default implementation of ClickToPaySessionLauncher.
@@ -34,36 +34,90 @@ import kotlin.coroutines.resume
  * @property hSWebViewManagerImpl WebView manager for JavaScript execution
  * @property hSWebViewWrapper Wrapper for the WebView instance
  * @property pendingRequests Map of pending async requests awaiting responses
+ * @property isWebViewInitialized Thread-safe flag for WebView initialization status
+ * @property isDestroyed Flag to prevent operations after cleanup
+ * @property originalAccessibility Map to restore view accessibility settings
+ * @property REQUEST_TIMEOUT_MS Timeout for JavaScript operations to prevent infinite hangs
  */
 class DefaultClickToPaySessionLauncher(
-    private val activity: Activity,
+    activity: Activity,
     private val publishableKey: String,
     private val customBackendUrl: String? = null,
     private val customLogUrl: String? = null,
     private val customParams: Bundle? = null,
 ) : ClickToPaySessionLauncher {
-    private lateinit var hSWebViewManagerImpl: HSWebViewManagerImpl
-    private lateinit var hSWebViewWrapper: HSWebViewWrapper
+    // Use WeakReference to prevent memory leak from holding Activity reference
+    private val activityRef = WeakReference(activity)
+
+    // Nullable to avoid lateinit crashes and allow proper cleanup
+    private var hSWebViewManagerImpl: HSWebViewManagerImpl? = null
+    private var hSWebViewWrapper: HSWebViewWrapper? = null
 
     private val pendingRequests = ConcurrentHashMap<String, CancellableContinuation<String>>()
 
     @Volatile
     private var isWebViewInitialized = false
 
+    @Volatile
+    private var isDestroyed = false
+
+    private val originalAccessibility = WeakHashMap<View, Int>()
+
+    // Timeout to prevent infinite hangs
+    private companion object {
+        const val REQUEST_TIMEOUT_MS = 30000L // 30 seconds
+    }
+
     /**
      * Helper function to execute JavaScript on the Main thread and return the response.
      * This ensures WebView operations happen on the correct thread while keeping
      * JSON parsing and data transformation on background threads.
+     * Includes timeout mechanism to prevent infinite hangs.
      *
      * @param requestId Unique identifier for tracking this request
      * @param jsCode The JavaScript code to execute
      * @return The JSON response string from the WebView
+     * @throws ClickToPayException if operation times out or fails
      */
     private suspend fun evaluateJavascriptOnMainThread(requestId: String, jsCode: String): String {
         return withContext(Dispatchers.Main) {
-            suspendCancellableCoroutine { continuation ->
-                pendingRequests[requestId] = continuation
-                hSWebViewManagerImpl.evaluateJavascriptWithFallback(hSWebViewWrapper, jsCode)
+            withTimeout(REQUEST_TIMEOUT_MS) {
+                suspendCancellableCoroutine { continuation ->
+                    // Store continuation
+                    pendingRequests[requestId] = continuation
+
+                    // Setup cancellation handler to clean up on cancellation
+                    continuation.invokeOnCancellation {
+                        pendingRequests.remove(requestId)
+                    }
+
+                    try {
+                        val webViewManager = hSWebViewManagerImpl
+                        val webViewWrapper = hSWebViewWrapper
+
+                        // Check if WebView is still available
+                        if (webViewManager == null || webViewWrapper == null) {
+                            pendingRequests.remove(requestId)
+                            continuation.resumeWithException(
+                                ClickToPayException(
+                                    "WebView not initialized or has been destroyed",
+                                    "WEBVIEW_NOT_AVAILABLE"
+                                )
+                            )
+                            return@suspendCancellableCoroutine
+                        }
+
+                        webViewManager.evaluateJavascriptWithFallback(webViewWrapper, jsCode)
+                    } catch (e: Exception) {
+                        pendingRequests.remove(requestId)
+                        continuation.resumeWithException(
+                            ClickToPayException(
+                                "Failed to evaluate JavaScript: ${e.message}",
+                                "JAVASCRIPT_EVALUATION_ERROR"
+                            )
+                        )
+                    }
+                }
             }
         }
     }
@@ -140,8 +194,6 @@ class DefaultClickToPaySessionLauncher(
             digitalCardFeatures = cardObj.optJSONObject("digitalCardFeatures")?.let { emptyMap() })
     }
 
-    // Use WeakHashMap to prevent memory leaks if restore is never called
-    private val originalAccessibility = WeakHashMap<View, Int>()
 
     /**
      * Sets modal accessibility mode by hiding all views except the target view.
@@ -190,7 +242,7 @@ class DefaultClickToPaySessionLauncher(
             }
             currentView.importantForAccessibility =
                 View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
-        }
+       }
     }
 
     /**
@@ -206,47 +258,86 @@ class DefaultClickToPaySessionLauncher(
 
 
     /**
+     * Ensures the instance has not been destroyed.
+     * @throws ClickToPayException if instance has been destroyed
+     */
+    private fun ensureNotDestroyed() {
+        if (isDestroyed) {
+            throw ClickToPayException(
+                "ClickToPaySessionLauncher has been destroyed and cannot be used",
+                "INSTANCE_DESTROYED"
+            )
+        }
+    }
+
+    /**
      * Initializes the WebView components asynchronously on the main thread.
      * This method is idempotent and can be called multiple times safely.
+     * Uses proper synchronization to prevent race conditions.
      *
      * @throws ClickToPayException if WebView initialization fails
      */
     private suspend fun ensureWebViewInitialized() {
+        // Early return if already initialized
         if (isWebViewInitialized) return
 
         withContext(Dispatchers.Main) {
-            if (isWebViewInitialized) return@withContext
-            val onMessage = Callback { args ->
-                println(args)
-                (args["data"] as? String)?.let { jsonString ->
-                    val jsonObject = JSONObject(jsonString)
-                    val requestId = jsonObject.optString("requestId", "")
-                    if (requestId.isNotEmpty()) {
-                        pendingRequests.remove(requestId)?.resume(jsonString)
+            // Double-check pattern with proper synchronization
+            synchronized(this@DefaultClickToPaySessionLauncher) {
+                if (isWebViewInitialized) return@withContext
+
+                val activity = activityRef.get() ?: run {
+                    throw ClickToPayException(
+                        "Activity reference has been garbage collected",
+                        "ACTIVITY_NOT_AVAILABLE"
+                    )
+                }
+
+                val onMessage = Callback { args ->
+                    try {
+                        (args["data"] as? String)?.let { jsonString ->
+                            val jsonObject = JSONObject(jsonString)
+                            val requestId = jsonObject.optString("requestId", "")
+                            if (requestId.isNotEmpty()) {
+                                // Resume continuation and remove from map
+                                pendingRequests.remove(requestId)?.resume(jsonString)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // Log error but don't crash
+                        e.printStackTrace()
                     }
                 }
+
+                val webViewManager = HSWebViewManagerImpl(activity, onMessage)
+                val webViewWrapper = webViewManager.createViewInstance()
+
+                webViewManager.setJavaScriptEnabled(webViewWrapper, true)
+                webViewManager.setMessagingEnabled(webViewWrapper, true)
+                webViewManager.setJavaScriptCanOpenWindowsAutomatically(webViewWrapper, true)
+                webViewManager.setScalesPageToFit(webViewWrapper, true)
+                webViewManager.setMixedContentMode(webViewWrapper, "compatibility")
+                webViewManager.setThirdPartyCookiesEnabled(webViewWrapper, true)
+                webViewManager.setCacheEnabled(webViewWrapper, true)
+                webViewWrapper.isFocusable = false
+                webViewWrapper.isFocusableInTouchMode = false
+                webViewWrapper.layoutParams = LayoutParams(1, 1)
+                webViewWrapper.contentDescription = "Click to Pay"
+                webViewWrapper.importantForAccessibility =
+                    View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+
+                val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
+                    ?: throw ClickToPayException(
+                        "Could not find root view in activity",
+                        "ROOT_VIEW_NOT_FOUND"
+                    )
+                rootView.addView(webViewWrapper)
+
+                // Assign to instance variables only after successful initialization
+                hSWebViewManagerImpl = webViewManager
+                hSWebViewWrapper = webViewWrapper
+                isWebViewInitialized = true
             }
-
-            hSWebViewManagerImpl = HSWebViewManagerImpl(activity, onMessage)
-            hSWebViewWrapper = hSWebViewManagerImpl.createViewInstance()
-
-            hSWebViewManagerImpl.setJavaScriptEnabled(hSWebViewWrapper, true)
-            hSWebViewManagerImpl.setMessagingEnabled(hSWebViewWrapper, true)
-            hSWebViewManagerImpl.setJavaScriptCanOpenWindowsAutomatically(hSWebViewWrapper, true)
-            hSWebViewManagerImpl.setScalesPageToFit(hSWebViewWrapper, true)
-            hSWebViewManagerImpl.setMixedContentMode(hSWebViewWrapper, "compatibility")
-            hSWebViewManagerImpl.setThirdPartyCookiesEnabled(hSWebViewWrapper, true)
-            hSWebViewManagerImpl.setCacheEnabled(hSWebViewWrapper, true)
-            hSWebViewWrapper.isFocusable = false
-            hSWebViewWrapper.isFocusableInTouchMode = false
-            hSWebViewWrapper.layoutParams = LayoutParams(1, 1)
-            hSWebViewWrapper.contentDescription = "Click to Pay"
-            hSWebViewWrapper.importantForAccessibility =
-                View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
-            val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
-            rootView.addView(hSWebViewWrapper)
-
-            isWebViewInitialized = true
         }
     }
 
@@ -278,13 +369,43 @@ class DefaultClickToPaySessionLauncher(
             "<!DOCTYPE html><html><head><script>function handleScriptError(){console.error('ClickToPay','Failed to load HyperLoader.js');window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'ScriptLoadError',message:'Failed to load HyperLoader.js'}}}));}async function initHyper(){try{if(typeof Hyper==='undefined'){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperUndefinedError',message:'Hyper is not defined'}}}));return;}window.hyperInstance=Hyper.init('$publishableKey',{${customBackendUrl?.let { "customBackendUrl:'$customBackendUrl'," } ?: ""}${customLogUrl?.let { "customLogUrl:'$customLogUrl'," } ?: ""}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{sdkInitialised:true}}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperInitializationError',message:error.message}}}))}}</script><script src='https://beta.hyperswitch.io/web/2025.11.28.00/v1/HyperLoader.js' onload='initHyper()' onerror='handleScriptError()' async></script></head><body></body></html>".trimMargin()
 
         val responseJson = withContext(Dispatchers.Main) {
-            suspendCancellableCoroutine { continuation ->
-                pendingRequests[requestId] = continuation
+            withTimeout(REQUEST_TIMEOUT_MS) {
+                suspendCancellableCoroutine { continuation ->
+                    pendingRequests[requestId] = continuation
 
-                val map = Arguments.createMap()
-                map.putString("html", baseHtml)
-                map.putString("baseUrl", "https://secure.checkout.visa.com")
-                hSWebViewManagerImpl.loadSource(hSWebViewWrapper, map)
+                    continuation.invokeOnCancellation {
+                        pendingRequests.remove(requestId)
+                    }
+
+                    try {
+                        val webViewManager = hSWebViewManagerImpl
+                        val webViewWrapper = hSWebViewWrapper
+
+                        if (webViewManager == null || webViewWrapper == null) {
+                            pendingRequests.remove(requestId)
+                            continuation.resumeWithException(
+                                ClickToPayException(
+                                    "WebView not initialized",
+                                    "WEBVIEW_NOT_AVAILABLE"
+                                )
+                            )
+                            return@suspendCancellableCoroutine
+                        }
+
+                        val map = Arguments.createMap()
+                        map.putString("html", baseHtml)
+                        map.putString("baseUrl", "https://secure.checkout.visa.com")
+                        webViewManager.loadSource(webViewWrapper, map)
+                    } catch (e: Exception) {
+                        pendingRequests.remove(requestId)
+                        continuation.resumeWithException(
+                            ClickToPayException(
+                                "Failed to load source: ${e.message}",
+                                "LOAD_SOURCE_ERROR"
+                            )
+                        )
+                    }
+                }
             }
         }
 
@@ -552,18 +673,32 @@ class DefaultClickToPaySessionLauncher(
     @Throws(ClickToPayException::class)
     override suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse {
         ensureWebViewInitialized()
-        setModalAccessibility(
-            activity.findViewById<ViewGroup>(android.R.id.content),
-            hSWebViewWrapper
+
+        val activity = activityRef.get() ?: throw ClickToPayException(
+            "Activity reference has been garbage collected",
+            "ACTIVITY_NOT_AVAILABLE"
         )
+
+        val webViewWrapper = hSWebViewWrapper ?: throw ClickToPayException(
+            "WebView not initialized",
+            "WEBVIEW_NOT_AVAILABLE"
+        )
+
+        val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
+            ?: throw ClickToPayException(
+                "Could not find root view in activity",
+                "ROOT_VIEW_NOT_FOUND"
+            )
+
+        setModalAccessibility(rootView, webViewWrapper)
 
         val requestId = UUID.randomUUID().toString()
 
         val jsCode =
             "(async function(){try{const checkoutResponse=await window.ClickToPaySession.checkoutWithCard({srcDigitalCardId:'${request.srcDigitalCardId}',rememberMe:${request.rememberMe}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:checkoutResponse}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'CheckoutWithCardError',message:error.message}}}))}})();"
+
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
         restoreAccessibility()
-
         return withContext(Dispatchers.Default) {
             val jsonObject = JSONObject(responseJson)
             val data = jsonObject.getJSONObject("data")
@@ -572,18 +707,17 @@ class DefaultClickToPaySessionLauncher(
             if (error != null) {
                 val errorType = error.optString("type", "ERROR")
                 val errorMessage = error.optString("message", "Unknown error")
-                throw ClickToPayException(
-                    errorMessage, errorType
-                )
+                throw ClickToPayException(errorMessage, errorType)
             }
 
+            // SUCCESS: Parse the response
             val vaultTokenDataObj = data.optJSONObject("vaultTokenData")
             val vaultTokenData = parsePaymentData(vaultTokenDataObj)
             val paymentMethodDataObj = data.optJSONObject("paymentMethodData")
             val paymentMethodData = parsePaymentData(paymentMethodDataObj)
 
             val acquirerDetailsObj = data.optJSONObject("acquirerDetails")
-            val acquirerDetails = acquirerDetailsObj?.let { it ->
+            val acquirerDetails = acquirerDetailsObj?.let {
                 AcquirerDetails(
                     acquirerBin = safeReturnStringValue(it, "acquirerBin"),
                     acquirerMerchantId = safeReturnStringValue(it, "acquirerMerchantId"),
@@ -598,17 +732,14 @@ class DefaultClickToPaySessionLauncher(
                 null
             }
 
-            CheckoutResponse(
+            val response = CheckoutResponse(
                 authenticationId = safeReturnStringValue(data, "authenticationId"),
                 merchantId = safeReturnStringValue(data, "merchantId"),
                 status = authStatus,
                 clientSecret = safeReturnStringValue(data, "clientSecret"),
                 amount = data.optInt("amount", -1).takeIf { it >= 0 },
                 currency = safeReturnStringValue(data, "currency"),
-                authenticationConnector = safeReturnStringValue(
-                    data,
-                    "authenticationConnector",
-                ),
+                authenticationConnector = safeReturnStringValue(data, "authenticationConnector"),
                 force3dsChallenge = data.optBoolean("force3dsChallenge", false),
                 returnUrl = safeReturnStringValue(data, "returnUrl"),
                 createdAt = safeReturnStringValue(data, "createdAt"),
@@ -617,14 +748,15 @@ class DefaultClickToPaySessionLauncher(
                 acquirerDetails = acquirerDetails,
                 threedsServerTransactionId = safeReturnStringValue(
                     data,
-                    "threeDsServerTransactionId",
+                    "threeDsServerTransactionId"
                 ),
                 maximumSupported3dsVersion = safeReturnStringValue(
                     data,
-                    "maximumSupported3dsVersion",
+                    "maximumSupported3dsVersion"
                 ),
                 connectorAuthenticationId = safeReturnStringValue(
-                    data, "connectorAuthenticationId"
+                    data,
+                    "connectorAuthenticationId"
                 ),
                 threeDsMethodData = safeReturnStringValue(data, "threeDsMethod_data"),
                 threeDsMethodUrl = safeReturnStringValue(data, "threeDsMethodUrl"),
@@ -644,20 +776,56 @@ class DefaultClickToPaySessionLauncher(
                 acsTransId = safeReturnStringValue(data, "acsTransId"),
                 acsSignedContent = safeReturnStringValue(data, "acsSignedContent"),
                 threeDsRequestorUrl = safeReturnStringValue(data, "threeDsRequestorUrl"),
-                threeDsRequestorAppUrl = safeReturnStringValue(
-                    data,
-                    "threeDsRequestorAppUrl",
-                ),
+                threeDsRequestorAppUrl = safeReturnStringValue(data, "threeDsRequestorAppUrl"),
                 eci = safeReturnStringValue(data, "eci"),
                 errorMessage = safeReturnStringValue(data, "errorMessage"),
                 errorCode = safeReturnStringValue(data, "errorCode"),
                 profileAcquirerId = safeReturnStringValue(data, "profileAcquirerId")
             )
+
+            // Call destroy() only on a successful response
+            destroy()
+            return@withContext response
         }
     }
 
+    private suspend fun destroy() {
+        try {
+            pendingRequests.values.forEach { it.cancel() }
+            pendingRequests.clear()
+
+            restoreAccessibility()
+
+            val activity = activityRef.get()
+            val wrapper = hSWebViewWrapper
+
+            if (activity != null && wrapper != null) {
+                withContext(Dispatchers.Main) {
+                    if (wrapper.parent is ViewGroup) {
+                        (wrapper.parent as ViewGroup).removeView(wrapper)
+                    }
+                    hSWebViewManagerImpl
+                    wrapper.webView.stopLoading()
+                    wrapper.webView.loadUrl("about:blank")
+                    wrapper.webView.clearHistory()
+                    wrapper.webView.clearCache(true)
+                    wrapper.webView.removeAllViews()
+                    wrapper.webView.destroy()
+                }
+            }
+
+        } catch (_: Exception) {
+        }
+
+        // Null references
+        hSWebViewWrapper = null
+        hSWebViewManagerImpl = null
+        isWebViewInitialized = false
+    }
+
+
     /**
-     * Processes signOut to clear the cookies
+     * Processes signOut to clear the cookies.
      *
      * @return SignOutResponse with transaction details and status
      * @throws ClickToPayException if checkout fails
@@ -666,22 +834,23 @@ class DefaultClickToPaySessionLauncher(
         ensureWebViewInitialized()
         val requestId = UUID.randomUUID().toString()
         val jsCode =
-            "(async function(){try{const signOutResponse = await window.ClickToPaySession.signOut();window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data: signOutResponse }));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{ error:{type:'SignOutError',message:error.message}}}))}})();".trimMargin()
+            "(async function(){try{const signOutResponse = await window.ClickToPaySession.signOut();window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data: signOutResponse }));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'SignOutError',message:error.message}}}))}})();".trimMargin()
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
         return withContext(Dispatchers.Default) {
             val jsonObject = JSONObject(responseJson)
             val data = jsonObject.optJSONObject("data")
-            val error = jsonObject.optJSONObject("error")
+            val error = data?.optJSONObject("error")
             if (error != null) {
                 val errorMessage = error.optString(
                     "message", "SignOut Error"
                 )
+                val errorType = error.optString("type", "SignOutError")
                 throw ClickToPayException(
-                    "Failed to SignOut : $errorMessage", "ERROR"
+                    "Failed to SignOut : $errorMessage", errorType
                 )
             }
             SignOutResponse(
-                recognized = data?.optBoolean("recognized", false)
+                recognized = data?.optBoolean("recognized", false) ?: false
             )
         }
     }
