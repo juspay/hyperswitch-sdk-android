@@ -210,6 +210,20 @@ class ClickToPayExample : AppCompatActivity() {
                     session.checkoutWithCard(CheckoutRequest(card.srcDigitalCardId, false))
 
                 if (response?.status == AuthenticationStatus.SUCCESS) {
+
+                    when (val vault = response.vaultTokenData) {
+                        is PaymentData.CardData -> {
+                            println("Card number: ${vault.cardNumber}")
+                            // you can return vault or use its fields directly
+                        }
+                        is PaymentData.NetworkTokenData -> {
+                            println("Network token: ${vault.networkToken}")
+                        }
+                        null -> {
+                            println("No vault token data")
+                        }
+                    }
+
                     updateResultText(
                         "✓ Payment Successful!\n\nCard: **** ${card.panLastFour}\n" +
                                 "Amount: ${response.amount} ${response.currency}\nStatus: ${response.transStatus}"

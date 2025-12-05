@@ -4,7 +4,6 @@ import android.app.Activity
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebView
 import android.widget.FrameLayout.LayoutParams
 import io.hyperswitch.click_to_pay.models.*
 import io.hyperswitch.webview.utils.Arguments
@@ -562,18 +561,24 @@ class DefaultClickToPaySessionLauncher(
                 } catch (e: IllegalArgumentException) {
                     null
                 }
+                if (tokenType ==DataType.CARD_DATA) {
+                    PaymentData.CardData(
+                        cardNumber = safeReturnStringValue(vtd, "cardNumber"),
+                        cardCvc = safeReturnStringValue(vtd, "cardCvc"),
+                        cardExpiryMonth = safeReturnStringValue(vtd, "cardExpiryMonth"),
+                        cardExpiryYear = safeReturnStringValue(vtd, "cardExpiryYear"),
+                    )
+                }else if(tokenType ==DataType.NETWORK_TOKEN_DATA){
+                    PaymentData.NetworkTokenData(
+                        networkToken = safeReturnStringValue(vtd, "networkToken"),
+                        networkTokenCryptogram = safeReturnStringValue(vtd, "networkTokenCryptogram"),
+                        networkTokenExpiryMonth = safeReturnStringValue(vtd, "networkTokenExpiryMonth"),
+                        networkTokenExpiryYear = safeReturnStringValue(vtd, "networkTokenExpiryYear")
+                    )
+                }else{
+                    null
+                }
 
-                VaultTokenData(
-                    type = tokenType,
-                    cardNumber = safeReturnStringValue(vtd, "cardNumber"),
-                    cardCvc = safeReturnStringValue(vtd, "cardCvc"),
-                    cardExpiryMonth = safeReturnStringValue(vtd, "cardExpiryMonth"),
-                    cardExpiryYear = safeReturnStringValue(vtd, "cardExpiryYear"),
-                    networkToken = safeReturnStringValue(vtd, "networkToken"),
-                    networkTokenCryptogram = safeReturnStringValue(vtd, "networkTokenCryptogram"),
-                    networkTokenExpiryMonth = safeReturnStringValue(vtd, "networkTokenExpiryMonth"),
-                    networkTokenExpiryYear = safeReturnStringValue(vtd, "networkTokenExpiryYear")
-                )
             }
             val paymentMethodDataObj = data.optJSONObject("paymentMethodData")
             val paymentMethodData = paymentMethodDataObj?.let { vtd ->
@@ -584,17 +589,23 @@ class DefaultClickToPaySessionLauncher(
                     null
                 }
 
-                PaymentMethodData(
-                    type = tokenType,
-                    cardNumber = safeReturnStringValue(vtd, "cardNumber"),
-                    cardCvc = safeReturnStringValue(vtd, "cardCvc"),
-                    cardExpiryMonth = safeReturnStringValue(vtd, "cardExpiryMonth"),
-                    cardExpiryYear = safeReturnStringValue(vtd, "cardExpiryYear"),
-                    networkToken = safeReturnStringValue(vtd, "networkToken"),
-                    networkTokenCryptogram = safeReturnStringValue(vtd, "networkTokenCryptogram"),
-                    networkTokenExpiryMonth = safeReturnStringValue(vtd, "networkTokenExpiryMonth"),
-                    networkTokenExpiryYear = safeReturnStringValue(vtd, "networkTokenExpiryYear")
-                )
+                if (tokenType ==DataType.CARD_DATA) {
+                    PaymentData.CardData(
+                        cardNumber = safeReturnStringValue(vtd, "cardNumber"),
+                        cardCvc = safeReturnStringValue(vtd, "cardCvc"),
+                        cardExpiryMonth = safeReturnStringValue(vtd, "cardExpiryMonth"),
+                        cardExpiryYear = safeReturnStringValue(vtd, "cardExpiryYear"),
+                    )
+                }else if(tokenType ==DataType.NETWORK_TOKEN_DATA){
+                    PaymentData.NetworkTokenData(
+                        networkToken = safeReturnStringValue(vtd, "networkToken"),
+                        networkTokenCryptogram = safeReturnStringValue(vtd, "networkTokenCryptogram"),
+                        networkTokenExpiryMonth = safeReturnStringValue(vtd, "networkTokenExpiryMonth"),
+                        networkTokenExpiryYear = safeReturnStringValue(vtd, "networkTokenExpiryYear")
+                    )
+                }else{
+                    null
+                }
             }
 
             val acquirerDetailsObj = data.optJSONObject("acquirerDetails")

@@ -227,8 +227,8 @@ data class CheckoutResponse(
     val messageVersion: String?,
     val connectorMetadata: String?,
     val directoryServerId: String?,
-    val vaultTokenData: VaultTokenData?,
-    val paymentMethodData: PaymentMethodData?,
+    val vaultTokenData: PaymentData?,
+    val paymentMethodData: PaymentData?,
     val billing: String?,
     val shipping: String?,
     val browserInformation: String?,
@@ -257,38 +257,36 @@ data class AcquirerDetails(
 )
 
 /**
- * Vault token data type enum
+ * valut and payment method data type enum
  */
 enum class DataType {
     CARD_DATA,
     NETWORK_TOKEN_DATA
 }
-/**
- * Vault token data returned after successful checkout
- */
-data class VaultTokenData(
-    val type: DataType?,
-    val cardNumber: String? = null,
-    val cardCvc: String? = null,
-    val cardExpiryMonth: String? = null,
-    val cardExpiryYear: String? = null,
-    val networkToken: String? = null,
-    val networkTokenCryptogram: String? = null,
-    val networkTokenExpiryMonth: String? = null,
-    val networkTokenExpiryYear: String? = null
-)
 
-data class PaymentMethodData(
-    val type: DataType?,
-    val cardNumber: String? = null,
-    val cardCvc: String? = null,
-    val cardExpiryMonth: String? = null,
-    val cardExpiryYear: String? = null,
-    val networkToken: String? = null,
-    val networkTokenCryptogram: String? = null,
-    val networkTokenExpiryMonth: String? = null,
-    val networkTokenExpiryYear: String? = null
-)
+/**
+ * Payment Method Data and Vault token data returned after successful checkout
+ */
+
+sealed class PaymentData {
+    abstract val type: DataType
+
+    data class CardData(
+        override val type: DataType = DataType.CARD_DATA,
+        val cardNumber: String? = null,
+        val cardCvc: String? = null,
+        val cardExpiryMonth: String? = null,
+        val cardExpiryYear: String? = null
+    ) : PaymentData()
+
+    data class NetworkTokenData(
+        override val type: DataType = DataType.NETWORK_TOKEN_DATA,
+        val networkToken: String? = null,
+        val networkTokenCryptogram: String? = null,
+        val networkTokenExpiryMonth: String? = null,
+        val networkTokenExpiryYear: String? = null
+    ) : PaymentData()
+}
 
 enum class CardType {
     VISA,
