@@ -242,9 +242,7 @@ class DefaultClickToPaySessionLauncher(
             }
             currentView.importantForAccessibility =
                 View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
-            currentView.importantForAccessibility =
-                View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
-        }
+       }
     }
 
     /**
@@ -676,7 +674,21 @@ class DefaultClickToPaySessionLauncher(
     override suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse {
         ensureWebViewInitialized()
 
+        val activity = activityRef.get() ?: throw ClickToPayException(
+            "Activity reference has been garbage collected",
+            "ACTIVITY_NOT_AVAILABLE"
+        )
 
+        val webViewWrapper = hSWebViewWrapper ?: throw ClickToPayException(
+            "WebView not initialized",
+            "WEBVIEW_NOT_AVAILABLE"
+        )
+
+        val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
+            ?: throw ClickToPayException(
+                "Could not find root view in activity",
+                "ROOT_VIEW_NOT_FOUND"
+            )
 
         setModalAccessibility(rootView, webViewWrapper)
 
