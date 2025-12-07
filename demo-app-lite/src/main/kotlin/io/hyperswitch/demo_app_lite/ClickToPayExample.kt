@@ -241,10 +241,10 @@ class ClickToPayExample : AppCompatActivity() {
                 }
             } catch (e: ClickToPayException) {
                 if (e.type == ClickToPayErrorType.CHANGE_CARD){
-                    Toast.makeText(this@ClickToPayExample,"You should not change card", Toast.LENGTH_LONG )
+                    Toast.makeText(this@ClickToPayExample,"You should not change card", Toast.LENGTH_LONG ).show()
                     showCardSelection(session, "You cannot change card, Select card")
                 } else if (e.type == ClickToPayErrorType.SWITCH_CONSUMER){
-                    Toast.makeText(this@ClickToPayExample,"You should not change user", Toast.LENGTH_LONG )
+                    Toast.makeText(this@ClickToPayExample,"You should not change user", Toast.LENGTH_LONG ).show()
                     showCardSelection(session, "You cannot change user, select card")
                 }else {
                     showError("Checkout error: ${e.reason}")
@@ -257,11 +257,14 @@ class ClickToPayExample : AppCompatActivity() {
     }
     private fun signOut(session: ClickToPaySession){
         lifecycleScope.launch {
-
-            val response = session.signOut()
-            if (response.recognized == false){
-                signOut.visibility = INVISIBLE
-                updateResultText(response.toString())
+            try {
+                val response = session.signOut()
+                if (response.recognized == false) {
+                    signOut.visibility = INVISIBLE
+                    updateResultText(response.toString())
+                }
+            }catch (e: Exception){
+                showError("Cannot signout")
             }
         }
     }
