@@ -789,13 +789,11 @@ class DefaultClickToPaySessionLauncher(
                 profileAcquirerId = safeReturnStringValue(data, "profileAcquirerId")
             )
 
-            // Call destroy() only on a successful response
-            destroy()
             return@withContext response
         }
     }
 
-    private suspend fun destroy() {
+    override suspend fun close() {
         synchronized(this) {
             if (isDestroyed) return
             isDestroyed = true

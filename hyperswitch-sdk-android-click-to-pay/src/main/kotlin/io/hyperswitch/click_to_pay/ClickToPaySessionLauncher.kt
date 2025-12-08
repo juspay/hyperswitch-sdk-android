@@ -113,4 +113,10 @@ interface ClickToPaySessionLauncher {
      */
     @Throws(ClickToPayException::class)
     suspend fun signOut(): SignOutResponse
+
+    /**
+     * Clear the web session and free up memory
+     */
+    @Throws(ClickToPayException::class)
+    suspend fun close()
 }

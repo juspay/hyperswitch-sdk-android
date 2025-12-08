@@ -501,7 +501,7 @@ class ClickToPayExample : AppCompatActivity() {
                                         "Response: $response\n\n" +
                                         "Click 'Reset Flow' to start over."
                             )
-                            disableAllButtons()
+//                            disableAllButtons()
                         } else {
                             showError("Sign out may not have completed properly")
                         }
