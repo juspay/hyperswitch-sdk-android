@@ -12,7 +12,7 @@ enum class LogCategory {
 }
 
 enum class EventName {
-    HYPER_OTA_INIT, HYPER_OTA_FINISH , HYPER_OTA_EVENT, CRASH_EVENT
+    HYPER_OTA_INIT, HYPER_OTA_FINISH , HYPER_OTA_EVENT, CRASH_EVENT, CLICK_TO_PAY_FLOW
 }
 
 data class HSLog(
