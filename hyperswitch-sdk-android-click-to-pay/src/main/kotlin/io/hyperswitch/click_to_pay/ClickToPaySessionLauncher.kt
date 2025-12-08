@@ -113,4 +113,21 @@ interface ClickToPaySessionLauncher {
      */
     @Throws(ClickToPayException::class)
     suspend fun signOut(): SignOutResponse
+
+    /**
+     * Closes and destroys the Click to Pay session.
+     * 
+     * Performs cleanup by:
+     * - Cancelling all pending requests
+     * - Restoring accessibility settings
+     * - Removing and destroying the WebView
+     * - Clearing all cached data and resources
+     * 
+     * After calling this method, the session cannot be used again.
+     * A new instance must be created for subsequent operations.
+     * 
+     * @throws ClickToPayException if cleanup fails
+     */
+    @Throws(ClickToPayException::class)
+    suspend fun close()
 }

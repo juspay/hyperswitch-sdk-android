@@ -6,6 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout.LayoutParams
 import io.hyperswitch.click_to_pay.models.*
+import io.hyperswitch.click_to_pay.utils.AccessibilityHelper
+import io.hyperswitch.click_to_pay.utils.ClickToPayErrorHandler
+import io.hyperswitch.click_to_pay.utils.ClickToPayJsonParser
+import io.hyperswitch.click_to_pay.utils.ClickToPayLogger
 import io.hyperswitch.logs.EventName
 import io.hyperswitch.logs.HSLog
 import io.hyperswitch.logs.HyperLogManager
@@ -59,6 +63,9 @@ class DefaultClickToPaySessionLauncher(
 
     @Volatile
     private var isDestroyed = false
+
+    @Volatile
+    private var isWebViewAttached = false
 
     private val originalAccessibility = HashMap<View, Int>()
 
@@ -228,6 +235,61 @@ class DefaultClickToPaySessionLauncher(
 
 
     /**
+     * Detaches the WebView from the view hierarchy to pause JavaScript execution.
+     * This triggers the same lifecycle behavior as backgrounding an app,
+     * automatically pausing timers, network requests, and all JavaScript operations.
+     */
+    private suspend fun detachWebView() {
+        withContext(Dispatchers.Main) {
+            if (isWebViewInitialized && isWebViewAttached) {
+                val parent = hSWebViewWrapper.parent
+                if (parent is ViewGroup) {
+                    parent.removeView(hSWebViewWrapper)
+                    isWebViewAttached = false
+                    val log = HSLog.LogBuilder().logType("INFO").category(LogCategory.USER_EVENT)
+                        .eventName(EventName.CLICK_TO_PAY_FLOW).value("WebView detached - JavaScript execution paused").version(BuildConfig.VERSION_NAME)
+                    HyperLogManager.addLog(log.build())
+                }
+            }
+        }
+    }
+
+    /**
+     * Reattaches the WebView to the view hierarchy to resume JavaScript execution.
+     * This automatically resumes all paused operations.
+     */
+    private suspend fun reattachWebView() {
+        withContext(Dispatchers.Main) {
+            if (isWebViewInitialized && !isWebViewAttached) {
+                val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
+                rootView.addView(hSWebViewWrapper)
+                isWebViewAttached = true
+                val log = HSLog.LogBuilder().logType("INFO").category(LogCategory.USER_EVENT)
+                    .eventName(EventName.CLICK_TO_PAY_FLOW).value("WebView reattached - JavaScript execution resumed").version(BuildConfig.VERSION_NAME)
+                HyperLogManager.addLog(log.build())
+            }
+        }
+    }
+
+    /**
+     * Cancels all pending requests to prevent stale callbacks from executing.
+     *
+     * @param errorMessage Optional error message for cancellation
+     */
+    private fun cancelPendingRequests(errorMessage: String = "Operation cancelled due to error") {
+        if (pendingRequests.isNotEmpty()) {
+            val log = HSLog.LogBuilder().logType("INFO").category(LogCategory.USER_EVENT)
+                .eventName(EventName.CLICK_TO_PAY_FLOW).value("Cancelling ${pendingRequests.size} pending requests").version(BuildConfig.VERSION_NAME)
+            HyperLogManager.addLog(log.build())
+            
+            pendingRequests.values.forEach { continuation ->
+                continuation.cancel(kotlinx.coroutines.CancellationException(errorMessage))
+            }
+            pendingRequests.clear()
+        }
+    }
+
+    /**
      * Ensures the instance has not been destroyed.
      * @throws ClickToPayException if instance has been destroyed
      */
@@ -241,16 +303,32 @@ class DefaultClickToPaySessionLauncher(
     }
 
     /**
+     * Ensures the session is ready for operations.
+     * Combines three essential checks:
+     * 1. Ensures the session hasn't been destroyed
+     * 2. Ensures the WebView is initialized
+     * 3. Ensures the WebView is attached and ready
+     * 
+     * @throws ClickToPayException if the session is destroyed or initialization fails
+     */
+    private suspend fun ensureReady() {
+        ensureNotDestroyed()
+        ensureWebViewInitialized()
+        reattachWebView()
+    }
+
+    /**
      * Initializes the WebView components asynchronously on the main thread.
      * This method is idempotent and can be called multiple times safely.
+     * If the session was previously closed, this will reinitialize it.
      *
      * @throws ClickToPayException if WebView initialization fails
      */
-    private suspend fun ensureWebViewInitialized() {
-        if (isWebViewInitialized) return
+    private suspend fun ensureWebViewInitialized(allowReinitialize: Boolean = false) {
+        if (isWebViewInitialized && !allowReinitialize) return
 
         withContext(Dispatchers.Main) {
-            if (isWebViewInitialized) return@withContext
+            if (isWebViewInitialized && !allowReinitialize) return@withContext
             val log = HSLog.LogBuilder().logType("INFO").category(LogCategory.USER_EVENT)
                 .eventName(EventName.CLICK_TO_PAY_FLOW).value("initializing WebView").version(BuildConfig.VERSION_NAME)
             HyperLogManager.addLog(log.build())
@@ -282,6 +360,7 @@ class DefaultClickToPaySessionLauncher(
                 View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
             val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
             rootView.addView(hSWebViewWrapper)
+            isWebViewAttached = true
 
             isWebViewInitialized = true
             val log2 = HSLog.LogBuilder().logType("INFO").category(LogCategory.USER_EVENT)
@@ -295,6 +374,8 @@ class DefaultClickToPaySessionLauncher(
      *
      * Creates an HTML page with the HyperLoader.js script and initializes
      * the Hyper instance with the provided configuration.
+     * 
+     * Can be called again after close() to reinitialize the session.
      *
      * @throws ClickToPayException if SDK initialization fails with error details
      */
@@ -306,7 +387,15 @@ class DefaultClickToPaySessionLauncher(
             getLoggingUrl(publishableKey)
         }
         HyperLogManager.initialise(publishableKey, loggingEndPoint)
-        ensureWebViewInitialized()
+        
+        // Allow reinitialization if the session was previously closed
+        if (isDestroyed) {
+            isDestroyed = false
+            isWebViewInitialized = false
+            isWebViewAttached = false
+        }
+        
+        ensureWebViewInitialized(allowReinitialize = true)
         loadUrl()
     }
 
@@ -355,6 +444,8 @@ class DefaultClickToPaySessionLauncher(
                 val log = HSLog.LogBuilder().logType("ERROR").category(LogCategory.USER_ERROR)
                     .eventName(EventName.CLICK_TO_PAY_FLOW).value("Failed to load URL - Type: $errorType, Message: $errorMessage").version(BuildConfig.VERSION_NAME)
                 HyperLogManager.addLog(log.build())
+                cancelPendingRequests()
+                detachWebView()
                 throw ClickToPayException(
                     "Failed to load URL - Type: $errorType, Message: $errorMessage",
                     "SCRIPT_LOAD_ERROR"
@@ -387,7 +478,7 @@ class DefaultClickToPaySessionLauncher(
         merchantId: String?,
         request3DSAuthentication: Boolean
     ) {
-        ensureWebViewInitialized()
+        ensureReady()
         val requestId = UUID.randomUUID().toString()
         val log = HSLog.LogBuilder().logType("INFO").category(LogCategory.USER_EVENT)
             .eventName(EventName.CLICK_TO_PAY_FLOW).value("initialing click to pay session.").version(BuildConfig.VERSION_NAME)
@@ -409,6 +500,8 @@ class DefaultClickToPaySessionLauncher(
                 val log = HSLog.LogBuilder().logType("ERROR").category(LogCategory.USER_ERROR)
                     .eventName(EventName.CLICK_TO_PAY_FLOW).value("Failed to initialize Click to Pay session - Type: $errorType, Message: $errorMessage").version(BuildConfig.VERSION_NAME)
                 HyperLogManager.addLog(log.build())
+                cancelPendingRequests()
+                detachWebView()
                 throw ClickToPayException(
                     "Failed to initialize Click to Pay session - Type: $errorType, Message: $errorMessage",
                     "INIT_CLICK_TO_PAY_SESSION_ERROR"
@@ -432,7 +525,7 @@ class DefaultClickToPaySessionLauncher(
      */
     @Throws(ClickToPayException::class)
     override suspend fun isCustomerPresent(request: CustomerPresenceRequest): CustomerPresenceResponse {
-        ensureWebViewInitialized()
+        ensureReady()
         val requestId = UUID.randomUUID().toString()
 
         val jsCode =
@@ -454,6 +547,8 @@ class DefaultClickToPaySessionLauncher(
                 val log = HSLog.LogBuilder().logType("ERROR").category(LogCategory.USER_ERROR)
                     .eventName(EventName.CLICK_TO_PAY_FLOW).value("Failed to get customer present - Type: $errorType, Message: $errorMessage").version(BuildConfig.VERSION_NAME)
                 HyperLogManager.addLog(log.build())
+                cancelPendingRequests()
+                detachWebView()
                 throw ClickToPayException(
                     "Failed to get customer present: $errorMessage", errorType
                 )
@@ -479,7 +574,7 @@ class DefaultClickToPaySessionLauncher(
      */
     @Throws(ClickToPayException::class)
     override suspend fun getUserType(): CardsStatusResponse {
-        ensureWebViewInitialized()
+        ensureReady()
         val requestId = UUID.randomUUID().toString()
 
         val jsCode =
@@ -501,6 +596,8 @@ class DefaultClickToPaySessionLauncher(
                 val log = HSLog.LogBuilder().logType("ERROR").category(LogCategory.USER_ERROR)
                     .eventName(EventName.CLICK_TO_PAY_FLOW).value("Failed to get user type - Type: $errorType, Message: $errorMessage").version(BuildConfig.VERSION_NAME)
                 HyperLogManager.addLog(log.build())
+                cancelPendingRequests()
+                detachWebView()
                 throw ClickToPayException(
                     message = "Failed to get user type : $errorMessage", errorType
                 )
@@ -527,7 +624,7 @@ class DefaultClickToPaySessionLauncher(
      */
     @Throws(ClickToPayException::class)
     override suspend fun getRecognizedCards(): List<RecognizedCard> {
-        ensureWebViewInitialized()
+        ensureReady()
         val requestId = UUID.randomUUID().toString()
 
         val jsCode =
@@ -548,6 +645,8 @@ class DefaultClickToPaySessionLauncher(
                 val log = HSLog.LogBuilder().logType("ERROR").category(LogCategory.USER_ERROR)
                     .eventName(EventName.CLICK_TO_PAY_FLOW).value("Failed to get recognized cards - Type: $errorType, Message: $errorMessage").version(BuildConfig.VERSION_NAME)
                 HyperLogManager.addLog(log.build())
+                cancelPendingRequests()
+                detachWebView()
                 throw ClickToPayException(
                     "Failed to get recognized cards - Type: $errorType, Message: $errorMessage",
                     errorType
@@ -578,7 +677,7 @@ class DefaultClickToPaySessionLauncher(
      */
     @Throws(ClickToPayException::class)
     override suspend fun validateCustomerAuthentication(otpValue: String): List<RecognizedCard> {
-        ensureWebViewInitialized()
+        ensureReady()
         val requestId = UUID.randomUUID().toString()
 
         val jsCode =
@@ -599,7 +698,8 @@ class DefaultClickToPaySessionLauncher(
                 val log = HSLog.LogBuilder().logType("ERROR").category(LogCategory.USER_ERROR)
                     .eventName(EventName.CLICK_TO_PAY_FLOW).value("Failed to validate user authentification - Type: $errorType, Message: $errorMessage").version(BuildConfig.VERSION_NAME)
                 HyperLogManager.addLog(log.build())
-
+                cancelPendingRequests()
+                detachWebView()
                 throw ClickToPayException(
                     errorMessage, errorType
                 )
@@ -663,7 +763,7 @@ class DefaultClickToPaySessionLauncher(
      */
     @Throws(ClickToPayException::class)
     override suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse {
-        ensureWebViewInitialized()
+        ensureReady()
 
         val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
         setModalAccessibility(rootView, hSWebViewWrapper)
@@ -688,6 +788,8 @@ class DefaultClickToPaySessionLauncher(
                 val log = HSLog.LogBuilder().logType("ERROR").category(LogCategory.USER_ERROR)
                     .eventName(EventName.CLICK_TO_PAY_FLOW).value("Failed to checkout - Type: $errorType, Message: $errorMessage").version(BuildConfig.VERSION_NAME)
                 HyperLogManager.addLog(log.build())
+                cancelPendingRequests()
+                detachWebView()
                 throw ClickToPayException(errorMessage, errorType)
             }
 
@@ -774,40 +876,53 @@ class DefaultClickToPaySessionLauncher(
         }
     }
 
-    private suspend fun destroy() {
+    /**
+     * Closes and destroys the Click to Pay session.
+     * 
+     * Performs cleanup by:
+     * - Cancelling all pending requests
+     * - Restoring accessibility settings
+     * - Destroying the WebView and its wrapper
+     * 
+     * After calling this method, the session cannot be used again.
+     * A new instance must be created for subsequent operations.
+     * 
+     * @throws ClickToPayException if cleanup fails
+     */
+    @Throws(ClickToPayException::class)
+    override suspend fun close() {
         try {
             val log = HSLog.LogBuilder().logType("INFO").category(LogCategory.USER_EVENT)
-                .eventName(EventName.CLICK_TO_PAY_FLOW).value("called destroy event").version(BuildConfig.VERSION_NAME)
+                .eventName(EventName.CLICK_TO_PAY_FLOW).value("Closing Click to Pay session").version(BuildConfig.VERSION_NAME)
             HyperLogManager.addLog(log.build())
+            
             pendingRequests.values.forEach { it.cancel() }
             pendingRequests.clear()
 
             restoreAccessibility()
 
-
             withContext(Dispatchers.Main) {
-                if (hSWebViewWrapper.parent is ViewGroup) {
-                    (hSWebViewWrapper.parent as ViewGroup).removeView(hSWebViewWrapper)
+                if (isWebViewInitialized) {
+                    if (hSWebViewWrapper.parent is ViewGroup) {
+                        (hSWebViewWrapper.parent as ViewGroup).removeView(hSWebViewWrapper)
+                        isWebViewAttached = false
+                    }
+                    hSWebViewWrapper.webView.destroy()
                 }
-                hSWebViewManagerImpl
-                hSWebViewWrapper.webView.stopLoading()
-                hSWebViewWrapper.webView.loadUrl("about:blank")
-                hSWebViewWrapper.webView.clearHistory()
-                hSWebViewWrapper.webView.clearCache(true)
-                hSWebViewWrapper.webView.removeAllViews()
-                hSWebViewWrapper.webView.destroy()
             }
 
+            isWebViewInitialized = false
+            isDestroyed = true
+            
             val log2 = HSLog.LogBuilder().logType("INFO").category(LogCategory.USER_EVENT)
-                .eventName(EventName.CLICK_TO_PAY_FLOW).value("webview destroy successfully").version(BuildConfig.VERSION_NAME)
+                .eventName(EventName.CLICK_TO_PAY_FLOW).value("Click to Pay session closed successfully").version(BuildConfig.VERSION_NAME)
             HyperLogManager.addLog(log2.build())
-        } catch (_: Exception) {
-            val log = HSLog.LogBuilder().logType("INFO").category(LogCategory.USER_EVENT)
-                .eventName(EventName.CLICK_TO_PAY_FLOW).value("webview destroy failed").version(BuildConfig.VERSION_NAME)
+        } catch (e: Exception) {
+            val log = HSLog.LogBuilder().logType("ERROR").category(LogCategory.USER_ERROR)
+                .eventName(EventName.CLICK_TO_PAY_FLOW).value("Failed to close session: ${e.message}").version(BuildConfig.VERSION_NAME)
             HyperLogManager.addLog(log.build())
+            throw ClickToPayException("Failed to close Click to Pay session: ${e.message}", "CLOSE_ERROR")
         }
-
-        isWebViewInitialized = false
     }
 
 
@@ -818,7 +933,7 @@ class DefaultClickToPaySessionLauncher(
      * @throws ClickToPayException if checkout fails
      */
     override suspend fun signOut(): SignOutResponse {
-        ensureWebViewInitialized()
+        ensureReady()
         val requestId = UUID.randomUUID().toString()
         val jsCode =
             "(async function(){try{const signOutResponse = await window.ClickToPaySession.signOut();window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data: signOutResponse }));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'SignOutError',message:error.message}}}))}})();"
@@ -839,6 +954,8 @@ class DefaultClickToPaySessionLauncher(
                 val log = HSLog.LogBuilder().logType("ERROR").category(LogCategory.USER_ERROR)
                     .eventName(EventName.CLICK_TO_PAY_FLOW).value("Failed to checkout - Type: $errorType, Message: $errorMessage").version(BuildConfig.VERSION_NAME)
                 HyperLogManager.addLog(log.build())
+                cancelPendingRequests()
+                detachWebView()
                 throw ClickToPayException(
                     "Failed to SignOut : $errorMessage", errorType
                 )
