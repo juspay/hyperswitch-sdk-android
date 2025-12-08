@@ -13,6 +13,7 @@ android {
     defaultConfig {
         minSdk rootProject.ext.minSdkVersion
         consumerProguardFiles "consumer-rules.pro"
+        buildConfigField "String", "VERSION_NAME", "\"${version}\""
     }
 
     buildTypes {
@@ -27,4 +28,5 @@ dependencies {
     implementation libs.kotlin.coroutines
     implementation libs.kotlin.coroutinesAndroid
     api project(':hyperswitch-sdk-android-webview-utils')
+    implementation project(":hyperswitch-sdk-android-logger")
 }

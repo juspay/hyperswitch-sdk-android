@@ -4,9 +4,9 @@ import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
+import io.hyperswitch.logs.LogUtils.getLoggingUrl
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
-import io.hyperswitch.react.Utils.Companion.getLoggingUrl
 
 class DefaultPaymentSessionLauncher(
     activity: Activity,
