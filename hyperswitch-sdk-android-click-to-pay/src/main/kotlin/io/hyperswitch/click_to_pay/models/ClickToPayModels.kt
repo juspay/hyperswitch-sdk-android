@@ -257,7 +257,7 @@ data class AcquirerDetails(
 )
 
 /**
- * valut and payment method data type enum
+ * Vault and Payment Method data type enum
  */
 enum class DataType {
     CARD_DATA,

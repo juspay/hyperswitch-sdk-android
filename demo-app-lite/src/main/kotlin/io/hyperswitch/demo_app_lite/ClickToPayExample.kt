@@ -162,7 +162,7 @@ class ClickToPayExample : AppCompatActivity() {
                         showError("No cards found")
                     }
                 }
-            }catch(e: Exception){
+            } catch(e: Exception){
                 e.printStackTrace()
             }
         }
@@ -218,7 +218,6 @@ class ClickToPayExample : AppCompatActivity() {
                     when (val vault = response.vaultTokenData) {
                         is PaymentData.CardData -> {
                             println("Card number: ${vault.cardNumber}")
-                            // you can return vault or use its fields directly
                         }
                         is PaymentData.NetworkTokenData -> {
                             println("Network token: ${vault.networkToken}")
@@ -246,7 +245,7 @@ class ClickToPayExample : AppCompatActivity() {
                 } else if (e.type == ClickToPayErrorType.SWITCH_CONSUMER){
                     Toast.makeText(this@ClickToPayExample,"You should not change user", Toast.LENGTH_LONG ).show()
                     showCardSelection(session, "You cannot change user, select card")
-                }else {
+                } else {
                     showError("Checkout error: ${e.reason}")
                     signOut.visibility = INVISIBLE
                 }
@@ -263,7 +262,7 @@ class ClickToPayExample : AppCompatActivity() {
                     signOut.visibility = INVISIBLE
                     updateResultText(response.toString())
                 }
-            }catch (e: Exception){
+            } catch (e: Exception){
                 showError("Cannot signout")
             }
         }

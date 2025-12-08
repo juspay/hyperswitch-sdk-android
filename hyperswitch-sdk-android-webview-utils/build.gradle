@@ -26,6 +26,4 @@ android {
 dependencies {
     implementation libs.androidx.annotation
     implementation libs.androidx.webkit
-    api libs.androidx.lifecycle
-    api "androidx.lifecycle:lifecycle-process:${versions.androidxLifecycle}"
 }
