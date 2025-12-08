@@ -16,10 +16,10 @@ class HyperPluginExtensionTest extends Specification {
     def "extension should accept sdkVersion"() {
         when:
         def extension = new HyperPluginExtension()
-        extension.sdkVersion = '1.2.4'
+        extension.sdkVersion = '1.2.5'
 
         then:
-        extension.sdkVersion == '1.2.4'
+        extension.sdkVersion == '1.2.5'
     }
 
     def "extension should accept features as list of strings"() {
