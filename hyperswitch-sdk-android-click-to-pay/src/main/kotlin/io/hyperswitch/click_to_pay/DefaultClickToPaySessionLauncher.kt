@@ -100,8 +100,8 @@ class DefaultClickToPaySessionLauncher(
                             pendingRequests.remove(requestId)
                             continuation.resumeWithException(
                                 ClickToPayException(
-                                    "WebView not initialized or has been destroyed",
-                                    "WEBVIEW_NOT_AVAILABLE"
+                                    "WebView not initialized or Reinit the session",
+                                    "INSTANCE_NOT_FOUND"
                                 )
                             )
                             return@suspendCancellableCoroutine
@@ -113,7 +113,7 @@ class DefaultClickToPaySessionLauncher(
                         continuation.resumeWithException(
                             ClickToPayException(
                                 "Failed to evaluate JavaScript: ${e.message}",
-                                "JAVASCRIPT_EVALUATION_ERROR"
+                                "ERROR"
                             )
                         )
                     }
@@ -264,8 +264,8 @@ class DefaultClickToPaySessionLauncher(
     private fun ensureNotDestroyed() {
         if (isDestroyed) {
             throw ClickToPayException(
-                "ClickToPaySessionLauncher has been destroyed and cannot be used",
-                "INSTANCE_DESTROYED"
+                "ClickToPaySession has been cleaned up, Reinit the session",
+                "INSTANCE_NOT_FOUND"
             )
         }
     }
@@ -282,14 +282,13 @@ class DefaultClickToPaySessionLauncher(
         if (isWebViewInitialized) return
 
         withContext(Dispatchers.Main) {
-            // Double-check pattern with proper synchronization
             synchronized(this@DefaultClickToPaySessionLauncher) {
                 if (isWebViewInitialized) return@withContext
 
                 val activity = activityRef.get() ?: run {
                     throw ClickToPayException(
                         "Activity reference has been garbage collected",
-                        "ACTIVITY_NOT_AVAILABLE"
+                        "ERROR"
                     )
                 }
 
@@ -329,7 +328,7 @@ class DefaultClickToPaySessionLauncher(
                 val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
                     ?: throw ClickToPayException(
                         "Could not find root view in activity",
-                        "ROOT_VIEW_NOT_FOUND"
+                        "ERROR"
                     )
                 rootView.addView(webViewWrapper)
 
@@ -351,6 +350,7 @@ class DefaultClickToPaySessionLauncher(
      */
     @Throws(ClickToPayException::class)
     override suspend fun initialize() {
+        isDestroyed = false
         ensureWebViewInitialized()
         loadUrl()
     }
@@ -386,7 +386,7 @@ class DefaultClickToPaySessionLauncher(
                             continuation.resumeWithException(
                                 ClickToPayException(
                                     "WebView not initialized",
-                                    "WEBVIEW_NOT_AVAILABLE"
+                                    "SCRIPT_LOAD_ERROR"
                                 )
                             )
                             return@suspendCancellableCoroutine
@@ -401,7 +401,7 @@ class DefaultClickToPaySessionLauncher(
                         continuation.resumeWithException(
                             ClickToPayException(
                                 "Failed to load source: ${e.message}",
-                                "LOAD_SOURCE_ERROR"
+                                "SCRIPT_LOAD_ERROR"
                             )
                         )
                     }
@@ -446,6 +446,7 @@ class DefaultClickToPaySessionLauncher(
         merchantId: String?,
         request3DSAuthentication: Boolean
     ) {
+        ensureNotDestroyed()
         ensureWebViewInitialized()
         val requestId = UUID.randomUUID().toString()
 
@@ -482,6 +483,7 @@ class DefaultClickToPaySessionLauncher(
      */
     @Throws(ClickToPayException::class)
     override suspend fun isCustomerPresent(request: CustomerPresenceRequest): CustomerPresenceResponse {
+        ensureNotDestroyed()
         ensureWebViewInitialized()
         val requestId = UUID.randomUUID().toString()
 
@@ -520,6 +522,7 @@ class DefaultClickToPaySessionLauncher(
      */
     @Throws(ClickToPayException::class)
     override suspend fun getUserType(): CardsStatusResponse {
+        ensureNotDestroyed()
         ensureWebViewInitialized()
         val requestId = UUID.randomUUID().toString()
 
@@ -559,6 +562,7 @@ class DefaultClickToPaySessionLauncher(
      */
     @Throws(ClickToPayException::class)
     override suspend fun getRecognizedCards(): List<RecognizedCard> {
+        ensureNotDestroyed()
         ensureWebViewInitialized()
         val requestId = UUID.randomUUID().toString()
 
@@ -600,6 +604,7 @@ class DefaultClickToPaySessionLauncher(
      */
     @Throws(ClickToPayException::class)
     override suspend fun validateCustomerAuthentication(otpValue: String): List<RecognizedCard> {
+        ensureNotDestroyed()
         ensureWebViewInitialized()
         val requestId = UUID.randomUUID().toString()
 
@@ -672,22 +677,23 @@ class DefaultClickToPaySessionLauncher(
      */
     @Throws(ClickToPayException::class)
     override suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse {
+        ensureNotDestroyed()
         ensureWebViewInitialized()
 
         val activity = activityRef.get() ?: throw ClickToPayException(
             "Activity reference has been garbage collected",
-            "ACTIVITY_NOT_AVAILABLE"
+            "ERROR"
         )
 
         val webViewWrapper = hSWebViewWrapper ?: throw ClickToPayException(
             "WebView not initialized",
-            "WEBVIEW_NOT_AVAILABLE"
+            "ERROR"
         )
 
         val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
             ?: throw ClickToPayException(
                 "Could not find root view in activity",
-                "ROOT_VIEW_NOT_FOUND"
+                "ERROR"
             )
 
         setModalAccessibility(rootView, webViewWrapper)
@@ -790,37 +796,37 @@ class DefaultClickToPaySessionLauncher(
     }
 
     private suspend fun destroy() {
+        synchronized(this) {
+            if (isDestroyed) return
+            isDestroyed = true
+        }
+
         try {
             pendingRequests.values.forEach { it.cancel() }
             pendingRequests.clear()
 
             restoreAccessibility()
 
-            val activity = activityRef.get()
             val wrapper = hSWebViewWrapper
 
-            if (activity != null && wrapper != null) {
+            if (wrapper != null) {
                 withContext(Dispatchers.Main) {
-                    if (wrapper.parent is ViewGroup) {
-                        (wrapper.parent as ViewGroup).removeView(wrapper)
+                    try {
+                        val parent = wrapper.parent
+                        if (parent is ViewGroup) {
+                            parent.removeView(wrapper)
+                        }
+                    } catch (_: Exception) {
                     }
-                    hSWebViewManagerImpl
-                    wrapper.webView.stopLoading()
-                    wrapper.webView.loadUrl("about:blank")
-                    wrapper.webView.clearHistory()
-                    wrapper.webView.clearCache(true)
-                    wrapper.webView.removeAllViews()
-                    wrapper.webView.destroy()
                 }
             }
 
         } catch (_: Exception) {
+        } finally {
+            hSWebViewWrapper = null
+            hSWebViewManagerImpl = null
+            isWebViewInitialized = false
         }
-
-        // Null references
-        hSWebViewWrapper = null
-        hSWebViewManagerImpl = null
-        isWebViewInitialized = false
     }
 
 
@@ -831,6 +837,7 @@ class DefaultClickToPaySessionLauncher(
      * @throws ClickToPayException if checkout fails
      */
     override suspend fun signOut(): SignOutResponse {
+        ensureNotDestroyed()
         ensureWebViewInitialized()
         val requestId = UUID.randomUUID().toString()
         val jsCode =

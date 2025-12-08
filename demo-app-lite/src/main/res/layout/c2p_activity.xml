@@ -10,7 +10,6 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
         android:orientation="vertical"
         android:padding="20dp">
 
@@ -22,85 +21,286 @@
             android:textSize="24sp"
             android:textStyle="bold"
             android:gravity="center"
-            android:layout_marginBottom="20dp"
+            android:layout_marginBottom="8dp"
             android:textColor="#000000" />
 
-        <!-- Step 1: Get Authentication Credentials -->
-        <Button
-            android:id="@+id/btnStep1"
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Interactive API Testing"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:layout_marginBottom="20dp"
+            android:textColor="#666666" />
+
+        <!-- Session Initialization Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="1. SESSION INITIALIZATION"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#0E7AFE"
+            android:layout_marginBottom="8dp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnGetCredentials"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
+            android:minHeight="48dp"
             android:background="@drawable/rounded_button"
-            android:text="Step 1: Get Authentication Credentials"
+            android:text="Get Authentication Credentials"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:padding="12dp" />
+            android:textSize="15sp"
+            android:paddingVertical="12dp"
+            android:paddingHorizontal="16dp" />
 
+                   
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:gravity="center"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
 
             <ImageView
                 android:id="@+id/rotatingView"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:layout_gravity="center"
-                android:layout_margin="20dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_margin="12dp"
                 android:background="@android:color/holo_red_dark" />
 
             <ImageView
                 android:id="@+id/rotatingView2"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:layout_gravity="center"
-                android:layout_margin="20dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_margin="12dp"
                 android:background="@android:color/holo_blue_bright" />
         </LinearLayout>
-
-        <!-- Divider -->
-
-        <Button
-            android:id="@+id/signOut"
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:text="STATUS &amp; RESULTS"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#0E7AFE"
+            android:layout_marginBottom="8dp" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="250dp"
+            android:background="#F5F5F5"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:id="@+id/resultText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ready to start. Click 'Get Authentication Credentials' to begin."
+                android:textSize="14sp"
+                android:textColor="#333333"
+                android:lineSpacingExtra="4dp"
+                android:fontFamily="monospace"
+                android:padding="12dp" />
+        </ScrollView>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnInitAuth"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:minHeight="48dp"
+            android:background="@drawable/rounded_button"
+            android:text="Initialize Authentication Session"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:enabled="false"
+            android:paddingVertical="12dp"
+            android:paddingHorizontal="16dp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnInitC2P"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:minHeight="48dp"
+            android:background="@drawable/rounded_button"
+            android:text="Initialize Click to Pay Session"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:enabled="false"
+            android:paddingVertical="12dp"
+            android:paddingHorizontal="16dp" />
+
+        <!-- Customer Check Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="2. CUSTOMER VERIFICATION"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#0E7AFE"
+            android:layout_marginBottom="8dp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnCheckCustomer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:minHeight="48dp"
+            android:background="@drawable/rounded_button"
+            android:text="Check Customer Presence"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:enabled="false"
+            android:paddingVertical="12dp"
+            android:paddingHorizontal="16dp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnGetUserType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:minHeight="48dp"
+            android:background="@drawable/rounded_button"
+            android:text="Get User Type &amp; Card Status"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:enabled="false"
+            android:paddingVertical="12dp"
+            android:paddingHorizontal="16dp" />
+
+        <!-- Card Operations Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="3. CARD OPERATIONS"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#0E7AFE"
+            android:layout_marginBottom="8dp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnValidateOTP"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:minHeight="48dp"
+            android:background="@drawable/rounded_button"
+            android:text="Validate OTP"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:enabled="false"
+            android:paddingVertical="12dp"
+            android:paddingHorizontal="16dp"
+            android:visibility="gone" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnGetCards"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:minHeight="48dp"
+            android:background="@drawable/rounded_button"
+            android:text="Get Recognized Cards"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:enabled="false"
+            android:paddingVertical="12dp"
+            android:paddingHorizontal="16dp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnSelectCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:minHeight="48dp"
+            android:background="@drawable/rounded_button"
+            android:text="Select Card for Checkout"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:enabled="false"
+            android:paddingVertical="12dp"
+            android:paddingHorizontal="16dp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnCheckout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:minHeight="48dp"
+            android:background="@drawable/rounded_button"
+            android:text="Checkout with Selected Card"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:enabled="false"
+            android:paddingVertical="12dp"
+            android:paddingHorizontal="16dp" />
+
+        <!-- Session Management Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="4. SESSION MANAGEMENT"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#0E7AFE"
+            android:layout_marginBottom="8dp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnSignOut"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:minHeight="48dp"
             android:background="@drawable/rounded_button"
             android:text="Sign Out"
-            android:textColor="#FFFFFF" />
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:enabled="false"
+            android:paddingVertical="12dp"
+            android:paddingHorizontal="16dp" />
 
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnReset"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:minHeight="48dp"
+            android:background="@drawable/rounded_button_secondary"
+            android:text="Reset Flow"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:paddingVertical="12dp"
+            android:paddingHorizontal="16dp" />
+
+        <!-- Divider -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="#CCCCCC"
             android:layout_marginVertical="16dp" />
 
-        <!-- Result Text -->
-        <ScrollView
-            android:layout_width="match_parent"
-            android:layout_height="300dp"
-            android:background="#F5F5F5">
-            
-            <TextView
-                android:id="@+id/resultText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Click 'Initialize Click To Pay' to begin"
-                android:textSize="16sp"
-                android:textColor="#333333"
-                android:lineSpacingExtra="4dp"
-                android:padding="16dp" />
-        </ScrollView>
 
         <!-- Instructions -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="Instructions:\n\n• Click each step button in sequence\n• Each button will be enabled after the previous step completes\n• Watch the result area for detailed progress\n• Check Logcat for detailed logs (tag: ClickToPay)"
-            android:textSize="14sp"
+            android:layout_marginTop="16dp"
+            android:text="INSTRUCTIONS:\n\n• Buttons are enabled sequentially as you complete each step\n• Watch the status area for real-time feedback\n• You can test each API method individually\n• Use 'Reset Flow' to start over at any time"
+            android:textSize="12sp"
             android:textColor="#666666"
             android:lineSpacingExtra="2dp" />
 
