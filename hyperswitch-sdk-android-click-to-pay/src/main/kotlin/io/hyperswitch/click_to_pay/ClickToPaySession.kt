@@ -101,4 +101,8 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
     suspend fun signOut(): SignOutResponse{
         return clickToPaySessionLauncher.signOut()
     }
+
+    suspend fun close() {
+        clickToPaySessionLauncher.close()
+    }
 }

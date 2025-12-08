@@ -38,6 +38,7 @@ enum class ClickToPayErrorType {
     IS_CUSTOMER_PRESENT_ERROR,
     GET_RECOGNIZED_CARDS_ERROR,
     CHECKOUT_WITH_CARD_ERROR,
+    INSTANCE_NOT_FOUND,
 
     // Fallback
     ERROR,

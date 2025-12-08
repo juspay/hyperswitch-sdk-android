@@ -11,7 +11,6 @@ import android.view.ViewGroup
 import android.webkit.WebView
 import android.widget.FrameLayout
 import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 
