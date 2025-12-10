@@ -14,8 +14,6 @@ import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
-import `in`.juspay.hyperota.LazyDownloadCallback
-import `in`.juspay.hyperotareact.HyperOTAReact
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.R
@@ -26,10 +24,9 @@ import io.hyperswitch.logs.LogFileManager
 import io.hyperswitch.hyperota.HyperOtaLogger
 import io.hyperswitch.logs.LogUtils.getEnvironment
 import io.hyperswitch.logs.SDKEnvironment
+import io.hyperswitch.hyperota.HyperOTA
 
 open class MainApplication : Application(), ReactApplication {
-    private var hyperOTAServices: HyperOTAReact? = null
-    private lateinit var tracker: HyperOtaLogger
     private lateinit var context: Context
 
     override val reactNativeHost: ReactNativeHost = object : DefaultReactNativeHost(this) {
@@ -56,32 +53,16 @@ open class MainApplication : Application(), ReactApplication {
                         R.string.hyperOTAEndPoint
                 )
                 if (hyperOTAUrl != "hyperOTA_END_POINT_") {
-                    tracker = HyperOtaLogger()
-                    val headers = mapOf(
-                        "Content-Encoding" to "br, gzip"
-                    )
-                    HyperOTAReact(
+                    return HyperOTA(
                         context.applicationContext,
-                        "hyperswitch",
-                        "hyperswitch.bundle",
                         BuildConfig.VERSION_NAME,
-                        "$hyperOTAUrl/mobile-ota/android/${BuildConfig.VERSION_NAME}/config.json",
-                        headers,
-                        object : LazyDownloadCallback {
-                            override fun fileInstalled(filePath: String, success: Boolean) {
-                            }
-                            override fun lazySplitsInstalled(success: Boolean) {
-                            }
-                        },
-                        tracker,
-                    ).also { hyperOTAServices = it }
+                        hyperOTAUrl
+                    ).getBundlePath()
                 }
-                return hyperOTAServices?.getBundlePath()?.takeUnless { it.contains("ios") }
-                    ?: "assets://hyperswitch.bundle"
+                return "assets://hyperswitch.bundle"
             } catch (_: Exception) {
                 return "assets://hyperswitch.bundle"
             }
-
         }
     }
 
