@@ -1,0 +1,35 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'io.hyperswitch.hyperota'
+    compileSdk rootProject.ext.compileSdkVersion
+
+    defaultConfig {
+        minSdk rootProject.ext.minSdkVersion
+        consumerProguardFiles "consumer-rules.pro"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+rootProject.allprojects {
+    repositories {
+        mavenCentral()
+        google()
+        maven {
+            url "https://maven.juspay.in/hyper-sdk/"
+        }
+    }
+}
+
+dependencies {
+    implementation("in.juspay:hyperotareact:0.0.1-xota.10")
+    implementation project(':hyperswitch-sdk-android-logger')
+}

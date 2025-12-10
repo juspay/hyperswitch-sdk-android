@@ -23,4 +23,5 @@ include ':hyperswitch-sdk-android-lite'
 include ':hyperswitch-sdk-android-logger'
 include ':hyperswitch-sdk-android-scancard'
 include ':hyperswitch-sdk-android-webview-utils'
+include ':hyperswitch-sdk-android-hyperota'
 includeBuild('../node_modules/@react-native/gradle-plugin')
