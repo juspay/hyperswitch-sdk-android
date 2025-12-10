@@ -3,6 +3,10 @@ package io.hyperswitch.logs
 import io.hyperswitch.networking.HyperNetworking
 import org.json.JSONArray
 
+/**
+ * Singleton manager for handling logging operations in Hyperswitch SDK.
+ * Manages log batching, debouncing, and sending logs to the logging endpoint.
+ */
 object HyperLogManager {
 
     private val logsBatch = mutableListOf<HSLog>()
@@ -13,6 +17,13 @@ object HyperLogManager {
     private var hyperOtaVersion: String = ""
     private val debouncer = Debouncer(DEFAULT_DELAY_IN_MILLIS)
 
+    /**
+     * Initializes the log manager with required configuration.
+     *
+     * @param publishableKey The merchant's publishable key for authentication
+     * @param loggingEndPoint The endpoint URL where logs will be sent
+     * @param delay The debounce delay in milliseconds before sending logs (default: 2000ms)
+     */
     fun initialise(
         publishableKey: String,
         loggingEndPoint: String,
@@ -23,11 +34,31 @@ object HyperLogManager {
         this.loggingEndPoint = loggingEndPoint
     }
 
+    /**
+     * Adds a log to the batch and triggers debounced log sending.
+     *
+     * @param log The log entry to be added to the batch
+     */
     fun addLog(log: HSLog) {
         logsBatch.add(log)
         debouncedPushLogs()
     }
 
+    /**
+     * Updates the logging endpoint URL.
+     *
+     * @param customLoggingUrl The new custom logging endpoint URL
+     */
+    fun setLoggingEndPoint(customLoggingUrl: String){
+        this.loggingEndPoint = customLoggingUrl
+    }
+
+    /**
+     * Reads logs from file storage and sends them to the logging endpoint.
+     * Clears the file after successful transmission.
+     *
+     * @param fileManager The file manager instance to read logs from
+     */
     fun sendLogsFromFile(fileManager: LogFileManager) {
         if (publishableKey.isNullOrBlank()) return
         try {
@@ -53,6 +84,12 @@ object HyperLogManager {
         }
     }
 
+    /**
+     * Sets the OTA (Over-The-Air) version for log enrichment.
+     * Triggers debounced log sending after updating the version.
+     *
+     * @param version The OTA version string to be included in logs
+     */
     fun setOtaVersion(version: String) {
         hyperOtaVersion = version
         debouncedPushLogs()
@@ -72,6 +109,11 @@ object HyperLogManager {
         }
     }
 
+    /**
+     * Converts all logs in the current batch to a JSON array string.
+     *
+     * @return A JSON array string representation of all logs in the batch
+     */
     fun getAllLogsAsString(): String = logsBatch.joinToString(prefix = "[", postfix = "]") { it.toJson() }
 
     private fun sendLogsOverNetwork() {
