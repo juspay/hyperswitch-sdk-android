@@ -8,7 +8,41 @@ import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogCategory
 import org.json.JSONException
 
-class HyperOtaLogger(private val sdkVersion: String) : TrackerCallback() {
+/**
+ * Logger implementation for tracking HyperOTA lifecycle events and errors.
+ * Extends TrackerCallback to capture OTA-related events and send them to the logging endpoint.
+ *
+ * @param sdkVersion The version of the SDK being used
+ * @param customLogUrl Optional custom URL for the logging endpoint
+ * @param publishableKey Optional merchant's publishable key for log authentication
+ */
+class HyperOtaLogger(private val sdkVersion: String, private val customLogUrl: String?, private val publishableKey : String?) : TrackerCallback() {
+
+    init{
+        customLogUrl?.let {
+            HyperLogManager.setLoggingEndPoint(customLogUrl)
+        }
+        publishableKey?.let {
+            HyperLogManager.initialise(publishableKey, customLogUrl ?: "")
+        }
+    }
+
+    /**
+     * Constructor with SDK version only.
+     * Uses default logging configuration without custom URL or publishable key.
+     *
+     * @param sdkVersion The version of the SDK being used
+     */
+    constructor(sdkVersion: String) : this(sdkVersion, customLogUrl = null, publishableKey = null)
+
+    /**
+     * Constructor with SDK version and publishable key.
+     * Uses default logging endpoint with authentication via publishable key.
+     *
+     * @param sdkVersion The version of the SDK being used
+     * @param publishableKey The merchant's publishable key for log authentication
+     */
+    constructor(sdkVersion: String, publishableKey: String?): this(sdkVersion, customLogUrl = null, publishableKey)
 
     private fun createAndSendLog(
         eventName: EventName,
@@ -41,6 +75,16 @@ class HyperOtaLogger(private val sdkVersion: String) : TrackerCallback() {
         }
     }
 
+    /**
+     * Tracks OTA lifecycle events with primitive or string values.
+     *
+     * @param category The event category (e.g., "lifecycle")
+     * @param subCategory The event subcategory (e.g., "hyperota")
+     * @param level The log level (e.g., "info", "debug", "error")
+     * @param label A descriptive label for the event
+     * @param key The event key (e.g., "init", "end")
+     * @param value The event value to be logged
+     */
     override fun track(
         category: String, subCategory: String, level: String, label: String, key: String, value: Any
     ) {
@@ -63,6 +107,17 @@ class HyperOtaLogger(private val sdkVersion: String) : TrackerCallback() {
 //                "\n level : " + level + "\n label : " + label + "\n key : " + key + "\n value : " + value.toString())
     }
 
+    /**
+     * Tracks OTA lifecycle events with JSON object values.
+     * Extracts OTA version from the value if available and updates the log manager.
+     *
+     * @param category The event category (e.g., "lifecycle")
+     * @param subCategory The event subcategory (e.g., "hyperota")
+     * @param level The log level (e.g., "info", "debug", "error")
+     * @param label A descriptive label for the event
+     * @param key The event key (e.g., "init", "end")
+     * @param value The JSON object containing event data
+     */
     override fun track(
         category: String,
         subCategory: String,
@@ -95,6 +150,15 @@ class HyperOtaLogger(private val sdkVersion: String) : TrackerCallback() {
 //                "\n level : " + level + "\n label : " + label + "\n key : " + key + "\n value : " + value.toString())
     }
 
+    /**
+     * Tracks exceptions that occur during OTA lifecycle operations.
+     *
+     * @param category The event category (e.g., "lifecycle")
+     * @param subCategory The event subcategory
+     * @param label A descriptive label for the exception
+     * @param description A description of the exception context
+     * @param e The throwable exception to be logged
+     */
     override fun trackException(
         category: String, subCategory: String, label: String, description: String, e: Throwable
     ) {

@@ -38,15 +38,32 @@ class HyperOTA {
         }
     }
 
+    /**
+     * constructor for HyperOTA with full configuration.
+     *
+     * @param context The Android application context
+     * @param sdkVersion The version of the SDK being used
+     * @param configUrl The URL to fetch the OTA configuration
+     * @param appId The application identifier for OTA updates
+     * @param bundleName The name of the bundle to be downloaded and installed
+     */
     constructor(context: Context,
                 sdkVersion: String,
-                actualURL : String,
+                configUrl : String,
                 appId: String,
                 bundleName: String
         ){
-        this.initHyperOTA(context,sdkVersion,actualURL,appId,bundleName)
-
+        this.initHyperOTA(context,sdkVersion,configUrl,appId,bundleName)
     }
+
+    /**
+     * constructor for HyperOTA with default Hyperswitch configuration.
+     * Automatically constructs the config URL, app ID, and bundle name.
+     *
+     * @param context The Android application context
+     * @param sdkVersion The version of the SDK being used
+     * @param baseUrl The base URL for the OTA service (config URL will be constructed as: baseUrl/mobile-ota/android/sdkVersion/config.json)
+     */
     constructor(context: Context,
                 sdkVersion: String,
                 baseUrl : String){
