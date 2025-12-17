@@ -4,7 +4,6 @@
 
     <application
         android:name=".TestApplication"
-        tools:replace="android:name"
         android:allowBackup="true"
         android:extractNativeLibs="true"
         android:icon="@mipmap/ic_launcher"
