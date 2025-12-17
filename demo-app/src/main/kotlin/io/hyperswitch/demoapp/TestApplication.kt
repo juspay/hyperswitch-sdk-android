@@ -25,7 +25,7 @@ class TestApplication : Application() {
         Log.d("TestApplication", "Merchant's own initialization complete")
 
         try {
-            HyperswitchSDK.initialize(this)
+//            HyperswitchSDK.initialize(this)
             Log.d("TestApplication", "HyperSDK initialized successfully")
         } catch (e: Exception) {
             Log.e("TestApplication", "Failed to initialize HyperSDK", e)

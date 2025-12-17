@@ -18,27 +18,27 @@ import io.hyperswitch.HyperswitchSDK
 * Internally, this class now uses HyperSDK for all initialization, ensuring
 * consistency between the two integration methods.
 */
-open class MainApplication : Application(), ReactApplication {
-
-   /**
-    * ReactNativeHost is provided by HyperSDK singleton
-    * This ensures consistency with the new initialization pattern
-    */
-   override val reactNativeHost: ReactNativeHost
-       get() = HyperswitchSDK.getReactNativeHost()
-
-   /**
-    * ReactHost for new architecture, provided by HyperSDK singleton
-    */
-   override val reactHost: ReactHost
-       get() = HyperswitchSDK.getReactHost()
-           ?: getDefaultReactHost(applicationContext, reactNativeHost)
-
-   override fun onCreate() {
-       super.onCreate()
-
-       // Initialize SDK using HyperSDK singleton
-       // This ensures all initialization logic is centralized in one place
-       HyperswitchSDK.initialize(this)
-   }
-}
+//open class MainApplication : Application(), ReactApplication {
+//
+//   /**
+//    * ReactNativeHost is provided by HyperSDK singleton
+//    * This ensures consistency with the new initialization pattern
+//    */
+//   override val reactNativeHost: ReactNativeHost
+//       get() = HyperswitchSDK.getReactNativeHost()
+//
+//   /**
+//    * ReactHost for new architecture, provided by HyperSDK singleton
+//    */
+//   override val reactHost: ReactHost
+//       get() = HyperswitchSDK.getReactHost()
+//           ?: getDefaultReactHost(applicationContext, reactNativeHost)
+//
+//   override fun onCreate() {
+//       super.onCreate()
+//
+//       // Initialize SDK using HyperSDK singleton
+//       // This ensures all initialization logic is centralized in one place
+//       HyperswitchSDK.initialize(this)
+//   }
+//}

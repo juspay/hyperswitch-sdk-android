@@ -26,6 +26,7 @@ import org.json.JSONObject
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import io.hyperswitch.paymentsession.PaymentMethodType
+import io.hyperswitch.HyperswitchSDK
 
 class MainActivity : AppCompatActivity() {
     lateinit var ctx: Activity
@@ -135,7 +136,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getCL() {
-
+        HyperswitchSDK.initialize(application)
         ctx.findViewById<View>(R.id.launchButton).isEnabled = false
         ctx.findViewById<View>(R.id.confirmButton).isEnabled = false
 
