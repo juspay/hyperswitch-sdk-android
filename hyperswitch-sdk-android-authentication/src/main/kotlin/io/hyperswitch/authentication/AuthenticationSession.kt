@@ -118,7 +118,7 @@ class AuthenticationSession(
         authenticationId: String,
         merchantId: String,
     ) {
-        authenticationSessionLauncher.initialize()
+        authenticationSessionLauncher.initialize(clientSecret, authenticationId)
         
         return authenticationSessionLauncher.initAuthenticationSession(
             clientSecret,
