@@ -19,7 +19,7 @@ interface AuthenticationSessionLauncher {
      * @throws Exception if SDK initialization fails
      */
     @Throws(Exception::class)
-    suspend fun initialize()
+    suspend fun initialize(clientSecret: String? = null, authenticationId: String? = null)
 
     /**
      * Initializes an authentication session with payment credentials.

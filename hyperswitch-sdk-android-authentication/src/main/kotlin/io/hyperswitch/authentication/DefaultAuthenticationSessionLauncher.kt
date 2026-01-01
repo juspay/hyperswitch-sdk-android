@@ -45,8 +45,8 @@ class DefaultAuthenticationSessionLauncher(
      * @throws Exception if SDK initialization fails
      */
     @Throws(Exception::class)
-    override suspend fun initialize() {
-        clickToPaySession.initialise()
+    override suspend fun initialize(clientSecret: String?, authenticationId: String?) {
+        clickToPaySession.initialise(clientSecret, authenticationId)
     }
 
     /**
