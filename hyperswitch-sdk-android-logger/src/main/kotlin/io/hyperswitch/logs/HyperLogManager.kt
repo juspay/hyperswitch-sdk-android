@@ -101,5 +101,4 @@ object HyperLogManager {
             debouncedPushLogs()
         }
     }
-
 }

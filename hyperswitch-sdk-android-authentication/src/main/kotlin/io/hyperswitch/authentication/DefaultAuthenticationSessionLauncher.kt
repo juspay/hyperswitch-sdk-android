@@ -19,7 +19,7 @@ import io.hyperswitch.click_to_pay.models.ClickToPayException
  */
 class DefaultAuthenticationSessionLauncher(
     activity: Activity,
-    publishableKey: String,
+    val publishableKey: String,
     customBackendUrl: String? = null,
     customLogUrl: String? = null,
     customParams: Bundle? = null,

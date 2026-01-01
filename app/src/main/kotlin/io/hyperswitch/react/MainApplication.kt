@@ -24,7 +24,8 @@ import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
 
 import io.hyperswitch.hyperota.HyperOtaLogger
-import io.hyperswitch.react.Utils.Companion.checkEnvironment
+import io.hyperswitch.logs.LogUtils.getEnvironment
+import io.hyperswitch.logs.SDKEnvironment
 
 open class MainApplication : Application(), ReactApplication {
     private var hyperOTAServices: HyperOTAReact? = null
@@ -47,7 +48,7 @@ open class MainApplication : Application(), ReactApplication {
 
         override fun getJSBundleFile(): String {
             try {
-                val environment = checkEnvironment(PaymentConfiguration.publishableKey())
+                val environment = getEnvironment(PaymentConfiguration.publishableKey())
                 val hyperOTAUrl = context.getString(
                     if (environment == SDKEnvironment.SANDBOX)
                         R.string.hyperOTASandBoxEndPoint
