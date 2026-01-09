@@ -449,7 +449,7 @@ class DefaultClickToPaySessionLauncher(
                 val errorMessage = error.optString("message", "Unknown error")
                 logData(
                     "ERROR",
-                    "WEBVIEW | FAILED | URL | Type: $errorType, Message: $errorMessage",
+                    "WEBVIEW | URL | Type: $errorType, Message: $errorMessage",
                     LogCategory.USER_ERROR
                 )
                 cancelPendingRequests()
@@ -459,7 +459,7 @@ class DefaultClickToPaySessionLauncher(
                     "SCRIPT_LOAD_ERROR"
                 )
             }
-            logData("INFO", "WEBVIEW | SUCCESS | Script loaded")
+            logData("INFO", "WEBVIEW | Script loaded")
         }
     }
 
@@ -503,7 +503,7 @@ class DefaultClickToPaySessionLauncher(
                 val errorMessage = error.optString("message", "Unknown error")
                 logData(
                     "ERROR",
-                    "C2P | FAILED | Type: $errorType, Message: $errorMessage",
+                    "C2P | INIT | Type: $errorType, Message: $errorMessage",
                     LogCategory.USER_ERROR
                 )
                 cancelPendingRequests()
@@ -513,7 +513,7 @@ class DefaultClickToPaySessionLauncher(
                     "INIT_CLICK_TO_PAY_SESSION_ERROR"
                 )
             }
-            logData("INFO", "C2P | SUCCESS")
+            logData("INFO", "C2P | INIT | SUCCESS")
         }
     }
 
@@ -548,7 +548,7 @@ class DefaultClickToPaySessionLauncher(
                 val errorMessage = error.optString("message", "Unknown Error")
                 logData(
                     "ERROR",
-                    "CUSTOMER_CHECK | FAILED | Type: $errorType, Message: $errorMessage",
+                    "CUSTOMER_CHECK | Type: $errorType, Message: $errorMessage",
                     LogCategory.USER_ERROR
                 )
                 cancelPendingRequests()
@@ -595,7 +595,7 @@ class DefaultClickToPaySessionLauncher(
                 val errorMessage = error.optString("message", "Unknown Error")
                 logData(
                     "ERROR",
-                    "GET_USER_TYPE | FAILED | Type: $errorType, Message: $errorMessage",
+                    "GET_USER_TYPE | Type: $errorType, Message: $errorMessage",
                     LogCategory.USER_ERROR
                 )
                 cancelPendingRequests()
@@ -643,7 +643,7 @@ class DefaultClickToPaySessionLauncher(
                 val errorMessage = error.optString("message", "Unknown error")
                 logData(
                     "ERROR",
-                    "GET_CARDS | FAILED | Type: $errorType, Message: $errorMessage",
+                    "GET_CARDS | Type: $errorType, Message: $errorMessage",
                     LogCategory.USER_ERROR
                 )
                 cancelPendingRequests()
@@ -696,7 +696,7 @@ class DefaultClickToPaySessionLauncher(
                 val errorMessage = error.optString("message", "Unknown error")
                 logData(
                     "ERROR",
-                    "AUTH_VALIDATION | FAILED | Type: $errorType, Message: $errorMessage",
+                    "AUTH_VALIDATION | Type: $errorType, Message: $errorMessage",
                     LogCategory.USER_ERROR
                 )
                 cancelPendingRequests()
@@ -783,7 +783,7 @@ class DefaultClickToPaySessionLauncher(
                 val errorType = error.optString("type", "ERROR")
                 val errorMessage = error.optString("message", "Unknown error")
                 logData(
-                    "ERROR", "CHECKOUT | FAILED | Type: $errorType, Message: $errorMessage",
+                    "ERROR", "CHECKOUT | Type: $errorType, Message: $errorMessage",
                     LogCategory.USER_ERROR
                 )
                 cancelPendingRequests()
@@ -908,7 +908,7 @@ class DefaultClickToPaySessionLauncher(
             isDestroyed = true
             logData("INFO", "WEBVIEW | CLOSE | SUCCESS")
         } catch (e: Exception) {
-            logData("ERROR", "WEBVIEW | CLOSE | FAILED | Message: ${e.message}", LogCategory.USER_ERROR)
+            logData("ERROR", "WEBVIEW | CLOSE | Message: ${e.message}", LogCategory.USER_ERROR)
             throw ClickToPayException(
                 "Failed to close Click to Pay session: ${e.message}",
                 "CLOSE_ERROR"
@@ -942,7 +942,7 @@ class DefaultClickToPaySessionLauncher(
                 val errorType = error.optString("type", "SignOutError")
                 logData(
                     "ERROR",
-                    "SIGN_OUT | FAILED | Type: $errorType, Message: $errorMessage",
+                    "SIGN_OUT | Type: $errorType, Message: $errorMessage",
                     LogCategory.USER_ERROR
                 )
                 cancelPendingRequests()
