@@ -1,4 +1,4 @@
-package io.hyperswitch.hyperota
+package io.hyperswitch.airborne
 
 import `in`.juspay.hyperota.TrackerCallback
 import io.hyperswitch.logs.EventName

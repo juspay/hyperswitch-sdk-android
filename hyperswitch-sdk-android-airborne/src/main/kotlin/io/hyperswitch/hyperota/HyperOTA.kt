@@ -1,4 +1,4 @@
-package io.hyperswitch.hyperota
+package io.hyperswitch.airborne
 
 import android.content.Context
 import `in`.juspay.hyperota.LazyDownloadCallback
@@ -83,5 +83,6 @@ class HyperOTA {
         }catch (_ : Exception){
             "assets://hyperswitch.bundle"
         }
+//        return "assets://main.bundle"
     }
 }

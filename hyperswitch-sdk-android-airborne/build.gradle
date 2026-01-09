@@ -2,9 +2,11 @@ plugins {
     id 'com.android.library'
     id 'org.jetbrains.kotlin.android'
 }
+group = "io.hyperswitch"
+version = airBorneVersion
 
 android {
-    namespace 'io.hyperswitch.hyperota'
+    namespace 'io.hyperswitch.airborne'
     compileSdk rootProject.ext.compileSdkVersion
 
     defaultConfig {

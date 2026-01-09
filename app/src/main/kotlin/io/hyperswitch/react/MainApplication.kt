@@ -20,11 +20,8 @@ import io.hyperswitch.R
 import io.hyperswitch.logs.CrashHandler
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
-
-import io.hyperswitch.hyperota.HyperOtaLogger
 import io.hyperswitch.logs.LogUtils.getEnvironment
 import io.hyperswitch.logs.SDKEnvironment
-import io.hyperswitch.hyperota.HyperOTA
 
 open class MainApplication : Application(), ReactApplication {
     private lateinit var context: Context
@@ -53,14 +50,26 @@ open class MainApplication : Application(), ReactApplication {
                         R.string.hyperOTAEndPoint
                 )
                 if (hyperOTAUrl != "hyperOTA_END_POINT_") {
-                    return HyperOTA(
-                        context.applicationContext,
+                    val hyperOTAClass = Class.forName("io.hyperswitch.airborne.HyperOTA")
+
+                    val constructor = hyperOTAClass.getConstructor(
+                        Context::class.java,
+                        String::class.java,
+                        String::class.java
+                    )
+
+                    val instance = constructor.newInstance(
+                        context.applicationContext,   // Context ✔
                         BuildConfig.VERSION_NAME,
                         hyperOTAUrl
-                    ).getBundlePath()
+                    )
+
+                    val getBundlePath = hyperOTAClass.getMethod("getBundlePath")
+                    val assetsPath = getBundlePath.invoke(instance) as String
+                    return assetsPath
                 }
                 return "assets://hyperswitch.bundle"
-            } catch (_: Exception) {
+            } catch (e: Exception) {
                 return "assets://hyperswitch.bundle"
             }
         }
@@ -72,7 +81,6 @@ open class MainApplication : Application(), ReactApplication {
     override fun onCreate() {
         this.context = this
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(context, BuildConfig.VERSION_NAME))
-        super.onCreate()
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
             override fun onActivityStarted(activity: Activity) {}

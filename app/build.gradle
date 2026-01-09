@@ -110,6 +110,6 @@ dependencies {
     }
 
     implementation project(':hyperswitch-sdk-android-logger')
-    implementation project(':hyperswitch-sdk-android-hyperota')
+    implementation project(':hyperswitch-sdk-android-airborne')
     api project(':hyperswitch-sdk-android-api')
 }
