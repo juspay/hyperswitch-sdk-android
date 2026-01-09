@@ -19,7 +19,7 @@ interface ClickToPaySessionLauncher {
      * @throws Exception if SDK initialization fails
      */
     @Throws(ClickToPayException::class)
-    suspend fun initialize(clientSecret: String?, sessionId: String?)
+    suspend fun initialize(clientSecret: String?, authenticationId: String?)
 
     /**
      * Initializes a Click to Pay session with payment credentials.

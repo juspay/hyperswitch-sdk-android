@@ -58,8 +58,8 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
         )
     )
 
-    suspend fun initialise(clientSecret: String?, sessionId: String?) {
-        clickToPaySessionLauncher.initialize(clientSecret, sessionId)
+    suspend fun initialise(clientSecret: String?, authenticationId: String?) {
+        clickToPaySessionLauncher.initialize(clientSecret, authenticationId)
     }
 
     suspend fun initClickToPaySession(

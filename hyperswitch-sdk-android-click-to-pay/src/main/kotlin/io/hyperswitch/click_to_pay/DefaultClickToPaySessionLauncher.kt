@@ -1,6 +1,7 @@
 package io.hyperswitch.click_to_pay
 
 import android.app.Activity
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -70,7 +71,7 @@ class DefaultClickToPaySessionLauncher(
 
     private val originalAccessibility = HashMap<View, Int>()
     private var clientSecret: String? = null
-    private var sessionId : String? = null
+    private var authenticationId: String? = null
 
     /**
      * Helper function to execute JavaScript on the Main thread and return the response.
@@ -101,11 +102,17 @@ class DefaultClickToPaySessionLauncher(
         }
     }
 
-    private fun logData(type: String, value: String, category: LogCategory= LogCategory.USER_EVENT) {
+    private fun logData(
+        type: String,
+        value: String,
+        category: LogCategory = LogCategory.USER_EVENT
+    ) {
         val log = HSLog.LogBuilder().logType(type).category(category)
-            .eventName(EventName.CLICK_TO_PAY_FLOW).value(value).version(BuildConfig.VERSION_NAME)
-            .paymentId(this.clientSecret ?: "").sessionId(this.sessionId ?: "")
-
+            .eventName(EventName.CLICK_TO_PAY_FLOW)
+            .value(value)
+            .version(BuildConfig.VERSION_NAME)
+            .paymentId(this.authenticationId ?: "")
+            .sessionId(this.clientSecret ?: "")
         HyperLogManager.addLog(log.build())
     }
 
@@ -257,7 +264,7 @@ class DefaultClickToPaySessionLauncher(
                 if (parent is ViewGroup) {
                     parent.removeView(hSWebViewWrapper)
                     isWebViewAttached = false
-                    logData("INFO", "WebView detached - JavaScript execution paused")
+                    logData("INFO", "WEBVIEW | DETACHED | JS execution paused")
                 }
             }
         }
@@ -273,7 +280,7 @@ class DefaultClickToPaySessionLauncher(
                 val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
                 rootView.addView(hSWebViewWrapper)
                 isWebViewAttached = true
-                logData("INFO","WebView reattached - JavaScript execution resumed")
+                logData("INFO", "WEBVIEW | REATTACHED | JS execution resumed")
             }
         }
     }
@@ -285,7 +292,7 @@ class DefaultClickToPaySessionLauncher(
      */
     private fun cancelPendingRequests(errorMessage: String = "Operation cancelled due to error") {
         if (pendingRequests.isNotEmpty()) {
-            logData("INFO","Cancelling ${pendingRequests.size} pending requests" )
+            logData("INFO", "WEBVIEW | Cancelling ${pendingRequests.size} pending requests")
             pendingRequests.values.forEach { continuation ->
                 continuation.cancel(kotlinx.coroutines.CancellationException(errorMessage))
             }
@@ -312,7 +319,7 @@ class DefaultClickToPaySessionLauncher(
      * 1. Ensures the session hasn't been destroyed
      * 2. Ensures the WebView is initialized
      * 3. Ensures the WebView is attached and ready
-     *
+     * 
      * @throws ClickToPayException if the session is destroyed or initialization fails
      */
     private suspend fun ensureReady() {
@@ -333,7 +340,7 @@ class DefaultClickToPaySessionLauncher(
 
         withContext(Dispatchers.Main) {
             if (isWebViewInitialized && !allowReinitialize) return@withContext
-            logData("INFO","Initializing WebView")
+            logData("INFO", "WEBVIEW | INIT")
             val onMessage = Callback { args ->
                 (args["data"] as? String)?.let { jsonString ->
                     val jsonObject = JSONObject(jsonString)
@@ -365,7 +372,7 @@ class DefaultClickToPaySessionLauncher(
             isWebViewAttached = true
 
             isWebViewInitialized = true
-            logData("INFO","WebView initialized successfully" )
+            logData("INFO", "WEBVIEW | INIT | SUCCESS")
         }
     }
 
@@ -374,20 +381,21 @@ class DefaultClickToPaySessionLauncher(
      *
      * Creates an HTML page with the HyperLoader.js script and initializes
      * the Hyper instance with the provided configuration.
-     *
+     * 
      * Can be called again after close() to reinitialize the session.
      *
      * @throws ClickToPayException if SDK initialization fails with error details
      */
     @Throws(ClickToPayException::class)
-    override suspend fun initialize(clientSecret: String?, sessionId: String?) {
+    override suspend fun initialize(clientSecret: String?, authenticationId: String?) {
         val loggingEndPoint = if (customLogUrl != "" && customLogUrl != null) {
             customLogUrl
         } else {
             getLoggingUrl(publishableKey)
         }
+
         this.clientSecret = clientSecret
-        this.sessionId = sessionId
+        this.authenticationId = authenticationId
         HyperLogManager.initialise(publishableKey, loggingEndPoint)
         // Allow reinitialization if the session was previously closed
         if (isDestroyed) {
@@ -416,7 +424,7 @@ class DefaultClickToPaySessionLauncher(
             "https://sandbox.secure.checkout.visa.com"
         }
         val hyperLoaderUrl = getHyperLoaderURL()
-        logData("INFO","loading url from $hyperLoaderUrl with $baseUrl")
+        logData("INFO", "WEBVIEW | LOADING | $hyperLoaderUrl with $baseUrl")
         val baseHtml =
             "<!DOCTYPE html><html><head><script>function handleScriptError(){console.error('ClickToPay','Failed to load HyperLoader.js');window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'ScriptLoadError',message:'Failed to load HyperLoader.js'}}}));}async function initHyper(){try{if(typeof Hyper==='undefined'){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperUndefinedError',message:'Hyper is not defined'}}}));return;}window.hyperInstance=Hyper.init('$publishableKey',{${customBackendUrl?.let { "customBackendUrl:'$customBackendUrl'," } ?: ""}${customLogUrl?.let { "customLogUrl:'$customLogUrl'," } ?: ""}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{sdkInitialised:true}}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperInitializationError',message:error.message}}}))}}</script><script src='${hyperLoaderUrl}' onload='initHyper()' onerror='handleScriptError()' async></script></head><body></body></html>"
 
@@ -439,7 +447,11 @@ class DefaultClickToPaySessionLauncher(
             if (error != null) {
                 val errorType = error.optString("type", "Unknown")
                 val errorMessage = error.optString("message", "Unknown error")
-                logData("ERROR","Failed to load URL - Type: $errorType, Message: $errorMessage", LogCategory.USER_ERROR )
+                logData(
+                    "ERROR",
+                    "WEBVIEW | FAILED | URL | Type: $errorType, Message: $errorMessage",
+                    LogCategory.USER_ERROR
+                )
                 cancelPendingRequests()
                 detachWebView()
                 throw ClickToPayException(
@@ -447,7 +459,7 @@ class DefaultClickToPaySessionLauncher(
                     "SCRIPT_LOAD_ERROR"
                 )
             }
-            logData("INFO","Script loaded successfully" )
+            logData("INFO", "WEBVIEW | SUCCESS | Script loaded")
         }
     }
 
@@ -474,7 +486,7 @@ class DefaultClickToPaySessionLauncher(
     ) {
         ensureReady()
         val requestId = UUID.randomUUID().toString()
-        logData("INFO","initialing click to pay session." )
+        logData("INFO", "C2P | INIT")
 
         val jsCode =
             "(async function(){try{const authenticationSession=window.hyperInstance.initAuthenticationSession({clientSecret:'$clientSecret',profileId:'$profileId',authenticationId:'$authenticationId',merchantId:'$merchantId'});window.ClickToPaySession=await authenticationSession.initClickToPaySession({request3DSAuthentication:$request3DSAuthentication});const data=window.ClickToPaySession.error?window.ClickToPaySession:{success:true};window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:data}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'InitClickToPaySessionError',message:error.message}}}))}})();"
@@ -489,7 +501,11 @@ class DefaultClickToPaySessionLauncher(
             if (error != null) {
                 val errorType = error.optString("type", "Unknown")
                 val errorMessage = error.optString("message", "Unknown error")
-                logData("ERROR","Failed to initialize Click to Pay session - Type: $errorType, Message: $errorMessage", LogCategory.USER_ERROR )
+                logData(
+                    "ERROR",
+                    "C2P | FAILED | Type: $errorType, Message: $errorMessage",
+                    LogCategory.USER_ERROR
+                )
                 cancelPendingRequests()
                 detachWebView()
                 throw ClickToPayException(
@@ -497,7 +513,7 @@ class DefaultClickToPaySessionLauncher(
                     "INIT_CLICK_TO_PAY_SESSION_ERROR"
                 )
             }
-            logData("INFO","Click to pay init success")
+            logData("INFO", "C2P | SUCCESS")
         }
     }
 
@@ -518,7 +534,7 @@ class DefaultClickToPaySessionLauncher(
 
         val jsCode =
             "(async function(){try{const isCustomerPresent=await window.ClickToPaySession.isCustomerPresent({${request.email?.let { "email:'${request.email}'" } ?: ""}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:isCustomerPresent}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'IsCustomerPresentError',message:error.message}}}))}})();"
-        logData("INFO","Checking Customer Presence")
+        logData("INFO", "CUSTOMER_CHECK | CHECKING")
 
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
 
@@ -530,14 +546,18 @@ class DefaultClickToPaySessionLauncher(
             if (error != null) {
                 val errorType = error.optString("type", "ERROR")
                 val errorMessage = error.optString("message", "Unknown Error")
-                logData("ERROR","Failed to get customer present - Type: $errorType, Message: $errorMessage", LogCategory.USER_ERROR )
+                logData(
+                    "ERROR",
+                    "CUSTOMER_CHECK | FAILED | Type: $errorType, Message: $errorMessage",
+                    LogCategory.USER_ERROR
+                )
                 cancelPendingRequests()
                 detachWebView()
                 throw ClickToPayException(
                     "Failed to get customer present: $errorMessage", errorType
                 )
             }
-            logData("INFO","parsed customer retrieved successfully")
+            logData("INFO", "CUSTOMER_CHECK | SUCCESS | parsed")
 
             CustomerPresenceResponse(
                 customerPresent = data.optBoolean("customerPresent", false)
@@ -562,7 +582,7 @@ class DefaultClickToPaySessionLauncher(
         val jsCode =
             "(async function(){try{const userType=await window.ClickToPaySession.getUserType();window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:userType}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:error.type||'ERROR',message:error.message}}}))}})();"
 
-        logData("INFO","Getting User Type")
+        logData("INFO", "GET_USER_TYPE | INIT | checking")
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
 
         return withContext(Dispatchers.Default) {
@@ -573,14 +593,18 @@ class DefaultClickToPaySessionLauncher(
             if (error != null) {
                 val errorType = error.optString("type", "ERROR")
                 val errorMessage = error.optString("message", "Unknown Error")
-                logData("ERROR","Failed to get user type - Type: $errorType, Message: $errorMessage", LogCategory.USER_ERROR)
+                logData(
+                    "ERROR",
+                    "GET_USER_TYPE | FAILED | Type: $errorType, Message: $errorMessage",
+                    LogCategory.USER_ERROR
+                )
                 cancelPendingRequests()
                 detachWebView()
                 throw ClickToPayException(
                     message = "Failed to get user type : $errorMessage", errorType
                 )
             }
-            logData("INFO","parsed get user type successfully")
+            logData("INFO", "GET_USER_TYPE | SUCCESS | parsed")
 
             val statusCodeStr = data.optString("statusCode", "NO_CARDS_PRESENT").uppercase()
             CardsStatusResponse(
@@ -605,7 +629,7 @@ class DefaultClickToPaySessionLauncher(
 
         val jsCode =
             "(async function(){try{const cards=await window.ClickToPaySession.getRecognizedCards();window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:cards}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'GetRecognizedCardsError',message:error.message}}}))}})();"
-        logData("INFO","Getting User cards")
+        logData("INFO", "GET_CARDS | INIT")
 
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
 
@@ -617,8 +641,11 @@ class DefaultClickToPaySessionLauncher(
                 val error = data.getJSONObject("error")
                 val errorType = error.optString("type", "ERROR")
                 val errorMessage = error.optString("message", "Unknown error")
-                logData("ERROR","Failed to get recognized cards - Type: $errorType, Message: $errorMessage",
-                    LogCategory.USER_ERROR)
+                logData(
+                    "ERROR",
+                    "GET_CARDS | FAILED | Type: $errorType, Message: $errorMessage",
+                    LogCategory.USER_ERROR
+                )
                 cancelPendingRequests()
                 detachWebView()
                 throw ClickToPayException(
@@ -631,7 +658,9 @@ class DefaultClickToPaySessionLauncher(
             val cards = (0 until cardsArray.length()).map { i ->
                 parseRecognizedCard(cardsArray.getJSONObject(i))
             }
-            logData("INFO","parsed recognized cards")
+            val visaCount = cards.count{it.paymentCardDescriptor == CardType.VISA}
+            val masterCardCount = cards.count{it.paymentCardDescriptor == CardType.MASTERCARD }
+            logData("INFO", "GET_CARDS | SUCCESS | parsed visa: $visaCount | mastercard: $masterCardCount")
             cards
 
         }
@@ -654,7 +683,7 @@ class DefaultClickToPaySessionLauncher(
 
         val jsCode =
             "(async function(){try{const cards=await window.ClickToPaySession.validateCustomerAuthentication({value:'$otpValue'});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:cards}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:error.type||'ERROR',message:error.message}}}))}})();"
-        logData("INFO","Validating Customer Authentication")
+        logData("INFO", "AUTH_VALIDATION | INIT | Validating Customer Authentication")
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
 
         return withContext(Dispatchers.Default) {
@@ -665,8 +694,11 @@ class DefaultClickToPaySessionLauncher(
                 val error = data.getJSONObject("error")
                 val errorType = error.optString("type", "ERROR")
                 val errorMessage = error.optString("message", "Unknown error")
-                logData("ERROR","Failed to validate user authentification - Type: $errorType, Message: $errorMessage",
-                    LogCategory.USER_ERROR)
+                logData(
+                    "ERROR",
+                    "AUTH_VALIDATION | FAILED | Type: $errorType, Message: $errorMessage",
+                    LogCategory.USER_ERROR
+                )
                 cancelPendingRequests()
                 detachWebView()
                 throw ClickToPayException(
@@ -678,7 +710,7 @@ class DefaultClickToPaySessionLauncher(
             val cards = (0 until cardsArray.length()).map { i ->
                 parseRecognizedCard(cardsArray.getJSONObject(i))
             }
-            logData("INFO","parsed validate otp successfully")
+            logData("INFO", "AUTH_VALIDATION | SUCCESS | parsed")
             cards
         }
     }
@@ -739,7 +771,7 @@ class DefaultClickToPaySessionLauncher(
 
         val jsCode =
             "(async function(){try{const checkoutResponse=await window.ClickToPaySession.checkoutWithCard({srcDigitalCardId:'${request.srcDigitalCardId}',rememberMe:${request.rememberMe}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:checkoutResponse}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'CheckoutWithCardError',message:error.message}}}))}})();"
-        logData("INFO","Checkout payment with card with rememberMe as ${request.rememberMe}")
+        logData("INFO", "CHECKOUT | INIT | rememberMe: ${request.rememberMe}")
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
         restoreAccessibility()
         return withContext(Dispatchers.Default) {
@@ -750,8 +782,10 @@ class DefaultClickToPaySessionLauncher(
             if (error != null) {
                 val errorType = error.optString("type", "ERROR")
                 val errorMessage = error.optString("message", "Unknown error")
-                logData("ERROR","Failed to checkout - Type: $errorType, Message: $errorMessage",
-                    LogCategory.USER_ERROR)
+                logData(
+                    "ERROR", "CHECKOUT | FAILED | Type: $errorType, Message: $errorMessage",
+                    LogCategory.USER_ERROR
+                )
                 cancelPendingRequests()
                 detachWebView()
                 throw ClickToPayException(errorMessage, errorType)
@@ -833,29 +867,28 @@ class DefaultClickToPaySessionLauncher(
                 errorCode = safeReturnStringValue(data, "errorCode"),
                 profileAcquirerId = safeReturnStringValue(data, "profileAcquirerId")
             )
-            logData("INFO","checkout successfully")
+            logData("INFO", "CHECKOUT | SUCCESS | parsed")
             response
         }
     }
 
     /**
      * Closes and destroys the Click to Pay session.
-     *
+     * 
      * Performs cleanup by:
      * - Cancelling all pending requests
      * - Restoring accessibility settings
      * - Destroying the WebView and its wrapper
-     *
+     * 
      * After calling this method, the session cannot be used again.
      * A new instance must be created for subsequent operations.
-     *
+     * 
      * @throws ClickToPayException if cleanup fails
      */
     @Throws(ClickToPayException::class)
     override suspend fun close() {
         try {
-            logData("INFO","Closing Click to Pay session")
-
+            logData("INFO", "WEBVIEW | CLOSE | INIT")
             pendingRequests.values.forEach { it.cancel() }
             pendingRequests.clear()
 
@@ -873,9 +906,9 @@ class DefaultClickToPaySessionLauncher(
 
             isWebViewInitialized = false
             isDestroyed = true
-            logData("INFO","Click to Pay session closed successfully")
+            logData("INFO", "WEBVIEW | CLOSE | SUCCESS")
         } catch (e: Exception) {
-            logData("ERROR","Failed to close session: ${e.message}", LogCategory.USER_ERROR)
+            logData("ERROR", "WEBVIEW | CLOSE | FAILED | Message: ${e.message}", LogCategory.USER_ERROR)
             throw ClickToPayException(
                 "Failed to close Click to Pay session: ${e.message}",
                 "CLOSE_ERROR"
@@ -895,7 +928,7 @@ class DefaultClickToPaySessionLauncher(
         val requestId = UUID.randomUUID().toString()
         val jsCode =
             "(async function(){try{const signOutResponse = await window.ClickToPaySession.signOut();window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data: signOutResponse }));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'SignOutError',message:error.message}}}))}})();"
-        logData("INFO","unbinding the device")
+        logData("INFO", "SIGN_OUT | INIT | unbinding the device")
 
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
         return withContext(Dispatchers.Default) {
@@ -907,14 +940,18 @@ class DefaultClickToPaySessionLauncher(
                     "message", "SignOut Error"
                 )
                 val errorType = error.optString("type", "SignOutError")
-                logData("ERROR","Failed to checkout - Type: $errorType, Message: $errorMessage", LogCategory.USER_ERROR)
+                logData(
+                    "ERROR",
+                    "SIGN_OUT | FAILED | Type: $errorType, Message: $errorMessage",
+                    LogCategory.USER_ERROR
+                )
                 cancelPendingRequests()
                 detachWebView()
                 throw ClickToPayException(
                     "Failed to SignOut : $errorMessage", errorType
                 )
             }
-            logData("INFO","successfully device unbinded")
+            logData("INFO", "SIGN_OUT | SUCCESS | device unbind")
             SignOutResponse(
                 recognized = data.optBoolean("recognized", false)
             )
