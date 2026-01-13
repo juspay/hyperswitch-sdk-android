@@ -48,7 +48,7 @@ import kotlin.coroutines.resume
  * @property pendingRequests Map of pending async requests awaiting responses
  */
 class DefaultClickToPaySessionLauncher(
-    private val activity: Activity,
+    private var activity: Activity,
     private val publishableKey: String,
     private val customBackendUrl: String? = null,
     private val customLogUrl: String? = null,
@@ -955,6 +955,32 @@ class DefaultClickToPaySessionLauncher(
             SignOutResponse(
                 recognized = data.optBoolean("recognized", false)
             )
+        }
+    }
+
+    override fun setActivity(activity: Activity) {
+        if (this.activity === activity) return
+        logData("INFO", "ACTIVITY_UPDATE | Switching from ${this.activity.javaClass.simpleName} to ${activity.javaClass.simpleName}")
+        activity.runOnUiThread {
+            if (isWebViewInitialized && isWebViewAttached) {
+                val parent = hSWebViewWrapper.parent
+                if (parent is ViewGroup) {
+                    parent.removeView(hSWebViewWrapper)
+                    isWebViewAttached = false
+                    logData("INFO", "WEBVIEW | DETACHED from old activity")
+                }
+            }
+            this.activity = activity
+            if (isWebViewInitialized && !isWebViewAttached) {
+                val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
+                if (rootView != null) {
+                    rootView.addView(hSWebViewWrapper)
+                    isWebViewAttached = true
+                    logData("INFO", "WEBVIEW | ATTACHED to new activity")
+                } else {
+                    logData("ERROR", "WEBVIEW | Failed to find root view in new activity", LogCategory.USER_ERROR)
+                }
+            }
         }
     }
 }

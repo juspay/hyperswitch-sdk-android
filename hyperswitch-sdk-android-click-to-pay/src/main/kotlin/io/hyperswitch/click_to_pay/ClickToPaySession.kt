@@ -4,7 +4,7 @@ import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.click_to_pay.models.*
 
-class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySessionLauncher){
+class ClickToPaySession(val clickToPaySessionLauncher: ClickToPaySessionLauncher){
 
     constructor(
         activity: Activity,

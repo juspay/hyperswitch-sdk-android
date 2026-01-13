@@ -1,5 +1,6 @@
 package io.hyperswitch.click_to_pay
 
+import android.app.Activity
 import io.hyperswitch.click_to_pay.models.*
 
 /**
@@ -130,4 +131,6 @@ interface ClickToPaySessionLauncher {
      */
     @Throws(ClickToPayException::class)
     suspend fun close()
+
+    fun setActivity(activity: Activity)
 }

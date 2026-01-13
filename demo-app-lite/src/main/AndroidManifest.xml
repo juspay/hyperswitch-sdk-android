@@ -21,6 +21,9 @@
         <activity
             android:name=".ClickToPayExample"
             android:exported="true" />
+        <activity
+            android:name=".C2PExample2"
+            android:exported="false" />
     </application>
 
 </manifest>
