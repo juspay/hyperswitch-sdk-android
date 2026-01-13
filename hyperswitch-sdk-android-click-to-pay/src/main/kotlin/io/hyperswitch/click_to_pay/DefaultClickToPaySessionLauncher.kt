@@ -658,8 +658,8 @@ class DefaultClickToPaySessionLauncher(
             val cards = (0 until cardsArray.length()).map { i ->
                 parseRecognizedCard(cardsArray.getJSONObject(i))
             }
-            val visaCount = cards.count{it.paymentCardDescriptor == CardType.VISA}
-            val masterCardCount = cards.count{it.paymentCardDescriptor == CardType.MASTERCARD }
+            val visaCount = cards.count { it.paymentCardDescriptor == CardType.VISA }
+            val masterCardCount = cards.count { it.paymentCardDescriptor == CardType.MASTERCARD }
             logData("INFO", "GET_CARDS | SUCCESS | parsed visa: $visaCount | mastercard: $masterCardCount")
             cards
 
