@@ -45,8 +45,8 @@ class DefaultAuthenticationSessionLauncher(
      * @throws Exception if SDK initialization fails
      */
     @Throws(Exception::class)
-    override suspend fun initialize() {
-        clickToPaySession.initialise()
+    override suspend fun initialize(clientSecret: String?, authenticationId: String?) {
+        clickToPaySession.initialise(clientSecret, authenticationId)
     }
 
     /**
@@ -117,11 +117,13 @@ class DefaultAuthenticationSessionLauncher(
         merchantId: String?,
         request3DSAuthentication: Boolean
     ): ClickToPaySession {
-        clickToPaySession.initClickToPaySession(
+        clickToPaySession.initAuthenticationSession(
             clientSecret,
             profileId,
             authenticationId,
-            merchantId,
+            merchantId
+        )
+        clickToPaySession.initClickToPaySession(
             request3DSAuthentication
         )
         return clickToPaySession
@@ -131,10 +133,39 @@ class DefaultAuthenticationSessionLauncher(
      * Get the existing Active ClickToPay Session
      *
      */
+
     override suspend fun getActiveClickToPaySession(
-        activity: Activity,
+        activity: Activity
     ): ClickToPaySession? {
         return try {
+            clickToPaySession.initAuthenticationSession(
+                clientSecret,
+                profileId,
+                authenticationId,
+                merchantId
+            )
+            clickToPaySession.getActiveClickToPaySession(
+                activity
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    override suspend fun getActiveClickToPaySession(
+        activity: Activity,
+        clientSecret: String?,
+        profileId: String?,
+        authenticationId: String?,
+        merchantId: String?,
+    ): ClickToPaySession? {
+        return try {
+            clickToPaySession.initAuthenticationSession(
+                clientSecret,
+                profileId,
+                authenticationId,
+                merchantId
+            )
             clickToPaySession.getActiveClickToPaySession(
                 activity
             )
@@ -149,5 +180,6 @@ class DefaultAuthenticationSessionLauncher(
      * Currently a no-op placeholder for future 3DS functionality.
      */
     @Throws(Exception::class)
-    override suspend fun initThreeDSSession() {}
+    override suspend fun initThreeDSSession() {
+    }
 }

@@ -120,7 +120,7 @@ class AuthenticationSession(
         authenticationId: String,
         merchantId: String,
     ) {
-        authenticationSessionLauncher.initialize()
+        authenticationSessionLauncher.initialize(clientSecret, authenticationId)
         
         return authenticationSessionLauncher.initAuthenticationSession(
             clientSecret,
@@ -169,11 +169,10 @@ class AuthenticationSession(
     suspend fun getActiveClickToPaySession(activity: Activity): ClickToPaySession? {
         val session = activeSession ?: return null
 
-        val launcher = authenticationSessionLauncher as? DefaultAuthenticationSessionLauncher
-        if (session.publishableKey != launcher?.publishableKey) {
+        val launcher = authenticationSessionLauncher
+        if (session.publishableKey != launcher.publishableKey) {
             return null
         }
-
 
         return try {
             val session =  session.getActiveClickToPaySession(

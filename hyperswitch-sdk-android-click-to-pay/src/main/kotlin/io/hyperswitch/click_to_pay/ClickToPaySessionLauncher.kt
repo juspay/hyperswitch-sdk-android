@@ -22,7 +22,7 @@ interface ClickToPaySessionLauncher {
      * @throws Exception if SDK initialization fails
      */
     @Throws(ClickToPayException::class)
-    suspend fun initialize()
+    suspend fun initialize(clientSecret: String?, authenticationId: String?)
 
     /**
      * Initializes a Click to Pay session with payment credentials.
@@ -39,12 +39,17 @@ interface ClickToPaySessionLauncher {
      */
     @Throws(ClickToPayException::class)
     suspend fun initClickToPaySession(
+        request3DSAuthentication: Boolean
+    )
+
+    @Throws(ClickToPayException::class)
+    suspend fun initAuthenticationSession(
         clientSecret: String?,
         profileId: String?,
         authenticationId: String?,
         merchantId: String?,
-        request3DSAuthentication: Boolean
     )
+
 
     @Throws(ClickToPayException::class)
     suspend fun getActiveClickToPaySession(

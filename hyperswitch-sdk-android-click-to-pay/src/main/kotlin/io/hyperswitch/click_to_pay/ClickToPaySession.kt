@@ -55,25 +55,37 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
         )
     )
 
-    suspend fun initialise() {
-        clickToPaySessionLauncher.initialize()
+    suspend fun initialise(clientSecret: String?, authenticationId: String?) {
+        clickToPaySessionLauncher.initialize(clientSecret, authenticationId)
     }
 
-    suspend fun initClickToPaySession(
+    suspend fun initAuthenticationSession(
         clientSecret: String?,
         profileId: String?,
         authenticationId: String?,
         merchantId: String?,
-        request3DSAuthentication: Boolean
     ) {
-        clickToPaySessionLauncher.initClickToPaySession(
-            clientSecret, profileId, authenticationId, merchantId, request3DSAuthentication
+        clickToPaySessionLauncher.initAuthenticationSession(
+            clientSecret,
+            profileId,
+            authenticationId,
+            merchantId
         )
     }
 
+    suspend fun initClickToPaySession(
+        request3DSAuthentication: Boolean
+    ) {
+        clickToPaySessionLauncher.initClickToPaySession(
+            request3DSAuthentication
+        )
+    }
+
+
     suspend fun getActiveClickToPaySession(
-        activity: Activity
-    ): ClickToPaySession? {
+        activity: Activity,
+
+        ): ClickToPaySession? {
         return try {
             clickToPaySessionLauncher.getActiveClickToPaySession(
                 activity
