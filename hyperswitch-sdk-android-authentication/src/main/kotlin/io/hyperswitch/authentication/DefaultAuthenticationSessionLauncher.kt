@@ -7,7 +7,7 @@ import io.hyperswitch.click_to_pay.models.ClickToPayException
 
 /**
  * Default implementation of AuthenticationSessionLauncher.
- * 
+ *
  * This class manages the lifecycle of authentication and Click to Pay sessions,
  * handling initialization, credential storage, and session creation.
  *
@@ -23,7 +23,7 @@ class DefaultAuthenticationSessionLauncher(
     customBackendUrl: String? = null,
     customLogUrl: String? = null,
     customParams: Bundle? = null,
-): AuthenticationSessionLauncher {
+) : AuthenticationSessionLauncher {
     private var clickToPaySession: ClickToPaySession = ClickToPaySession(
         activity,
         publishableKey,
@@ -38,7 +38,7 @@ class DefaultAuthenticationSessionLauncher(
 
     /**
      * Initializes the Click to Pay SDK.
-     * 
+     *
      * Loads required resources and prepares the SDK for use.
      * Must be called before any Click to Pay operations.
      *
@@ -51,7 +51,7 @@ class DefaultAuthenticationSessionLauncher(
 
     /**
      * Stores authentication credentials for subsequent operations.
-     * 
+     *
      * These credentials are used when initializing Click to Pay sessions
      * without explicitly providing them each time.
      *
@@ -75,7 +75,7 @@ class DefaultAuthenticationSessionLauncher(
 
     /**
      * Initializes a Click to Pay session using stored credentials.
-     * 
+     *
      * Uses credentials previously set via initAuthenticationSession.
      *
      * @param request3DSAuthentication Whether to request 3DS authentication
@@ -95,9 +95,10 @@ class DefaultAuthenticationSessionLauncher(
         )
     }
 
+
     /**
      * Initializes a Click to Pay session with explicit credentials.
-     * 
+     *
      * Allows initializing a session without calling initAuthenticationSession first.
      *
      * @param clientSecret The client secret from the payment intent
@@ -127,8 +128,24 @@ class DefaultAuthenticationSessionLauncher(
     }
 
     /**
+     * Get the existing Active ClickToPay Session
+     *
+     */
+    override suspend fun getActiveClickToPaySession(
+        activity: Activity,
+    ): ClickToPaySession? {
+        return try {
+            clickToPaySession.getActiveClickToPaySession(
+                activity
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
      * Initializes a 3DS authentication session.
-     * 
+     *
      * Currently a no-op placeholder for future 3DS functionality.
      */
     @Throws(Exception::class)

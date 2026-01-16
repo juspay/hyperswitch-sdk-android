@@ -2,8 +2,10 @@ package io.hyperswitch.authentication
 
 import android.app.Activity
 import android.os.Bundle
+import android.util.Log
 import io.hyperswitch.click_to_pay.ClickToPaySession
 import io.hyperswitch.click_to_pay.models.ClickToPayException
+import org.jetbrains.annotations.Nullable
 
 /**
  * Main entry point for authentication and Click to Pay sessions.
@@ -150,8 +152,40 @@ class AuthenticationSession(
     suspend fun initClickToPaySession(
         request3DSAuthentication: Boolean
     ): ClickToPaySession {
-        return authenticationSessionLauncher.initClickToPaySession(
+        val session = authenticationSessionLauncher.initClickToPaySession(
             request3DSAuthentication
         )
+        if (activeSession != null && activeSession !== session) {
+            try {
+                activeSession?.close()
+            } catch (_: Exception) {
+            }
+        }
+        activeSession = session
+        return session
+    }
+
+
+    suspend fun getActiveClickToPaySession(activity: Activity): ClickToPaySession? {
+        val session = activeSession ?: return null
+
+        val launcher = authenticationSessionLauncher as? DefaultAuthenticationSessionLauncher
+        if (session.publishableKey != launcher?.publishableKey) {
+            return null
+        }
+
+
+        return try {
+            val session =  session.getActiveClickToPaySession(
+                activity
+            )
+            session
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    companion object {
+        private var activeSession: ClickToPaySession? = null
     }
 }
