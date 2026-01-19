@@ -59,41 +59,36 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
         clickToPaySessionLauncher.initialize(clientSecret, authenticationId)
     }
 
-    suspend fun initAuthenticationSession(
+    suspend fun initClickToPaySession(
+        request3DSAuthentication: Boolean,
         clientSecret: String?,
         profileId: String?,
         authenticationId: String?,
         merchantId: String?,
     ) {
-        clickToPaySessionLauncher.initAuthenticationSession(
-            clientSecret,
+        clickToPaySessionLauncher.initClickToPaySession(
+            request3DSAuthentication,clientSecret,
             profileId,
             authenticationId,
             merchantId
         )
     }
 
-    suspend fun initClickToPaySession(
-        request3DSAuthentication: Boolean
-    ) {
-        clickToPaySessionLauncher.initClickToPaySession(
-            request3DSAuthentication
-        )
-    }
-
 
     suspend fun getActiveClickToPaySession(
         activity: Activity,
-
+        clientSecret: String?,
+        profileId: String?,
+        authenticationId: String?,
+        merchantId: String?,
         ): ClickToPaySession? {
-        return try {
             clickToPaySessionLauncher.getActiveClickToPaySession(
-                activity
+                activity,clientSecret,
+                profileId,
+                authenticationId,
+                merchantId
             )
-            this
-        } catch (_: Exception) {
-            null
-        }
+        return this
     }
 
     suspend fun isCustomerPresent(request: CustomerPresenceRequest): CustomerPresenceResponse? {

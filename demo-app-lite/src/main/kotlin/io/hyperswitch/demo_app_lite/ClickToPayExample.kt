@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.os.Handler as OSHandler
 import android.os.Looper
 import android.text.InputType
+import android.util.Log
 import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
 import android.widget.Button

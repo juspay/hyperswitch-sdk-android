@@ -2,6 +2,7 @@ package io.hyperswitch.authentication
 
 import android.app.Activity
 import android.os.Bundle
+import android.util.Log
 import io.hyperswitch.click_to_pay.ClickToPaySession
 import io.hyperswitch.click_to_pay.models.ClickToPayException
 
@@ -19,17 +20,18 @@ import io.hyperswitch.click_to_pay.models.ClickToPayException
  */
 class DefaultAuthenticationSessionLauncher(
     activity: Activity,
-    val publishableKey: String,
+    publishableKey: String,
     customBackendUrl: String? = null,
     customLogUrl: String? = null,
     customParams: Bundle? = null,
 ) : AuthenticationSessionLauncher {
-    private var clickToPaySession: ClickToPaySession = ClickToPaySession(
-        activity,
-        publishableKey,
-        customBackendUrl,
-        customLogUrl,
-        customParams
+
+    private val clickToPaySession = ClickToPaySession(
+    activity,
+    publishableKey,
+    customBackendUrl,
+    customLogUrl,
+    customParams
     )
     private var clientSecret: String? = null
     private var profileId: String? = null
@@ -46,6 +48,7 @@ class DefaultAuthenticationSessionLauncher(
      */
     @Throws(Exception::class)
     override suspend fun initialize(clientSecret: String?, authenticationId: String?) {
+        // this is for all Auth Module, not only for c2p
         clickToPaySession.initialise(clientSecret, authenticationId)
     }
 
@@ -117,16 +120,26 @@ class DefaultAuthenticationSessionLauncher(
         merchantId: String?,
         request3DSAuthentication: Boolean
     ): ClickToPaySession {
-        clickToPaySession.initAuthenticationSession(
-            clientSecret,
-            profileId,
-            authenticationId,
-            merchantId
-        )
-        clickToPaySession.initClickToPaySession(
-            request3DSAuthentication
-        )
-        return clickToPaySession
+        try {
+            if (activeClickToPay != null && activeClickToPay !== clickToPaySession) {
+                try {
+                    activeClickToPay?.close()
+                }catch(_ : Exception){
+
+                }
+            }
+            clickToPaySession.initClickToPaySession(
+                request3DSAuthentication,
+                clientSecret,
+                profileId,
+                authenticationId,
+                merchantId
+            )
+            activeClickToPay = clickToPaySession
+            return clickToPaySession
+        }catch (_: Exception){
+            throw ClickToPayException("C2P instance not found", "")
+        }
     }
 
     /**
@@ -138,20 +151,22 @@ class DefaultAuthenticationSessionLauncher(
         activity: Activity
     ): ClickToPaySession? {
         return try {
-            clickToPaySession.initAuthenticationSession(
+            getActiveClickToPaySession(
+                activity,
                 clientSecret,
                 profileId,
                 authenticationId,
                 merchantId
-            )
-            clickToPaySession.getActiveClickToPaySession(
-                activity
             )
         } catch (_: Exception) {
             null
         }
     }
 
+    /**
+     * Get the existing Active ClickToPay Session
+     *
+     */
     override suspend fun getActiveClickToPaySession(
         activity: Activity,
         clientSecret: String?,
@@ -160,14 +175,12 @@ class DefaultAuthenticationSessionLauncher(
         merchantId: String?,
     ): ClickToPaySession? {
         return try {
-            clickToPaySession.initAuthenticationSession(
+            activeClickToPay?.getActiveClickToPaySession(
+                activity,
                 clientSecret,
                 profileId,
                 authenticationId,
                 merchantId
-            )
-            clickToPaySession.getActiveClickToPaySession(
-                activity
             )
         } catch (_: Exception) {
             null
@@ -181,5 +194,8 @@ class DefaultAuthenticationSessionLauncher(
      */
     @Throws(Exception::class)
     override suspend fun initThreeDSSession() {
+    }
+    companion object {
+        private  var activeClickToPay: ClickToPaySession? = null
     }
 }

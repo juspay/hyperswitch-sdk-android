@@ -109,9 +109,9 @@ class DefaultClickToPaySessionLauncher(
 
     private fun getHyperLoaderURL(): String {
         return if (getEnvironment(publishableKey) == SDKEnvironment.PROD) {
-            "https://checkout.hyperswitch.io/web/2025.11.28.00/v1/HyperLoader.js"
+            "https://checkout.hyperswitch.io/web/2025.11.28.01/v1/HyperLoader.js"
         } else {
-            "https://beta.hyperswitch.io/web/2025.11.28.00/v1/HyperLoader.js"
+            "https://beta.hyperswitch.io/web/2025.11.28.01/v1/HyperLoader.js"
         }
     }
 
@@ -409,7 +409,7 @@ class DefaultClickToPaySessionLauncher(
             isWebViewInitialized = false
             isWebViewAttached = false
         }
-
+        // if webView exists don't create
         ensureWebViewInitialized(allowReinitialize = true)
         loadUrl()
     }
@@ -470,46 +470,6 @@ class DefaultClickToPaySessionLauncher(
         }
     }
 
-    @Throws(ClickToPayException::class)
-    override suspend fun initAuthenticationSession(
-        clientSecret: String?,
-        profileId: String?,
-        authenticationId: String?,
-        merchantId: String?,
-    ) {
-        ensureReady()
-        val requestId = UUID.randomUUID().toString()
-        logData("INFO", "C2P | INIT_AUTH")
-
-
-        val jsCode =
-            "(async function(){try{window.AuthenticationSession=window.hyperInstance.initAuthenticationSession({clientSecret:'$clientSecret',profileId:'$profileId',authenticationId:'$authenticationId',merchantId:'$merchantId'});const data=window.AuthenticationSession.error? window.AuthenticationSession:{success:true};window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:data}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'InitAuthenticationSessionError',message:error.message}}}))}})();"
-
-        val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
-
-        withContext(Dispatchers.Default) {
-            val jsonObject = JSONObject(responseJson)
-            val data = jsonObject.getJSONObject("data")
-
-            val error = data.optJSONObject("error")
-            if (error != null) {
-                val errorType = error.optString("type", "Unknown")
-                val errorMessage = error.optString("message", "Unknown error")
-                logData("ERROR", "C2P | INIT_AUTH | Type: $errorType, Message : $errorMessage",
-                    LogCategory.USER_ERROR)
-
-                cancelPendingRequests()
-                detachWebView()
-                throw ClickToPayException(
-                    "Failed to initialize Click to Pay session - Type: $errorType, Message: $errorMessage",
-                    "INIT_CLICK_TO_PAY_SESSION_ERROR"
-                )
-            }
-            logData("INFO", "C2P | INIT_AUTH | SUCCESS")
-        }
-    }
-
-
     /**
      * Initializes a Click to Pay session with payment credentials.
      *
@@ -525,14 +485,20 @@ class DefaultClickToPaySessionLauncher(
      */
     @Throws(ClickToPayException::class)
     override suspend fun initClickToPaySession(
-        request3DSAuthentication: Boolean
+        request3DSAuthentication: Boolean,
+        clientSecret: String?,
+        profileId: String?,
+        authenticationId: String?,
+        merchantId: String?,
     ) {
         ensureReady()
+        this.clientSecret = clientSecret
+        this.authenticationId = authenticationId
         val requestId = UUID.randomUUID().toString()
         logData("INFO", "C2P | INIT")
 
         val jsCode =
-            "(async function(){try{window.ClickToPaySession=await window.AuthenticationSession.initClickToPaySession({request3DSAuthentication:$request3DSAuthentication});const data=window.ClickToPaySession.error?window.ClickToPaySession:{success:true};window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:data}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'InitClickToPaySessionError',message:error.message}}}))}})();"
+            "(async function(){try{let authenticationSession=window.hyperInstance.initAuthenticationSession({clientSecret:'$clientSecret',profileId:'$profileId',authenticationId:'$authenticationId',merchantId:'$merchantId'});window.ClickToPaySession=await authenticationSession?.initClickToPaySession({request3DSAuthentication:$request3DSAuthentication});const data=window.ClickToPaySession.error?window.ClickToPaySession:{success:true};window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:data}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'InitClickToPaySessionError',message:error.message}}}))}})();"
 
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
 
@@ -562,29 +528,40 @@ class DefaultClickToPaySessionLauncher(
 
 
     override suspend fun getActiveClickToPaySession(
-        activity: Activity
+        activity: Activity,
+        clientSecret: String?,
+        profileId: String?,
+        authenticationId: String?,
+        merchantId: String?,
     ) {
         ensureReady()
         try {
             if (this.activity !== activity) {
+                this.clientSecret = clientSecret
+                this.authenticationId = authenticationId
                 logData(
                     "INFO",
                     "ACTIVITY_UPDATE | Switching from ${this.activity.javaClass.simpleName} to ${activity.javaClass.simpleName}"
                 )
-                activity.runOnUiThread {
-                    if (isWebViewInitialized && isWebViewAttached) {
-                        val parent = hSWebViewWrapper.parent
-                        if (parent is ViewGroup) {
-                            parent.removeView(hSWebViewWrapper)
-                            isWebViewAttached = false
-                            logData("INFO", "WEBVIEW | DETACHED from old activity")
-                        }
-                    }
+
+                     if (isWebViewInitialized && isWebViewAttached) {
+                         val parent = hSWebViewWrapper.parent
+                         if (parent is ViewGroup) {
+                             withContext(Dispatchers.Main) {
+                                 parent.removeView(hSWebViewWrapper)
+                             }
+                             isWebViewAttached = false
+                             logData("INFO", "WEBVIEW | DETACHED from old activity")
+                         }
+                     }
+
                     this.activity = activity
                     if (isWebViewInitialized && !isWebViewAttached) {
                         val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
                         if (rootView != null) {
-                            rootView.addView(hSWebViewWrapper)
+                            withContext(Dispatchers.Main) {
+                                rootView.addView(hSWebViewWrapper)
+                            }
                             isWebViewAttached = true
                             logData("INFO", "WEBVIEW | ATTACHED to new activity")
                         } else {
@@ -594,7 +571,6 @@ class DefaultClickToPaySessionLauncher(
                                 LogCategory.USER_ERROR
                             )
                         }
-                    }
                 }
             }
         } catch (_: Exception) {
@@ -603,7 +579,7 @@ class DefaultClickToPaySessionLauncher(
         val requestId = UUID.randomUUID().toString()
         logData("INFO", "C2P | GET_EXISTING_SESSION")
         val jsCode =
-            "(async function(){ try { window.ClickToPaySession = await window.AuthenticationSession?.getActiveClickToPaySession(); const data=window.ClickToPaySession.error?window.ClickToPaySession:{success:true};window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:data}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'getActiveClickToPaySessionError',message:error.message}}}))}})();"
+            "(async function(){ try {let authenticationSession=window.hyperInstance.initAuthenticationSession({clientSecret:'$clientSecret',profileId:'$profileId',authenticationId:'$authenticationId',merchantId:'$merchantId'}); window.ClickToPaySession = await authenticationSession?.getActiveClickToPaySession();const data=window.ClickToPaySession.error?window.ClickToPaySession:{success:true};window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:data}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'getActiveClickToPaySessionError',message:error.message}}}))}})();"
 
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
 

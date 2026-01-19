@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable
 
 /**
  * Main entry point for authentication and Click to Pay sessions.
- * 
+ *
  * This class provides a simplified interface for initializing authentication sessions
  * and Click to Pay functionality. It wraps the DefaultAuthenticationSessionLauncher
  * and provides multiple constructor overloads for different configuration needs.
@@ -103,7 +103,7 @@ class AuthenticationSession(
 
     /**
      * Initializes the authentication session with payment credentials.
-     * 
+     *
      * This method must be called before initiating Click to Pay sessions.
      * It initializes the SDK and stores the authentication credentials.
      *
@@ -121,7 +121,7 @@ class AuthenticationSession(
         merchantId: String,
     ) {
         authenticationSessionLauncher.initialize(clientSecret, authenticationId)
-        
+
         return authenticationSessionLauncher.initAuthenticationSession(
             clientSecret,
             profileId,
@@ -151,40 +151,20 @@ class AuthenticationSession(
     @Throws(ClickToPayException::class)
     suspend fun initClickToPaySession(
         request3DSAuthentication: Boolean
-    ): ClickToPaySession {
-        val session = authenticationSessionLauncher.initClickToPaySession(
+    ): ClickToPaySession =
+        authenticationSessionLauncher.initClickToPaySession(
             request3DSAuthentication
         )
-        if (activeSession != null && activeSession !== session) {
-            try {
-                activeSession?.close()
-            } catch (_: Exception) {
-            }
-        }
-        activeSession = session
-        return session
-    }
 
-
-    suspend fun getActiveClickToPaySession(activity: Activity): ClickToPaySession? {
-        val session = activeSession ?: return null
-
-        val launcher = authenticationSessionLauncher
-        if (session.publishableKey != launcher.publishableKey) {
-            return null
-        }
-
-        return try {
-            val session =  session.getActiveClickToPaySession(
-                activity
+    /**
+     * Get a Click to Pay session if session is present
+     *
+     * @param activity to show the challenge screen in case of new activity
+     * @return ClickToPaySession instance for managing Click to Pay operations if present
+     */
+    suspend fun getActiveClickToPaySession(activity: Activity): ClickToPaySession? =
+            authenticationSessionLauncher.getActiveClickToPaySession(
+                activity,
             )
-            session
-        } catch (e: Exception) {
-            null
-        }
-    }
 
-    companion object {
-        private var activeSession: ClickToPaySession? = null
-    }
 }
