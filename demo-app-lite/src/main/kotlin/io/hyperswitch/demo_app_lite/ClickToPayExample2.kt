@@ -1,7 +1,6 @@
 package io.hyperswitch.demo_app_lite
 
 import android.app.AlertDialog
-import android.content.Intent
 import android.os.Bundle
 import android.os.Handler as OSHandler
 import android.os.Looper
@@ -23,7 +22,7 @@ import io.hyperswitch.click_to_pay.models.*
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
-class ClickToPayExample : AppCompatActivity() {
+class ClickToPayExample2 : AppCompatActivity() {
 
     private lateinit var resultText: TextView
     private lateinit var btnStart: Button
@@ -34,7 +33,7 @@ class ClickToPayExample : AppCompatActivity() {
     private lateinit var freezeLog: TextView
     private var recognizedCards: List<RecognizedCard>? = null
     private var clickToPaySession: ClickToPaySession? = null
-    
+
     // Freeze detection
     private val mainHandler = OSHandler(Looper.getMainLooper())
     private var frameCount = 0L
@@ -42,44 +41,44 @@ class ClickToPayExample : AppCompatActivity() {
     private var freezeCount = 0
     private var maxFreezeDuration = 0L
     private val freezeEvents = mutableListOf<String>()
-    
+
     private val freezeDetectionRunnable = object : Runnable {
         override fun run() {
             frameCount++
             frameCounter.text = frameCount.toString()
-            
+
             val currentTime = System.currentTimeMillis()
             val timeSinceLastUpdate = currentTime - lastUpdateTime
-            
+
             // If more than 200ms has passed, UI might be freezing
             if (lastUpdateTime > 0 && timeSinceLastUpdate > 200) {
                 freezeCount++
                 if (timeSinceLastUpdate > maxFreezeDuration) {
                     maxFreezeDuration = timeSinceLastUpdate
                 }
-                
+
                 val freezeEvent = "Freeze #$freezeCount: ${timeSinceLastUpdate}ms"
                 freezeEvents.add(freezeEvent)
-                
+
                 // Keep only last 5 freeze events
                 if (freezeEvents.size > 5) {
                     freezeEvents.removeAt(0)
                 }
-                
+
                 freezeStatus.text = "⚠ UI freeze detected (${timeSinceLastUpdate}ms gap)"
                 freezeStatus.setTextColor(android.graphics.Color.parseColor("#dc3545"))
-                
+
                 updateFreezeLog()
             } else {
                 freezeStatus.text = "✓ UI is responsive"
                 freezeStatus.setTextColor(android.graphics.Color.parseColor("#28a745"))
             }
-            
+
             lastUpdateTime = currentTime
             mainHandler.postDelayed(this, 100) // Update every 100ms
         }
     }
-    
+
     private fun updateFreezeLog() {
         val logText = buildString {
             append("Total Freezes: $freezeCount")
@@ -104,29 +103,29 @@ class ClickToPayExample : AppCompatActivity() {
         frameCounter = findViewById(R.id.frameCounter)
         freezeStatus = findViewById(R.id.freezeStatus)
         freezeLog = findViewById(R.id.freezeLog)
-        
+
         signOut.visibility = INVISIBLE
         btnClose.visibility = INVISIBLE
 
-        btnStart.text = "Start Click to Pay Flow"
+        btnStart.text = "Proceed with Session Check"
         btnStart.setOnClickListener { startClickToPayFlow() }
         btnClose.setOnClickListener { closeSession() }
 
-        updateResultText("Click 'Start Click to Pay Flow' to begin")
-        
+        updateResultText("Click 'Proceed with Session Check' to begin")
+
         // Start freeze detection
         startFreezeDetection()
     }
-    
+
     private fun startFreezeDetection() {
         lastUpdateTime = System.currentTimeMillis()
         mainHandler.post(freezeDetectionRunnable)
     }
-    
+
     private fun stopFreezeDetection() {
         mainHandler.removeCallbacks(freezeDetectionRunnable)
     }
-    
+
     override fun onDestroy() {
         super.onDestroy()
         stopFreezeDetection()
@@ -175,46 +174,45 @@ class ClickToPayExample : AppCompatActivity() {
             // Step 2 & 3: Initialize sessions (now non-blocking)
             try {
                 val authSession =
-                    AuthenticationSession(this@ClickToPayExample, credentials.publishableKey)
+                    AuthenticationSession(this@ClickToPayExample2, credentials.publishableKey)
                 authSession.initAuthenticationSession(
                     credentials.clientSecret,
                     credentials.profileId,
                     credentials.authenticationId,
                     credentials.merchantId
                 )
-                clickToPaySession = authSession.initClickToPaySession()
-                updateResultText("✓ Sessions initialized\nChecking customer...")
+                clickToPaySession = authSession.getActiveClickToPaySession(this@ClickToPayExample2) ?: authSession.initClickToPaySession()
+                updateResultText("✓ Sessions restored\nChecking customer...")
                 signOut.visibility = VISIBLE
                 btnClose.visibility = VISIBLE
                 signOut.setOnClickListener {
                     clickToPaySession?.let { signOut(it) }
                 }
 
-                // Step 4: Check customer presence
-                val customerPresent = clickToPaySession?.isCustomerPresent(CustomerPresenceRequest())
-                if (customerPresent?.customerPresent != true) {
-                    showError("Customer not found in Click to Pay")
-                    return@launch
-                }
-                updateResultText("✓ Customer found\nRetrieving cards...")
-
-//                // Step 5: Get cards
-//                val cardsStatus = clickToPaySession?.getUserType()
-//                when (cardsStatus?.statusCode) {
-//                    StatusCode.RECOGNIZED_CARDS_PRESENT -> {
-//                        recognizedCards = clickToPaySession?.getRecognizedCards()
-//                        clickToPaySession?.let { showCardSelection(it) }
-//                    }
-//
-//                    StatusCode.TRIGGERED_CUSTOMER_AUTHENTICATION -> {
-//                        clickToPaySession?.let { showOTPDialog(it) }
-//                    }
-//
-//                    else -> {
-//                        showError("No cards found")
-//                    }
+//                // Step 4: Check customer presence
+//                val customerPresent = clickToPaySession?.isCustomerPresent(CustomerPresenceRequest())
+//                if (customerPresent?.customerPresent != true) {
+//                    showError("Customer not found in Click to Pay")
+//                    return@launch
 //                }
-                startActivity(Intent(this@ClickToPayExample, ClickToPayExample2::class.java))
+//                updateResultText("✓ Customer found\nRetrieving cards...")
+
+                // Step 5: Get cards
+                val cardsStatus = clickToPaySession?.getUserType()
+                when (cardsStatus?.statusCode) {
+                    StatusCode.RECOGNIZED_CARDS_PRESENT -> {
+                        recognizedCards = clickToPaySession?.getRecognizedCards()
+                        clickToPaySession?.let { showCardSelection(it) }
+                    }
+
+                    StatusCode.TRIGGERED_CUSTOMER_AUTHENTICATION -> {
+                        clickToPaySession?.let { showOTPDialog(it) }
+                    }
+
+                    else -> {
+                        showError("No cards found")
+                    }
+                }
             } catch(e: Exception){
                 e.printStackTrace()
             }
@@ -284,7 +282,7 @@ class ClickToPayExample : AppCompatActivity() {
                         "✓ Payment Successful!\n\nCard: **** ${card.panLastFour}\n" +
                                 "Amount: ${response.amount} ${response.currency}\nStatus: ${response.transStatus}"
                     )
-                    Toast.makeText(this@ClickToPayExample, "Payment completed!", Toast.LENGTH_SHORT)
+                    Toast.makeText(this@ClickToPayExample2, "Payment completed!", Toast.LENGTH_SHORT)
                         .show()
 
                 } else {
@@ -293,10 +291,10 @@ class ClickToPayExample : AppCompatActivity() {
                 }
             } catch (e: ClickToPayException) {
                 if (e.type == ClickToPayErrorType.CHANGE_CARD){
-                    Toast.makeText(this@ClickToPayExample,"You should not change card", Toast.LENGTH_LONG ).show()
+                    Toast.makeText(this@ClickToPayExample2,"You should not change card", Toast.LENGTH_LONG ).show()
                     showCardSelection(session, "You cannot change card, Select card")
                 } else if (e.type == ClickToPayErrorType.SWITCH_CONSUMER){
-                    Toast.makeText(this@ClickToPayExample,"You should not change user", Toast.LENGTH_LONG ).show()
+                    Toast.makeText(this@ClickToPayExample2,"You should not change user", Toast.LENGTH_LONG ).show()
                     showCardSelection(session, "You cannot change user, select card")
                 } else {
                     showError("Checkout error: ${e.reason}")
@@ -338,10 +336,10 @@ class ClickToPayExample : AppCompatActivity() {
                     btnClose.visibility = INVISIBLE
                     btnStart.isEnabled = true
                     updateResultText("✓ Session closed successfully\n\nClick 'Start Click to Pay Flow' to begin again")
-                    Toast.makeText(this@ClickToPayExample, "Session closed", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@ClickToPayExample2, "Session closed", Toast.LENGTH_SHORT).show()
                 } ?: run {
                     updateResultText("No active session to close")
-                    Toast.makeText(this@ClickToPayExample, "No active session", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@ClickToPayExample2, "No active session", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 showError("Failed to close session: ${e.message}")

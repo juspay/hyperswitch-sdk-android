@@ -1,5 +1,6 @@
 package io.hyperswitch.authentication
 
+import android.app.Activity
 import io.hyperswitch.click_to_pay.ClickToPaySession
 
 /**
@@ -75,6 +76,9 @@ interface AuthenticationSessionLauncher {
         merchantId: String?,
         request3DSAuthentication: Boolean,
     ): ClickToPaySession
+
+    @Throws(Exception::class)
+    suspend fun getActiveClickToPaySession(activity: Activity): ClickToPaySession?
 
     /**
      * Initializes a 3DS authentication session.

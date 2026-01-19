@@ -19,12 +19,12 @@ import io.hyperswitch.click_to_pay.models.ClickToPayException
  */
 class DefaultAuthenticationSessionLauncher(
     activity: Activity,
-    val publishableKey: String,
+    publishableKey: String,
     customBackendUrl: String? = null,
     customLogUrl: String? = null,
     customParams: Bundle? = null,
 ): AuthenticationSessionLauncher {
-    private var clickToPaySession: ClickToPaySession = ClickToPaySession(
+    private val clickToPaySession: ClickToPaySession = ClickToPaySession(
         activity,
         publishableKey,
         customBackendUrl,
@@ -116,6 +116,13 @@ class DefaultAuthenticationSessionLauncher(
         merchantId: String?,
         request3DSAuthentication: Boolean
     ): ClickToPaySession {
+        if (activeClickToPay != null && activeClickToPay !== clickToPaySession) {
+            try {
+                activeClickToPay?.close()
+            }catch(_ : Exception){
+
+            }
+        }
         clickToPaySession.initClickToPaySession(
             clientSecret,
             profileId,
@@ -123,7 +130,19 @@ class DefaultAuthenticationSessionLauncher(
             merchantId,
             request3DSAuthentication
         )
+        activeClickToPay = clickToPaySession
         return clickToPaySession
+    }
+
+        /**
+     * Get the existing Active ClickToPay Session
+     *
+     */
+
+    override suspend fun getActiveClickToPaySession(
+        activity: Activity
+    ): ClickToPaySession? {
+        return activeClickToPay?.getActiveClickToPaySession(activity)
     }
 
     /**
@@ -133,4 +152,7 @@ class DefaultAuthenticationSessionLauncher(
      */
     @Throws(Exception::class)
     override suspend fun initThreeDSSession() {}
+    companion object {
+        private  var activeClickToPay: ClickToPaySession? = null
+    }
 }

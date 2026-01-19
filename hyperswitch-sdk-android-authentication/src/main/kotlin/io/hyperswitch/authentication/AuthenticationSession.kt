@@ -154,4 +154,14 @@ class AuthenticationSession(
             request3DSAuthentication
         )
     }
+
+    /**
+     * Get a Click to Pay session if session is present
+     *
+     * @param activity to show the challenge screen in case of new activity
+     * @return ClickToPaySession instance for managing Click to Pay operations if present
+     */
+    suspend fun getActiveClickToPaySession(activity: Activity): ClickToPaySession? {
+        return authenticationSessionLauncher.getActiveClickToPaySession(activity)
+    }
 }
