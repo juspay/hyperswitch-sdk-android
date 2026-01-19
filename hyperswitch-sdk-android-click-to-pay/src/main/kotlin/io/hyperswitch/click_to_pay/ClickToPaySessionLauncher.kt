@@ -46,6 +46,10 @@ interface ClickToPaySessionLauncher {
 
     @Throws(ClickToPayException::class)
     suspend fun getActiveClickToPaySession(
+        clientSecret: String?,
+        profileId: String?,
+        authenticationId: String?,
+        merchantId: String?,
         activity: Activity
     )
 

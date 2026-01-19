@@ -134,15 +134,21 @@ class DefaultAuthenticationSessionLauncher(
         return clickToPaySession
     }
 
-        /**
+    /**
      * Get the existing Active ClickToPay Session
      *
      */
-
+    @Throws(Exception::class)
     override suspend fun getActiveClickToPaySession(
         activity: Activity
     ): ClickToPaySession? {
-        return activeClickToPay?.getActiveClickToPaySession(activity)
+        return activeClickToPay?.getActiveClickToPaySession(
+            clientSecret,
+            profileId,
+            authenticationId,
+            merchantId,
+            activity
+        )
     }
 
     /**

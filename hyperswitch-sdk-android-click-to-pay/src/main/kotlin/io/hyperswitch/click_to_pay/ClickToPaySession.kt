@@ -79,14 +79,20 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
     }
 
     suspend fun getActiveClickToPaySession(
+        clientSecret: String?,
+        profileId: String?,
+        authenticationId: String?,
+        merchantId: String?,
         activity: Activity
-    ): ClickToPaySession? {
-        try {
-            clickToPaySessionLauncher.getActiveClickToPaySession(activity)
-            return this
-        } catch (_: Exception) {
-            return null
-        }
+    ): ClickToPaySession {
+        clickToPaySessionLauncher.getActiveClickToPaySession(
+            clientSecret,
+            profileId,
+            authenticationId,
+            merchantId,
+            activity
+        )
+        return this
     }
 
     suspend fun isCustomerPresent(request: CustomerPresenceRequest): CustomerPresenceResponse {

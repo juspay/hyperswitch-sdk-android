@@ -66,9 +66,7 @@ class DefaultClickToPaySessionLauncher(
     private val originalAccessibility = HashMap<View, Int>()
 
     private var clientSecret: String? = null
-    private var profileId: String? = null
     private var authenticationId: String? = null
-    private var merchantId: String? = null
 
     private fun logData(
         type: String,
@@ -482,9 +480,7 @@ class DefaultClickToPaySessionLauncher(
     ) {
 
         this.clientSecret = clientSecret
-        this.profileId = profileId
         this.authenticationId = authenticationId
-        this.merchantId = merchantId
 
         ensureReady()
         val requestId = UUID.randomUUID().toString()
@@ -520,7 +516,16 @@ class DefaultClickToPaySessionLauncher(
     }
 
 
-    override suspend fun getActiveClickToPaySession(activity: Activity) {
+    override suspend fun getActiveClickToPaySession(
+        clientSecret: String?,
+        profileId: String?,
+        authenticationId: String?,
+        merchantId: String?,
+        activity: Activity
+    ) {
+        this.clientSecret = clientSecret
+        this.authenticationId = authenticationId
+
         ensureReady()
         try {
             if (this.activity !== activity) {
@@ -539,22 +544,22 @@ class DefaultClickToPaySessionLauncher(
                     }
                 }
 
-                    this.activity = activity
-                    if (isWebViewInitialized && !isWebViewAttached) {
-                        val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
-                        if (rootView != null) {
-                            withContext(Dispatchers.Main) {
-                                rootView.addView(hSWebViewWrapper)
-                            }
-                            isWebViewAttached = true
-                            logData("INFO", "WEBVIEW | ATTACHED to new activity")
-                        } else {
-                            logData(
-                                "ERROR",
-                                "WEBVIEW | Failed to find root view in new activity",
-                                LogCategory.USER_ERROR
-                            )
+                this.activity = activity
+                if (isWebViewInitialized && !isWebViewAttached) {
+                    val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
+                    if (rootView != null) {
+                        withContext(Dispatchers.Main) {
+                            rootView.addView(hSWebViewWrapper)
                         }
+                        isWebViewAttached = true
+                        logData("INFO", "WEBVIEW | ATTACHED to new activity")
+                    } else {
+                        logData(
+                            "ERROR",
+                            "WEBVIEW | Failed to find root view in new activity",
+                            LogCategory.USER_ERROR
+                        )
+                    }
                 }
             }
         } catch (_: Exception) {
