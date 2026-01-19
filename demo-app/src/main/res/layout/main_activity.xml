@@ -41,6 +41,18 @@
             android:textSize="20sp" />
 
         <Button
+            android:id="@+id/captureBaselineButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="20dp"
+            android:layout_weight="1"
+            android:background="@drawable/rounded_button"
+            android:text="Capture Baseline"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp" />
+
+        <Button
             android:id="@+id/launchButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

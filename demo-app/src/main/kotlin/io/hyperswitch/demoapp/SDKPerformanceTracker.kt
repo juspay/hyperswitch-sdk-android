@@ -243,6 +243,49 @@ class SDKPerformanceTracker(private val context: Context) {
     }
 
     /**
+     * Create baseline metrics with same structure as SDK metrics
+     */
+    fun createBaselineMetrics(name: String = "Baseline"): SDKMetrics {
+        val runtime = Runtime.getRuntime()
+        val heapUsed = (runtime.totalMemory() - runtime.freeMemory()) / 1024.0 / 1024.0
+        
+        val memoryInfo = Debug.MemoryInfo()
+        Debug.getMemoryInfo(memoryInfo)
+        val pss = memoryInfo.totalPss / 1024.0
+        
+        val cpuUsage = getCurrentCpuUsage().toDouble()
+        val threads = Thread.activeCount()
+        
+        val rxBytes = TrafficStats.getUidRxBytes(uid)
+        val txBytes = TrafficStats.getUidTxBytes(uid)
+        val rxKB = rxBytes / 1024
+        val txKB = txBytes / 1024
+        
+        val (diskRead, diskWrite) = readDiskIO()
+        
+        return SDKMetrics(
+            sdkName = name,
+            timestamp = System.currentTimeMillis(),
+            sdkInitTimeMs = 0,
+            totalExecutionTimeMs = 0,
+            memoryStats = MetricStats(heapUsed, heapUsed, heapUsed, heapUsed, heapUsed),
+            pssStats = MetricStats(pss, pss, pss, pss, pss),
+            cpuUsageStats = MetricStats(cpuUsage, cpuUsage, cpuUsage, cpuUsage, cpuUsage),
+            networkMetrics = NetworkMetrics(rxKB, txKB, rxKB + txKB, 0.0, 0.0),
+            fpsMetrics = FPSMetrics(60.0, 60.0, 60.0, 60.0, 60.0, 60.0, 0, 0, 0),
+            threadMetrics = ThreadMetrics(threads, threads, threads, threads.toDouble(), 0),
+            diskIOMetrics = DiskIOMetrics(
+                diskRead, diskWrite,
+                diskRead / 1024.0, diskWrite / 1024.0,
+                (diskRead + diskWrite) / 1024.0
+            ),
+            gcMetrics = GCMetrics(0, 0, 0.0),
+            performanceGrade = PerformanceGrade.EXCELLENT,
+            violations = emptyList()
+        )
+    }
+
+    /**
      * Start comprehensive tracking
      */
     fun startTracking() {

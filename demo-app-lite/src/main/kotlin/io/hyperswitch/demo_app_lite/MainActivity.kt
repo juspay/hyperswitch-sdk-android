@@ -31,7 +31,7 @@ class MainActivity : Activity() {
     private var netceteraApiKey: String? = null
     private val prefsName = "HyperswitchPrefs"
     private val keyServerUrl = "server_url"
-    private var serverUrl = "http://10.0.2.2:5252"
+    private var serverUrl = "http://10.10.30.168:5252"
     private lateinit var paymentSession: PaymentSession
     private lateinit var editText: EditText
 
@@ -242,7 +242,38 @@ class MainActivity : Activity() {
                 paymentSession.presentPaymentSheet(customisations, ::onLiteSdkPaymentSheetResult)
             }
         }
+
+        /**
+         * Capture Baseline (app state without SDK)
+         */
+        findViewById<View>(R.id.captureBaselineButton).setOnClickListener {
+            captureBaseline()
+        }
     }
+
+    private fun captureBaseline() {
+        setStatus("Capturing baseline... (20 seconds)")
+        findViewById<View>(R.id.captureBaselineButton).isEnabled = false
+        
+        liteSdkPerfTracker.startTracking()
+        Log.d("SDK_PERF", "Started baseline capture (20 seconds)")
+        
+        // Run for 20 seconds then stop
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            val baselineMetrics = liteSdkPerfTracker.stopTracking("Baseline (No SDK)")
+            
+            // Export as JSON
+            val json = perfExporter.exportAsJson(baselineMetrics)
+            perfExporter.saveToFile(json, "baseline_${System.currentTimeMillis()}.json")
+            
+            setStatus("Baseline captured: ${baselineMetrics.memoryStats.peak.format(2)}MB peak, ${baselineMetrics.threadMetrics.peak} threads")
+            Log.d("SDK_PERF", "Baseline captured and saved")
+            
+            findViewById<View>(R.id.captureBaselineButton).isEnabled = true
+        }, 20000) // 20 seconds
+    }
+
+    private fun Double.format(digits: Int) = "%.${digits}f".format(this)
 
     private fun setStatus(error: String) {
         runOnUiThread {
