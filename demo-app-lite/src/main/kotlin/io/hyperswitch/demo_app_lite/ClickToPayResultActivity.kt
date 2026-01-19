@@ -1,11 +1,11 @@
 package io.hyperswitch.demo_app_lite
 
 import android.app.AlertDialog
-import android.content.Intent
 import android.os.Bundle
 import android.os.Handler as OSHandler
 import android.os.Looper
 import android.text.InputType
+import android.util.Log
 import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
 import android.widget.Button
@@ -14,20 +14,13 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.FuelError
-import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.authentication.AuthenticationSession
 import io.hyperswitch.click_to_pay.ClickToPaySession
 import io.hyperswitch.click_to_pay.models.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
-import org.json.JSONObject
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 import kotlin.system.measureTimeMillis
 
-class ClickToPayExample : AppCompatActivity() {
+class ClickToPayResultActivity : AppCompatActivity() {
 
     private lateinit var resultText: TextView
     private lateinit var btnStart: Button
@@ -39,8 +32,6 @@ class ClickToPayExample : AppCompatActivity() {
     private var recognizedCards: List<RecognizedCard>? = null
     private var clickToPaySession: ClickToPaySession? = null
     
-    // Test Data
-    private var savedCredentials: Credentials? = null
     private val operationLogs = StringBuilder()
 
     // Freeze detection
@@ -59,7 +50,6 @@ class ClickToPayExample : AppCompatActivity() {
             val currentTime = System.currentTimeMillis()
             val timeSinceLastUpdate = currentTime - lastUpdateTime
             
-            // If more than 200ms has passed, UI might be freezing
             if (lastUpdateTime > 0 && timeSinceLastUpdate > 200) {
                 freezeCount++
                 if (timeSinceLastUpdate > maxFreezeDuration) {
@@ -69,7 +59,6 @@ class ClickToPayExample : AppCompatActivity() {
                 val freezeEvent = "Freeze #$freezeCount: ${timeSinceLastUpdate}ms"
                 freezeEvents.add(freezeEvent)
                 
-                // Keep only last 5 freeze events
                 if (freezeEvents.size > 5) {
                     freezeEvents.removeAt(0)
                 }
@@ -84,7 +73,7 @@ class ClickToPayExample : AppCompatActivity() {
             }
             
             lastUpdateTime = currentTime
-            mainHandler.postDelayed(this, 100) // Update every 100ms
+            mainHandler.postDelayed(this, 100)
         }
     }
     
@@ -116,13 +105,13 @@ class ClickToPayExample : AppCompatActivity() {
         signOut.visibility = INVISIBLE
         btnClose.visibility = INVISIBLE
 
-        btnStart.text = "Select Test Flow"
-        btnStart.setOnClickListener { showFlowSelectionDialog() }
+        btnStart.text = "Proceed with Session Check"
+        btnStart.setOnClickListener { startCheck() }
         btnClose.setOnClickListener { closeSession() }
 
-        updateResultText("Select a test flow to begin")
+        val flowName = intent.getStringExtra("FLOW_NAME") ?: "Unknown Flow"
+        updateResultText("New Activity Launched for $flowName\n\nClick 'Proceed' to check for active session and continue.")
         
-        // Start freeze detection
         startFreezeDetection()
     }
     
@@ -140,29 +129,11 @@ class ClickToPayExample : AppCompatActivity() {
         stopFreezeDetection()
     }
 
-    private fun showFlowSelectionDialog() {
-        val options = arrayOf(
-            "Flow 1: Normal (Init & Save Creds)",
-            "Flow 2: Resume Session (Reuse Creds - New Activity)",
-            "Flow 3: New User (New Creds & Fallback - New Activity)"
-        )
-        AlertDialog.Builder(this)
-            .setTitle("Select Flow")
-            .setItems(options) { _, which ->
-                lifecycleScope.launch {
-                    when (which) {
-                        0 -> runFlow1()
-                        1 -> runFlow2()
-                        2 -> runFlow3()
-                    }
-                }
-            }
-            .show()
-    }
-
-    private fun clearLogs() {
-        operationLogs.clear()
-        updateResultText("")
+    private fun startCheck() {
+        btnStart.isEnabled = false
+        lifecycleScope.launch {
+            runFlow()
+        }
     }
 
     private suspend fun logOperation(name: String, block: suspend () -> Unit) {
@@ -174,85 +145,45 @@ class ClickToPayExample : AppCompatActivity() {
         updateResultText(operationLogs.toString())
     }
 
-    // Flow 1: Normal Init
-    private suspend fun runFlow1() {
-        clearLogs()
-        btnStart.isEnabled = false
+    private suspend fun runFlow() {
         try {
-            var credentials: Credentials? = null
-            logOperation("Fetch Credentials") {
-                credentials = fetchCredentials()
-                savedCredentials = credentials // Save for Flow 2
-            }
-            val creds = credentials ?: return
+            val publishableKey = intent.getStringExtra("publishableKey") ?: return
+            val clientSecret = intent.getStringExtra("clientSecret") ?: return
+            val profileId = intent.getStringExtra("profileId") ?: return
+            val authenticationId = intent.getStringExtra("authenticationId") ?: return
+            val merchantId = intent.getStringExtra("merchantId") ?: return
 
-            val authSession = AuthenticationSession(this@ClickToPayExample, creds.publishableKey)
-            
+            val authSession = AuthenticationSession(this, publishableKey)
+
             logOperation("Init Authentication Session") {
                 authSession.initAuthenticationSession(
-                    creds.clientSecret,
-                    creds.profileId,
-                    creds.authenticationId,
-                    creds.merchantId
+                    clientSecret,
+                    profileId,
+                    authenticationId,
+                    merchantId
                 )
             }
 
-            logOperation("Init Click to Pay Session") {
-                clickToPaySession = authSession.initClickToPaySession()
+            logOperation("Get Active C2P Session") {
+                clickToPaySession = authSession.getActiveClickToPaySession(this@ClickToPayResultActivity)
+            }
+
+            if (clickToPaySession != null) {
+                operationLogs.append("✓ Active session found! (Persistence worked)\n")
+            } else {
+                operationLogs.append("ℹ No active session found.\n")
+                logOperation("Fallback: Init Click to Pay Session") {
+                    clickToPaySession = authSession.initClickToPaySession()
+                }
             }
 
             checkCustomerAndProceed()
+
         } catch (e: Exception) {
-            updateResultText("Flow 1 Failed: ${e.message}\n\nLogs:\n$operationLogs")
+            updateResultText("Flow Failed: ${e.message}\n\nLogs:\n$operationLogs")
             e.printStackTrace()
-        } finally {
             btnStart.isEnabled = true
         }
-    }
-
-    // Flow 2: Resume Session (Use Case 2) - New Activity
-    private suspend fun runFlow2() {
-        clearLogs()
-        val creds = savedCredentials
-        if (creds == null) {
-            updateResultText("No saved credentials! Run Flow 1 first.")
-            return
-        }
-        
-        launchResultActivity(creds, "Flow 2: Resume Session")
-    }
-
-    // Flow 3: New User (Use Case 3) - New Activity
-    private suspend fun runFlow3() {
-        clearLogs()
-        btnStart.isEnabled = false
-        try {
-            var credentials: Credentials? = null
-            logOperation("Fetch NEW Credentials") {
-                credentials = fetchCredentials()
-            }
-            val creds = credentials ?: return
-
-            launchResultActivity(creds, "Flow 3: New User")
-        } catch (e: Exception) {
-            updateResultText("Flow 3 Failed: ${e.message}")
-            e.printStackTrace()
-        } finally {
-            btnStart.isEnabled = true
-        }
-    }
-    
-    private fun launchResultActivity(creds: Credentials, flowName: String) {
-        val intent = Intent(this, ClickToPayResultActivity::class.java).apply {
-            putExtra("FLOW_NAME", flowName)
-            putExtra("publishableKey", creds.publishableKey)
-            putExtra("clientSecret", creds.clientSecret)
-            putExtra("profileId", creds.profileId)
-            putExtra("authenticationId", creds.authenticationId)
-            putExtra("merchantId", creds.merchantId)
-        }
-        startActivity(intent)
-        updateResultText("Launched $flowName in new Activity")
     }
 
     private suspend fun checkCustomerAndProceed() {
@@ -271,7 +202,6 @@ class ClickToPayExample : AppCompatActivity() {
             clickToPaySession?.let { signOut(it) }
         }
         
-        // Get Cards
         logOperation("Get User Type") {
              val cardsStatus = clickToPaySession?.getUserType()
              when (cardsStatus?.statusCode) {
@@ -287,38 +217,6 @@ class ClickToPayExample : AppCompatActivity() {
                 }
             }
         }
-    }
-
-    private suspend fun fetchCredentials(): Credentials = suspendCancellableCoroutine { continuation ->
-        Fuel.post("http://10.0.2.2:5252/create-authentication")
-            .header("Content-Type", "application/json")
-            .header("Accept", "application/json")
-            .body("{}")
-            .responseString(object : Handler<String?> {
-                override fun success(value: String?) {
-                    try {
-                        val result = value?.let { JSONObject(it) }
-                        if (result != null) {
-                            val credentials = Credentials(
-                                publishableKey = result.getString("publishableKey"),
-                                clientSecret = result.getString("clientSecret"),
-                                profileId = result.getString("profileId"),
-                                authenticationId = result.getString("authenticationId"),
-                                merchantId = result.getString("merchantId"),
-                            )
-                            continuation.resume(credentials)
-                        } else {
-                            continuation.resumeWithException(Exception("Create Authentication Result is null"))
-                        }
-                    } catch (e: Exception) {
-                        continuation.resumeWithException(e)
-                    }
-                }
-
-                override fun failure(error: FuelError) {
-                    continuation.resumeWithException(error)
-                }
-            })
     }
 
     private fun showOTPDialog(session: ClickToPaySession) {
@@ -387,7 +285,7 @@ class ClickToPayExample : AppCompatActivity() {
                         "✓ Payment Successful!\n\nCard: **** ${card.panLastFour}\n" +
                                 "Amount: ${response?.amount} ${response?.currency}\nStatus: ${response?.transStatus}\n\nLogs:\n$operationLogs"
                     )
-                    Toast.makeText(this@ClickToPayExample, "Payment completed!", Toast.LENGTH_SHORT)
+                    Toast.makeText(this@ClickToPayResultActivity, "Payment completed!", Toast.LENGTH_SHORT)
                         .show()
 
                 } else {
@@ -396,10 +294,10 @@ class ClickToPayExample : AppCompatActivity() {
                 }
             } catch (e: ClickToPayException) {
                 if (e.type == ClickToPayErrorType.CHANGE_CARD){
-                    Toast.makeText(this@ClickToPayExample,"You should not change card", Toast.LENGTH_LONG ).show()
+                    Toast.makeText(this@ClickToPayResultActivity,"You should not change card", Toast.LENGTH_LONG ).show()
                     showCardSelection(session, "You cannot change card, Select card")
                 } else if (e.type == ClickToPayErrorType.SWITCH_CONSUMER){
-                    Toast.makeText(this@ClickToPayExample,"You should not change user", Toast.LENGTH_LONG ).show()
+                    Toast.makeText(this@ClickToPayResultActivity,"You should not change user", Toast.LENGTH_LONG ).show()
                     showCardSelection(session, "You cannot change user, select card")
                 } else {
                     showError("Checkout error: ${e.reason}")
@@ -443,11 +341,11 @@ class ClickToPayExample : AppCompatActivity() {
                     signOut.visibility = INVISIBLE
                     btnClose.visibility = INVISIBLE
                     btnStart.isEnabled = true
-                    updateResultText("✓ Session closed successfully\n\nClick 'Select Test Flow' to begin again")
-                    Toast.makeText(this@ClickToPayExample, "Session closed", Toast.LENGTH_SHORT).show()
+                    updateResultText("✓ Session closed successfully")
+                    Toast.makeText(this@ClickToPayResultActivity, "Session closed", Toast.LENGTH_SHORT).show()
                 } ?: run {
                     updateResultText("No active session to close")
-                    Toast.makeText(this@ClickToPayExample, "No active session", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@ClickToPayResultActivity, "No active session", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 showError("Failed to close session: ${e.message}")
@@ -459,12 +357,4 @@ class ClickToPayExample : AppCompatActivity() {
     private fun updateResultText(text: String) {
         resultText.text = text
     }
-
-    data class Credentials(
-        val publishableKey: String,
-        val clientSecret: String,
-        val profileId: String,
-        val authenticationId: String,
-        val merchantId: String
-    )
 }

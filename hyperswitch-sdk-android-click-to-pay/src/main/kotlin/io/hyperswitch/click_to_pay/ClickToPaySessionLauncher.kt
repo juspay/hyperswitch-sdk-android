@@ -1,29 +1,32 @@
 package io.hyperswitch.click_to_pay
 
+import android.app.Activity
 import io.hyperswitch.click_to_pay.models.*
 
 /**
  * Interface defining the contract for Click to Pay session management.
- * 
+ *
  * This interface provides methods for managing Click to Pay sessions,
  * customer verification, card retrieval, and payment processing.
  */
 interface ClickToPaySessionLauncher {
 
+    val publishableKey: String
+
     /**
      * Initializes the Click to Pay SDK.
-     * 
+     *
      * Loads required resources and prepares the SDK for use.
      * Must be called before any other Click to Pay operations.
      *
      * @throws Exception if SDK initialization fails
      */
     @Throws(ClickToPayException::class)
-    suspend fun initialize()
+    suspend fun initialize(clientSecret: String?, authenticationId: String?)
 
     /**
      * Initializes a Click to Pay session with payment credentials.
-     * 
+     *
      * Sets up the session with merchant and payment information required
      * for Click to Pay operations.
      *
@@ -36,16 +39,27 @@ interface ClickToPaySessionLauncher {
      */
     @Throws(ClickToPayException::class)
     suspend fun initClickToPaySession(
+        request3DSAuthentication: Boolean
+    )
+
+    @Throws(ClickToPayException::class)
+    suspend fun initAuthenticationSession(
         clientSecret: String?,
         profileId: String?,
         authenticationId: String?,
         merchantId: String?,
-        request3DSAuthentication: Boolean
     )
+
+
+    @Throws(ClickToPayException::class)
+    suspend fun getActiveClickToPaySession(
+        activity: Activity
+    )
+
 
     /**
      * Checks if a customer has an existing Click to Pay profile.
-     * 
+     *
      * Verifies whether the customer is enrolled in Click to Pay
      * based on their email or mobile number.
      *
@@ -55,10 +69,10 @@ interface ClickToPaySessionLauncher {
      */
     @Throws(ClickToPayException::class)
     suspend fun isCustomerPresent(request: CustomerPresenceRequest): CustomerPresenceResponse
-    
+
     /**
      * Retrieves the status of customer's saved cards.
-     * 
+     *
      * Determines whether the customer has recognized cards available
      * or if additional authentication is required.
      *
@@ -67,10 +81,10 @@ interface ClickToPaySessionLauncher {
      */
     @Throws(ClickToPayException::class)
     suspend fun getUserType(): CardsStatusResponse
-    
+
     /**
      * Gets the list of recognized cards for the customer.
-     * 
+     *
      * Retrieves all cards associated with the customer's Click to Pay profile
      * that can be used for payment.
      *
@@ -79,10 +93,10 @@ interface ClickToPaySessionLauncher {
      */
     @Throws(ClickToPayException::class)
     suspend fun getRecognizedCards(): List<RecognizedCard>
-    
+
     /**
      * Validates customer authentication with OTP.
-     * 
+     *
      * Verifies the OTP entered by the customer and returns their
      * recognized cards upon successful validation.
      *
@@ -92,10 +106,10 @@ interface ClickToPaySessionLauncher {
      */
     @Throws(ClickToPayException::class)
     suspend fun validateCustomerAuthentication(otpValue: String): List<RecognizedCard>
-    
+
     /**
      * Processes checkout with a selected card.
-     * 
+     *
      * Initiates payment processing using the customer's selected
      * Click to Pay card.
      *
@@ -105,6 +119,7 @@ interface ClickToPaySessionLauncher {
      */
     @Throws(ClickToPayException::class)
     suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse
+
     /**
      * Processes signOut to clear the cookies
      *
@@ -116,16 +131,16 @@ interface ClickToPaySessionLauncher {
 
     /**
      * Closes and destroys the Click to Pay session.
-     * 
+     *
      * Performs cleanup by:
      * - Cancelling all pending requests
      * - Restoring accessibility settings
      * - Removing and destroying the WebView
      * - Clearing all cached data and resources
-     * 
+     *
      * After calling this method, the session cannot be used again.
      * A new instance must be created for subsequent operations.
-     * 
+     *
      * @throws ClickToPayException if cleanup fails
      */
     @Throws(ClickToPayException::class)

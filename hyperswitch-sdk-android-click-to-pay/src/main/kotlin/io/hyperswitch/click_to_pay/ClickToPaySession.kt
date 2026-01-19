@@ -4,27 +4,24 @@ import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.click_to_pay.models.*
 
-class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySessionLauncher){
+class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySessionLauncher) {
+
+    val publishableKey: String
+        get() = clickToPaySessionLauncher.publishableKey
 
     constructor(
-        activity: Activity,
-        publishableKey: String
-    ): this(
+        activity: Activity, publishableKey: String
+    ) : this(
         DefaultClickToPaySessionLauncher(
-            activity,
-            publishableKey
+            activity, publishableKey
         )
     )
 
     constructor(
-        activity: Activity,
-        publishableKey: String,
-        customBackendUrl: String? = null
-    ): this(
+        activity: Activity, publishableKey: String, customBackendUrl: String? = null
+    ) : this(
         DefaultClickToPaySessionLauncher(
-            activity,
-            publishableKey,
-            customBackendUrl
+            activity, publishableKey, customBackendUrl
         )
     )
 
@@ -33,7 +30,7 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
         publishableKey: String,
         customBackendUrl: String? = null,
         customLogUrl: String? = null,
-    ): this(
+    ) : this(
         DefaultClickToPaySessionLauncher(
             activity,
             publishableKey,
@@ -48,7 +45,7 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
         customBackendUrl: String? = null,
         customLogUrl: String? = null,
         customParams: Bundle? = null,
-    ): this(
+    ) : this(
         DefaultClickToPaySessionLauncher(
             activity,
             publishableKey,
@@ -58,24 +55,45 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
         )
     )
 
-    suspend fun initialise() {
-        clickToPaySessionLauncher.initialize()
+    suspend fun initialise(clientSecret: String?, authenticationId: String?) {
+        clickToPaySessionLauncher.initialize(clientSecret, authenticationId)
     }
 
-    suspend fun initClickToPaySession(
+    suspend fun initAuthenticationSession(
         clientSecret: String?,
         profileId: String?,
         authenticationId: String?,
         merchantId: String?,
-        request3DSAuthentication: Boolean
     ) {
-        clickToPaySessionLauncher.initClickToPaySession(
+        clickToPaySessionLauncher.initAuthenticationSession(
             clientSecret,
             profileId,
             authenticationId,
-            merchantId,
+            merchantId
+        )
+    }
+
+    suspend fun initClickToPaySession(
+        request3DSAuthentication: Boolean
+    ) {
+        clickToPaySessionLauncher.initClickToPaySession(
             request3DSAuthentication
         )
+    }
+
+
+    suspend fun getActiveClickToPaySession(
+        activity: Activity,
+
+        ): ClickToPaySession? {
+        return try {
+            clickToPaySessionLauncher.getActiveClickToPaySession(
+                activity
+            )
+            this
+        } catch (_: Exception) {
+            null
+        }
     }
 
     suspend fun isCustomerPresent(request: CustomerPresenceRequest): CustomerPresenceResponse? {
@@ -98,7 +116,7 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
         return clickToPaySessionLauncher.checkoutWithCard(request)
     }
 
-    suspend fun signOut(): SignOutResponse{
+    suspend fun signOut(): SignOutResponse {
         return clickToPaySessionLauncher.signOut()
     }
 

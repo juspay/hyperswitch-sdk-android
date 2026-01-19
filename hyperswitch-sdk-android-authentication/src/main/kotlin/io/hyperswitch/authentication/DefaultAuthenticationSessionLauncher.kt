@@ -7,7 +7,7 @@ import io.hyperswitch.click_to_pay.models.ClickToPayException
 
 /**
  * Default implementation of AuthenticationSessionLauncher.
- * 
+ *
  * This class manages the lifecycle of authentication and Click to Pay sessions,
  * handling initialization, credential storage, and session creation.
  *
@@ -23,7 +23,7 @@ class DefaultAuthenticationSessionLauncher(
     customBackendUrl: String? = null,
     customLogUrl: String? = null,
     customParams: Bundle? = null,
-): AuthenticationSessionLauncher {
+) : AuthenticationSessionLauncher {
     private var clickToPaySession: ClickToPaySession = ClickToPaySession(
         activity,
         publishableKey,
@@ -38,20 +38,20 @@ class DefaultAuthenticationSessionLauncher(
 
     /**
      * Initializes the Click to Pay SDK.
-     * 
+     *
      * Loads required resources and prepares the SDK for use.
      * Must be called before any Click to Pay operations.
      *
      * @throws Exception if SDK initialization fails
      */
     @Throws(Exception::class)
-    override suspend fun initialize() {
-        clickToPaySession.initialise()
+    override suspend fun initialize(clientSecret: String?, authenticationId: String?) {
+        clickToPaySession.initialise(clientSecret, authenticationId)
     }
 
     /**
      * Stores authentication credentials for subsequent operations.
-     * 
+     *
      * These credentials are used when initializing Click to Pay sessions
      * without explicitly providing them each time.
      *
@@ -75,7 +75,7 @@ class DefaultAuthenticationSessionLauncher(
 
     /**
      * Initializes a Click to Pay session using stored credentials.
-     * 
+     *
      * Uses credentials previously set via initAuthenticationSession.
      *
      * @param request3DSAuthentication Whether to request 3DS authentication
@@ -95,9 +95,10 @@ class DefaultAuthenticationSessionLauncher(
         )
     }
 
+
     /**
      * Initializes a Click to Pay session with explicit credentials.
-     * 
+     *
      * Allows initializing a session without calling initAuthenticationSession first.
      *
      * @param clientSecret The client secret from the payment intent
@@ -116,21 +117,69 @@ class DefaultAuthenticationSessionLauncher(
         merchantId: String?,
         request3DSAuthentication: Boolean
     ): ClickToPaySession {
-        clickToPaySession.initClickToPaySession(
+        clickToPaySession.initAuthenticationSession(
             clientSecret,
             profileId,
             authenticationId,
-            merchantId,
+            merchantId
+        )
+        clickToPaySession.initClickToPaySession(
             request3DSAuthentication
         )
         return clickToPaySession
     }
 
     /**
+     * Get the existing Active ClickToPay Session
+     *
+     */
+
+    override suspend fun getActiveClickToPaySession(
+        activity: Activity
+    ): ClickToPaySession? {
+        return try {
+            clickToPaySession.initAuthenticationSession(
+                clientSecret,
+                profileId,
+                authenticationId,
+                merchantId
+            )
+            clickToPaySession.getActiveClickToPaySession(
+                activity
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    override suspend fun getActiveClickToPaySession(
+        activity: Activity,
+        clientSecret: String?,
+        profileId: String?,
+        authenticationId: String?,
+        merchantId: String?,
+    ): ClickToPaySession? {
+        return try {
+            clickToPaySession.initAuthenticationSession(
+                clientSecret,
+                profileId,
+                authenticationId,
+                merchantId
+            )
+            clickToPaySession.getActiveClickToPaySession(
+                activity
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
      * Initializes a 3DS authentication session.
-     * 
+     *
      * Currently a no-op placeholder for future 3DS functionality.
      */
     @Throws(Exception::class)
-    override suspend fun initThreeDSSession() {}
+    override suspend fun initThreeDSSession() {
+    }
 }

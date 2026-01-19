@@ -1,10 +1,12 @@
 package io.hyperswitch.authentication
 
+import android.app.Activity
 import io.hyperswitch.click_to_pay.ClickToPaySession
+import io.hyperswitch.click_to_pay.models.ClickToPayException
 
 /**
  * Interface defining the contract for authentication session management.
- * 
+ *
  * This interface provides methods for initializing authentication sessions,
  * Click to Pay sessions, and 3DS authentication flows.
  */
@@ -12,18 +14,18 @@ interface AuthenticationSessionLauncher {
 
     /**
      * Initializes the underlying SDK and loads required resources.
-     * 
+     *
      * This method must be called before any other operations to ensure
      * the SDK is properly initialized and ready for use.
      *
      * @throws Exception if SDK initialization fails
      */
     @Throws(Exception::class)
-    suspend fun initialize()
+    suspend fun initialize(clientSecret: String?, authenticationId: String?)
 
     /**
      * Initializes an authentication session with payment credentials.
-     * 
+     *
      * Stores the authentication credentials for subsequent operations
      * like Click to Pay or 3DS authentication.
      *
@@ -55,7 +57,7 @@ interface AuthenticationSessionLauncher {
 
     /**
      * Initializes a Click to Pay session with explicit credentials.
-     * 
+     *
      * This overload allows providing credentials directly without
      * calling initAuthenticationSession first.
      *
@@ -76,9 +78,20 @@ interface AuthenticationSessionLauncher {
         request3DSAuthentication: Boolean,
     ): ClickToPaySession
 
+    @Throws(ClickToPayException::class)
+    suspend fun getActiveClickToPaySession(activity: Activity): ClickToPaySession?
+
+    @Throws(ClickToPayException::class)
+    suspend fun getActiveClickToPaySession(
+        activity: Activity, clientSecret: String?,
+        profileId: String?,
+        authenticationId: String?,
+        merchantId: String?,
+    ): ClickToPaySession?
+
     /**
      * Initializes a 3DS authentication session.
-     * 
+     *
      * This method sets up the necessary components for handling
      * 3D Secure authentication flows.
      *
