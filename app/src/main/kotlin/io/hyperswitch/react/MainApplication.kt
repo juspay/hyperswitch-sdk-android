@@ -50,7 +50,7 @@ open class MainApplication : Application(), ReactApplication {
                         R.string.hyperOTAEndPoint
                 )
                 if (hyperOTAUrl != "hyperOTA_END_POINT_") {
-                    val hyperOTAClass = Class.forName("io.hyperswitch.airborne.HyperOTA")
+                    val hyperOTAClass = Class.forName("io.hyperswitch.airborne.AirborneOTA")
 
                     val constructor = hyperOTAClass.getConstructor(
                         Context::class.java,

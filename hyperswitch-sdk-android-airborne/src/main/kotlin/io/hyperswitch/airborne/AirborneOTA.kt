@@ -1,10 +1,12 @@
 package io.hyperswitch.airborne
 
 import android.content.Context
+import androidx.annotation.Keep
 import `in`.juspay.hyperota.LazyDownloadCallback
 import `in`.juspay.hyperotareact.HyperOTAReact
 
-class HyperOTA {
+@Keep
+class AirborneOTA {
     private lateinit var hyperOTAReact : HyperOTAReact
     private lateinit var tracker : HyperOtaLogger
 
