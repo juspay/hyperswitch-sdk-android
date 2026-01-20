@@ -85,6 +85,5 @@ class AirborneOTA {
         }catch (_ : Exception){
             "assets://hyperswitch.bundle"
         }
-//        return "assets://main.bundle"
     }
 }
