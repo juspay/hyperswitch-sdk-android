@@ -79,6 +79,7 @@ open class MainApplication : Application(), ReactApplication {
         get() = getDefaultReactHost(applicationContext, reactNativeHost)
 
     override fun onCreate() {
+        super.onCreate()
         this.context = this
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(context, BuildConfig.VERSION_NAME))
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {

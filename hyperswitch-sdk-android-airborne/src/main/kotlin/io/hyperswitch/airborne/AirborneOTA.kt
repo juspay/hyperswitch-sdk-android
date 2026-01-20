@@ -82,7 +82,7 @@ class AirborneOTA {
         return try {
             hyperOTAReact.getBundlePath().takeUnless { it.contains("ios") }
                 ?: "assets://hyperswitch.bundle"
-        }catch (_ : Exception){
+        } catch (_: Exception) {
             "assets://hyperswitch.bundle"
         }
     }

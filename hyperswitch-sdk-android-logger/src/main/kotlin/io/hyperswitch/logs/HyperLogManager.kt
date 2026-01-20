@@ -49,7 +49,7 @@ object HyperLogManager {
      *
      * @param customLoggingUrl The new custom logging endpoint URL
      */
-    fun setLoggingEndPoint(customLoggingUrl: String){
+    fun setLoggingEndPoint(customLoggingUrl: String) {
         this.loggingEndPoint = customLoggingUrl
     }
 
