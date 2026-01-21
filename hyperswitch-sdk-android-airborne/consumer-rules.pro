@@ -1,0 +1,1 @@
+-keep class io.hyperswitch.airborne.AirborneOTA { *; }
