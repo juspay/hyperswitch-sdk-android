@@ -17,7 +17,6 @@ import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.PaymentSession
 import io.hyperswitch.payments.paymentlauncher.PaymentResult
 import io.hyperswitch.paymentsession.PMError
-import io.hyperswitch.paymentsession.PaymentMethod
 import io.hyperswitch.paymentsheet.AddressDetails
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
@@ -25,8 +24,6 @@ import org.json.JSONException
 import org.json.JSONObject
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
-import io.hyperswitch.paymentsession.PaymentMethodType
-import io.hyperswitch.HyperswitchSDK
 
 class MainActivity : AppCompatActivity() {
     lateinit var ctx: Activity
@@ -136,7 +133,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getCL() {
-        HyperswitchSDK.initialize(application)
         ctx.findViewById<View>(R.id.launchButton).isEnabled = false
         ctx.findViewById<View>(R.id.confirmButton).isEnabled = false
 

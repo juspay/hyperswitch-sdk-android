@@ -33,6 +33,10 @@ class ReactNativeUtils(private val activity: Activity) : SDKInterface {
     private var headlessTaskId: Int? = null
     private val launchOptions = LaunchOptions(activity, BuildConfig.VERSION_NAME)
 
+    init{
+        HyperswitchSDK.initialize(activity.application)
+    }
+
     @SuppressLint("VisibleForTests")
     override fun initializeReactNativeInstance() {
         reactContext = try {

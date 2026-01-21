@@ -16,33 +16,7 @@ import org.json.JSONException
  * @param customLogUrl Optional custom URL for the logging endpoint
  * @param publishableKey Optional merchant's publishable key for log authentication
  */
-class HyperOtaLogger(private val sdkVersion: String, private val customLogUrl: String?, private val publishableKey : String?) : TrackerCallback() {
-
-    init{
-        customLogUrl?.let {
-            HyperLogManager.setLoggingEndPoint(customLogUrl)
-        }
-        publishableKey?.let {
-            HyperLogManager.initialise(publishableKey, customLogUrl ?: "")
-        }
-    }
-
-    /**
-     * Constructor with SDK version only.
-     * Uses default logging configuration without custom URL or publishable key.
-     *
-     * @param sdkVersion The version of the SDK being used
-     */
-    constructor(sdkVersion: String) : this(sdkVersion, customLogUrl = null, publishableKey = null)
-
-    /**
-     * Constructor with SDK version and publishable key.
-     * Uses default logging endpoint with authentication via publishable key.
-     *
-     * @param sdkVersion The version of the SDK being used
-     * @param publishableKey The merchant's publishable key for log authentication
-     */
-    constructor(sdkVersion: String, publishableKey: String?): this(sdkVersion, customLogUrl = null, publishableKey)
+class HyperOtaLogger(private val sdkVersion: String) : TrackerCallback() {
 
     private fun createAndSendLog(
         eventName: EventName,

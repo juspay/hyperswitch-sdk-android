@@ -1,8 +1,7 @@
 package io.hyperswitch
 
-import android.app.Activity
 import android.app.Application
-import android.os.Bundle
+import android.content.Context
 import com.facebook.react.PackageList
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeHost
@@ -12,45 +11,73 @@ import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
-import `in`.juspay.hyperota.LazyDownloadCallback
-import `in`.juspay.hyperotareact.HyperOTAReact
-import io.hyperswitch.hyperota.HyperOtaLogger
 import io.hyperswitch.logs.CrashHandler
-import io.hyperswitch.logs.HyperLogManager
-import io.hyperswitch.logs.LogFileManager
+import io.hyperswitch.logs.LogUtils.getEnvironment
+import io.hyperswitch.logs.SDKEnvironment
 import io.hyperswitch.react.HyperPackage
-import io.hyperswitch.react.SDKEnvironment
-import io.hyperswitch.react.Utils.Companion.checkEnvironment
 
 object HyperswitchSDK {
-
     private var reactNativeHost: ReactNativeHost? = null
     private var reactHost: ReactHost? = null
     private var isInitialized = false
-    private var hyperOTAServices: HyperOTAReact? = null
-    private lateinit var tracker: HyperOtaLogger
-
     fun initialize(application: Application) {
         if (isInitialized) {
             return
         }
-
-        SoLoader.init(application, OpenSourceMergedSoMapping)
-
         Thread.setDefaultUncaughtExceptionHandler(
                 CrashHandler(application, BuildConfig.VERSION_NAME)
             )
+        SoLoader.init(application, OpenSourceMergedSoMapping)
+        if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
+            load()
+        }
 
         reactNativeHost = createReactNativeHost(application)
         reactHost = getDefaultReactHost(application.applicationContext, reactNativeHost!!)
-        setupActivityLifecycleCallbacks(application)
-
-        if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
-            // If you opted-in for the New Architecture, we load the native entry point for this app.
-            load()
-        }
-        
         isInitialized = true
+    }
+
+    private fun getBundleFromAirborne(application: Application, defaultAssetPath: String): String {
+        try {
+            val environment = getEnvironment(PaymentConfiguration.publishableKey())
+            val hyperOTAUrl = application.getString(
+                if (environment == SDKEnvironment.SANDBOX) R.string.hyperOTASandBoxEndPoint
+                else R.string.hyperOTAEndPoint
+            )
+            if (hyperOTAUrl != "hyperOTA_END_POINT_") {
+                val hyperOTAClass = Class.forName("io.hyperswitch.airborne.AirborneOTA")
+                val constructor = hyperOTAClass.getConstructor(
+                    Context::class.java, String::class.java, String::class.java
+                )
+                val instance = constructor.newInstance(
+                    application.applicationContext, BuildConfig.VERSION_NAME, hyperOTAUrl
+                )
+                val getBundlePath = hyperOTAClass.getMethod("getBundlePath")
+                val assetsPath = getBundlePath.invoke(instance) as String
+                return assetsPath
+            }
+            return defaultAssetPath
+        } catch (_: Exception) {
+            return defaultAssetPath
+        }
+    }
+
+    private fun createReactNativeHost(
+        application: Application,
+    ): ReactNativeHost {
+        return object : DefaultReactNativeHost(application) {
+            override fun getPackages(): List<ReactPackage> {
+                return PackageList(this).packages.apply {
+                    add(HyperPackage())
+                }
+            }
+            override fun getJSMainModuleName(): String = "index"
+            override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
+            override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
+            override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
+            override fun getJSBundleFile(): String =
+                getBundleFromAirborne(application, "assets://hyperswitch.bundle")
+        }
     }
 
     internal fun getReactNativeHost(): ReactNativeHost {
@@ -59,87 +86,10 @@ object HyperswitchSDK {
         }
         return host
     }
-
     internal fun getReactHost(): ReactHost? {
         check(isInitialized) {
             "HyperswitchSDK not initialized. Call HyperswitchSDK.initialize() in Application.onCreate()"
         }
         return reactHost
-    }
-    
-    private fun createReactNativeHost(
-        application: Application,
-    ): ReactNativeHost {
-        return object : DefaultReactNativeHost(application) {
-            override fun getPackages(): List<ReactPackage> {
-                return PackageList(this).packages.apply {
-                    // Packages that cannot be autolinked yet can be added manually here, for example:
-                    // add(MyReactNativePackage())
-                    add(HyperPackage())
-                }
-            }
-            
-            override fun getJSMainModuleName(): String = "index"
-            
-            override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
-            
-            override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
-            override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
-            
-
-            override fun getJSBundleFile(): String {
-                try {
-                    val environment = checkEnvironment(PaymentConfiguration.publishableKey())
-                    val hyperOTAUrl = application.getString(
-                        if (environment == SDKEnvironment.SANDBOX)
-                            R.string.hyperOTASandBoxEndPoint
-                        else
-                            R.string.hyperOTAEndPoint
-                    )
-                    if (hyperOTAUrl != "hyperOTA_END_POINT_") {
-                        tracker = HyperOtaLogger()
-                        val headers = mapOf(
-                            "Content-Encoding" to "br, gzip"
-                        )
-                        HyperOTAReact(
-                            application.applicationContext,
-                            "hyperswitch",
-                            "hyperswitch.bundle",
-                            BuildConfig.VERSION_NAME,
-                            "$hyperOTAUrl/mobile-ota/android/${BuildConfig.VERSION_NAME}/config.json",
-                            headers,
-                            object : LazyDownloadCallback {
-                                override fun fileInstalled(filePath: String, success: Boolean) {
-                                }
-                                override fun lazySplitsInstalled(success: Boolean) {
-                                }
-                            },
-                            tracker,
-                        ).also { hyperOTAServices = it }
-                    }
-                    return hyperOTAServices?.getBundlePath()?.takeUnless { it.contains("ios") }
-                        ?: "assets://hyperswitch.bundle"
-                } catch (_: Exception) {
-                    return "assets://hyperswitch.bundle"
-                }
-
-            }
-
-        }
-    }
-    
-    private fun setupActivityLifecycleCallbacks(application: Application) {
-        application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
-            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
-            override fun onActivityStarted(activity: Activity) {}
-            override fun onActivityStopped(activity: Activity) {}
-            override fun onActivityResumed(activity: Activity) {}
-            override fun onActivityPaused(activity: Activity) {}
-            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
-            override fun onActivityDestroyed(activity: Activity) {
-                val fileManager = LogFileManager(application)
-                fileManager.addLog(HyperLogManager.getAllLogsAsString())
-            }
-        })
     }
 }
