@@ -108,7 +108,8 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-    implementation("in.juspay:hyperotareact:0.0.1-xota.10")
+
     implementation project(':hyperswitch-sdk-android-logger')
+    implementation project(':hyperswitch-sdk-android-airborne')
     api project(':hyperswitch-sdk-android-api')
 }

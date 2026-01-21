@@ -14,22 +14,16 @@ import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
-import `in`.juspay.hyperota.LazyDownloadCallback
-import `in`.juspay.hyperotareact.HyperOTAReact
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.R
 import io.hyperswitch.logs.CrashHandler
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
-
-import io.hyperswitch.hyperota.HyperOtaLogger
 import io.hyperswitch.logs.LogUtils.getEnvironment
 import io.hyperswitch.logs.SDKEnvironment
 
 open class MainApplication : Application(), ReactApplication {
-    private var hyperOTAServices: HyperOTAReact? = null
-    private lateinit var tracker: HyperOtaLogger
     private lateinit var context: Context
 
     override val reactNativeHost: ReactNativeHost = object : DefaultReactNativeHost(this) {
@@ -56,32 +50,28 @@ open class MainApplication : Application(), ReactApplication {
                         R.string.hyperOTAEndPoint
                 )
                 if (hyperOTAUrl != "hyperOTA_END_POINT_") {
-                    tracker = HyperOtaLogger()
-                    val headers = mapOf(
-                        "Content-Encoding" to "br, gzip"
+                    val hyperOTAClass = Class.forName("io.hyperswitch.airborne.AirborneOTA")
+
+                    val constructor = hyperOTAClass.getConstructor(
+                        Context::class.java,
+                        String::class.java,
+                        String::class.java
                     )
-                    HyperOTAReact(
+
+                    val instance = constructor.newInstance(
                         context.applicationContext,
-                        "hyperswitch",
-                        "hyperswitch.bundle",
                         BuildConfig.VERSION_NAME,
-                        "$hyperOTAUrl/mobile-ota/android/${BuildConfig.VERSION_NAME}/config.json",
-                        headers,
-                        object : LazyDownloadCallback {
-                            override fun fileInstalled(filePath: String, success: Boolean) {
-                            }
-                            override fun lazySplitsInstalled(success: Boolean) {
-                            }
-                        },
-                        tracker,
-                    ).also { hyperOTAServices = it }
+                        hyperOTAUrl
+                    )
+
+                    val getBundlePath = hyperOTAClass.getMethod("getBundlePath")
+                    val assetsPath = getBundlePath.invoke(instance) as String
+                    return assetsPath
                 }
-                return hyperOTAServices?.getBundlePath()?.takeUnless { it.contains("ios") }
-                    ?: "assets://hyperswitch.bundle"
-            } catch (_: Exception) {
+                return "assets://hyperswitch.bundle"
+            } catch (e: Exception) {
                 return "assets://hyperswitch.bundle"
             }
-
         }
     }
 
@@ -89,9 +79,9 @@ open class MainApplication : Application(), ReactApplication {
         get() = getDefaultReactHost(applicationContext, reactNativeHost)
 
     override fun onCreate() {
+        super.onCreate()
         this.context = this
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(context, BuildConfig.VERSION_NAME))
-        super.onCreate()
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
             override fun onActivityStarted(activity: Activity) {}
