@@ -20,6 +20,8 @@ object HyperswitchSDK {
     private var reactNativeHost: ReactNativeHost? = null
     private var reactHost: ReactHost? = null
     private var isInitialized = false
+
+    fun getIsInitialized() = isInitialized
     fun initialize(application: Application) {
         if (isInitialized) {
             return

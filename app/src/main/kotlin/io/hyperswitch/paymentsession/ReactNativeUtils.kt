@@ -34,7 +34,9 @@ class ReactNativeUtils(private val activity: Activity) : SDKInterface {
     private val launchOptions = LaunchOptions(activity, BuildConfig.VERSION_NAME)
 
     init{
-        HyperswitchSDK.initialize(activity.application)
+        if(!HyperswitchSDK.getIsInitialized()) {
+            HyperswitchSDK.initialize(activity.application)
+        }
     }
 
     @SuppressLint("VisibleForTests")
