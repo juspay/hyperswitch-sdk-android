@@ -8,6 +8,8 @@ import android.os.Parcelable
 import android.webkit.WebSettings
 import androidx.fragment.app.FragmentActivity
 import com.facebook.react.ReactFragment
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
 import io.hyperswitch.BuildConfig
 import java.util.Locale
 class Utils {
@@ -88,6 +90,19 @@ class Utils {
         ipAddress shr 24 and 0xff
       )
     }
+      private fun isGooglePlayServicesAvailable(context: Context?): Boolean {
+          try {
+              context?.let {
+                  val availability = GoogleApiAvailability.getInstance()
+                  val result = availability.isGooglePlayServicesAvailable(context)
+                  return result == ConnectionResult.SUCCESS
+              }
+              return true
+          } catch (_: Exception) {
+              return false
+          }
+      }
+
 
     // Get launch options for React Native fragment
     private fun getLaunchOptions(request: Bundle, message: String, context: FragmentActivity): Bundle {
@@ -102,6 +117,7 @@ class Utils {
       hyperParams.putString("os_type", "android")
       hyperParams.putString("os_version", Build.VERSION.RELEASE)
       hyperParams.putString("deviceBrand", Build.BRAND)
+      hyperParams.putBoolean("gPaySupport", isGooglePlayServicesAvailable(context))
       request.putBundle("hyperParams", hyperParams)
 
       val bundle = Bundle()
