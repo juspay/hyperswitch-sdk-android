@@ -59,7 +59,7 @@ open class MainApplication : Application(), ReactApplication {
                     )
 
                     val instance = constructor.newInstance(
-                        context.applicationContext,   // Context ✔
+                        context.applicationContext,
                         BuildConfig.VERSION_NAME,
                         hyperOTAUrl
                     )
