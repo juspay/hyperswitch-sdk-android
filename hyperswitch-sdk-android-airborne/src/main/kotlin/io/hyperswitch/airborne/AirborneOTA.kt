@@ -15,15 +15,6 @@ class AirborneOTA {
                      appId: String,
                      bundleName: String){
         try {
-            if(url == "") {
-                throw Exception("URL shouldn't be empty")
-            }
-            if(appId == "") {
-                throw Exception("AppID shouldn't be empty")
-            }
-            if(sdkVersion == "") {
-                throw Exception("sdkVersion shouldn't be empty")
-            }
             this.tracker = HyperOtaLogger(sdkVersion)
             HyperOTAReact(
                 context,
