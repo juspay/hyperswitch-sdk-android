@@ -4,13 +4,12 @@ import android.content.Context
 import androidx.annotation.Keep
 import `in`.juspay.hyperota.LazyDownloadCallback
 import `in`.juspay.hyperotareact.HyperOTAReact
-
 @Keep
 class AirborneOTA {
     private lateinit var hyperOTAReact : HyperOTAReact
     private lateinit var tracker : HyperOtaLogger
 
-    fun initHyperOTA(context: Context,
+    fun initAirborneOTA(context: Context,
                      sdkVersion: String,
                      url : String,
                      appId: String,
@@ -55,7 +54,7 @@ class AirborneOTA {
                 appId: String,
                 bundleName: String
         ){
-        this.initHyperOTA(context,sdkVersion,configUrl,appId,bundleName)
+        this.initAirborneOTA(context,sdkVersion,configUrl,appId,bundleName)
     }
 
     /**
@@ -69,7 +68,10 @@ class AirborneOTA {
     constructor(context: Context,
                 sdkVersion: String,
                 baseUrl : String){
-        this.initHyperOTA(
+        if(baseUrl == "") {
+            throw Exception("BaseURL shouldn't be empty")
+        }
+        this.initAirborneOTA(
             context,
             sdkVersion,
             "$baseUrl/mobile-ota/android/${sdkVersion}/config.json",
@@ -85,5 +87,6 @@ class AirborneOTA {
         } catch (_: Exception) {
             "assets://hyperswitch.bundle"
         }
+
     }
 }

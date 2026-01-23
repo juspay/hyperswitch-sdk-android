@@ -108,8 +108,6 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-
     implementation project(':hyperswitch-sdk-android-logger')
-    implementation project(':hyperswitch-sdk-android-airborne')
     api project(':hyperswitch-sdk-android-api')
 }
