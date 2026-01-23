@@ -54,7 +54,7 @@ object ReactNativeController {
     private fun getBundleFromAirborne(application: Application): String {
         try {
             val environment = getEnvironment(PaymentConfiguration.publishableKey())
-            val hyperOTAUrl = application.getString(
+            val airborneUrl = application.getString(
                 if (environment == SDKEnvironment.SANDBOX)
                     R.string.hyperOTASandBoxEndPoint
                 else
@@ -62,11 +62,11 @@ object ReactNativeController {
             )
 
             // Ensure OTA endpoint is valid
-            if (hyperOTAUrl != "hyperOTA_END_POINT_") {
-                val hyperOTAClass =
+            if (airborneUrl != "hyperOTA_END_POINT_") {
+                val airborneClass =
                     Class.forName("io.hyperswitch.airborne.AirborneOTA")
 
-                val constructor = hyperOTAClass.getConstructor(
+                val constructor = airborneClass.getConstructor(
                     Context::class.java,
                     String::class.java,
                     String::class.java
@@ -75,20 +75,15 @@ object ReactNativeController {
                 val instance = constructor.newInstance(
                     application.applicationContext,
                     BuildConfig.VERSION_NAME,
-                    hyperOTAUrl
+                    airborneUrl
                 )
 
                 val getBundlePath =
-                    hyperOTAClass.getMethod("getBundlePath")
-
+                    airborneClass.getMethod("getBundlePath")
                 return getBundlePath.invoke(instance) as String
             }
-
-            return "assets://hyperswitch.bundle"
-        } catch (_: Exception) {
-            // Any failure gracefully falls back to bundled assets
-            return "assets://hyperswitch.bundle"
-        }
+        } catch (_: Exception) {}
+        return "assets://hyperswitch.bundle"
     }
 
     /**
@@ -100,12 +95,10 @@ object ReactNativeController {
      * - Resolves JS bundle source (OTA or bundled)
      *
      * @param application Application context
-     * @param enableOTA Whether OTA-based JS loading is enabled and only works when dependency is added
      * @return Configured ReactNativeHost instance
      */
     private fun createReactNativeHost(
         application: Application,
-        enableOTA: Boolean
     ): ReactNativeHost {
         return object : DefaultReactNativeHost(application) {
             override fun getPackages(): List<ReactPackage> {
@@ -120,11 +113,8 @@ object ReactNativeController {
             override val isHermesEnabled: Boolean =
                 BuildConfig.IS_HERMES_ENABLED
             override fun getJSBundleFile(): String =
-                if (enableOTA) {
                     getBundleFromAirborne(application)
-                } else {
-                    "assets://hyperswitch.bundle"
-                }
+
         }
     }
 
@@ -162,7 +152,7 @@ object ReactNativeController {
     }
 
     /**
-     * Initializes the Hyperswitch SDK.
+     * Initializes the ReactNativeController.
      *
      * This method:
      * - Ensures single initialization (thread-safe)
@@ -170,14 +160,9 @@ object ReactNativeController {
      * - Initializes SoLoader
      * - Loads New Architecture entry point if enabled
      * - Creates ReactNativeHost and ReactHost instances
-     *
-     * OTA behavior depends on the `enableOTA` flag and
-     * the availability of the Airborne dependency.
-     *
      * @param application Application instance
-     * @param enableOTA Enables OTA-based JS bundle loading
      */
-    fun initialize(application: Application, enableOTA: Boolean) {
+    fun initialize(application: Application) {
         try {
             synchronized(this) {
                 if (isInitialized) return
@@ -193,7 +178,7 @@ object ReactNativeController {
                 }
 
                 reactNativeHost =
-                    createReactNativeHost(application, enableOTA)
+                    createReactNativeHost(application)
 
                 reactHost = getDefaultReactHost(
                     application.applicationContext,
@@ -211,17 +196,5 @@ object ReactNativeController {
                     .build()
             )
         }
-    }
-
-    /**
-     * Initializes the SDK with OTA enabled by default.
-     *
-     * Equivalent to calling:
-     * initialize(application, true)
-     *
-     * @param application Application instance
-     */
-    fun initialize(application: Application) {
-        initialize(application, true)
     }
 }
