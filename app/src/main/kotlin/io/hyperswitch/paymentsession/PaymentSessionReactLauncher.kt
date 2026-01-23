@@ -19,33 +19,33 @@ import com.facebook.react.jstasks.HeadlessJsTaskContext
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.facebook.react.uimanager.PixelUtil
 import io.hyperswitch.BuildConfig
-import io.hyperswitch.HyperswitchSDK
+import io.hyperswitch.ReactNativeController
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.paymentIntentClientSecret
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
 import io.hyperswitch.react.HyperFragment
 
-class ReactNativeUtils(private val activity: Activity) : SDKInterface {
+class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface {
 
     private var reactHost: ReactHost? = null
     private var reactNativeHost: ReactNativeHost? = null
     private var reactContext: ReactContext? = null
     private var headlessTaskId: Int? = null
     private val launchOptions = LaunchOptions(activity, BuildConfig.VERSION_NAME)
-
-    init{
-        if(!HyperswitchSDK.getIsInitialized()) {
-            HyperswitchSDK.initialize(activity.application)
-        }
-    }
+//    override fun preload() {
+//        ReactNativeController.initialize(activity.application)
+//    }
 
     @SuppressLint("VisibleForTests")
     override fun initializeReactNativeInstance() {
         reactContext = try {
-            // Get ReactNativeHost from HyperSDK singleton instead of casting Application to ReactApplication
+            // Get ReactNativeHost from ReactNativeController singleton instead of casting Application to ReactApplication
             // This allows merchants to use their own Application class without extending MainApplication
-            reactNativeHost = HyperswitchSDK.getReactNativeHost()
-            reactHost = HyperswitchSDK.getReactHost()
+            if (!ReactNativeController.getIsInitialized()){
+                ReactNativeController.initialize(activity.application)
+            }
+            reactNativeHost = ReactNativeController.getReactNativeHost()
+            reactHost = ReactNativeController.getReactHost()
             
             if (ReactNativeFeatureFlags.enableBridgelessArchitecture()) {
                 val reactHost = checkNotNull(reactHost) { "ReactHost is not initialized in New Architecture" }

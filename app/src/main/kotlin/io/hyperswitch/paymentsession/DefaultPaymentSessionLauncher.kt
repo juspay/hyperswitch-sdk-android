@@ -14,7 +14,7 @@ class DefaultPaymentSessionLauncher(
     customBackendUrl: String?,
     customLogUrl: String?,
     customParams: Bundle?,
-    private var reactNativeUtils: SDKInterface = ReactNativeUtils(activity)
+    private var paymentSessionReactLauncher: SDKInterface = PaymentSessionReactLauncher(activity)
 ) : BasePaymentSessionLauncher(
     activity,
     publishableKey,
@@ -33,7 +33,7 @@ class DefaultPaymentSessionLauncher(
             HyperLogManager.initialise(publishableKey, loggingEndPoint)
             HyperLogManager.sendLogsFromFile(LogFileManager(activity))
         }
-        reactNativeUtils.initializeReactNativeInstance()
+        paymentSessionReactLauncher.initializeReactNativeInstance()
     }
 
     override fun initPaymentSession(paymentIntentClientSecret: String) {
@@ -47,7 +47,7 @@ class DefaultPaymentSessionLauncher(
     ) {
         isPresented = true
         val isFragment =
-            reactNativeUtils.presentSheet(paymentIntentClientSecret ?: "", configuration)
+            paymentSessionReactLauncher.presentSheet(paymentIntentClientSecret ?: "", configuration)
         PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
     }
 
@@ -56,7 +56,7 @@ class DefaultPaymentSessionLauncher(
         resultCallback: (PaymentSheetResult) -> Unit
     ) {
         isPresented = true
-        val isFragment = reactNativeUtils.presentSheet(configurationMap)
+        val isFragment = paymentSessionReactLauncher.presentSheet(configurationMap)
         PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
     }
 
@@ -65,7 +65,7 @@ class DefaultPaymentSessionLauncher(
     ) {
         isPresented = false
         GetPaymentSessionCallBackManager.setCallback(savedPaymentMethodCallback)
-        reactNativeUtils.recreateReactContext()
+        paymentSessionReactLauncher.recreateReactContext()
     }
 
     companion object {
