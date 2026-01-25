@@ -1,4 +1,4 @@
-package io.hyperswitch
+package io.hyperswitch.react
 
 import android.app.Application
 import android.content.Context
@@ -6,18 +6,20 @@ import com.facebook.react.PackageList
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeHost
 import com.facebook.react.ReactPackage
-import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.load
-import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
+import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint
+import com.facebook.react.defaults.DefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
+import io.hyperswitch.BuildConfig
+import io.hyperswitch.PaymentConfiguration
+import io.hyperswitch.R
 import io.hyperswitch.logs.CrashHandler
 import io.hyperswitch.logs.HSLog
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogCategory
-import io.hyperswitch.logs.LogUtils.getEnvironment
+import io.hyperswitch.logs.LogUtils
 import io.hyperswitch.logs.SDKEnvironment
-import io.hyperswitch.react.HyperPackage
 
 /**
  * ReactNativeController
@@ -53,7 +55,8 @@ object ReactNativeController {
      */
     private fun getBundleFromAirborne(application: Application): String {
         try {
-            val environment = getEnvironment(PaymentConfiguration.publishableKey())
+            val environment =
+                LogUtils.getEnvironment(PaymentConfiguration.Companion.publishableKey())
             val airborneUrl = application.getString(
                 if (environment == SDKEnvironment.SANDBOX)
                     R.string.hyperOTASandBoxEndPoint
@@ -174,13 +177,13 @@ object ReactNativeController {
                 SoLoader.init(application, OpenSourceMergedSoMapping)
 
                 if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
-                    load()
+                    DefaultNewArchitectureEntryPoint.load()
                 }
 
                 reactNativeHost =
                     createReactNativeHost(application)
 
-                reactHost = getDefaultReactHost(
+                reactHost = DefaultReactHost.getDefaultReactHost(
                     application.applicationContext,
                     reactNativeHost!!
                 )

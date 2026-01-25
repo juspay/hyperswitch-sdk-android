@@ -19,7 +19,7 @@ import com.facebook.react.jstasks.HeadlessJsTaskContext
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.facebook.react.uimanager.PixelUtil
 import io.hyperswitch.BuildConfig
-import io.hyperswitch.ReactNativeController
+import io.hyperswitch.react.ReactNativeController
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.paymentIntentClientSecret
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
@@ -110,7 +110,7 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
             ), 5000, true, null
         )
 
-        val headlessJsTaskContext = HeadlessJsTaskContext.Companion.getInstance(reactContext)
+        val headlessJsTaskContext = HeadlessJsTaskContext.getInstance(reactContext)
         UiThreadUtil.runOnUiThread {
             headlessTaskId?.let {
                 headlessJsTaskContext.finishTask(it)

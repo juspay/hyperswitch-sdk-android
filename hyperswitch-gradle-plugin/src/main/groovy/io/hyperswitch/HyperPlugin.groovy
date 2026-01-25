@@ -5,7 +5,8 @@ import org.gradle.api.Project
 
 enum HyperFeature {
     SCANCARD('juspay-tech_react-native-hyperswitch-scancard', 'rnlibVersion'),
-    NETCETERA('juspay-tech_react-native-hyperswitch-netcetera-3ds', 'rnlibVersion')
+    NETCETERA('juspay-tech_react-native-hyperswitch-netcetera-3ds', 'rnlibVersion'),
+    AIRBORNE('hyperswitch-sdk-android-airborne', 'airBorneVersion')
 
     final String artifactId
     final String versionProperty
@@ -104,8 +105,6 @@ class HyperPlugin implements Plugin<Project> {
 
             try {
                 if (project.android) {
-                    project.android.buildTypes.debug.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
-                    project.android.buildTypes.release.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
                     project.android.packagingOptions.jniLibs.useLegacyPackaging = true
 
                     project.android.packagingOptions {
