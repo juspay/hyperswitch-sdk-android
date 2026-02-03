@@ -1010,8 +1010,7 @@ class PaymentSheet internal constructor(
 
     enum class LayoutType {
         Tabs,
-        Accordion,
-        SpacedAccordion
+        Accordion
     }
 
     enum class PaymentMethodsArrangement {
@@ -1050,7 +1049,7 @@ class PaymentSheet internal constructor(
     data class Layout(
         /**
          * The type of layout to display payment methods in.
-         * Can be Tabs, Accordion, or SpacedAccordion.
+         * Can be Tabs or Accordion.
          */
         val type: LayoutType? = null,
 
