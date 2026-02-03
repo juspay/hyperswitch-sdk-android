@@ -105,6 +105,13 @@ class MainActivity : AppCompatActivity() {
             surface = "#F5F8F9".toColorInt(),
         )
 
+        val layout = PaymentSheet.Layout(
+            type = PaymentSheet.LayoutType.Tabs,
+            showOneClickWalletsOnTop = true,
+            paymentMethodsArrangementForTabs = PaymentSheet.PaymentMethodsArrangement.Default
+
+        )
+
         val appearance: PaymentSheet.Appearance = PaymentSheet.Appearance(
             typography = PaymentSheet.Typography(
                 sizeScaleFactor = 1f, fontResId = R.font.montserrat
@@ -112,12 +119,13 @@ class MainActivity : AppCompatActivity() {
             primaryButton = primaryButton,
             colorsLight = color1,
             colorsDark = color2,
-            theme = PaymentSheet.Theme.Light
+            theme = PaymentSheet.Theme.Light,
+            layout = layout
         )
 
         val configuration =
             PaymentSheet.Configuration.Builder("Example, Inc.")
-                //.appearance(appearance)
+                .appearance(appearance)
                 .defaultBillingDetails(billingDetails).primaryButtonLabel("Purchase ($2.00)")
                 .paymentSheetHeaderLabel("Select payment method")
                 .savedPaymentSheetHeaderLabel("Payment methods").shippingDetails(shippingDetails)
