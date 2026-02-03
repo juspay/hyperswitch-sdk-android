@@ -3,7 +3,7 @@ package io.hyperswitch.demoapp
 import android.app.Application
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactNativeHost
-import io.hyperswitch.ReactNativeController
+import io.hyperswitch.react.ReactNativeController
 
 /**
  * DemoApplication
