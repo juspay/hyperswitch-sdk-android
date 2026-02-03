@@ -108,8 +108,8 @@ class MainActivity : AppCompatActivity() {
         val layout = PaymentSheet.Layout(
             type = PaymentSheet.LayoutType.Tabs,
             showOneClickWalletsOnTop = true,
-            paymentMethodsArrangementForTabs = PaymentSheet.PaymentMethodsArrangement.Default
-
+            paymentMethodsArrangementForTabs = PaymentSheet.PaymentMethodsArrangement.Default,
+            spacedAccordionItems = false
         )
 
         val appearance: PaymentSheet.Appearance = PaymentSheet.Appearance(
