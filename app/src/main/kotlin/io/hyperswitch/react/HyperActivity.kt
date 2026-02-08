@@ -4,6 +4,7 @@ import android.os.Bundle
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.ReactNativeHost
+import com.facebook.react.ReactHost
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
 import com.facebook.react.defaults.DefaultReactActivityDelegate
 import com.proyecto26.inappbrowser.ChromeTabsDismissedEvent
@@ -31,6 +32,10 @@ class HyperActivity : ReactActivity() {
             
             override fun getReactNativeHost(): ReactNativeHost {
                 return ReactNativeController.getReactNativeHost()
+            }
+
+            override fun getReactHost() : ReactHost {
+                return ReactNativeController.getReactHost()
             }
         }
     }

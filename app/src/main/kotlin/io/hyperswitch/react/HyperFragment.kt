@@ -44,6 +44,35 @@ class HyperFragment: ReactFragment() {
         )
         startActivity(ChromeTabsManagerActivity.createDismissIntent(requireContext()))
     }
+}
 
-    class Builder: ReactFragment.Builder()
+class HyperFragmentBuilder {
+    private var componentName: String? = null
+    private var launchOptions: Bundle? = null
+    private var fabricEnabled: Boolean = false
+
+    fun setComponentName(componentName: String): HyperFragmentBuilder {
+        this.componentName = componentName
+        return this
+    }
+
+    fun setLaunchOptions(launchOptions: Bundle): HyperFragmentBuilder {
+        this.launchOptions = launchOptions
+        return this
+    }
+
+    fun setFabricEnabled(fabricEnabled: Boolean): HyperFragmentBuilder {
+        this.fabricEnabled = fabricEnabled
+        return this
+    }
+
+    fun build(): HyperFragment {
+        val fragment = HyperFragment()
+        val args = Bundle()
+        componentName?.let { args.putString("componentName", it) }
+        launchOptions?.let { args.putBundle("launchOptions", it) }
+        args.putBoolean("fabricEnabled", fabricEnabled)
+        fragment.arguments = args
+        return fragment
+    }
 }

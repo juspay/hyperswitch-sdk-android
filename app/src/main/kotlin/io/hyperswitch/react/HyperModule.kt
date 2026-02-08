@@ -1,182 +1,179 @@
 package io.hyperswitch.react
 
-import android.view.View
-import android.view.ViewGroup
+import com.hyperswitchsdk.NativeHyperModuleSpec
+
+import android.util.Log
 import androidx.fragment.app.FragmentActivity
-import com.facebook.react.bridge.Arguments
-import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactMethod
-import io.hyperswitch.BuildConfig
-import io.hyperswitch.payments.GooglePayCallbackManager
-import io.hyperswitch.payments.view.WidgetLauncher
-import io.hyperswitch.paymentsession.LaunchOptions
+import com.facebook.react.bridge.WritableMap
+import com.facebook.react.bridge.WritableNativeMap
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
-import io.hyperswitch.view.BasePaymentWidget
-import io.hyperswitch.payments.launcher.PaymentMethod
-import org.json.JSONObject
 
-class HyperModule internal constructor(private val rct: ReactApplicationContext) :
-    ReactContextBaseJavaModule(rct) {
-    companion object {
-        // Static methods with unique signatures for reflection access from lite SDK
-        @JvmStatic
-        fun confirmStatic(tag: String, map: MutableMap<String, String?>) {
-            HyperEventEmitter.confirmStatic(tag, map)
-        }
-
-        @JvmStatic
-        fun confirmCardStatic(map: MutableMap<String, String?>) {
-            HyperEventEmitter.confirmCardStatic(map)
-        }
-
-        @JvmStatic
-        fun confirmECStatic(map: MutableMap<String, String?>) {
-            HyperEventEmitter.confirmECStatic(map)
-        }
-    }
+/**
+ * HyperModules TurboModule implementation that bridges the bundle's expectations
+ * with the existing HyperswitchSdkModule functionality
+ */
+class HyperswitchSdkNativeModule(reactContext: ReactApplicationContext) :
+    NativeHyperModuleSpec(reactContext) {
 
     override fun getName(): String {
-        HyperEventEmitter.initialize(rct)
-        return "HyperModule"
-    }
-
-    // Using invalidate instead of deprecated onCatalystInstanceDestroy
-    override fun invalidate() {
-        super.invalidate()
-        HyperEventEmitter.deinitialize()
+        return NAME
     }
 
     @ReactMethod
-    fun updateWidgetHeight(height: Int) {
-        val activity = currentActivity ?: return
-        activity.runOnUiThread {
-            // Find the first ExpressCheckoutWidget instance
-            val rootView = activity.findViewById<View>(android.R.id.content)
-            val widget = findFirstExpressCheckoutWidget(rootView)
-
-            // Update its height if found
-            widget?.setWidgetHeight(height)
-        }
-    }
-
-    private fun findFirstExpressCheckoutWidget(rootView: View): BasePaymentWidget? {
-        if (rootView is BasePaymentWidget && rootView.getPaymentMethod() == "expressCheckout") {
-            return rootView
-        }
-        // Check child views
-        if (rootView is ViewGroup) {
-            for (i in 0 until rootView.childCount) {
-                val childView = rootView.getChildAt(i)
-                val result = findFirstExpressCheckoutWidget(childView)
-                if (result != null) {
-                    return result
-                }
-            }
-        }
-
-        // Not found in this branch
-        return null
+    override fun sendMessageToNative(message: String) {
+        Log.d(NAME, "sendMessageToNative called with: $message")
+        // Forward to HyperswitchSdkModule if needed
     }
 
     @ReactMethod
-    fun sendMessageToNative(rnMessage: String) {
-        val jsonObject = JSONObject(rnMessage)
-        if (jsonObject.optBoolean("isReady", false)) {
-//            HyperEventEmitter.initialize(rct)
-            WidgetLauncher.onPaymentReadyCallback(true)
-        }
+    override fun launchApplePay(requestObj: String, callback: Callback) {
+//    Log.d(NAME, "launchApplePay called")
+        // Implementation for Apple Pay
+        callback.invoke("Apple Pay not implemented")
     }
 
-    // Method to launch Google Pay payment
+
     @ReactMethod
-    fun launchGPay(googlePayRequest: String, callBack: Callback) {
-        currentActivity?.let {
-            GooglePayCallbackManager.setCallback(
-                it,
-                googlePayRequest,
-                fun(data: Map<String, Any?>) {
-                    callBack.invoke(
-                        Arguments.fromBundle(
-                            LaunchOptions(
-                                it, BuildConfig.VERSION_NAME
-                            ).toBundle(data)
-                        )
-                    )
-                },
-            )
-        } ?: run {
-            GooglePayCallbackManager.setCallback(
-                reactApplicationContext,
-                googlePayRequest,
-                fun(data: Map<String, Any?>) {
-                    callBack.invoke(
-                        Arguments.fromBundle(
-                            LaunchOptions(
-                                reactApplicationContext, BuildConfig.VERSION_NAME
-                            ).toBundle(data)
-                        )
-                    )
-                },
-            )
-        }
+    override fun launchGPay(requestObj: String, callback: Callback) {
+//        currentActivity?.let {
+//            GooglePayCallbackManager.setCallback(
+//                it,
+//                requestObj,
+//                fun(data: Map<String, Any?>) {
+//                    callback.invoke(mapToWritableMap(data))
+//                },
+//            )
+//        } ?: run {
+//            GooglePayCallbackManager.setCallback(
+//                reactApplicationContext,
+//                requestObj,
+//                fun(data: Map<String, Any?>) {
+//                    callback.invoke(mapToWritableMap(data))
+//                },
+//            )
+//        }
     }
 
-    // Method to exit the payment sheet
     @ReactMethod
-    fun exitPaymentsheet(rootTag: Int, paymentResult: String, reset: Boolean) {
-        val isFragment = PaymentSheetCallbackManager.executeCallback(paymentResult)
-        (currentActivity as? FragmentActivity)?.let {
+    override fun exitPaymentsheet(rootTag: Double, result: String, reset: Boolean) {
+        val isFragment = PaymentSheetCallbackManager.executeCallback(result)
+        (reactApplicationContext.getCurrentActivity()  as? FragmentActivity)?.let {
             if (isFragment) it.supportFragmentManager.findFragmentByTag("paymentSheet")
                 ?.let { fragment ->
                     it.supportFragmentManager.beginTransaction().hide(fragment)
                         .commitAllowingStateLoss()
-                }
-            else it.finish()
+                } else it.finish()
         }
+//        try {
+//            resolvePromise(result)
+//            resetView()
+//        } catch (e: JSONException) {
+//            // Log.e(NAME, "Failed to parse JSON result: $result", e)
+//            resolvePromise(result)
+//        }
+
     }
 
-    // Method to exit the widget
     @ReactMethod
-    fun exitWidget(paymentResult: String, widgetType: String) {
-        WidgetLauncher.onPaymentResultCallback(widgetType, paymentResult)
+    override fun exitPaymentMethodManagement(rootTag: Double, result: String, reset: Boolean) {
+//    Log.d(NAME, "exitPaymentMethodManagement called $result")
+//        try {
+//            resolvePromise(result)
+//            resetView()
+//        } catch (e: JSONException) {
+//            // Log.e(NAME, "Failed to parse JSON result: $result", e)
+//            resolvePromise(result)
+//        }
+
+        // Implementation for exiting payment method management
     }
 
-    // Method to exit the card form
     @ReactMethod
-    fun exitCardForm(paymentResult: String) {
-        WidgetLauncher.onPaymentResultCallback(PaymentMethod.CARD.apiValue, paymentResult)
+    override fun exitWidget(result: String, widgetType: String) {
+//    Log.d(NAME, "exitWidget called with result: $result, widgetType: $widgetType")
+//        try {
+//            resolvePromise(result)
+//            resetView()
+//        } catch (e: JSONException) {
+//            // Log.e(NAME, "Failed to parse JSON result: $result", e)
+//            resolvePromise(result)
+//        }
+
+
+        // Implementation for exiting widget
     }
 
-    // Method to launch widget payment sheet
     @ReactMethod
-    fun launchWidgetPaymentSheet(paymentResult: String, callBack: Callback) {
+    override fun exitCardForm(result: String) {
+//    Log.d(NAME, "exitCardForm called with result: $result")
+//        try {
+//            resolvePromise(result)
+//            resetView()
+//        } catch (e: JSONException) {
+//            // Log.e(NAME, "Failed to parse JSON result: $result", e)
+//            resolvePromise(result)
+//        }
+
+        // Implementation for exiting card form
     }
 
-    // Method to exit widget payment sheet
     @ReactMethod
-    fun exitWidgetPaymentsheet(rootTag: Int, paymentResult: String, reset: Boolean) {
+    override fun exitWidgetPaymentsheet(rootTag: Double, result: String, reset: Boolean) {
+//    Log.d(NAME, "exitWidgetPaymentsheet called")
+//        try {
+//            resolvePromise(result)
+//            resetView()
+//        } catch (e: JSONException) {
+//            // Log.e(NAME, "Failed to parse JSON result: $result", e)
+//            resolvePromise(result)
+//        }
+
+        // Implementation for exiting widget payment sheet
     }
 
-    // Variable to keep track of event listener count
-    private var listenerCount = 0
-
-    // Method to add event listener
     @ReactMethod
-    fun addListener(eventName: String?) {
-        if (listenerCount == 0) {
-            HyperEventEmitter.initialize(rct)
+    override fun launchWidgetPaymentSheet(requestObj: String, callback: Callback) {
+//    Log.d(NAME, "launchWidgetPaymentSheet called")
+        // Implementation for launching widget payment sheet
+        callback.invoke("Widget payment sheet not implemented")
+    }
+
+    @ReactMethod
+    override fun updateWidgetHeight(height: Double) {
+//    Log.d(NAME, "updateWidgetHeight called with height: $height")
+        // Implementation for updating widget height
+    }
+
+    @ReactMethod
+    override fun onAddPaymentMethod(data: String) {
+//    Log.d(NAME, "onAddPaymentMethod called with data: $data")
+        // Implementation for adding payment method
+    }
+
+    private fun mapToWritableMap(map: Map<String, Any?>): WritableMap {
+        val writableMap = WritableNativeMap()
+        for ((key, value) in map) {
+            when (value) {
+                null -> writableMap.putNull(key)
+                is Boolean -> writableMap.putBoolean(key, value)
+                is Double -> writableMap.putDouble(key, value)
+                is Int -> writableMap.putInt(key, value)
+                is String -> writableMap.putString(key, value)
+                is Map<*, *> -> writableMap.putMap(
+                    key,
+                    mapToWritableMap(value as Map<String, Any?>)
+                )
+
+                else -> writableMap.putString(key, value.toString())
+            }
         }
-        listenerCount += 1
+        return writableMap
     }
 
-    // Method to remove event listeners
-    @ReactMethod
-    fun removeListeners(count: Int) {
-        listenerCount -= count
-        if (listenerCount == 0) {
-            // Remove upstream listeners, stop unnecessary background task
-        }
+    companion object {
+        const val NAME = "HyperModule"
     }
 }

@@ -20,6 +20,10 @@ import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogCategory
 import io.hyperswitch.logs.LogUtils
 import io.hyperswitch.logs.SDKEnvironment
+import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
+import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
+import com.facebook.react.runtime.hermes.HermesInstance
+
 
 /**
  * ReactNativeController
@@ -101,14 +105,10 @@ object ReactNativeController {
      * @return Configured ReactNativeHost instance
      */
     private fun createReactNativeHost(
-        application: Application,
+        application: Application, packageList: List<ReactPackage>
     ): ReactNativeHost {
         return object : DefaultReactNativeHost(application) {
-            override fun getPackages(): List<ReactPackage> {
-                return PackageList(this).packages.apply {
-                    add(HyperPackage())
-                }
-            }
+            override fun getPackages(): List<ReactPackage> = packageList
             override fun getJSMainModuleName(): String = "index"
             override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
             override val isNewArchEnabled: Boolean =
@@ -119,6 +119,20 @@ object ReactNativeController {
                     getBundleFromAirborne(application)
 
         }
+    }
+    private fun createReactHost(
+        application: Application, packageList: List<ReactPackage>
+    ): ReactHost {
+        return getDefaultReactHost(
+                context = application,
+                packageList = packageList,
+                jsMainModulePath = "index",
+                jsBundleAssetPath = "hyperswitch.bundle",
+                jsBundleFilePath = "assets://hyperswitch.bundle",
+                useDevSupport = BuildConfig.DEBUG,
+                jsRuntimeFactory = HermesInstance()
+            )
+//        }
     }
 
     /**
@@ -174,19 +188,21 @@ object ReactNativeController {
                     CrashHandler(application, BuildConfig.VERSION_NAME)
                 )
 
-                SoLoader.init(application, OpenSourceMergedSoMapping)
+                loadReactNative(application)
 
-                if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
-                    DefaultNewArchitectureEntryPoint.load()
+//                SoLoader.init(application, OpenSourceMergedSoMapping)
+//
+//                if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
+//                    DefaultNewArchitectureEntryPoint.load()
+//                }
+                val packageList = PackageList(application).packages.apply {
+                    add(HyperPackage())
                 }
 
                 reactNativeHost =
-                    createReactNativeHost(application)
+                    createReactNativeHost(application, packageList)
 
-                reactHost = DefaultReactHost.getDefaultReactHost(
-                    application.applicationContext,
-                    reactNativeHost!!
-                )
+                reactHost = createReactHost(application, packageList)
 
                 isInitialized = true
             }

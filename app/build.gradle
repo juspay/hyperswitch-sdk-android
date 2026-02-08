@@ -1,10 +1,14 @@
 apply plugin: "com.android.library"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "kotlin-parcelize"
+// apply this before react plugin
+ext.generatePackageList = true
+
 apply plugin: "com.facebook.react"
 
 group = "io.hyperswitch"
 version = sdkVersion
+
 
 /**
  * This is the configuration block to customize your React Native Android app.
@@ -97,6 +101,23 @@ android {
             }
         }
     }
+
+    packagingOptions {
+        // Use pickFirst instead of exclude to handle duplicates
+        pickFirst "**/libc++_shared.so"
+        pickFirst "**/libfbjni.so"
+        pickFirst "**/libjsi.so"
+        pickFirst "**/libhermes.so"
+        pickFirst "**/libreactnative.so"
+        pickFirst "**/libimagepipeline.so"
+        pickFirst "**/libnative-filters.so"
+        pickFirst "**/libnative-imagetranscoder.so"
+
+        // Also add these common React Native duplicates
+        pickFirst "**/libreactnativejni.so"
+        pickFirst "**/libturbomodulejsijni.so"
+        pickFirst "**/libappmodules.so"
+    }
 }
 
 dependencies {
@@ -104,10 +125,29 @@ dependencies {
     api("com.facebook.react:react-android")
 
     if (hermesEnabled.toBoolean()) {
-        implementation("com.facebook.react:hermes-android")
+        api("com.facebook.react:hermes-android")
     } else {
-        implementation jscFlavor
+        api jscFlavor
     }
     implementation project(':hyperswitch-sdk-android-logger')
     api project(':hyperswitch-sdk-android-api')
+}
+
+rootProject.allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url("$rootDir/maven/")
+        }
+        maven {
+            url "https://jitpack.io"
+        }
+        maven {
+            url("$rootDir/../node_modules/detox/Detox-android")
+        }
+        maven {
+            url "https://maven.juspay.in/hyper-sdk/"
+        }
+    }
 }

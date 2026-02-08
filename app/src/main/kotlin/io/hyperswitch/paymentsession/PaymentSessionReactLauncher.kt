@@ -24,6 +24,7 @@ import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.pay
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
 import io.hyperswitch.react.HyperFragment
+import io.hyperswitch.react.HyperFragmentBuilder
 
 class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface {
 
@@ -141,7 +142,7 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
     private fun presentSheet(bundle: Bundle): Boolean {
         if (activity is DefaultHardwareBackBtnHandler && activity is FragmentActivity) {
             val newReactNativeFragmentSheet =
-                HyperFragment.Builder().setComponentName("hyperSwitch").setLaunchOptions(bundle)
+                HyperFragmentBuilder().setComponentName("hyperSwitch").setLaunchOptions(bundle)
                     .setFabricEnabled(BuildConfig.IS_NEW_ARCHITECTURE_ENABLED).build()
 
             val activity2 = activity as FragmentActivity

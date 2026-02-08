@@ -1,7 +1,7 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
-    // id 'io.hyperswitch.plugin'
+//    id 'io.hyperswitch.plugin'
 }
 
 android {
@@ -70,6 +70,19 @@ android {
         exclude "lib/**/libnative-filters.so"
         // exclude "lib/**/libsentry.so"
         // exclude "lib/**/libsentry-android.so"
+        pickFirst "**/libc++_shared.so"
+        pickFirst "**/libfbjni.so"
+        pickFirst "**/libjsi.so"
+        pickFirst "**/libhermes.so"
+        pickFirst "**/libreactnative.so"
+        pickFirst "**/libimagepipeline.so"
+        pickFirst "**/libnative-filters.so"
+        pickFirst "**/libnative-imagetranscoder.so"
+
+        // Also add these common React Native duplicates
+        pickFirst "**/libreactnativejni.so"
+        pickFirst "**/libturbomodulejsijni.so"
+        pickFirst "**/libappmodules.so"
     }
 }
 
