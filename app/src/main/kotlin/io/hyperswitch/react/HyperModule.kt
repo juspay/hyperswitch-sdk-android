@@ -1,6 +1,6 @@
 package io.hyperswitch.react
 
-import com.hyperswitchsdk.NativeHyperModuleSpec
+import io.hyperswitch.NativeHyperModuleSpec
 
 import android.util.Log
 import androidx.fragment.app.FragmentActivity

@@ -102,6 +102,12 @@ android {
         }
     }
 
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['src/main/jniLibs']
+        }
+    }
+
     packagingOptions {
         // Use pickFirst instead of exclude to handle duplicates
         pickFirst "**/libc++_shared.so"
