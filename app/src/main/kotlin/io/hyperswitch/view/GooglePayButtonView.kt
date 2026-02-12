@@ -16,7 +16,7 @@ class GooglePayButtonView(private val context: ThemedReactContext) : FrameLayout
     var allowedPaymentMethods: String = ""
     var type = ButtonConstants.ButtonType.PLAIN
     var theme = ButtonConstants.ButtonTheme.DARK
-    var cornerRadius = 10
+    var cornerRadius : Double = 10.0
     private var button: PayButton? = null
 
     fun addButton() {
@@ -34,7 +34,7 @@ class GooglePayButtonView(private val context: ThemedReactContext) : FrameLayout
         val options =
             ButtonOptions.newBuilder().setAllowedPaymentMethods(allowedPaymentMethods).setButtonType(type)
                 .setButtonTheme(theme)
-                .setCornerRadius(PixelUtil.toPixelFromDIP(this.cornerRadius.toDouble()).toInt())
+                .setCornerRadius(PixelUtil.toPixelFromDIP(this.cornerRadius).toInt())
         googlePayButton.initialize(options.build())
         googlePayButton.setOnClickListener { _ ->
             // Call the Javascript TouchableOpacity parent where the onClick handler is set

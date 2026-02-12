@@ -41,6 +41,7 @@ object ReactNativeController {
 
     private var reactNativeHost: ReactNativeHost? = null
     private var reactHost: ReactHost? = null
+
     @Volatile
     private var isInitialized = false
 
@@ -89,7 +90,8 @@ object ReactNativeController {
                     airborneClass.getMethod("getBundlePath")
                 return getBundlePath.invoke(instance) as String
             }
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+        }
         return "assets://hyperswitch.bundle"
     }
 
@@ -115,23 +117,25 @@ object ReactNativeController {
                 BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
             override val isHermesEnabled: Boolean =
                 BuildConfig.IS_HERMES_ENABLED
+
             override fun getJSBundleFile(): String =
-                    getBundleFromAirborne(application)
+                getBundleFromAirborne(application)
 
         }
     }
+
     private fun createReactHost(
         application: Application, packageList: List<ReactPackage>
     ): ReactHost {
         return getDefaultReactHost(
-                context = application,
-                packageList = packageList,
-                jsMainModulePath = "index",
-                jsBundleAssetPath = "hyperswitch.bundle",
-                jsBundleFilePath = "assets://hyperswitch.bundle",
-                useDevSupport = BuildConfig.DEBUG,
-                jsRuntimeFactory = HermesInstance()
-            )
+            context = application,
+            packageList = packageList,
+            jsMainModulePath = "index",
+            jsBundleAssetPath = "hyperswitch.bundle",
+            jsBundleFilePath = "assets://hyperswitch.bundle",
+            useDevSupport = BuildConfig.DEBUG,
+            jsRuntimeFactory = HermesInstance()
+        )
 //        }
     }
 
@@ -189,6 +193,19 @@ object ReactNativeController {
                 )
 
                 loadReactNative(application)
+
+                if (BuildConfig.DEBUG) {
+                    /*
+                    * Regarding next lint.
+                    * There's an open issue regarding this https://github.com/callstack/repack/issues/1299.
+                    * This line is generally unnecessary and will need
+                    * to be removed when we migrate to RN 0.82+,
+                    * but as a temporary solution, it will prevent
+                    * a crash when opening the debugger.
+                    */
+                    SoLoader.loadLibrary("reactnativejni")
+                }
+
 
 //                SoLoader.init(application, OpenSourceMergedSoMapping)
 //
