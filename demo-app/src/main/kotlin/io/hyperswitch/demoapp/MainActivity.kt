@@ -28,6 +28,7 @@ import io.hyperswitch.HyperInterface
 class MainActivity : AppCompatActivity(), HyperInterface {
     lateinit var ctx: AppCompatActivity
     private var publishableKey: String = ""
+    private var profileId: String = ""
     private var paymentIntentClientSecret: String = "clientSecret"
     private var netceteraApiKey: String? = null
     private val prefsName = "HyperswitchPrefs"
@@ -146,6 +147,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                         if (result != null) {
                             paymentIntentClientSecret = result.getString("clientSecret")
                             publishableKey = result.getString("publishableKey")
+                            profileId = result.getString("profileId")
 
                             /**
                              *
@@ -153,7 +155,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                              *
                              * */
 
-                            paymentSession = PaymentSession(ctx, publishableKey)
+                            paymentSession = PaymentSession(ctx, publishableKey, profileId)
 
                             /**
                              *

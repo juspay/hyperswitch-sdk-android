@@ -11,7 +11,8 @@ import io.hyperswitch.paymentsheet.PaymentSheetResult
 
 open class DefaultPaymentSessionLauncherLite(
     activity: Activity,
-    publishableKey: String?,
+    publishableKey: String,
+    profileId: String,
     customBackendUrl: String?,
     customLogUrl: String?,
     customParams: Bundle?,
@@ -19,6 +20,7 @@ open class DefaultPaymentSessionLauncherLite(
 ) : BasePaymentSessionLauncher(
     activity,
     publishableKey,
+    profileId,
     customBackendUrl,
     customLogUrl,
     customParams

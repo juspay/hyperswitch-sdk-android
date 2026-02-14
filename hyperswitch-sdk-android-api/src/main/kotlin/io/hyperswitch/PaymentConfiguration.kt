@@ -12,6 +12,7 @@ import androidx.core.content.edit
 data class PaymentConfiguration
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) constructor(
     val publishableKey: String,
+    val profileId: String,
     val stripeAccountId: String? = null,
     val customBackendUrl: String? = null,
     val customLogUrl: String? = null,
@@ -28,12 +29,14 @@ data class PaymentConfiguration
         @JvmSynthetic
         fun save(
             publishableKey: String,
+            profileId: String,
             stripeAccountId: String?,
             customBackendUrl: String?,
             customLogUrl: String?,
         ) {
             prefs.edit {
                 putString(KEY_PUBLISHABLE_KEY, publishableKey)
+                    .putString(KEY_PROFILE_ID, profileId)
                     .putString(KEY_ACCOUNT_ID, stripeAccountId)
                     .putString(KEY_CUSTOM_BACKEND_URL, customBackendUrl)
                     .putString(KEY_CUSTOM_LOG_URL, customLogUrl)
@@ -45,6 +48,7 @@ data class PaymentConfiguration
             return prefs.getString(KEY_PUBLISHABLE_KEY, null)?.let { publishableKey ->
                 PaymentConfiguration(
                     publishableKey = publishableKey,
+                    profileId = prefs.getString(KEY_PROFILE_ID, null) ?: "",
                     stripeAccountId = prefs.getString(KEY_ACCOUNT_ID, null),
                     customBackendUrl = prefs.getString(KEY_CUSTOM_BACKEND_URL, null),
                     customLogUrl = prefs.getString(KEY_CUSTOM_LOG_URL, null),
@@ -56,6 +60,7 @@ data class PaymentConfiguration
             private val NAME = PaymentConfiguration::class.java.canonicalName
 
             private const val KEY_PUBLISHABLE_KEY = "key_publishable_key"
+            private const val KEY_PROFILE_ID = "key_profile_id"
             private const val KEY_ACCOUNT_ID = "key_account_id"
             private const val KEY_CUSTOM_BACKEND_URL = "key_custom_backend_url"
             private const val KEY_CUSTOM_LOG_URL = "key_custom_log_url"
@@ -95,6 +100,10 @@ data class PaymentConfiguration
             return instance?.publishableKey ?: ""
         }
 
+        fun profileId(): String {
+            return instance?.profileId ?: ""
+        }
+
         /**
          * A publishable key from the Dashboard's [API keys](https://app.hyperswitch.io/apikeys) page.
          */
@@ -103,6 +112,7 @@ data class PaymentConfiguration
         fun init(
             context: Context,
             publishableKey: String,
+            profileId: String,
             stripeAccountId: String? = null,
             customBackendUrl: String? = null,
             customLogUrl: String? = null,
@@ -110,6 +120,7 @@ data class PaymentConfiguration
         ) {
             instance = PaymentConfiguration(
                 publishableKey = publishableKey,
+                profileId = profileId,
                 stripeAccountId = stripeAccountId,
                 customBackendUrl = customBackendUrl,
                 customLogUrl = customLogUrl,
@@ -117,6 +128,7 @@ data class PaymentConfiguration
             )
             Store(context).save(
                 publishableKey = publishableKey,
+                profileId = profileId,
                 stripeAccountId = stripeAccountId,
                 customBackendUrl = customBackendUrl,
                 customLogUrl = customLogUrl
