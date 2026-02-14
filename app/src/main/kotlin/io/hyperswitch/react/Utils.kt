@@ -62,6 +62,7 @@ class Utils {
       }
       oldContext = context
       return !(bundle1.getString("publishableKey") == bundle2.getString("publishableKey")
+              && bundle1.getString("profileId") == bundle2.getString("profileId")
               && bundle1.getString("clientSecret") == bundle2.getString("clientSecret")
               && bundle1.getString("type") == bundle2.getString("type"))
     }

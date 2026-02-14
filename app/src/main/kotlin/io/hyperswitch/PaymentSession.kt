@@ -15,40 +15,41 @@ import io.hyperswitch.paymentsheet.PaymentSheetResult
  * and retrieving customer saved payment methods.
  */
 class PaymentSession internal constructor(private val paymentSessionLauncher: PaymentSessionLauncher) {
-    constructor(activity: Activity, publishableKey: String) : this(
-        DefaultPaymentSessionLauncher(activity, publishableKey, null, null, null)
+    constructor(activity: Activity, publishableKey: String, profileId: String) : this(
+        DefaultPaymentSessionLauncher(activity, publishableKey, profileId, null, null, null)
     )
 
     constructor(
-        activity: Activity, publishableKey: String, customBackendUrl: String
+        activity: Activity, publishableKey: String, profileId: String, customBackendUrl: String
     ) : this(
-        DefaultPaymentSessionLauncher(activity, publishableKey, customBackendUrl, null, null)
+        DefaultPaymentSessionLauncher(activity, publishableKey, profileId, customBackendUrl, null, null)
     )
 
     constructor(
         activity: Activity,
         publishableKey: String,
+        profileId: String,
         customBackendUrl: String,
         customLogUrl: String
     ) : this(
         DefaultPaymentSessionLauncher(
-            activity, publishableKey, customBackendUrl, customLogUrl, null
+            activity, publishableKey, profileId, customBackendUrl, customLogUrl, null
         )
     )
+    // The old constructors without profileId were removed because profile_id is now mandatory. Any integration using the old constructors was already broken at runtime — the payment sheet guard in NavigationRouter blocks all API calls when 
+   // profileId is empty. By removing these constructors, we shift the failure from a silent runtime issue to a compile-time error, which is much easier for merchants to debug. This is a breaking change but only breaks integrations that were already non-functional.
 
-    constructor(activity: Activity, publishableKey: String, customParams: Bundle) : this(
-        DefaultPaymentSessionLauncher(activity, publishableKey, null, null, customParams)
-    )
 
     constructor(
         activity: Activity,
         publishableKey: String,
+        profileId: String,
         customBackendUrl: String,
         customLogUrl: String,
         customParams: Bundle
     ) : this(
         DefaultPaymentSessionLauncher(
-            activity, publishableKey, customBackendUrl, customLogUrl, customParams
+            activity, publishableKey, profileId, customBackendUrl, customLogUrl, customParams
         )
     )
 
@@ -56,8 +57,9 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
      *
      * @param activity The activity that will host the payment sheet.
      * @param publishableKey The publishable key for your Stripe account.
+     * @param profileId The profile ID for the payment session.
      */
-    class Builder(private val activity: Activity, private val publishableKey: String) {
+    class Builder(private val activity: Activity, private val publishableKey: String, private val profileId: String) {
         private var customBackendUrl: String? = null
         private var customLogUrl: String? = null
         private var customParams: Bundle? = null
@@ -68,7 +70,7 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
 
         fun build(): PaymentSession {
             val launcher = DefaultPaymentSessionLauncher(
-                activity, publishableKey, customBackendUrl, customLogUrl, customParams
+                activity, publishableKey, profileId, customBackendUrl, customLogUrl, customParams
             )
             return PaymentSession(launcher)
         }

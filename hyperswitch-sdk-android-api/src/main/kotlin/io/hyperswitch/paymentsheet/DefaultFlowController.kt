@@ -42,6 +42,9 @@ class DefaultFlowController(
         bundle.putString(
             "publishableKey", PaymentConfiguration.getInstance(activity).publishableKey
         )
+        bundle.putString(
+            "profileId", PaymentConfiguration.getInstance(activity).profileId
+        )
         bundle.putString("clientSecret", paymentIntentClientSecret)
         bundle.putParcelable("configuration", configuration)
 //        Utils.openReactView(activity, bundle, "addCard", null)
