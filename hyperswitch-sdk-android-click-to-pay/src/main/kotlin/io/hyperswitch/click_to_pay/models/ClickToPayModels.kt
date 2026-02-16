@@ -40,9 +40,6 @@ enum class ClickToPayErrorType {
     CHECKOUT_WITH_CARD_ERROR,
     SESSION_NOT_FOUND,
 
-    // USER Errors
-    INVALID_CREDENTIALS,
-
     INSTANCE_DESTROYED,
 
     // Fallback

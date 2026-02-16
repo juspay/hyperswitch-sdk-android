@@ -9,7 +9,7 @@ import io.hyperswitch.logs.LogType
 
 /**
  * Main entry point for authentication and Click to Pay sessions.
- * 
+ *
  * This class provides a simplified interface for initializing authentication sessions
  * and Click to Pay functionality. It wraps the DefaultAuthenticationSessionLauncher
  * and provides multiple constructor overloads for different configuration needs.
@@ -103,7 +103,7 @@ class AuthenticationSession(
 
     /**
      * Initializes the authentication session with payment credentials.
-     * 
+     *
      * This method must be called before initiating Click to Pay sessions.
      * It initializes the SDK and stores the authentication credentials.
      *
@@ -120,14 +120,22 @@ class AuthenticationSession(
         authenticationId: String,
         merchantId: String,
     ) {
-        authenticationSessionLauncher.logger(LogType.INFO, EventName.AUTHENTICATION_SESSION, "Authentication init")
-        require(clientSecret.isNotBlank()) { "clientSecret cannot be empty" }
-        require(profileId.isNotBlank()) { "profileId cannot be empty" }
-        require(authenticationId.isNotBlank()) { "authenticationId cannot be empty" }
-        require(merchantId.isNotBlank()) { "merchantId cannot be empty" }
-        authenticationSessionLauncher.logger(LogType.DEBUG, EventName.AUTHENTICATION_SESSION_INIT, "webview init")
+        authenticationSessionLauncher.logger(
+            LogType.INFO,
+            EventName.AUTHENTICATION_SESSION,
+            "Authentication init"
+        )
+        authenticationSessionLauncher.logger(
+            LogType.DEBUG,
+            EventName.AUTHENTICATION_SESSION_INIT,
+            "webview init"
+        )
         authenticationSessionLauncher.initialize()
-        authenticationSessionLauncher.logger(LogType.DEBUG, EventName.AUTHENTICATION_SESSION_RETURNED, "webview init success")
+        authenticationSessionLauncher.logger(
+            LogType.DEBUG,
+            EventName.AUTHENTICATION_SESSION_RETURNED,
+            "webview init success"
+        )
         return authenticationSessionLauncher.initAuthenticationSession(
             clientSecret,
             profileId,

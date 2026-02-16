@@ -1,12 +1,11 @@
 package io.hyperswitch.click_to_pay
 
 import android.app.Activity
-import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebView
 import android.widget.FrameLayout.LayoutParams
+import androidx.webkit.WebViewCompat
 import io.hyperswitch.click_to_pay.models.*
 import io.hyperswitch.logs.EventName
 import io.hyperswitch.logs.HSLog
@@ -260,16 +259,21 @@ class DefaultClickToPaySessionLauncher(
      * automatically pausing timers, network requests, and all JavaScript operations.
      */
     private suspend fun detachWebView() {
-        withContext(Dispatchers.Main) {
-            if (isWebViewInitialized && isWebViewAttached) {
+        if (isWebViewInitialized && isWebViewAttached) {
+            withContext(Dispatchers.Main) {
                 val parent = hSWebViewWrapper.parent
                 if (parent is ViewGroup) {
                     parent.removeView(hSWebViewWrapper)
                     isWebViewAttached = false
-                    logger(LogType.DEBUG, EventName.WEBVIEW, "webview de-attached JS execution paused")
                 }
             }
+            logger(
+                LogType.DEBUG,
+                EventName.WEBVIEW,
+                "webview de-attached JS execution paused"
+            )
         }
+
     }
 
     /**
@@ -277,14 +281,15 @@ class DefaultClickToPaySessionLauncher(
      * This automatically resumes all paused operations.
      */
     private suspend fun reattachWebView() {
-        withContext(Dispatchers.Main) {
-            if (isWebViewInitialized && !isWebViewAttached) {
+        if (isWebViewInitialized && !isWebViewAttached) {
+            withContext(Dispatchers.Main) {
                 val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
                 rootView.addView(hSWebViewWrapper)
                 isWebViewAttached = true
-                logger(LogType.DEBUG, EventName.WEBVIEW, "webview reattached  JS execution resumed")
             }
+            logger(LogType.DEBUG, EventName.WEBVIEW, "webview reattached  JS execution resumed")
         }
+
     }
 
     /**
@@ -294,7 +299,11 @@ class DefaultClickToPaySessionLauncher(
      */
     private fun cancelPendingRequests(errorMessage: String = "Operation cancelled due to error") {
         if (pendingRequests.isNotEmpty()) {
-            logger(LogType.DEBUG, EventName.WEBVIEW, "Cancelling ${pendingRequests.size} pending requests")
+            logger(
+                LogType.DEBUG,
+                EventName.WEBVIEW,
+                "Cancelling ${pendingRequests.size} pending requests"
+            )
             pendingRequests.values.forEach { continuation ->
                 continuation.cancel(kotlinx.coroutines.CancellationException(errorMessage))
             }
@@ -332,10 +341,8 @@ class DefaultClickToPaySessionLauncher(
 
     private fun isWebViewAvailable(): Boolean {
         return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                WebView.getCurrentWebViewPackage() != null
-            } else true
-        } catch (t: Throwable) {
+            WebViewCompat.getCurrentWebViewPackage(activity) != null
+        } catch (_: Throwable) {
             false
         }
     }
@@ -388,50 +395,53 @@ class DefaultClickToPaySessionLauncher(
         allowReinitialize: Boolean = false
     ) {
         if (isWebViewInitialized && !allowReinitialize) return
-        withContext(Dispatchers.Main) {
-            if (isWebViewInitialized && !allowReinitialize) return@withContext
-            try {
-                logger(LogType.DEBUG, EventName.CREATE_WEBVIEW_INIT, "", LogCategory.USER_EVENT)
-                if (!isWebViewAvailable()) {
-                    throw IllegalStateException("WebView provider unavailable")
-                }
-                // Retry WebView creation once (important for Android 15/16 bug)
-                repeat(2) { attempt ->
-                    try {
-                        initializeWebViewInternal()
-                        isWebViewInitialized = true
-                        logger(
-                            LogType.DEBUG,
-                            EventName.CREATE_WEBVIEW_RETURNED,
-                            "",
-                            LogCategory.USER_EVENT
-                        )
-                        return@withContext
-
-                    } catch (t: Throwable) {
-                        logger(
-                            LogType.ERROR,
-                            EventName.CREATE_WEBVIEW_RETURNED,
-                            "Attempted to create = $attempt",
-                            LogCategory.USER_EVENT
-                        )
-                        if (attempt == 1) throw t
-                        delay(200) // retry delay
-                    }
-                }
-            } catch (e: Exception) {
-                logger(
-                    LogType.ERROR,
-                    EventName.CREATE_WEBVIEW_RETURNED,
-                    "Failed to create webview ${e.message}",
-                    LogCategory.USER_EVENT
-                )
-                throw ClickToPayException(
-                    "Unable to initialize ClickToPay: ${e.message}",
-                    "WEBVIEW_ERROR",
-                )
-            }
+        logger(LogType.DEBUG, EventName.CREATE_WEBVIEW_INIT, "", LogCategory.USER_EVENT)
+        if (isWebViewInitialized && !allowReinitialize) {
+            return
         }
+        try {
+            if (!isWebViewAvailable()) {
+                throw IllegalStateException("WebView provider unavailable")
+            }
+            // Retry WebView creation once (important for Android 15/16 bug)
+            repeat(2) { attempt ->
+                try {
+                    withContext(Dispatchers.Main) {
+                        initializeWebViewInternal()
+                    }
+                    isWebViewInitialized = true
+                    logger(
+                        LogType.DEBUG,
+                        EventName.CREATE_WEBVIEW_RETURNED,
+                        "",
+                        LogCategory.USER_EVENT
+                    )
+                    return
+
+                } catch (t: Throwable) {
+                    logger(
+                        LogType.ERROR,
+                        EventName.CREATE_WEBVIEW_RETURNED,
+                        "Attempted to create = $attempt",
+                        LogCategory.USER_EVENT
+                    )
+                    if (attempt == 1) throw t
+                    delay(200) // retry delay
+                }
+            }
+        } catch (e: Exception) {
+            logger(
+                LogType.ERROR,
+                EventName.CREATE_WEBVIEW_RETURNED,
+                "Failed to create webview ${e.message}",
+                LogCategory.USER_EVENT
+            )
+            throw ClickToPayException(
+                "Unable to initialize ClickToPay: ${e.message}",
+                "WEBVIEW_ERROR",
+            )
+        }
+
     }
 
     /**
@@ -446,7 +456,7 @@ class DefaultClickToPaySessionLauncher(
      */
     @Throws(ClickToPayException::class)
     override suspend fun initialize() {
-        if(publishableKey == "null"){
+        if (publishableKey == "null") {
             throw ClickToPayException("Invalid Credentials", ClickToPayErrorType.INVALID_PARAMETER)
         }
         val loggingEndPoint = if (customLogUrl != "" && customLogUrl != null) {
@@ -547,10 +557,10 @@ class DefaultClickToPaySessionLauncher(
      */
     @Throws(ClickToPayException::class)
     override suspend fun initClickToPaySession(
-        clientSecret: String?,
-        profileId: String?,
-        authenticationId: String?,
-        merchantId: String?,
+        clientSecret: String,
+        profileId: String,
+        authenticationId: String,
+        merchantId: String,
         request3DSAuthentication: Boolean
     ) {
         logger(
@@ -602,10 +612,10 @@ class DefaultClickToPaySessionLauncher(
 
 
     override suspend fun getActiveClickToPaySession(
-        clientSecret: String?,
-        profileId: String?,
-        authenticationId: String?,
-        merchantId: String?,
+        clientSecret: String,
+        profileId: String,
+        authenticationId: String,
+        merchantId: String,
         activity: Activity
     ) {
         logger(
@@ -1140,6 +1150,7 @@ class DefaultClickToPaySessionLauncher(
 
             restoreAccessibility()
 
+            logger(LogType.DEBUG, EventName.CLOSE_WEBVIEW_INIT, "")
             withContext(Dispatchers.Main) {
                 if (isWebViewInitialized) {
                     if (hSWebViewWrapper.parent is ViewGroup) {
@@ -1149,7 +1160,7 @@ class DefaultClickToPaySessionLauncher(
                     hSWebViewWrapper.webView.destroy()
                 }
             }
-
+            logger(LogType.DEBUG, EventName.CLOSE_WEBVIEW_RETURNED, "")
             isWebViewInitialized = false
             isDestroyed = true
 

@@ -37,19 +37,19 @@ interface ClickToPaySessionLauncher {
      */
     @Throws(ClickToPayException::class)
     suspend fun initClickToPaySession(
-        clientSecret: String?,
-        profileId: String?,
-        authenticationId: String?,
-        merchantId: String?,
+        clientSecret: String,
+        profileId: String,
+        authenticationId: String,
+        merchantId: String,
         request3DSAuthentication: Boolean
     )
 
     @Throws(ClickToPayException::class)
     suspend fun getActiveClickToPaySession(
-        clientSecret: String?,
-        profileId: String?,
-        authenticationId: String?,
-        merchantId: String?,
+        clientSecret: String,
+        profileId: String,
+        authenticationId: String,
+        merchantId: String,
         activity: Activity
     )
 

@@ -12,7 +12,6 @@ import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogCategory
 import io.hyperswitch.logs.LogType
 import io.hyperswitch.logs.LogUtils.getOrCreateUniqueKey
-import java.lang.ref.WeakReference
 
 /**
  * Default implementation of AuthenticationSessionLauncher.
@@ -27,13 +26,12 @@ import java.lang.ref.WeakReference
  * @property merchantId Stored merchant identifier
  */
 class DefaultAuthenticationSessionLauncher(
-    activity: Activity,
+    private val activity: Activity,
     publishableKey: String,
     customBackendUrl: String? = null,
     customLogUrl: String? = null,
     customParams: Bundle? = null,
 ): AuthenticationSessionLauncher {
-    private val activityRef = WeakReference(activity)
 
     private val clickToPaySession: ClickToPaySession = ClickToPaySession(
         activity,
@@ -65,8 +63,6 @@ class DefaultAuthenticationSessionLauncher(
         value: String,
         category: LogCategory = LogCategory.USER_EVENT
     ) {
-        val activity = activityRef.get() ?: return
-
         val sessionId = getOrCreateUniqueKey(activity, "click_to_pay")
 
         val log = HSLog.LogBuilder()
@@ -101,10 +97,21 @@ class DefaultAuthenticationSessionLauncher(
         authenticationId: String,
         merchantId: String,
     ) {
+        requireInternal(clientSecret.isNotBlank() && clientSecret != "null") { "clientSecret cannot be empty" }
+        requireInternal(profileId.isNotBlank() && profileId != "null") { "profileId cannot be empty" }
+        requireInternal(authenticationId.isNotBlank() && authenticationId != "null") { "authenticationId cannot be empty" }
+        requireInternal(merchantId.isNotBlank() && merchantId != "null") { "merchantId cannot be empty" }
         this.clientSecret = clientSecret
         this.profileId = profileId
         this.authenticationId = authenticationId
         this.merchantId = merchantId
+    }
+
+    private fun requireInternal(value: Boolean, lazyMessage: () -> Any): Unit {
+        if (!value) {
+            val message = lazyMessage()
+            throw ClickToPayException(message.toString(), ClickToPayErrorType.INVALID_PARAMETER)
+        }
     }
 
     /**
@@ -120,11 +127,16 @@ class DefaultAuthenticationSessionLauncher(
     override suspend fun initClickToPaySession(
         request3DSAuthentication: Boolean
     ): ClickToPaySession {
+        requireInternal(!clientSecret.isNullOrBlank() && clientSecret != "null") { "clientSecret cannot be empty" }
+        requireInternal(!profileId.isNullOrBlank() && profileId != "null") { "profileId cannot be empty" }
+        requireInternal(!authenticationId.isNullOrBlank() && authenticationId != "null") { "authenticationId cannot be empty" }
+        requireInternal(!merchantId.isNullOrBlank() && merchantId != "null") { "merchantId cannot be empty" }
+
         return initClickToPaySession(
-            clientSecret,
-            profileId,
-            authenticationId,
-            merchantId,
+            clientSecret!!,
+            profileId!!,
+            authenticationId!!,
+            merchantId!!,
             request3DSAuthentication
         )
     }
@@ -144,10 +156,10 @@ class DefaultAuthenticationSessionLauncher(
      */
     @Throws(ClickToPayException::class)
     override suspend fun initClickToPaySession(
-        clientSecret: String?,
-        profileId: String?,
-        authenticationId: String?,
-        merchantId: String?,
+        clientSecret: String,
+        profileId: String,
+        authenticationId: String,
+        merchantId: String,
         request3DSAuthentication: Boolean
     ): ClickToPaySession {
         if (activeClickToPay != null && activeClickToPay !== clickToPaySession) {
@@ -177,11 +189,15 @@ class DefaultAuthenticationSessionLauncher(
     ): ClickToPaySession {
         val session = activeClickToPay
         if (session != null){
+            requireInternal(!clientSecret.isNullOrBlank() && clientSecret != "null") { "clientSecret cannot be empty" }
+            requireInternal(!profileId.isNullOrBlank() && profileId != "null") { "profileId cannot be empty" }
+            requireInternal(!authenticationId.isNullOrBlank() && authenticationId != "null") { "authenticationId cannot be empty" }
+            requireInternal(!merchantId.isNullOrBlank() && merchantId != "null") { "merchantId cannot be empty" }
             return session.getActiveClickToPaySession(
-                clientSecret,
-                profileId,
-                authenticationId,
-                merchantId,
+                clientSecret!!,
+                profileId!!,
+                authenticationId!!,
+                merchantId!!,
                 activity
             )
         }else{

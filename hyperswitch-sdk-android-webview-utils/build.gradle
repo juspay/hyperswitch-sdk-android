@@ -25,5 +25,5 @@ android {
 
 dependencies {
     implementation libs.androidx.annotation
-    implementation libs.androidx.webkit
+    api libs.androidx.webkit
 }

@@ -70,10 +70,10 @@ interface AuthenticationSessionLauncher {
      */
     @Throws(Exception::class)
     suspend fun initClickToPaySession(
-        clientSecret: String?,
-        profileId: String?,
-        authenticationId: String?,
-        merchantId: String?,
+        clientSecret: String,
+        profileId: String,
+        authenticationId: String,
+        merchantId: String,
         request3DSAuthentication: Boolean,
     ): ClickToPaySession
 
