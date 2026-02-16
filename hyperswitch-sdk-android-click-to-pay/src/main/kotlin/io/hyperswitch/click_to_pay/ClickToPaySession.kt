@@ -57,16 +57,16 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
             customParams,
         )
     )
-
+    @Throws(ClickToPayException::class)
     suspend fun initialise() {
         clickToPaySessionLauncher.initialize()
     }
 
     suspend fun initClickToPaySession(
-        clientSecret: String?,
-        profileId: String?,
-        authenticationId: String?,
-        merchantId: String?,
+        clientSecret: String,
+        profileId: String,
+        authenticationId: String,
+        merchantId: String,
         request3DSAuthentication: Boolean
     ) {
         clickToPaySessionLauncher.initClickToPaySession(
@@ -79,10 +79,10 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
     }
 
     suspend fun getActiveClickToPaySession(
-        clientSecret: String?,
-        profileId: String?,
-        authenticationId: String?,
-        merchantId: String?,
+        clientSecret: String,
+        profileId: String,
+        authenticationId: String,
+        merchantId: String,
         activity: Activity
     ): ClickToPaySession {
         clickToPaySessionLauncher.getActiveClickToPaySession(

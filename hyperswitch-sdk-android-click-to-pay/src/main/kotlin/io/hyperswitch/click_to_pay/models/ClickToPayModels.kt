@@ -38,6 +38,9 @@ enum class ClickToPayErrorType {
     IS_CUSTOMER_PRESENT_ERROR,
     GET_RECOGNIZED_CARDS_ERROR,
     CHECKOUT_WITH_CARD_ERROR,
+    SESSION_NOT_FOUND,
+
+    INSTANCE_DESTROYED,
 
     // Fallback
     ERROR,
@@ -62,10 +65,14 @@ enum class ClickToPayErrorType {
  */
 class ClickToPayException(
     message: String,
-    val errorType: String
+    val errorType: ClickToPayErrorType
 ) : Exception("ClickToPay: $errorType: $message"){
+    constructor(
+        message: String,
+        errorType: String
+    ) : this(message, ClickToPayErrorType.from(errorType))
     val reason = message
-    val type = ClickToPayErrorType.from(errorType)
+    val type = errorType
 }
 
 /**

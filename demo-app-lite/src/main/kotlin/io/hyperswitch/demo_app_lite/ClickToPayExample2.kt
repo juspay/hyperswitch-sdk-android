@@ -41,6 +41,7 @@ class ClickToPayExample2 : AppCompatActivity() {
     private var freezeCount = 0
     private var maxFreezeDuration = 0L
     private val freezeEvents = mutableListOf<String>()
+    private val serverURL = "http://10.0.2.2:5252"
 
     private val freezeDetectionRunnable = object : Runnable {
         override fun run() {
@@ -138,7 +139,7 @@ class ClickToPayExample2 : AppCompatActivity() {
     }
 
     private fun getAuthenticationCredentials() {
-        Fuel.post("http://10.0.2.2:5252/create-authentication")
+        Fuel.post("$serverURL/create-authentication")
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
             .body("{}")
@@ -181,7 +182,11 @@ class ClickToPayExample2 : AppCompatActivity() {
                     credentials.authenticationId,
                     credentials.merchantId
                 )
-                clickToPaySession = authSession.getActiveClickToPaySession(this@ClickToPayExample2) ?: authSession.initClickToPaySession()
+                clickToPaySession = try {
+                    authSession.getActiveClickToPaySession(this@ClickToPayExample2)
+                } catch (e: Exception) {
+                    authSession.initClickToPaySession()
+                }
                 updateResultText("✓ Sessions restored\nChecking customer...")
                 signOut.visibility = VISIBLE
                 btnClose.visibility = VISIBLE
@@ -213,7 +218,7 @@ class ClickToPayExample2 : AppCompatActivity() {
                         showError("No cards found")
                     }
                 }
-            } catch(e: Exception){
+            } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
@@ -242,7 +247,7 @@ class ClickToPayExample2 : AppCompatActivity() {
             .show()
     }
 
-    private fun showCardSelection(session: ClickToPaySession, errorMessage : String? = "") {
+    private fun showCardSelection(session: ClickToPaySession, errorMessage: String? = "") {
         val cards = recognizedCards ?: return
         updateResultText("✓ Found ${cards.size} card(s)\nSelect a card to checkout")
 
@@ -270,9 +275,11 @@ class ClickToPayExample2 : AppCompatActivity() {
                         is PaymentData.CardData -> {
                             println("Card number: ${vault.cardNumber}")
                         }
+
                         is PaymentData.NetworkTokenData -> {
                             println("Network token: ${vault.networkToken}")
                         }
+
                         null -> {
                             println("No vault token data")
                         }
@@ -282,7 +289,11 @@ class ClickToPayExample2 : AppCompatActivity() {
                         "✓ Payment Successful!\n\nCard: **** ${card.panLastFour}\n" +
                                 "Amount: ${response.amount} ${response.currency}\nStatus: ${response.transStatus}"
                     )
-                    Toast.makeText(this@ClickToPayExample2, "Payment completed!", Toast.LENGTH_SHORT)
+                    Toast.makeText(
+                        this@ClickToPayExample2,
+                        "Payment completed!",
+                        Toast.LENGTH_SHORT
+                    )
                         .show()
 
                 } else {
@@ -290,11 +301,19 @@ class ClickToPayExample2 : AppCompatActivity() {
                     signOut.visibility = INVISIBLE
                 }
             } catch (e: ClickToPayException) {
-                if (e.type == ClickToPayErrorType.CHANGE_CARD){
-                    Toast.makeText(this@ClickToPayExample2,"You should not change card", Toast.LENGTH_LONG ).show()
+                if (e.type == ClickToPayErrorType.CHANGE_CARD) {
+                    Toast.makeText(
+                        this@ClickToPayExample2,
+                        "You should not change card",
+                        Toast.LENGTH_LONG
+                    ).show()
                     showCardSelection(session, "You cannot change card, Select card")
-                } else if (e.type == ClickToPayErrorType.SWITCH_CONSUMER){
-                    Toast.makeText(this@ClickToPayExample2,"You should not change user", Toast.LENGTH_LONG ).show()
+                } else if (e.type == ClickToPayErrorType.SWITCH_CONSUMER) {
+                    Toast.makeText(
+                        this@ClickToPayExample2,
+                        "You should not change user",
+                        Toast.LENGTH_LONG
+                    ).show()
                     showCardSelection(session, "You cannot change user, select card")
                 } else {
                     showError("Checkout error: ${e.reason}")
@@ -305,7 +324,8 @@ class ClickToPayExample2 : AppCompatActivity() {
             }
         }
     }
-    private fun signOut(session: ClickToPaySession){
+
+    private fun signOut(session: ClickToPaySession) {
         lifecycleScope.launch {
             try {
                 val response = session.signOut()
@@ -313,7 +333,7 @@ class ClickToPayExample2 : AppCompatActivity() {
                     signOut.visibility = INVISIBLE
                     updateResultText(response.toString())
                 }
-            } catch (e: Exception){
+            } catch (e: Exception) {
                 showError("Cannot signout")
             }
         }
@@ -336,10 +356,12 @@ class ClickToPayExample2 : AppCompatActivity() {
                     btnClose.visibility = INVISIBLE
                     btnStart.isEnabled = true
                     updateResultText("✓ Session closed successfully\n\nClick 'Start Click to Pay Flow' to begin again")
-                    Toast.makeText(this@ClickToPayExample2, "Session closed", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@ClickToPayExample2, "Session closed", Toast.LENGTH_SHORT)
+                        .show()
                 } ?: run {
                     updateResultText("No active session to close")
-                    Toast.makeText(this@ClickToPayExample2, "No active session", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@ClickToPayExample2, "No active session", Toast.LENGTH_SHORT)
+                        .show()
                 }
             } catch (e: Exception) {
                 showError("Failed to close session: ${e.message}")

@@ -4,10 +4,12 @@ import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.click_to_pay.ClickToPaySession
 import io.hyperswitch.click_to_pay.models.ClickToPayException
+import io.hyperswitch.logs.EventName
+import io.hyperswitch.logs.LogType
 
 /**
  * Main entry point for authentication and Click to Pay sessions.
- * 
+ *
  * This class provides a simplified interface for initializing authentication sessions
  * and Click to Pay functionality. It wraps the DefaultAuthenticationSessionLauncher
  * and provides multiple constructor overloads for different configuration needs.
@@ -101,7 +103,7 @@ class AuthenticationSession(
 
     /**
      * Initializes the authentication session with payment credentials.
-     * 
+     *
      * This method must be called before initiating Click to Pay sessions.
      * It initializes the SDK and stores the authentication credentials.
      *
@@ -118,8 +120,22 @@ class AuthenticationSession(
         authenticationId: String,
         merchantId: String,
     ) {
+        authenticationSessionLauncher.logger(
+            LogType.INFO,
+            EventName.AUTHENTICATION_SESSION,
+            "Authentication init"
+        )
+        authenticationSessionLauncher.logger(
+            LogType.DEBUG,
+            EventName.AUTHENTICATION_SESSION_INIT,
+            "webview init"
+        )
         authenticationSessionLauncher.initialize()
-        
+        authenticationSessionLauncher.logger(
+            LogType.DEBUG,
+            EventName.AUTHENTICATION_SESSION_RETURNED,
+            "webview init success"
+        )
         return authenticationSessionLauncher.initAuthenticationSession(
             clientSecret,
             profileId,
@@ -161,7 +177,8 @@ class AuthenticationSession(
      * @param activity to show the challenge screen in case of new activity
      * @return ClickToPaySession instance for managing Click to Pay operations if present
      */
-    suspend fun getActiveClickToPaySession(activity: Activity): ClickToPaySession? {
+    @Throws(ClickToPayException::class)
+    suspend fun getActiveClickToPaySession(activity: Activity): ClickToPaySession {
         return authenticationSessionLauncher.getActiveClickToPaySession(activity)
     }
 }

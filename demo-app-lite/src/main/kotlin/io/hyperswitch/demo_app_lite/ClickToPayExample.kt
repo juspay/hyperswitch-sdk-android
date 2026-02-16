@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.os.Handler as OSHandler
 import android.os.Looper
 import android.text.InputType
+import android.util.Log
 import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
 import android.widget.Button
@@ -34,7 +35,9 @@ class ClickToPayExample : AppCompatActivity() {
     private lateinit var freezeLog: TextView
     private var recognizedCards: List<RecognizedCard>? = null
     private var clickToPaySession: ClickToPaySession? = null
-    
+    private val serverURL = "http://10.0.2.2:5252"
+
+
     // Freeze detection
     private val mainHandler = OSHandler(Looper.getMainLooper())
     private var frameCount = 0L
@@ -139,7 +142,7 @@ class ClickToPayExample : AppCompatActivity() {
     }
 
     private fun getAuthenticationCredentials() {
-        Fuel.post("http://10.0.2.2:5252/create-authentication")
+        Fuel.post("$serverURL/create-authentication")
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
             .body("{}")
