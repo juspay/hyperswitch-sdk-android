@@ -4,6 +4,8 @@ import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.click_to_pay.ClickToPaySession
 import io.hyperswitch.click_to_pay.models.ClickToPayException
+import io.hyperswitch.logs.EventName
+import io.hyperswitch.logs.LogType
 
 /**
  * Main entry point for authentication and Click to Pay sessions.
@@ -99,6 +101,9 @@ class AuthenticationSession(
         )
     )
 
+    private fun isValueNull(value: String?): Boolean {
+        return value == null || value == "null"
+    }
     /**
      * Initializes the authentication session with payment credentials.
      * 
@@ -118,8 +123,14 @@ class AuthenticationSession(
         authenticationId: String,
         merchantId: String,
     ) {
+        authenticationSessionLauncher.logger(LogType.INFO, EventName.AUTHENTICATION_SESSION, "Authentication init")
+        require(clientSecret.isNotBlank()) { "clientSecret cannot be empty" }
+        require(profileId.isNotBlank()) { "profileId cannot be empty" }
+        require(authenticationId.isNotBlank()) { "authenticationId cannot be empty" }
+        require(merchantId.isNotBlank()) { "merchantId cannot be empty" }
+        authenticationSessionLauncher.logger(LogType.DEBUG, EventName.AUTHENTICATION_SESSION_INIT, "webview init")
         authenticationSessionLauncher.initialize()
-        
+        authenticationSessionLauncher.logger(LogType.DEBUG, EventName.AUTHENTICATION_SESSION_RETURNED, "webview init success")
         return authenticationSessionLauncher.initAuthenticationSession(
             clientSecret,
             profileId,
@@ -161,7 +172,8 @@ class AuthenticationSession(
      * @param activity to show the challenge screen in case of new activity
      * @return ClickToPaySession instance for managing Click to Pay operations if present
      */
-    suspend fun getActiveClickToPaySession(activity: Activity): ClickToPaySession? {
+    @Throws(ClickToPayException::class)
+    suspend fun getActiveClickToPaySession(activity: Activity): ClickToPaySession {
         return authenticationSessionLauncher.getActiveClickToPaySession(activity)
     }
 }

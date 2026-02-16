@@ -2,12 +2,20 @@ package io.hyperswitch.authentication
 
 import android.app.Activity
 import android.os.Bundle
+import io.hyperswitch.click_to_pay.BuildConfig
 import io.hyperswitch.click_to_pay.ClickToPaySession
 import io.hyperswitch.click_to_pay.models.ClickToPayException
+import io.hyperswitch.logs.EventName
+import io.hyperswitch.logs.HSLog
+import io.hyperswitch.logs.HyperLogManager
+import io.hyperswitch.logs.LogCategory
+import io.hyperswitch.logs.LogType
+import io.hyperswitch.logs.LogUtils.getOrCreateUniqueKey
+import java.lang.ref.WeakReference
 
 /**
  * Default implementation of AuthenticationSessionLauncher.
- * 
+ *
  * This class manages the lifecycle of authentication and Click to Pay sessions,
  * handling initialization, credential storage, and session creation.
  *
@@ -18,12 +26,14 @@ import io.hyperswitch.click_to_pay.models.ClickToPayException
  * @property merchantId Stored merchant identifier
  */
 class DefaultAuthenticationSessionLauncher(
-    activity: Activity,
+    private val activity: Activity,
     publishableKey: String,
     customBackendUrl: String? = null,
     customLogUrl: String? = null,
     customParams: Bundle? = null,
 ): AuthenticationSessionLauncher {
+    private val activityRef = WeakReference(activity)
+
     private val clickToPaySession: ClickToPaySession = ClickToPaySession(
         activity,
         publishableKey,
@@ -35,10 +45,9 @@ class DefaultAuthenticationSessionLauncher(
     private var profileId: String? = null
     private var authenticationId: String? = null
     private var merchantId: String? = null
-
     /**
      * Initializes the Click to Pay SDK.
-     * 
+     *
      * Loads required resources and prepares the SDK for use.
      * Must be called before any Click to Pay operations.
      *
@@ -49,9 +58,33 @@ class DefaultAuthenticationSessionLauncher(
         clickToPaySession.initialise()
     }
 
+    internal fun logger(
+        type: LogType,
+        eventName: EventName,
+        value: String,
+        category: LogCategory = LogCategory.USER_EVENT
+    ) {
+        val activity = activityRef.get() ?: return
+
+        val sessionId = getOrCreateUniqueKey(activity, "click_to_pay")
+
+        val log = HSLog.LogBuilder()
+            .logType(type)
+            .category(category)
+            .eventName(eventName)
+            .value(value)
+            .version(BuildConfig.VERSION_NAME)
+            .authenticationId(authenticationId.orEmpty())
+            .sessionId(sessionId)
+
+        HyperLogManager.addLog(log.build())
+    }
+
+
+
     /**
      * Stores authentication credentials for subsequent operations.
-     * 
+     *
      * These credentials are used when initializing Click to Pay sessions
      * without explicitly providing them each time.
      *
@@ -75,7 +108,7 @@ class DefaultAuthenticationSessionLauncher(
 
     /**
      * Initializes a Click to Pay session using stored credentials.
-     * 
+     *
      * Uses credentials previously set via initAuthenticationSession.
      *
      * @param request3DSAuthentication Whether to request 3DS authentication
@@ -97,7 +130,7 @@ class DefaultAuthenticationSessionLauncher(
 
     /**
      * Initializes a Click to Pay session with explicit credentials.
-     * 
+     *
      * Allows initializing a session without calling initAuthenticationSession first.
      *
      * @param clientSecret The client secret from the payment intent
@@ -120,7 +153,6 @@ class DefaultAuthenticationSessionLauncher(
             try {
                 activeClickToPay?.close()
             }catch(_ : Exception){
-
             }
         }
         clickToPaySession.initClickToPaySession(
@@ -141,24 +173,32 @@ class DefaultAuthenticationSessionLauncher(
     @Throws(Exception::class)
     override suspend fun getActiveClickToPaySession(
         activity: Activity
-    ): ClickToPaySession? {
-        return activeClickToPay?.getActiveClickToPaySession(
-            clientSecret,
-            profileId,
-            authenticationId,
-            merchantId,
-            activity
-        )
+    ): ClickToPaySession {
+        if (activeClickToPay != null){
+            return activeClickToPay!!.getActiveClickToPaySession(
+                clientSecret,
+                profileId,
+                authenticationId,
+                merchantId,
+                activity
+            )
+        }else{
+            throw ClickToPayException(
+                "No session found for the ClickToPay",
+                "SESSION_NOT_FOUND"
+            )
+        }
     }
 
     /**
      * Initializes a 3DS authentication session.
-     * 
+     *
      * Currently a no-op placeholder for future 3DS functionality.
      */
     @Throws(Exception::class)
     override suspend fun initThreeDSSession() {}
     companion object {
-        private  var activeClickToPay: ClickToPaySession? = null
+        @Volatile
+        private var activeClickToPay: ClickToPaySession? = null
     }
 }

@@ -57,7 +57,7 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
             customParams,
         )
     )
-
+    @Throws(ClickToPayException::class)
     suspend fun initialise() {
         clickToPaySessionLauncher.initialize()
     }
