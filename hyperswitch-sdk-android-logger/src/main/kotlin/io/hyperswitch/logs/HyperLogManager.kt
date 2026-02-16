@@ -163,6 +163,9 @@ object HyperLogManager {
         } catch (_: Exception) {
         }
     }
-    fun getAllLogsAsString(): String = logsBatch.joinToString(prefix = "[", postfix = "]") { it.toJson() }
+    fun getAllLogsAsString(): String {
+        val snapshot = synchronized(lock) { logsBatch.toList() }
+        return snapshot.joinToString(prefix = "[", postfix = "]") { it.toJson() }
+    }
 
 }
