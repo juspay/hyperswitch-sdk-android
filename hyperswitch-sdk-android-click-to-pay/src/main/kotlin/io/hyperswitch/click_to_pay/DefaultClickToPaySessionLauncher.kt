@@ -112,9 +112,9 @@ class DefaultClickToPaySessionLauncher(
 
     private fun getHyperLoaderURL(): String {
         return if (getEnvironment(publishableKey) == SDKEnvironment.PROD) {
-            "https://checkout.hyperswitch.io/web/2025.11.28.01/v1/HyperLoader.js"
+            "https://checkout.hyperswitch.io/web/2025.11.28.04/v1/HyperLoader.js"
         } else {
-            "https://beta.hyperswitch.io/web/2025.11.28.01/v1/HyperLoader.js"
+            "https://beta.hyperswitch.io/web/2025.11.28.04/v1/HyperLoader.js"
         }
     }
 
