@@ -101,9 +101,6 @@ class AuthenticationSession(
         )
     )
 
-    private fun isValueNull(value: String?): Boolean {
-        return value == null || value == "null"
-    }
     /**
      * Initializes the authentication session with payment credentials.
      * 

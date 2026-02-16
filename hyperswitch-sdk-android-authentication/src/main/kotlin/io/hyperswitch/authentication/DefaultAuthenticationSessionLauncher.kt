@@ -4,6 +4,7 @@ import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.click_to_pay.BuildConfig
 import io.hyperswitch.click_to_pay.ClickToPaySession
+import io.hyperswitch.click_to_pay.models.ClickToPayErrorType
 import io.hyperswitch.click_to_pay.models.ClickToPayException
 import io.hyperswitch.logs.EventName
 import io.hyperswitch.logs.HSLog
@@ -26,7 +27,7 @@ import java.lang.ref.WeakReference
  * @property merchantId Stored merchant identifier
  */
 class DefaultAuthenticationSessionLauncher(
-    private val activity: Activity,
+    activity: Activity,
     publishableKey: String,
     customBackendUrl: String? = null,
     customLogUrl: String? = null,
@@ -174,8 +175,9 @@ class DefaultAuthenticationSessionLauncher(
     override suspend fun getActiveClickToPaySession(
         activity: Activity
     ): ClickToPaySession {
-        if (activeClickToPay != null){
-            return activeClickToPay!!.getActiveClickToPaySession(
+        val session = activeClickToPay
+        if (session != null){
+            return session.getActiveClickToPaySession(
                 clientSecret,
                 profileId,
                 authenticationId,
@@ -185,7 +187,7 @@ class DefaultAuthenticationSessionLauncher(
         }else{
             throw ClickToPayException(
                 "No session found for the ClickToPay",
-                "SESSION_NOT_FOUND"
+                ClickToPayErrorType.SESSION_NOT_FOUND
             )
         }
     }
