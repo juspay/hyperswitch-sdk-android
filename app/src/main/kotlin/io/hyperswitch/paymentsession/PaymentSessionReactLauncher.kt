@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.addCallback
 import androidx.fragment.app.FragmentActivity
 import com.facebook.react.internal.featureflags.ReactNativeFeatureFlags
@@ -21,6 +22,7 @@ import com.facebook.react.uimanager.PixelUtil
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.react.ReactNativeController
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.paymentIntentClientSecret
+import io.hyperswitch.superposition.SuperpositionManager
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
 import io.hyperswitch.react.HyperFragment
@@ -116,23 +118,36 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
         }
     }
 
+    /**
+     * Injects superposition config into the props bundle.
+     * If no cached config is available, triggers a re-fetch for subsequent sheet opens.
+     */
+    private fun injectSuperpositionConfig(bundle: Bundle) {
+        val config = SuperpositionManager.getCachedConfig()?.configJson
+        if (config != null) {
+            val source = SuperpositionManager.getConfigSource()
+            Log.d("SuperpositionManager", "Serving config from $source")
+            bundle.getBundle("props")?.putString("superpositionConfigRaw", config)
+        } else if (SuperpositionManager.isInitialized()) {
+            Log.d("SuperpositionManager", "No config available, retrying fetch for next sheet open")
+            SuperpositionManager.fetchConfig()
+        }
+    }
+
     override fun presentSheet(
         paymentIntentClientSecret: String,
         configuration: PaymentSheet.Configuration?
     ): Boolean {
         val bundle = launchOptions.getBundle(paymentIntentClientSecret, configuration)
+        injectSuperpositionConfig(bundle)
         applyFonts(configuration, bundle)
         return presentSheet(bottomInsetToDIPFromPixel(bundle))
     }
 
     override fun presentSheet(configurationMap: Map<String, Any?>): Boolean {
-        return presentSheet(
-            bottomInsetToDIPFromPixel(
-                launchOptions.getBundleWithHyperParams(
-                    configurationMap
-                )
-            )
-        )
+        val bundle = launchOptions.getBundleWithHyperParams(configurationMap)
+        injectSuperpositionConfig(bundle)
+        return presentSheet(bottomInsetToDIPFromPixel(bundle))
     }
 
     private fun presentSheet(bundle: Bundle): Boolean {
