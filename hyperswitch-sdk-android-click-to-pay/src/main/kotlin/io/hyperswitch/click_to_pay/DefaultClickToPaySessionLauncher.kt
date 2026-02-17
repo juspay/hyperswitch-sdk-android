@@ -76,6 +76,8 @@ class DefaultClickToPaySessionLauncher(
 
     private val sessionId = getOrCreateUniqueKey(activity, "click_to_pay")
 
+    private var originalHandler : Thread.UncaughtExceptionHandler?= null
+
     private fun logger(
         type: LogType,
         eventName: EventName,
@@ -457,6 +459,7 @@ class DefaultClickToPaySessionLauncher(
         } else {
             getLoggingUrl(publishableKey)
         }
+        originalHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler(
             CrashHandler(activity.application, BuildConfig.VERSION_NAME, sessionId = sessionId)
         )
@@ -1158,6 +1161,9 @@ class DefaultClickToPaySessionLauncher(
             isWebViewInitialized = false
             isDestroyed = true
 
+            Thread.setDefaultUncaughtExceptionHandler(
+                originalHandler
+            )
             logger(LogType.DEBUG, EventName.CLOSE_RETURNED, "successfully closed")
         } catch (e: Exception) {
             logger(

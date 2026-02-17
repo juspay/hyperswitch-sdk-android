@@ -12,7 +12,7 @@ class CrashHandler(context: Context, private val sdkVersion: String, private val
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         val obj = mapOf(
             "label" to "crash_detected",
-            "value" to throwable.stackTrace.toString(),
+            "value" to throwable.toString(),
             "category" to "crash",
             "subcategory" to "sdk_crash"
         )
