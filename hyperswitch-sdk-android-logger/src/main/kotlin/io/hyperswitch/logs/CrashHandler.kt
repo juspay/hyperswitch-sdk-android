@@ -4,7 +4,7 @@ import android.content.Context
 import org.json.JSONException
 import org.json.JSONObject
 
-class CrashHandler(context: Context, private val sdkVersion: String) :
+class CrashHandler(context: Context, private val sdkVersion: String, private val sessionId: String = "") :
     Thread.UncaughtExceptionHandler {
 
     private val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
@@ -12,14 +12,14 @@ class CrashHandler(context: Context, private val sdkVersion: String) :
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         val obj = mapOf(
             "label" to "crash_detected",
-            "value" to throwable.toString(),
+            "value" to throwable.stackTrace.toString(),
             "category" to "crash",
             "subcategory" to "sdk_crash"
         )
         try {
             val jsonData = JSONObject(obj).toString()
             val log = HSLog.LogBuilder().logType("error").category(LogCategory.USER_EVENT)
-                .eventName(EventName.CRASH_EVENT).value(jsonData).version(sdkVersion)
+                .eventName(EventName.CRASH_EVENT).value(jsonData).version(sdkVersion).sessionId(sessionId)
             HyperLogManager.addLog(log.build())
         } catch (_: JSONException) {
         }
