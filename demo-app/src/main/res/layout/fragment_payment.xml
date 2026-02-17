@@ -5,11 +5,11 @@
     android:layout_height="match_parent"
     android:background="@android:color/white"
     android:fitsSystemWindows="true"
-    tools:context=".MainActivity">
+    tools:context=".PaymentFragment">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_gravity="center"
         android:maxWidth="320dp"
         android:orientation="vertical">
@@ -19,18 +19,21 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="20dp"
+            android:layout_weight="1"
             android:autofillHints="http://"
             android:ems="10"
             android:textSize="32sp"
             android:hint="@string/ip_address"
             android:inputType="text"
-            android:textAlignment="center" />
+            android:textAlignment="center"
+            />
 
         <Button
             android:id="@+id/reloadButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="20dp"
+            android:layout_weight="1"
             android:background="@drawable/rounded_button"
             android:text="@string/reload_client_secret"
             android:textAllCaps="false"
@@ -42,30 +45,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="20dp"
+            android:layout_weight="1"
             android:background="@drawable/rounded_button"
             android:text="@string/launch_payment_sheet"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp" />
-
-        <Button
-            android:id="@+id/launchFragmentButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="20dp"
-            android:background="@drawable/rounded_button"
-            android:text="Open in Fragment"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp" />
-
-        <Button
-            android:id="@+id/launchWidgetLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="20dp"
-            android:background="@drawable/rounded_button"
-            android:text="@string/launch_widget_layout"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:textSize="20sp" />
@@ -75,6 +57,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="20dp"
+            android:layout_weight="1"
             android:gravity="center"
             android:textSize="20sp" />
 
@@ -83,6 +66,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="20dp"
+            android:layout_weight="1"
             android:background="@drawable/rounded_button"
             android:text="@string/confirm_with_last_used_pm"
             android:textAllCaps="false"

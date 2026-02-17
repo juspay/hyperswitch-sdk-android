@@ -1,19 +1,20 @@
 package io.hyperswitch.demoapp
 
-import android.app.Activity
-import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
 import android.util.Patterns
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
+import androidx.fragment.app.Fragment
+import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
@@ -26,8 +27,7 @@ import io.hyperswitch.paymentsheet.PaymentSheetResult
 import org.json.JSONException
 import org.json.JSONObject
 
-class MainActivity : AppCompatActivity() {
-    lateinit var ctx: Activity
+class PaymentFragment : Fragment(), DefaultHardwareBackBtnHandler {
     private var publishableKey: String = ""
     private var paymentIntentClientSecret: String = "clientSecret"
     private var netceteraApiKey: String? = null
@@ -38,23 +38,26 @@ class MainActivity : AppCompatActivity() {
     private lateinit var editText: EditText
     private lateinit var reloadButton: Button
     private lateinit var launchButton: Button
-    private lateinit var launchFragmentButton: Button
     private lateinit var confirmButton: Button
     private lateinit var resultText: TextView
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.main_activity)
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        return inflater.inflate(R.layout.fragment_payment, container, false)
+    }
 
-        ctx = this
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         // Initialize views
-        editText = findViewById(R.id.ipAddressInput)
-        reloadButton = findViewById(R.id.reloadButton)
-        launchButton = findViewById(R.id.launchButton)
-        launchFragmentButton = findViewById(R.id.launchFragmentButton)
-        confirmButton = findViewById(R.id.confirmButton)
-        resultText = findViewById(R.id.resultText)
+        editText = view.findViewById(R.id.ipAddressInput)
+        reloadButton = view.findViewById(R.id.reloadButton)
+        launchButton = view.findViewById(R.id.launchButton)
+        confirmButton = view.findViewById(R.id.confirmButton)
+        resultText = view.findViewById(R.id.resultText)
 
         serverUrl = loadServerUrl()
         editText.setText(serverUrl)
@@ -89,20 +92,6 @@ class MainActivity : AppCompatActivity() {
             val customisations = getCustomisations()
             paymentSession.presentPaymentSheet(customisations, ::onPaymentSheetResult)
         }
-
-        /**
-         * Launch Payment Fragment
-         */
-        launchFragmentButton.setOnClickListener {
-            val intent = Intent(this, FragmentActivity::class.java)
-            startActivity(intent)
-        }
-
-        // Launch Widget Layout button
-        findViewById<View>(R.id.launchWidgetLayout).setOnClickListener {
-            val intent = Intent(this, WidgetActivity::class.java)
-            startActivity(intent)
-        }
     }
 
     private fun fetchNetceteraApiKey() {
@@ -120,7 +109,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getSharedPreferences(): android.content.SharedPreferences {
-        return getSharedPreferences(prefsName, MODE_PRIVATE)
+        return requireContext().getSharedPreferences(prefsName, android.content.Context.MODE_PRIVATE)
     }
 
     private fun saveServerUrl(url: String) {
@@ -216,7 +205,7 @@ class MainActivity : AppCompatActivity() {
                             /**
                              * Create Payment Session Object
                              */
-                            paymentSession = PaymentSession(this@MainActivity, publishableKey)
+                            paymentSession = PaymentSession(requireActivity(), publishableKey)
 
                             /**
                              * Initialise Payment Session
@@ -235,7 +224,7 @@ class MainActivity : AppCompatActivity() {
 
                                 setStatus("Last Used PM: $text")
 
-                                runOnUiThread {
+                                requireActivity().runOnUiThread {
                                     confirmButton.isEnabled = true
                                     confirmButton.setOnClickListener { _ ->
                                         it.confirmWithCustomerLastUsedPaymentMethod {
@@ -245,7 +234,7 @@ class MainActivity : AppCompatActivity() {
                                 }
                             }
 
-                            runOnUiThread {
+                            requireActivity().runOnUiThread {
                                 launchButton.isEnabled = true
                             }
                         }
@@ -265,7 +254,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setStatus(error: String) {
-        runOnUiThread {
+        requireActivity().runOnUiThread {
             resultText.text = error
         }
     }
@@ -300,5 +289,13 @@ class MainActivity : AppCompatActivity() {
                 setStatus(paymentResult.data)
             }
         }
+    }
+
+    override fun invokeDefaultOnBackPressed() {
+
+    }
+
+    companion object {
+        fun newInstance() = PaymentFragment()
     }
 }

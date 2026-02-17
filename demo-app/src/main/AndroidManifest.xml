@@ -26,7 +26,12 @@
         <activity android:name=".WidgetActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             >
-    </activity>
+        </activity>
+
+        <activity android:name=".FragmentActivity"
+            android:theme="@style/AppTheme"
+            android:exported="false">
+        </activity>
     </application>
 
 </manifest>
