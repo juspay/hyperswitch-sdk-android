@@ -7,10 +7,12 @@ import android.view.ViewGroup
 import android.widget.FrameLayout.LayoutParams
 import androidx.webkit.WebViewCompat
 import io.hyperswitch.click_to_pay.models.*
+import io.hyperswitch.logs.CrashHandler
 import io.hyperswitch.logs.EventName
 import io.hyperswitch.logs.HSLog
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogCategory
+import io.hyperswitch.logs.LogFileManager
 import io.hyperswitch.logs.LogType
 import io.hyperswitch.logs.LogUtils.getEnvironment
 import io.hyperswitch.logs.LogUtils.getLoggingUrl
@@ -72,19 +74,18 @@ class DefaultClickToPaySessionLauncher(
 
     private var authenticationId: String? = null
 
+    private val sessionId = getOrCreateUniqueKey(activity, "click_to_pay")
+
     private fun logger(
         type: LogType,
         eventName: EventName,
         value: String,
         category: LogCategory = LogCategory.USER_EVENT
     ) {
-        val sessionId = getOrCreateUniqueKey(activity, "click_to_pay")
-        val log = HSLog.LogBuilder().logType(type).category(category)
-            .eventName(eventName)
-            .value(value)
-            .version(BuildConfig.VERSION_NAME)
-            .authenticationId(this.authenticationId ?: "")
-            .sessionId(sessionId)
+        val log =
+            HSLog.LogBuilder().logType(type).category(category).eventName(eventName).value(value)
+                .version(BuildConfig.VERSION_NAME).authenticationId(this.authenticationId ?: "")
+                .sessionId(sessionId)
         HyperLogManager.addLog(log.build())
     }
 
@@ -110,10 +111,11 @@ class DefaultClickToPaySessionLauncher(
 
 
     private fun getHyperLoaderURL(): String {
+
         return if (getEnvironment(publishableKey) == SDKEnvironment.PROD) {
-            "https://checkout.hyperswitch.io/web/2025.11.28.04/v1/HyperLoader.js"
+            "https://checkout.hyperswitch.io/web/2025.11.28.06/v1/HyperLoader.js"
         } else {
-            "https://beta.hyperswitch.io/web/2025.11.28.04/v1/HyperLoader.js"
+            "https://beta.hyperswitch.io/web/2025.11.28.06/v1/HyperLoader.js"
         }
     }
 
@@ -218,9 +220,7 @@ class DefaultClickToPaySessionLauncher(
      * @param ancestors Set of ancestor views that must not be hidden
      */
     private fun hideViewsRecursively(
-        currentView: View,
-        targetView: View,
-        ancestors: HashSet<View>
+        currentView: View, targetView: View, ancestors: HashSet<View>
     ) {
         if (currentView == targetView) {
             return
@@ -268,9 +268,7 @@ class DefaultClickToPaySessionLauncher(
                 }
             }
             logger(
-                LogType.DEBUG,
-                EventName.WEBVIEW,
-                "webview de-attached JS execution paused"
+                LogType.DEBUG, EventName.WEBVIEW, "webview de-attached JS execution paused"
             )
         }
 
@@ -373,12 +371,10 @@ class DefaultClickToPaySessionLauncher(
             isFocusableInTouchMode = false
             layoutParams = LayoutParams(1, 1)
             contentDescription = "Click to Pay"
-            importantForAccessibility =
-                View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
         }
 
-        activity.findViewById<ViewGroup>(android.R.id.content)
-            .addView(hSWebViewWrapper)
+        activity.findViewById<ViewGroup>(android.R.id.content).addView(hSWebViewWrapper)
 
         isWebViewAttached = true
     }
@@ -411,10 +407,7 @@ class DefaultClickToPaySessionLauncher(
                     }
                     isWebViewInitialized = true
                     logger(
-                        LogType.DEBUG,
-                        EventName.CREATE_WEBVIEW_RETURNED,
-                        "",
-                        LogCategory.USER_EVENT
+                        LogType.DEBUG, EventName.CREATE_WEBVIEW_RETURNED, "", LogCategory.USER_EVENT
                     )
                     return
 
@@ -464,7 +457,12 @@ class DefaultClickToPaySessionLauncher(
         } else {
             getLoggingUrl(publishableKey)
         }
+        Thread.setDefaultUncaughtExceptionHandler(
+            CrashHandler(activity.application, BuildConfig.VERSION_NAME, sessionId = sessionId)
+        )
         HyperLogManager.initialise(publishableKey, loggingEndPoint)
+        HyperLogManager.sendLogsFromFile(LogFileManager(activity))
+
 
         // Allow reinitialization if the session was previously closed
         if (isDestroyed) {
@@ -619,9 +617,7 @@ class DefaultClickToPaySessionLauncher(
         activity: Activity
     ) {
         logger(
-            LogType.INFO,
-            EventName.GET_ACTIVE_CLICK_TO_PAY_SESSION,
-            "get c2p"
+            LogType.INFO, EventName.GET_ACTIVE_CLICK_TO_PAY_SESSION, "get c2p"
         )
         logger(
             LogType.DEBUG,
@@ -709,9 +705,7 @@ class DefaultClickToPaySessionLauncher(
                 "no existing c2p found"
             )
             logger(
-                LogType.DEBUG,
-                EventName.GET_ACTIVE_CLICK_TO_PAY_SESSION_RETURNED,
-                "success"
+                LogType.DEBUG, EventName.GET_ACTIVE_CLICK_TO_PAY_SESSION_RETURNED, "success"
             )
         }
     }
@@ -1173,8 +1167,7 @@ class DefaultClickToPaySessionLauncher(
                 LogCategory.USER_ERROR
             )
             throw ClickToPayException(
-                "Failed to close Click to Pay session: ${e.message}",
-                "CLOSE_ERROR"
+                "Failed to close Click to Pay session: ${e.message}", "CLOSE_ERROR"
             )
         }
     }
@@ -1227,9 +1220,7 @@ class DefaultClickToPaySessionLauncher(
             }
             val recognized = data.optBoolean("recognized", false)
             logger(
-                LogType.DEBUG,
-                EventName.SIGN_OUT_RETURNED,
-                recognized.toString()
+                LogType.DEBUG, EventName.SIGN_OUT_RETURNED, recognized.toString()
             )
             SignOutResponse(
                 recognized = recognized
