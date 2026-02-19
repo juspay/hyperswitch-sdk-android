@@ -30,9 +30,9 @@ class HyperActivity : ReactActivity() {
         return object : DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled) {
             override fun getLaunchOptions(): Bundle = intent.getBundleExtra("configuration")!!
             
-            override fun getReactNativeHost(): ReactNativeHost {
-                return ReactNativeController.getReactNativeHost()
-            }
+//            override fun getReactNativeHost(): ReactNativeHost {
+//                return ReactNativeController.getReactNativeHost()
+//            }
 
             override fun getReactHost() : ReactHost {
                 return ReactNativeController.getReactHost()

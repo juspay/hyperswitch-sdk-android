@@ -72,7 +72,7 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
         activity.runOnUiThread {
             val context = reactContext
             if (context == null) {
-                if (ReactNativeFeatureFlags.enableBridgelessArchitecture()) {
+//                if (ReactNativeFeatureFlags.enableBridgelessArchitecture()) {
                     val reactHost = checkNotNull(reactHost)
                     reactHost.addReactInstanceEventListener(
                         object : ReactInstanceEventListener {
@@ -83,18 +83,18 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
                         }
                     )
                     reactHost.start()
-                } else {
-                    val reactInstanceManager = reactNativeHost?.reactInstanceManager
-                    reactInstanceManager?.addReactInstanceEventListener(
-                        object : ReactInstanceEventListener {
-                            override fun onReactContextInitialized(context: ReactContext) {
-                                invokeStartTask(context)
-                                reactInstanceManager.removeReactInstanceEventListener(this)
-                            }
-                        }
-                    )
-                    reactInstanceManager?.createReactContextInBackground()
-                }
+//                } else {
+//                    val reactInstanceManager = reactNativeHost?.reactInstanceManager
+//                    reactInstanceManager?.addReactInstanceEventListener(
+//                        object : ReactInstanceEventListener {
+//                            override fun onReactContextInitialized(context: ReactContext) {
+//                                invokeStartTask(context)
+//                                reactInstanceManager.removeReactInstanceEventListener(this)
+//                            }
+//                        }
+//                    )
+//                    reactInstanceManager?.createReactContextInBackground()
+//                }
             } else {
                 invokeStartTask(context)
             }

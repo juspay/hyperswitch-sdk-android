@@ -3,13 +3,14 @@ package io.hyperswitch.react
 import android.app.Application
 import android.content.Context
 import com.facebook.react.PackageList
+import com.facebook.react.HyperPackageList
+
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeHost
 import com.facebook.react.ReactPackage
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint
 import com.facebook.react.defaults.DefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
-import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.PaymentConfiguration
@@ -212,7 +213,7 @@ object ReactNativeController {
 //                if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
 //                    DefaultNewArchitectureEntryPoint.load()
 //                }
-                val packageList = PackageList(application).packages.apply {
+                val packageList = HyperPackageList(application).packages.apply {
                     add(HyperPackage())
                 }
 

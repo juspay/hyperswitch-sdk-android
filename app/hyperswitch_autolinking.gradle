@@ -1,0 +1,396 @@
+import groovy.json.JsonSlurper
+import groovy.text.SimpleTemplateEngine
+
+def generatedClassName = "HyperPackageList"
+def generatedFilePackage = "com.facebook.react"
+
+def generatedFileContentsTemplate = """
+package $generatedFilePackage;
+
+import android.app.Application;
+import android.content.Context;
+import android.content.res.Resources;
+
+import com.facebook.react.ReactPackage;
+import com.facebook.react.shell.MainPackageConfig;
+import com.facebook.react.shell.MainReactPackage;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+
+public class $generatedClassName {
+  private Application application;
+  private ReactNativeHost reactNativeHost;
+  private MainPackageConfig mConfig;
+
+  // Generated package class names - loaded via reflection
+  private static final String[] PACKAGE_CLASS_NAMES = {
+    {{ packageClassNames }}
+  };
+
+  public $generatedClassName(ReactNativeHost reactNativeHost) {
+    this(reactNativeHost, null);
+  }
+
+  public $generatedClassName(Application application) {
+    this(application, null);
+  }
+
+  public $generatedClassName(ReactNativeHost reactNativeHost, MainPackageConfig config) {
+    this.reactNativeHost = reactNativeHost;
+    mConfig = config;
+  }
+
+  public $generatedClassName(Application application, MainPackageConfig config) {
+    this.reactNativeHost = null;
+    this.application = application;
+    mConfig = config;
+  }
+
+  private ReactNativeHost getReactNativeHost() {
+    return this.reactNativeHost;
+  }
+
+  private Resources getResources() {
+    return this.getApplication().getResources();
+  }
+
+  private Application getApplication() {
+    if (this.reactNativeHost == null) return this.application;
+    return this.reactNativeHost.getApplication();
+  }
+
+  private Context getApplicationContext() {
+    return this.getApplication().getApplicationContext();
+  }
+
+  public ArrayList<ReactPackage> getPackages() {
+    ArrayList<ReactPackage> packages = new ArrayList<>();
+    packages.add(new MainReactPackage(mConfig));
+
+    for (String className : PACKAGE_CLASS_NAMES) {
+      try {
+        Class<?> clazz = Class.forName(className);
+        ReactPackage pkg = (ReactPackage) clazz.getDeclaredConstructor().newInstance();
+        packages.add(pkg);
+        android.util.Log.i("HyperPackageList", "Loaded package: " + className);
+      } catch (ClassNotFoundException e) {
+        android.util.Log.i("HyperPackageList", "Package not found (optional): " + className);
+      } catch (Exception e) {
+        android.util.Log.e("HyperPackageList", "Failed to instantiate package: " + className + " - " + e.getMessage());
+      }
+    }
+
+    return packages;
+  }
+}
+"""
+
+class HyperswitchAutolinking {
+  private Logger logger
+  private String packageName
+  private File root
+  private Project rootProject
+  private ArrayList<HashMap<String, String>> reactNativeModules
+  private HashMap<String, ArrayList> reactNativeModulesBuildVariants
+  private static String LOG_PREFIX = ":HyperswitchSDK:"
+
+  HyperswitchAutolinking(Logger logger, File root, Project rootProject) {
+    this.logger = logger
+    this.root = root
+    this.rootProject = rootProject
+    this.packageName = "com.hyperswitchsdkreactnative"
+
+    def (nativeModules, reactNativeModulesBuildVariants) = this.loadAutolinkingData()
+    this.reactNativeModules = nativeModules
+    this.reactNativeModulesBuildVariants = reactNativeModulesBuildVariants
+  }
+
+  /**
+   * Load autolinking data with primary/fallback strategy
+   * Primary: autolinking.json from rootProject build directory
+   * Fallback: React Native CLI (for RN < 0.76)
+   */
+  private ArrayList loadAutolinkingData() {
+    try {
+      return loadFromAutolinkingJson()
+    } catch (Exception e) {
+      this.logger.warn("${LOG_PREFIX}Failed to load autolinking.json: ${e.message}")
+      this.logger.info("${LOG_PREFIX}Falling back to React Native CLI approach")
+      return loadFromReactNativeCli()
+    }
+  }
+
+  /**
+   * Primary: Load from autolinking.json (RN >= 0.76)
+   */
+  private ArrayList loadFromAutolinkingJson() {
+    def autolinkingFile = new File(rootProject.layout.buildDirectory.get().asFile, "generated/autolinking/autolinking.json")
+
+    if (!autolinkingFile.exists()) {
+      throw new FileNotFoundException("autolinking.json not found at: ${autolinkingFile.absolutePath}")
+    }
+
+    this.logger.info("${LOG_PREFIX}Reading autolinking configuration from: ${autolinkingFile.absolutePath}")
+
+    def json = new JsonSlurper().parse(autolinkingFile)
+    def dependencies = json["dependencies"]
+
+    if (!dependencies) {
+      throw new IllegalStateException("No dependencies found in autolinking.json")
+    }
+
+    ArrayList<HashMap<String, String>> reactNativeModules = new ArrayList<HashMap<String, String>>()
+    HashMap<String, ArrayList> reactNativeModulesBuildVariants = new HashMap<String, ArrayList>()
+
+    dependencies.each { name, value ->
+      def platformsConfig = value["platforms"]
+      def androidConfig = platformsConfig["android"]
+
+      if (androidConfig != null && androidConfig["sourceDir"] != null && !androidConfig["isPureCxxDependency"]) {
+        this.logger.info("${LOG_PREFIX}Adding native module '${name}' from autolinking.json")
+
+        HashMap reactNativeModuleConfig = new HashMap<String, String>()
+        def nameCleansed = name.replaceAll('[~*!\'()]+', '_').replaceAll('^@([\\w-.]+)/', '$1_')
+
+        reactNativeModuleConfig.put("name", name)
+        reactNativeModuleConfig.put("nameCleansed", nameCleansed)
+        reactNativeModuleConfig.put("androidSourceDir", androidConfig["sourceDir"])
+        reactNativeModuleConfig.put("packageInstance", androidConfig["packageInstance"])
+        reactNativeModuleConfig.put("packageImportPath", androidConfig["packageImportPath"])
+        reactNativeModuleConfig.put("libraryName", androidConfig["libraryName"])
+        reactNativeModuleConfig.put("componentDescriptors", androidConfig["componentDescriptors"])
+
+        if (androidConfig["buildTypes"] && !androidConfig["buildTypes"].isEmpty()) {
+          reactNativeModulesBuildVariants.put(nameCleansed, androidConfig["buildTypes"])
+        }
+
+        if (androidConfig.containsKey("dependencyConfiguration")) {
+          reactNativeModuleConfig.put("dependencyConfiguration", androidConfig["dependencyConfiguration"])
+        }
+
+        reactNativeModules.add(reactNativeModuleConfig)
+      } else {
+        this.logger.debug("${LOG_PREFIX}Skipping native module '${name}' (no Android config or pure C++)")
+      }
+    }
+
+    this.logger.info("${LOG_PREFIX}Loaded ${reactNativeModules.size()} modules from autolinking.json")
+    return [reactNativeModules, reactNativeModulesBuildVariants]
+  }
+
+  /**
+   * Fallback: Load from React Native CLI (RN < 0.76)
+   */
+  private ArrayList loadFromReactNativeCli() {
+    this.logger.info("${LOG_PREFIX}Using React Native CLI fallback")
+
+    ArrayList<HashMap<String, String>> reactNativeModules = new ArrayList<HashMap<String, String>>()
+    HashMap<String, ArrayList> reactNativeModulesBuildVariants = new HashMap<String, ArrayList>()
+
+    try {
+      def cliResolveScript = "try {console.log(require('@react-native-community/cli').bin);} catch (e) {console.log(require('react-native/cli').bin);}"
+      String[] nodeCommand = ["node", "-e", cliResolveScript]
+      def cliPath = this.getCommandOutput(nodeCommand, this.root)
+
+      String[] reactNativeConfigCommand = ["node", cliPath, "config"]
+      def reactNativeConfigOutput = this.getCommandOutput(reactNativeConfigCommand, this.root)
+
+      def json = new JsonSlurper().parseText(reactNativeConfigOutput)
+      def dependencies = json["dependencies"]
+      def project = json["project"]["android"]
+
+      if (project == null) {
+        throw new Exception("React Native CLI failed to determine Android project configuration")
+      }
+
+      def engine = new SimpleTemplateEngine()
+
+      dependencies.each { name, value ->
+        def platformsConfig = value["platforms"]
+        def androidConfig = platformsConfig["android"]
+
+        if (androidConfig != null && androidConfig["sourceDir"] != null) {
+          this.logger.info("${LOG_PREFIX}Adding native module '${name}' from CLI")
+
+          HashMap reactNativeModuleConfig = new HashMap<String, String>()
+          def nameCleansed = name.replaceAll('[~*!\'()]+', '_').replaceAll('^@([\\w-.]+)/', '$1_')
+
+          reactNativeModuleConfig.put("name", name)
+          reactNativeModuleConfig.put("nameCleansed", nameCleansed)
+          reactNativeModuleConfig.put("androidSourceDir", androidConfig["sourceDir"])
+          reactNativeModuleConfig.put("packageInstance", androidConfig["packageInstance"])
+          reactNativeModuleConfig.put("packageImportPath", androidConfig["packageImportPath"])
+          reactNativeModuleConfig.put("libraryName", androidConfig["libraryName"])
+          reactNativeModuleConfig.put("componentDescriptors", androidConfig["componentDescriptors"])
+
+          if (androidConfig["buildTypes"] && !androidConfig["buildTypes"].isEmpty()) {
+            reactNativeModulesBuildVariants.put(nameCleansed, androidConfig["buildTypes"])
+          }
+
+          if (androidConfig.containsKey("dependencyConfiguration")) {
+            reactNativeModuleConfig.put("dependencyConfiguration", androidConfig["dependencyConfiguration"])
+          } else if (project.containsKey("dependencyConfiguration")) {
+            def bindings = ["dependencyName": nameCleansed]
+            def template = engine.createTemplate(project["dependencyConfiguration"]).make(bindings)
+            reactNativeModuleConfig.put("dependencyConfiguration", template.toString())
+          }
+
+          reactNativeModules.add(reactNativeModuleConfig)
+        }
+      }
+
+      this.logger.info("${LOG_PREFIX}Loaded ${reactNativeModules.size()} modules from React Native CLI")
+      return [reactNativeModules, reactNativeModulesBuildVariants]
+
+    } catch (Exception e) {
+      this.logger.error("${LOG_PREFIX}React Native CLI fallback failed: ${e.message}")
+      throw new Exception("Both autolinking.json and React Native CLI failed. Please ensure React Native is properly configured.")
+    }
+  }
+
+  /**
+   * Add dynamic dependencies to the project
+   */
+  void addReactNativeModuleDependencies(Project project) {
+    this.logger.info("${LOG_PREFIX}Adding ${reactNativeModules.size()} dynamic dependencies")
+
+    reactNativeModules.forEach { reactNativeModule ->
+      def nameCleansed = reactNativeModule["nameCleansed"]
+      def dependencyConfiguration = reactNativeModule["dependencyConfiguration"]
+
+      project.dependencies {
+        if (reactNativeModulesBuildVariants.containsKey(nameCleansed)) {
+          reactNativeModulesBuildVariants
+            .get(nameCleansed)
+            .forEach { buildVariant ->
+              if (dependencyConfiguration != null) {
+                add("${buildVariant}${dependencyConfiguration}", project.project(":${nameCleansed}"))
+              } else {
+                add("${buildVariant}Implementation", project.project(":${nameCleansed}"))
+              }
+            }
+        } else {
+          if(nameCleansed != "juspay-tech_react-native-hyperswitch") {
+            if (dependencyConfiguration != null) {
+              add("${dependencyConfiguration}", project.project(":${nameCleansed}"))
+            } else {
+              implementation project.project(":${nameCleansed}")
+            }
+          }
+        }
+      }
+
+      this.logger.debug("${LOG_PREFIX}Added dependency: ${nameCleansed}")
+    }
+  }
+
+  /**
+   * Generate PackageList.java file
+   */
+  void generatePackagesFile(File outputDir, String generatedFileName, String generatedFileContentsTemplate) {
+    ArrayList<HashMap<String, String>> packages = this.reactNativeModules
+
+    // Extract fully qualified class names from packageImportPath + packageInstance
+    // packageImportPath looks like: "import com.foo.BarPackage;"
+    // We parse the class name from it
+    String packageClassNames = ""
+
+    if (packages.size() > 0) {
+      packageClassNames = packages.collect { pkg ->
+        // Extract class name from import path
+        // e.g. "import com.foo.BarPackage;" → "com.foo.BarPackage"
+        def importPath = pkg.packageImportPath?.trim()
+        if (importPath) {
+          def match = importPath =~ /import\s+([\w.]+);/
+          if (match) {
+            return "    \"${match[0][1]}\""
+          }
+        }
+        return null
+      }.findAll { it != null }.join(",\n")
+    }
+
+    String generatedFileContents = generatedFileContentsTemplate
+            .replace("{{ packageClassNames }}", packageClassNames)
+
+    outputDir.mkdirs()
+    final FileTreeBuilder treeBuilder = new FileTreeBuilder(outputDir)
+    treeBuilder.file(generatedFileName).newWriter().withWriter { w ->
+      w << generatedFileContents
+    }
+
+    this.logger.info("${LOG_PREFIX}Generated PackageList.java with ${packages.size()} packages (reflection-based)")
+  }
+  /**
+   * Execute command and return output
+   */
+  private String getCommandOutput(String[] command, File directory) {
+    try {
+      def cmdProcess = Runtime.getRuntime().exec(command, null, directory)
+      def bufferedReader = new BufferedReader(new InputStreamReader(cmdProcess.getInputStream()))
+      def readBuffer = new StringBuffer()
+      def buff = ""
+
+      while ((buff = bufferedReader.readLine()) != null) {
+        readBuffer.append(buff)
+      }
+
+      def output = readBuffer.toString()
+      if (!output) {
+        def bufferedErrorReader = new BufferedReader(new InputStreamReader(cmdProcess.getErrorStream()))
+        def readErrorBuffer = new StringBuffer()
+        def errBuff = ""
+
+        while ((errBuff = bufferedErrorReader.readLine()) != null) {
+          readErrorBuffer.append(errBuff)
+        }
+
+        throw new Exception("Command failed: ${readErrorBuffer.toString()}")
+      }
+
+      return output
+    } catch (Exception exception) {
+      this.logger.error("${LOG_PREFIX}Command execution failed: ${exception.message}")
+      throw exception
+    }
+  }
+}
+
+def projectRoot = rootProject.projectDir
+def hyperswitchAutolinking = new HyperswitchAutolinking(logger, projectRoot, rootProject)
+
+ext.applyHyperswitchAutolinking = { Project project ->
+  hyperswitchAutolinking.addReactNativeModuleDependencies(project)
+
+  def generatedSrcDir = new File(project.layout.buildDirectory.get().asFile, "generated/source/packagelist")
+  def generatedCodeDir = new File(generatedSrcDir, generatedFilePackage.replace('.', '/'))
+
+  project.tasks.register('generatePackageList') {
+    group = "hyperswitch"
+    description = "Generates PackageList.java for Hyperswitch SDK"
+    outputs.dir(generatedCodeDir)
+    outputs.upToDateWhen { false }
+
+    doLast {
+      hyperswitchAutolinking.generatePackagesFile(generatedCodeDir, "${generatedClassName}.java", generatedFileContentsTemplate)
+    }
+  }
+
+  // ✅ Lazy task wiring — no more "Cannot convert true to a task"
+  project.afterEvaluate {
+    project.tasks.named("preBuild").configure {
+      dependsOn project.tasks.named("generatePackageList")
+    }
+  }
+
+  project.android {
+    sourceSets {
+      main {
+        java {
+          srcDirs += generatedSrcDir
+        }
+      }
+    }
+  }
+}
