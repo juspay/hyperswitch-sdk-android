@@ -1,6 +1,5 @@
 package io.hyperswitch.demoapp
 
-import android.app.Activity
 import android.content.Intent
 import android.util.Patterns
 import android.os.Bundle
@@ -24,9 +23,10 @@ import org.json.JSONException
 import org.json.JSONObject
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
+import io.hyperswitch.HyperInterface
 
-class MainActivity : AppCompatActivity() {
-    lateinit var ctx: Activity
+class MainActivity : AppCompatActivity(), HyperInterface {
+    lateinit var ctx: AppCompatActivity
     private var publishableKey: String = ""
     private var paymentIntentClientSecret: String = "clientSecret"
     private var netceteraApiKey: String? = null

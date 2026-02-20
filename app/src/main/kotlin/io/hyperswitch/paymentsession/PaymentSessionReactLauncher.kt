@@ -32,9 +32,6 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
     private var reactContext: ReactContext? = null
     private var headlessTaskId: Int? = null
     private val launchOptions = LaunchOptions(activity, BuildConfig.VERSION_NAME)
-//    override fun preload() {
-//        ReactNativeController.initialize(activity.application)
-//    }
 
     @SuppressLint("VisibleForTests")
     override fun initializeReactNativeInstance() {
