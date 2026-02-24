@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.addCallback
 import androidx.fragment.app.FragmentActivity
 import com.facebook.react.internal.featureflags.ReactNativeFeatureFlags
@@ -121,19 +120,9 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
         }
     }
 
-    /**
-     * Injects superposition config into the props bundle.
-     * If no cached config is available, triggers a re-fetch for subsequent sheet opens.
-     */
     private fun injectSuperpositionConfig(bundle: Bundle) {
-        val config = SuperpositionManager.getCachedConfig()?.configJson
-        if (config != null) {
-            val source = SuperpositionManager.getConfigSource()
-            Log.d("SuperpositionManager", "Serving config from $source")
-            bundle.getBundle("props")?.putString("superpositionConfigRaw", config)
-        } else if (SuperpositionManager.isInitialized()) {
-            Log.d("SuperpositionManager", "No config available, retrying fetch for next sheet open")
-            SuperpositionManager.fetchConfig()
+        SuperpositionManager.getCachedConfig()?.configJson?.let {
+            bundle.getBundle("props")?.getBundle("hyperParams")?.putString("superpositionConfigRaw", it)
         }
     }
 
