@@ -36,7 +36,7 @@ class DefaultPaymentSessionLauncher(
 
             // Initialize and fetch Superposition config
             val serverBaseUrl = "http://10.0.2.2:5252"
-            SuperpositionManager.initialise(context = activity, configUrl = "$serverBaseUrl/get-config")
+            SuperpositionManager.initialise(configUrl = "$serverBaseUrl/get-config")
             SuperpositionManager.fetchConfig()
         }
         paymentSessionReactLauncher.initializeReactNativeInstance()
