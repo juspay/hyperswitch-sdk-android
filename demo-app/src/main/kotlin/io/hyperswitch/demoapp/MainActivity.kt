@@ -8,6 +8,7 @@ import android.text.TextWatcher
 import android.util.Log
 import android.view.View
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.github.kittinunf.fuel.Fuel.reset
@@ -24,6 +25,10 @@ import org.json.JSONObject
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import io.hyperswitch.HyperInterface
+import io.hyperswitch.react.ReactNativeController
+import io.hyperswitch.view.PaymentWidget
+import io.hyperswitch.view.ReactNativeWidget
+import io.hyperswitch.view.WidgetType
 
 class MainActivity : AppCompatActivity(), HyperInterface {
     lateinit var ctx: AppCompatActivity
@@ -35,6 +40,8 @@ class MainActivity : AppCompatActivity(), HyperInterface {
     private var serverUrl = "http://10.0.2.2:5252"
     private lateinit var paymentSession: PaymentSession
     private lateinit var editText: EditText
+
+    private lateinit var widget: PaymentWidget
 
     private fun fetchNetceteraApiKey() {
         reset().get("$serverUrl/netcetera-sdk-api-key").responseString(object : Handler<String?> {
@@ -153,6 +160,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                              *
                              * */
 
+                            widget.showWidget(paymentIntentClientSecret)
                             paymentSession = PaymentSession(ctx, publishableKey)
 
                             /**
@@ -228,6 +236,19 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             }
         })
 
+        widget = PaymentWidget(this)
+        widget.initWidget(
+            publishableKey = publishableKey,
+        )
+        widget.setWidgetType(WidgetType.CARD)
+        widget.configuration(getCustomisations())
+        widget.onPaymentResult{
+                it ->
+            Log.i("Result", it.toString())
+        }
+        val container = findViewById<FrameLayout>(R.id.widgetContainer)
+        container.addView(widget)
+
         /**
          *
          * Merchant API call to get Client Secret
@@ -254,6 +275,20 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             val intent = Intent(this, WidgetActivity::class.java)
             startActivity(intent)
         }
+
+        // or
+
+//        val widget = findViewById<PaymentWidget>(R.id.paymentWidget)
+//        widget.initWidget(
+//            type = PAYMENT_SHEET,
+//            publishableKey = publishableKey,
+//            profileId = profileId,
+//            clientSecret = paymentIntentClientSecret
+//        )
+//        widget.configuration(paymentSheetConfig)
+//        widget.onResult(callback)
+//        widget.show()
+
 
     }
 
