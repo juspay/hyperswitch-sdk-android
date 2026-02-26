@@ -160,7 +160,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                              *
                              * */
 
-                            widget.showWidget(paymentIntentClientSecret)
+
                             paymentSession = PaymentSession(ctx, publishableKey)
 
                             /**
@@ -169,6 +169,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                              *
                              * */
 
+                            widget.showWidget(paymentIntentClientSecret)
                             paymentSession.initPaymentSession(paymentIntentClientSecret)
                             paymentSession.getCustomerSavedPaymentMethods { it ->
                                 val text = it.getCustomerLastUsedPaymentMethodData().fold(
@@ -197,6 +198,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                             ctx.runOnUiThread {
                                 ctx.findViewById<View>(R.id.launchButton).isEnabled = true
                             }
+
                         }
                     } catch (e: JSONException) {
                         Log.d("Backend Response", e.toString())
@@ -240,12 +242,9 @@ class MainActivity : AppCompatActivity(), HyperInterface {
         widget.initWidget(
             publishableKey = publishableKey,
         )
-        widget.setWidgetType(WidgetType.CARD)
+        widget.setWidgetType(WidgetType.PAYMENT_SHEET)
         widget.configuration(getCustomisations())
-        widget.onPaymentResult{
-                it ->
-            Log.i("Result", it.toString())
-        }
+        widget.onPaymentResult(::onPaymentSheetResult)
         val container = findViewById<FrameLayout>(R.id.widgetContainer)
         container.addView(widget)
 

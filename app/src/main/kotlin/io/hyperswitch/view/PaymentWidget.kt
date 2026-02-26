@@ -5,11 +5,14 @@ import android.content.Context
 import android.widget.FrameLayout
 import androidx.fragment.app.FragmentActivity
 import io.hyperswitch.BuildConfig
-import io.hyperswitch.payments.Callback
+import io.hyperswitch.paymentsession.Callback
+import io.hyperswitch.paymentsession.EventCallback
 import io.hyperswitch.paymentsession.LaunchOptions
+import io.hyperswitch.paymentsession.WidgetCallbackManager
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperFragment
 import io.hyperswitch.react.ReactNativeController
+import java.util.UUID
 
 enum class WidgetType {
     PAYMENT_SHEET, CARD, EXPRESS_CHECKOUT, GOOGLE_PAY, PAYPAL
@@ -21,6 +24,7 @@ class PaymentWidget : FrameLayout {
     private var callback: Callback? = null
     private var publishableKey: String? = null
     private var profileId: String? = null
+    private val sessionId = UUID.randomUUID().toString()
 
     private var launchOptions = LaunchOptions(context, BuildConfig.VERSION_NAME)
 
@@ -45,9 +49,10 @@ class PaymentWidget : FrameLayout {
         )
     }
 
-    fun setWidgetType(widgetType: WidgetType){
+    fun setWidgetType(widgetType: WidgetType) {
         this.widgetType = widgetType
     }
+
     fun initWidget(
         application: Application,
         type: WidgetType,
@@ -66,6 +71,15 @@ class PaymentWidget : FrameLayout {
 
     fun onPaymentResult(callback: Callback) {
         this.callback = callback
+        val mCallback: Callback = { result ->
+            callback(result)
+            removeWidget()
+        }
+        WidgetCallbackManager.setCallback(mCallback, true, this.sessionId)
+    }
+
+    fun onEvent(eventCallback: EventCallback) {
+        WidgetCallbackManager.setEventCallback(this.sessionId, eventCallback)
     }
 
     private fun getFragmentActivity(): FragmentActivity? {
@@ -79,8 +93,8 @@ class PaymentWidget : FrameLayout {
         return null
     }
 
-    private fun getWidgetType(widgetType: WidgetType?): String {
-        return when (widgetType) {
+    private fun getWidgetType(): String {
+        return when (this.widgetType) {
             WidgetType.PAYMENT_SHEET -> "widgetPaymentSheet"
             WidgetType.CARD -> "card"
             WidgetType.EXPRESS_CHECKOUT -> "expressCheckout"
@@ -91,36 +105,47 @@ class PaymentWidget : FrameLayout {
         }
     }
 
-    fun showWidget(clientSecret: String, callback: Callback){
-
-    }
-
-
-    fun showWidget(clientSecret: String) {
+    fun showWidget(clientSecret: String, callback: Callback? = null) {
         val activity = getFragmentActivity()
             ?: throw IllegalStateException("PaymentWidget must be attached to a FragmentActivity")
-
         if (id == NO_ID) {
             id = generateViewId()
         }
-        if(clientSecret == "null"){
-            throw Exception("Client Secret cannot be null")
+        callback?.let {
+            this.onPaymentResult(callback)
         }
-
-        clientSecret.let {
-            val fragment = HyperFragment.Builder(
-            ).setComponentName("hyperSwitch")
-                .setLaunchOptions(
-                    launchOptions.getBundle(
-                        clientSecret,
-                        configuration,
-                        getWidgetType(widgetType)
-                    )
+        if (clientSecret == "null") {
+            throw IllegalArgumentException("Client Secret cannot be null")
+        }
+        val fragment = HyperFragment.Builder()
+            .setComponentName("hyperSwitch")
+            .setLaunchOptions(
+                launchOptions.getBundle(
+                    paymentIntentClientSecret = clientSecret,
+                    configuration = this.configuration,
+                    type=getWidgetType(),
+                    sessionId = this.sessionId
                 )
-                .build()
+            )
+            .build()
+        activity.supportFragmentManager
+            .beginTransaction()
+            .replace(this.id, fragment)
+            .commitAllowingStateLoss()
+    }
 
-            activity.supportFragmentManager.beginTransaction().replace(this.id, fragment)
-                .commitAllowingStateLoss()
-        }
+    fun showWidget(clientSecret: String) {
+        showWidget(clientSecret, this.callback)
+    }
+
+    private fun removeWidget() {
+        val activity = getFragmentActivity() ?: return
+        val fragment = activity.supportFragmentManager.findFragmentById(id)
+                as? HyperFragment ?: return
+        this.callback = null
+        WidgetCallbackManager.removeSession(this.sessionId)
+        activity.supportFragmentManager.beginTransaction()
+            .remove(fragment)
+            .commitAllowingStateLoss()
     }
 }

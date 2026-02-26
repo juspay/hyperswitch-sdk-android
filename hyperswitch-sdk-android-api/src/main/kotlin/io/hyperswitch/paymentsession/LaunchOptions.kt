@@ -70,18 +70,21 @@ class LaunchOptions(
     fun getBundle(
         paymentIntentClientSecret: String,
         configuration: PaymentSheet.Configuration? = null,
-        type: String? = "payment"
+        type: String = "payment",
+        sessionId: String = ""
     ): Bundle =
-        context?.let { getBundle(it, paymentIntentClientSecret, configuration, type) } ?: Bundle()
+        context?.let { getBundle(it, paymentIntentClientSecret, configuration, type, sessionId) } ?: Bundle()
 
     fun getBundle(
         context: Context,
         paymentIntentClientSecret: String,
         configuration: PaymentSheet.Configuration? = null,
-        type: String? = "payment"
+        type: String = "payment",
+        sessionId: String = ""
     ): Bundle = Bundle().apply {
         putBundle("props", Bundle().apply {
             putString("type", type)
+            putString("sessionId", sessionId)
             putString(
                 "publishableKey",
                 PaymentConfiguration.getInstance(context).publishableKey
