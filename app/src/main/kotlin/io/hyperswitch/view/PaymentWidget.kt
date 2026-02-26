@@ -15,7 +15,7 @@ import io.hyperswitch.react.ReactNativeController
 import java.util.UUID
 
 enum class WidgetType {
-    PAYMENT_SHEET, CARD, EXPRESS_CHECKOUT, GOOGLE_PAY, PAYPAL
+    PAYMENT_SHEET, BUTTON_SHEET, CARD, EXPRESS_CHECKOUT, GOOGLE_PAY, PAYPAL
 }
 
 class PaymentWidget : FrameLayout {
@@ -31,8 +31,15 @@ class PaymentWidget : FrameLayout {
     private var widgetType = WidgetType.PAYMENT_SHEET
 
 
-    constructor(context: Context?) : super(context!!) {
+    constructor(context: Context?) : super(context!!) {}
+
+    constructor(context: Context, attrs: android.util.AttributeSet?) : super(context, attrs) {}
+
+    constructor(
+        context: Context, attrs: android.util.AttributeSet?, defStyleAttr: Int
+    ) : super(context, attrs, defStyleAttr) {
     }
+
 
     fun initWidget(publishableKey: String) {
         initWidget(publishableKey, this.profileId ?: "")
@@ -96,11 +103,11 @@ class PaymentWidget : FrameLayout {
     private fun getWidgetType(): String {
         return when (this.widgetType) {
             WidgetType.PAYMENT_SHEET -> "widgetPaymentSheet"
+            WidgetType.BUTTON_SHEET -> "widgetButtonSheet"
             WidgetType.CARD -> "card"
             WidgetType.EXPRESS_CHECKOUT -> "expressCheckout"
             WidgetType.GOOGLE_PAY -> "google_pay"
             WidgetType.PAYPAL -> "paypal"
-//            WidgetType.SAVED_PAYMENTS -> "widgetSavedPayments"
             else -> "widgetPaymentSheet"
         }
     }
@@ -111,26 +118,21 @@ class PaymentWidget : FrameLayout {
         if (id == NO_ID) {
             id = generateViewId()
         }
-        callback?.let {
+        if (callback != null) {
             this.onPaymentResult(callback)
         }
         if (clientSecret == "null") {
             throw IllegalArgumentException("Client Secret cannot be null")
         }
-        val fragment = HyperFragment.Builder()
-            .setComponentName("hyperSwitch")
-            .setLaunchOptions(
-                launchOptions.getBundle(
-                    paymentIntentClientSecret = clientSecret,
-                    configuration = this.configuration,
-                    type=getWidgetType(),
-                    sessionId = this.sessionId
-                )
+        val fragment = HyperFragment.Builder().setComponentName("hyperSwitch").setLaunchOptions(
+            launchOptions.getBundle(
+                paymentIntentClientSecret = clientSecret,
+                configuration = this.configuration,
+                type = getWidgetType(),
+                sessionId = this.sessionId
             )
-            .build()
-        activity.supportFragmentManager
-            .beginTransaction()
-            .replace(this.id, fragment)
+        ).build()
+        activity.supportFragmentManager.beginTransaction().replace(this.id, fragment)
             .commitAllowingStateLoss()
     }
 
@@ -140,12 +142,10 @@ class PaymentWidget : FrameLayout {
 
     private fun removeWidget() {
         val activity = getFragmentActivity() ?: return
-        val fragment = activity.supportFragmentManager.findFragmentById(id)
-                as? HyperFragment ?: return
-        this.callback = null
+        val fragment =
+            activity.supportFragmentManager.findFragmentById(id) as? HyperFragment ?: return
         WidgetCallbackManager.removeSession(this.sessionId)
-        activity.supportFragmentManager.beginTransaction()
-            .remove(fragment)
+        activity.supportFragmentManager.beginTransaction().remove(fragment)
             .commitAllowingStateLoss()
     }
 }

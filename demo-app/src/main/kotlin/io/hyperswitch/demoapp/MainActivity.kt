@@ -1,5 +1,6 @@
 package io.hyperswitch.demoapp
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.util.Patterns
 import android.os.Bundle
@@ -159,17 +160,14 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                              * Create Payment Session Object
                              *
                              * */
-
-
+                            widget.showWidget(paymentIntentClientSecret)
                             paymentSession = PaymentSession(ctx, publishableKey)
-
                             /**
                              *
                              * Initialise Payment Session
                              *
                              * */
 
-                            widget.showWidget(paymentIntentClientSecret)
                             paymentSession.initPaymentSession(paymentIntentClientSecret)
                             paymentSession.getCustomerSavedPaymentMethods { it ->
                                 val text = it.getCustomerLastUsedPaymentMethodData().fold(
@@ -238,15 +236,13 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             }
         })
 
-        widget = PaymentWidget(this)
+        widget = findViewById(R.id.paymentWidget)
         widget.initWidget(
             publishableKey = publishableKey,
         )
         widget.setWidgetType(WidgetType.PAYMENT_SHEET)
         widget.configuration(getCustomisations())
         widget.onPaymentResult(::onPaymentSheetResult)
-        val container = findViewById<FrameLayout>(R.id.widgetContainer)
-        container.addView(widget)
 
         /**
          *
