@@ -30,7 +30,7 @@ class HyperPluginIntegrationTest extends Specification {
 
     def "plugin should add main SDK dependency when no features specified"() {
         when:
-        project.extensions.hyper.sdkVersion = '1.2.8'
+        project.extensions.hyper.sdkVersion = '1.2.9'
         project.evaluate()
 
         then:
@@ -38,15 +38,15 @@ class HyperPluginIntegrationTest extends Specification {
         dependencies.any { 
             it.group == 'io.hyperswitch' && 
             it.name == 'hyperswitch-sdk-android' && 
-            it.version == '1.2.8' 
+            it.version == '1.2.9' 
         }
     }
 
     def "plugin should add feature dependencies when features are specified as strings"() {
         when:
         project.extensions.hyper.features = ['scancard', 'netcetera']
-        project.extensions.hyper.sdkVersion = '1.2.8'
-        project.ext.rnlibVersion = '1.0.0'
+        project.extensions.hyper.sdkVersion = '1.2.9'
+        project.ext.rnlibVersion = '1.0.1'
         project.evaluate()
 
         then:
@@ -74,8 +74,8 @@ class HyperPluginIntegrationTest extends Specification {
     def "plugin should add feature dependencies when features are specified as enums"() {
         when:
         project.extensions.hyper.features = [HyperFeature.SCANCARD, HyperFeature.NETCETERA]
-        project.extensions.hyper.sdkVersion = '1.2.8'
-        project.ext.rnlibVersion = '1.0.0'
+        project.extensions.hyper.sdkVersion = '1.2.9'
+        project.ext.rnlibVersion = '1.0.1'
         project.evaluate()
 
         then:
@@ -133,7 +133,7 @@ class HyperPluginIntegrationTest extends Specification {
     def "plugin should handle empty features list"() {
         when:
         project.extensions.hyper.features = []
-        project.extensions.hyper.sdkVersion = '1.2.8'
+        project.extensions.hyper.sdkVersion = '1.2.9'
         project.evaluate()
 
         then:
@@ -154,7 +154,7 @@ class HyperPluginIntegrationTest extends Specification {
     def "plugin should handle invalid feature names gracefully"() {
         when:
         project.extensions.hyper.features = ['scancard', 'invalidFeature', 'netcetera']
-        project.ext.rnlibVersion = '1.0.0'
+        project.ext.rnlibVersion = '1.0.1'
         project.evaluate()
 
         then:
@@ -192,7 +192,7 @@ class HyperPluginIntegrationTest extends Specification {
     def "plugin should handle mixed string and enum features"() {
         when:
         project.extensions.hyper.features = ['scancard', HyperFeature.NETCETERA]
-        project.ext.rnlibVersion = '1.0.0'
+        project.ext.rnlibVersion = '1.0.1'
         project.evaluate()
 
         then:

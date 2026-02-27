@@ -35,16 +35,6 @@ class LaunchOptions(
                 putFloat("rightInset", edgeInsets.right)
                 putFloat("bottomInset", edgeInsets.bottom)
             }
-            configuration?.disableBranding?.let {
-                putBoolean(
-                    "disableBranding", it
-                )
-            }
-            configuration?.defaultView?.let {
-                putBoolean(
-                    "defaultView", it
-                )
-            }
         }
 
     private fun getHyperParamsMap(map: Map<*, *>): Map<*, *> =
@@ -99,7 +89,7 @@ class LaunchOptions(
 
     fun getBundleWithHyperParams(readableMap: Map<*, *>): Bundle = Bundle().apply {
         putBundle("props", toBundle(readableMap).apply {
-            putBundle("hyperParams", getHyperParams())
+            putBundle("hyperParams", toBundle(getHyperParamsMap(readableMap)))
         })
     }
 
