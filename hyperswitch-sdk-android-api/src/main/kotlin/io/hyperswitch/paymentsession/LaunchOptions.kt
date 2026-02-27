@@ -17,7 +17,7 @@ class LaunchOptions(
     private val sdkVersion: String
 ) {
 
-    private fun getHyperParams(configuration: PaymentSheet.Configuration? = null): Bundle =
+    private fun getHyperParams(): Bundle =
         Bundle().apply {
             putString("appId", context?.packageName)
             putString("country", context?.resources?.configuration?.locales?.get(0)?.country)
@@ -83,13 +83,13 @@ class LaunchOptions(
             putString("theme", configuration?.appearance?.theme?.name)
             putBundle("customParams", PaymentConfiguration.getInstance(context).customParams)
             putBundle("configuration", configuration?.bundle)
-            putBundle("hyperParams", getHyperParams(configuration))
+            putBundle("hyperParams", getHyperParams())
         })
     }
 
     fun getBundleWithHyperParams(readableMap: Map<*, *>): Bundle = Bundle().apply {
         putBundle("props", toBundle(readableMap).apply {
-            putBundle("hyperParams", toBundle(getHyperParamsMap(readableMap)))
+            putBundle("hyperParams", getHyperParams())
         })
     }
 
