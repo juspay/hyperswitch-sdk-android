@@ -30,6 +30,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
 
     private var paymentIntentClientSecret: String = "clientSecret"
     private var publishableKey: String = ""
+    private var profileId: String = ""
 
 
     private lateinit var googlePayButton: BasePaymentWidget
@@ -64,6 +65,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
 
                             paymentIntentClientSecret = result.getString("clientSecret")
                             publishableKey = result.getString("publishableKey")
+                            profileId = result.getString("profileId")
 
                             ctx.runOnUiThread {
                                 initialiseSDK()
@@ -93,7 +95,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
          *
          * */
 
-        PaymentConfiguration.init(applicationContext, publishableKey)
+        PaymentConfiguration.init(applicationContext, publishableKey, profileId)
 
         /**
          *

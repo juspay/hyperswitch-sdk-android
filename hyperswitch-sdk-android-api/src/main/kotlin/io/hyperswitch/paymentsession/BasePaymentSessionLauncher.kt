@@ -9,6 +9,7 @@ import io.hyperswitch.paymentsheet.PaymentSheetResult
 abstract class BasePaymentSessionLauncher(
     protected val activity: Activity,
     publishableKey: String?,
+    profileId: String?,
     customBackendUrl: String?,
     customLogUrl: String?,
     customParams: Bundle?
@@ -17,10 +18,11 @@ abstract class BasePaymentSessionLauncher(
     protected var paymentIntentClientSecret: String? = null
 
     init {
-        if (publishableKey != null) {
+        if (publishableKey != null && profileId != null) {
             PaymentConfiguration.init(
                 activity.applicationContext,
                 publishableKey,
+                profileId,
                 "",
                 customBackendUrl,
                 customLogUrl,
