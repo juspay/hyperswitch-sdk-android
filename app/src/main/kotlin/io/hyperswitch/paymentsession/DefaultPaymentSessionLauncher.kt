@@ -35,8 +35,12 @@ class DefaultPaymentSessionLauncher(
             HyperLogManager.sendLogsFromFile(LogFileManager(activity))
 
             // Initialize and fetch Superposition config
-            val serverBaseUrl = "http://10.0.2.2:5252"
-            SuperpositionManager.initialise(configUrl = "$serverBaseUrl/get-config")
+            val superpositionHost = "http://10.0.2.2:5252"
+            SuperpositionManager.initialise(
+                host = superpositionHost,
+                profileId = "test-id",
+                publishableKey = publishableKey
+            )
             SuperpositionManager.fetchConfig()
         }
         paymentSessionReactLauncher.initializeReactNativeInstance()
