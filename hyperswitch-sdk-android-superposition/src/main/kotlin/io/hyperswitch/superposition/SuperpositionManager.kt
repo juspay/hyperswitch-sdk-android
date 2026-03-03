@@ -7,19 +7,27 @@ object SuperpositionManager {
 
     private const val TAG = "SuperpositionManager"
 
-    private var configUrl: String? = null
+    private var host: String? = null
+    private var profileId: String? = null
+    private var publishableKey: String? = null
     @Volatile private var cachedConfig: SuperpositionConfig? = null
 
-    fun initialise(configUrl: String) {
-        this.configUrl = configUrl
+    fun initialise(host: String, profileId: String, publishableKey: String) {
+        this.host = host
+        this.profileId = profileId
+        this.publishableKey = publishableKey
         cachedConfig = null
     }
 
     fun fetchConfig() {
-        val url = configUrl ?: return
-        HyperNetworking.makeGetRequest(url, mapOf("profile_id" to "test-id")) { result ->
+        val h = host ?: return
+        val pid = profileId ?: return
+        val pk = publishableKey ?: return
+
+        val url = "$h/v1/sdk/configs/$pid/web/sandbox/sdk_config.json"
+        HyperNetworking.makeGetRequest(url, mapOf("Content-Type" to "application/json", "api-key" to pk)) { result ->
             result.onSuccess { json ->
-                if (json.isNotBlank() && json != "success") {
+                if (json.isNotBlank()) {
                     cachedConfig = SuperpositionConfig(configJson = json)
                     Log.d(TAG, "Config fetched successfully")
                 }
