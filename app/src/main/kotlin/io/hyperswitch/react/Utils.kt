@@ -35,7 +35,7 @@ class Utils {
           // Check if React Native fragment exists or if request has changed
           if (reactNativeFragmentSheet == null || areBundlesNotEqual(request, lastRequest, context)) {
             lastRequest = request
-            val newReactNativeFragmentSheet = ReactFragment.Builder()
+            val newReactNativeFragmentSheet = HyperFragment.Builder()
               .setComponentName("hyperSwitch")
               .setLaunchOptions(getLaunchOptions(request, message, context))
               .setFabricEnabled(BuildConfig.IS_NEW_ARCHITECTURE_ENABLED)
@@ -45,7 +45,7 @@ class Utils {
             transaction.show(reactNativeFragmentSheet).commitAllowingStateLoss()
           }
         } else {
-          val reactNativeFragmentCard = ReactFragment.Builder()
+          val reactNativeFragmentCard = HyperFragment.Builder()
             .setComponentName("hyperSwitch")
             .setLaunchOptions(getLaunchOptions(request, message, context))
             .setFabricEnabled(BuildConfig.IS_NEW_ARCHITECTURE_ENABLED)

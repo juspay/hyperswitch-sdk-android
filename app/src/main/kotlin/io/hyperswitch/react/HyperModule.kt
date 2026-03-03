@@ -15,6 +15,7 @@ import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
 import io.hyperswitch.view.BasePaymentWidget
 import io.hyperswitch.payments.launcher.PaymentMethod
+import io.hyperswitch.paymentsession.WidgetCallbackManager
 import org.json.JSONObject
 
 class HyperModule internal constructor(private val rct: ReactApplicationContext) :
@@ -156,7 +157,8 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
 
     // Method to exit widget payment sheet
     @ReactMethod
-    fun exitWidgetPaymentsheet(rootTag: Int, paymentResult: String, reset: Boolean) {
+    fun exitWidgetPaymentsheet(rootTag: Int, sessionId : String, paymentResult: String, reset: Boolean) {
+        WidgetCallbackManager.executeCallback(paymentResult, sessionId)
     }
 
     // Variable to keep track of event listener count
