@@ -24,7 +24,7 @@ object SuperpositionManager {
         val pid = profileId ?: return
         val pk = publishableKey ?: return
 
-        val url = "$h/v1/sdk/configs/$pid/web/sandbox/sdk_config.json"
+        val url = "$h/v1/sdk/configs/$pid/web/sandbox.json"
         HyperNetworking.makeGetRequest(url, mapOf("Content-Type" to "application/json", "api-key" to pk)) { result ->
             result.onSuccess { json ->
                 if (json.isNotBlank()) {
