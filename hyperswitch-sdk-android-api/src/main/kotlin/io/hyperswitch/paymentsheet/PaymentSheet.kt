@@ -375,7 +375,9 @@ class PaymentSheet internal constructor(
 
         val locale: String? = null,
 
-        val theme: Theme? = null
+        val theme: Theme? = null,
+
+        val layout: Layout? = null
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -387,6 +389,7 @@ class PaymentSheet internal constructor(
                     putBundle("primaryButton", primaryButton?.bundle)
                     putString("locale", locale)
                     putString("theme", theme?.name)
+                    putBundle("layout", layout?.bundle)
                 }
             }
 
@@ -398,6 +401,7 @@ class PaymentSheet internal constructor(
             private var primaryButton: PrimaryButton? = null
             private var theme: Theme? = null
             private var locale: String? = null
+            private var layout: Layout? = null
 
             fun colorsLight(colors: Colors) = apply { this.colorsLight = colors }
             fun colorsDark(colors: Colors) = apply { this.colorsDark = colors }
@@ -408,6 +412,18 @@ class PaymentSheet internal constructor(
 
             fun theme(theme: Theme) = apply { this.theme = theme }
             fun locale(locale: String) = apply { this.locale = locale }
+            fun layout(layout: Layout) = apply { this.layout = layout }
+
+            fun build() = Appearance(
+                colorsLight,
+                colorsDark,
+                shapes,
+                typography,
+                primaryButton,
+                locale,
+                theme,
+                layout
+            )
         }
     }
 
@@ -990,6 +1006,107 @@ class PaymentSheet internal constructor(
         FlatMinimal,
         Minimal,
         Default,
+    }
+
+    enum class LayoutType {
+        Tabs,
+        Accordion
+    }
+
+    enum class PaymentMethodsArrangement {
+        Default,
+        Grid
+    }
+
+    enum class GroupingBehavior {
+        GroupByPaymentMethods,
+        Default
+    }
+
+    @Parcelize
+    data class SavedMethodCustomization(
+        /**
+         * How to group saved payment methods.
+         * Can be GroupByPaymentMethods or Default.
+         */
+        val groupingBehavior: GroupingBehavior? = null
+    ) : Parcelable {
+        val bundle: Bundle
+            get() {
+                return Bundle().apply {
+                    if (groupingBehavior != null) {
+                        val behaviorString = when (groupingBehavior) {
+                            GroupingBehavior.GroupByPaymentMethods -> "groupByPaymentMethods"
+                            GroupingBehavior.Default -> "default"
+                        }
+                        putString("groupingBehavior", behaviorString)
+                    }
+                }
+            }
+    }
+
+    @Parcelize
+    data class Layout(
+        /**
+         * The type of layout to display payment methods in.
+         * Can be Tabs or Accordion.
+         */
+        val type: LayoutType? = null,
+
+        /**
+         * Whether to show one-click wallets (like Google Pay, Apple Pay) at the top of the payment sheet.
+         */
+        val showOneClickWalletsOnTop: Boolean? = null,
+
+        /**
+         * The arrangement of payment methods in tabs layout.
+         * Can be Default or Grid.
+         */
+        val paymentMethodsArrangementForTabs: PaymentMethodsArrangement? = null,
+
+        /**
+         * Whether accordion items should be collapsed by default.
+         */
+        val defaultCollapsed: Boolean? = null,
+
+        /**
+         * Show radio buttons instead of accordion style.
+         */
+        val radios: Boolean? = null,
+
+        /**
+         * Add spacing between accordion items.
+         */
+        val spacedAccordionItems: Boolean? = null,
+
+        /**
+         * Maximum number of accordion items to show before "show more".
+         */
+        val maxAccordionItems: Int? = null,
+
+        /**
+         * Customization options for saved payment methods display.
+         */
+        val savedMethodCustomization: SavedMethodCustomization? = null
+    ) : Parcelable {
+        val bundle: Bundle
+            get() {
+                return Bundle().apply {
+                    putString("type", type?.name?.lowercase())
+                    putBoolean("showOneClickWalletsOnTop", showOneClickWalletsOnTop ?: true)
+                    putString(
+                        "paymentMethodsArrangementForTabs",
+                        paymentMethodsArrangementForTabs?.name?.lowercase()
+                    )
+                    putBoolean("defaultCollapsed", defaultCollapsed ?: false)
+                    putBoolean("radios", radios ?: false)
+                    putBoolean("spacedAccordionItems", spacedAccordionItems ?: false)
+                    if (maxAccordionItems != null) {
+                        putInt("maxAccordionItems", maxAccordionItems)
+                    }
+                    putBundle("savedMethodCustomization", savedMethodCustomization?.bundle)
+                }
+            }
     }
 
     /**
