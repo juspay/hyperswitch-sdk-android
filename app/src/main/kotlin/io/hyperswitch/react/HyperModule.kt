@@ -1,5 +1,6 @@
 package io.hyperswitch.react
 
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.FragmentActivity
@@ -8,7 +9,12 @@ import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableArray
+import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.bridge.WritableArray
 import io.hyperswitch.BuildConfig
+import io.hyperswitch.PaymentConfiguration
+import io.hyperswitch.PaymentEventSubscription
 import io.hyperswitch.payments.GooglePayCallbackManager
 import io.hyperswitch.payments.view.WidgetLauncher
 import io.hyperswitch.paymentsession.LaunchOptions
@@ -177,6 +183,25 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
         listenerCount -= count
         if (listenerCount == 0) {
             // Remove upstream listeners, stop unnecessary background task
+        }
+    }
+
+    /**
+     * Emit a payment event to the merchant's event listener
+     * Called from React Native when payment-related events occur
+     * React Native checks subscription locally before calling this to avoid unnecessary bridge calls
+     * 
+     * @param eventType The type of event (e.g., "FORM_STATUS")
+     * @param payload The event payload as a ReadableMap
+     */
+    @ReactMethod
+    fun emitPaymentEvent(widgetId:String, eventType: String, payload: ReadableMap) {
+        try {
+            val payloadMap = payload.toHashMap()
+            Log.d("HyperModule", "Emitting payment event: $payload")
+            HyperEventEmitter.emitPaymentEvent(eventType, payloadMap as Map<String, Any>)
+        } catch (e: Exception) {
+            Log.e("HyperModule", "Error emitting payment event", e)
         }
     }
 }

@@ -24,6 +24,7 @@ import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.pay
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
 import io.hyperswitch.react.HyperFragment
+import io.hyperswitch.react.HyperEventEmitter
 
 class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface {
 
@@ -98,11 +99,18 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
     }
 
     private fun invokeStartTask(reactContext: ReactContext) {
+        val subscribedEvents = try {
+            HyperEventEmitter.getSubscribedEvents()
+        } catch (e: Exception) {
+            emptyList()
+        }
         val taskConfig = HeadlessJsTaskConfig(
             "HyperHeadless", Arguments.fromBundle(
                 launchOptions.getBundle(
                     reactContext,
-                    paymentIntentClientSecret ?: ""
+                    paymentIntentClientSecret ?: "",
+                    null,
+                    subscribedEvents
                 )
             ), 5000, true, null
         )
@@ -120,16 +128,27 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
         paymentIntentClientSecret: String,
         configuration: PaymentSheet.Configuration?
     ): Boolean {
-        val bundle = launchOptions.getBundle(paymentIntentClientSecret, configuration)
+        val subscribedEvents = try {
+            HyperEventEmitter.getSubscribedEvents()
+        } catch (e: Exception) {
+            emptyList()
+        }
+        val bundle = launchOptions.getBundle(paymentIntentClientSecret, configuration, subscribedEvents)
         applyFonts(configuration, bundle)
         return presentSheet(bottomInsetToDIPFromPixel(bundle))
     }
 
     override fun presentSheet(configurationMap: Map<String, Any?>): Boolean {
+        val subscribedEvents = try {
+            HyperEventEmitter.getSubscribedEvents()
+        } catch (e: Exception) {
+            emptyList()
+        }
         return presentSheet(
             bottomInsetToDIPFromPixel(
                 launchOptions.getBundleWithHyperParams(
-                    configurationMap
+                    configurationMap,
+                    subscribedEvents
                 )
             )
         )

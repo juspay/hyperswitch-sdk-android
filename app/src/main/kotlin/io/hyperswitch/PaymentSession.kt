@@ -7,6 +7,7 @@ import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSessionLauncher
 import io.hyperswitch.paymentsheet.PaymentSheet.Configuration
 import io.hyperswitch.paymentsheet.PaymentSheetResult
+import io.hyperswitch.react.HyperEventEmitter
 
 /**
  * A class that manages payment sessions using a [PaymentSessionLauncher].
@@ -14,7 +15,10 @@ import io.hyperswitch.paymentsheet.PaymentSheetResult
  * This class provides methods for initializing a payment session, presenting a payment sheet,
  * and retrieving customer saved payment methods.
  */
-class PaymentSession internal constructor(private val paymentSessionLauncher: PaymentSessionLauncher) {
+class PaymentSession internal constructor(
+    private val paymentSessionLauncher: PaymentSessionLauncher
+) {
+    private var subscriptionEvents: PaymentEventSubscription? = null
     constructor(activity: Activity, publishableKey: String) : this(
         DefaultPaymentSessionLauncher(activity, publishableKey, null, null, null)
     )
@@ -124,5 +128,15 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
      */
     fun getCustomerSavedPaymentMethods(savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)) {
         paymentSessionLauncher.getCustomerSavedPaymentMethods(savedPaymentMethodCallback)
+    }
+
+    fun subscribe(block: PaymentEventSubscriptionBuilder.() -> Unit) {
+        val builder = PaymentEventSubscriptionBuilder()
+        builder.block()
+
+        val (subscription, listener) = builder.build()
+
+        subscriptionEvents = subscription
+        HyperEventEmitter.setEventListener(listener, subscription)
     }
 }
