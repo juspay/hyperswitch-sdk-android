@@ -82,18 +82,31 @@ sealed class PaymentEventData() {
     }
 
     /**
+     * Form status values for type-safe status handling.
+     */
+    enum class FormStatusValue {
+        EMPTY,
+        FILLING,
+        COMPLETE;
+
+        companion object {
+            fun fromString(value: String): FormStatusValue? =
+                FormStatusValue.entries.find { it.name == value }
+        }
+    }
+
+    /**
      * Form status event payload.
-     * Matches the canonical FORM_STATUS structure exactly.
      *
-     * @property status Form status: "EMPTY", "FILLING", or "COMPLETE"
+     * @property status Form status, or null for unknown values
      */
     data class FormStatus(
-        val status: String, // "EMPTY" | "FILLING" | "COMPLETE"
+        val status: FormStatusValue?,
     ) : PaymentEventData() {
 
         companion object {
             fun fromMap(map: Map<String, Any>): FormStatus = FormStatus(
-                status = (map["status"] as? String).orEmpty(),
+                status = (map["status"] as? String)?.let { FormStatusValue.fromString(it) }
             )
         }
     }

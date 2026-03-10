@@ -173,7 +173,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                             paymentSession.subscribe {
                                 on(PaymentEvents.FormStatus) { event ->
                                     val formStatus = event.data as? PaymentEventData.FormStatus
-                                    Log.d("PaymentEvents", "Form status: ${formStatus?.status}")
+                                    Log.d("PaymentEvents", "Form status: ${formStatus?.status?.name}")
                                 }
 
                                 on(PaymentEvents.PaymentMethodStatus) { event ->
