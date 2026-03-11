@@ -24,6 +24,8 @@ import org.json.JSONObject
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import io.hyperswitch.HyperInterface
+import io.hyperswitch.PaymentEvents
+import io.hyperswitch.PaymentEventData
 
 class MainActivity : AppCompatActivity(), HyperInterface {
     lateinit var ctx: AppCompatActivity
@@ -84,50 +86,55 @@ class MainActivity : AppCompatActivity(), HyperInterface {
          * */
 
         val primaryButtonShape = PaymentSheet.PrimaryButtonShape(32f, 0f)
-        val address =
-            PaymentSheet.Address.Builder().city("city").country("US").line1("US").line2("line2")
-                .postalCode("560060").state("California").build()
-        val billingDetails: PaymentSheet.BillingDetails =
-            PaymentSheet.BillingDetails.Builder().address(address).email("email.com")
-                .name("John Doe").phone("1234123443").build()
+        val address = PaymentSheet.Address.Builder()
+            .city("city")
+            .country("US")
+            .line1("US")
+            .line2("line2")
+            .postalCode("560060")
+            .state("California")
+            .build()
+        val billingDetails = PaymentSheet.BillingDetails.Builder()
+            .address(address)
+            .email("email.com")
+            .name("John Doe")
+            .phone("1234123443")
+            .build()
         val shippingDetails = AddressDetails("Shipping Inc.", address, "6205007614", true)
 
-        val primaryButton = PaymentSheet.PrimaryButton(
-            shape = primaryButtonShape,
-        )
+        val primaryButton = PaymentSheet.PrimaryButton(shape = primaryButtonShape)
         val color1: PaymentSheet.Colors = PaymentSheet.Colors(
             primary = "#8DBD00".toColorInt(),
             surface = "#F5F8F9".toColorInt(),
         )
-
-        val color2: PaymentSheet.Colors = PaymentSheet.Colors(
+        val color2: PaymentSheet.Colors  = PaymentSheet.Colors(
             primary = "#8DBD00".toColorInt(),
             surface = "#F5F8F9".toColorInt(),
         )
 
-        val appearance: PaymentSheet.Appearance = PaymentSheet.Appearance(
-            typography = PaymentSheet.Typography(
-                sizeScaleFactor = 1f, fontResId = R.font.montserrat
-            ),
+        val appearance: PaymentSheet.Appearance  = PaymentSheet.Appearance(
+            typography = PaymentSheet.Typography(sizeScaleFactor = 1f, fontResId = R.font.montserrat),
             primaryButton = primaryButton,
             colorsLight = color1,
             colorsDark = color2,
-            theme = PaymentSheet.Theme.Light
+            theme = PaymentSheet.Theme.Dark
         )
 
-        val configuration =
-            PaymentSheet.Configuration.Builder("Example, Inc.")
+        val configuration = PaymentSheet.Configuration.Builder("Example, Inc.")
                 //.appearance(appearance)
-                .defaultBillingDetails(billingDetails).primaryButtonLabel("Purchase ($2.00)")
-                .paymentSheetHeaderLabel("Select payment method")
-                .savedPaymentSheetHeaderLabel("Payment methods").shippingDetails(shippingDetails)
-                .allowsPaymentMethodsRequiringShippingAddress(false)
-                .allowsDelayedPaymentMethods(true).displaySavedPaymentMethodsCheckbox(true)
-                .displaySavedPaymentMethods(true).disableBranding(true).showVersionInfo(true)
+            .defaultBillingDetails(billingDetails)
+            .primaryButtonLabel("Purchase ($2.00)")
+            .paymentSheetHeaderLabel("Select payment method")
+            .savedPaymentSheetHeaderLabel("Payment methods")
+            .shippingDetails(shippingDetails)
+            .allowsPaymentMethodsRequiringShippingAddress(false)
+            .allowsDelayedPaymentMethods(true)
+            .displaySavedPaymentMethodsCheckbox(true)
+            .displaySavedPaymentMethods(true)
+            .disableBranding(true)
+            .showVersionInfo(true)
 
-        netceteraApiKey?.let {
-            configuration.netceteraSDKApiKey(it)
-        }
+        netceteraApiKey?.let { configuration.netceteraSDKApiKey(it) }
 
         return configuration.build()
     }
@@ -162,6 +169,26 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                              * */
 
                             paymentSession.initPaymentSession(paymentIntentClientSecret)
+
+                            paymentSession.subscribe {
+                                on(PaymentEvents.FormStatus) { event ->
+                                    val formStatus = event.data as? PaymentEventData.FormStatus
+                                    Log.d("PaymentEvents", "Form status: ${formStatus?.status?.name}")
+                                }
+
+                                on(PaymentEvents.PaymentMethodStatus) { event ->
+                                    val selected = event.data as? PaymentEventData.PaymentMethodStatus
+                                    Log.d("PaymentEvents", "Selected: ${selected?.paymentMethod}")
+                                    Log.d("PaymentEvents", "Type: ${selected?.paymentMethodType}")
+                                    Log.d("PaymentEvents", "Is Saved: ${selected?.isSavedPaymentMethod}")
+                                }
+
+                                on(PaymentEvents.PaymentMethodInfoCard) { event ->
+                                    val cardInfo = event.data as? PaymentEventData.CardInfo
+                                    Log.d("PaymentEvents", "card: $cardInfo")
+                                }
+                            }
+                            
                             paymentSession.getCustomerSavedPaymentMethods { it ->
                                 val text = it.getCustomerLastUsedPaymentMethodData().fold(
                                     onSuccess = { data ->
@@ -216,9 +243,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
 
         editText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-
             override fun afterTextChanged(s: Editable?) {
                 s?.toString()?.let { newUrl ->
                     if (newUrl.isNotEmpty()) {

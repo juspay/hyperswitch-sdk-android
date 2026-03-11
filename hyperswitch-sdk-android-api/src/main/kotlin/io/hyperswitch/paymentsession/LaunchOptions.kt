@@ -59,14 +59,16 @@ class LaunchOptions(
 
     fun getBundle(
         paymentIntentClientSecret: String,
-        configuration: PaymentSheet.Configuration? = null
+        configuration: PaymentSheet.Configuration? = null,
+        subscribedEvents: List<String> = emptyList()
     ): Bundle =
-        context?.let { getBundle(it, paymentIntentClientSecret, configuration) } ?: Bundle()
+        context?.let { getBundle(it, paymentIntentClientSecret, configuration, subscribedEvents) } ?: Bundle()
 
     fun getBundle(
         context: Context,
         paymentIntentClientSecret: String,
-        configuration: PaymentSheet.Configuration? = null
+        configuration: PaymentSheet.Configuration? = null,
+        subscribedEvents: List<String> = emptyList()
     ): Bundle = Bundle().apply {
         putBundle("props", Bundle().apply {
             putString("type", "payment")
@@ -84,12 +86,14 @@ class LaunchOptions(
             putBundle("customParams", PaymentConfiguration.getInstance(context).customParams)
             putBundle("configuration", configuration?.bundle)
             putBundle("hyperParams", getHyperParams())
+            putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
         })
     }
 
-    fun getBundleWithHyperParams(readableMap: Map<*, *>): Bundle = Bundle().apply {
+    fun getBundleWithHyperParams(readableMap: Map<*, *>, subscribedEvents: List<String> = emptyList()): Bundle = Bundle().apply {
         putBundle("props", toBundle(readableMap).apply {
             putBundle("hyperParams", getHyperParams())
+            putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
         })
     }
 
