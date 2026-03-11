@@ -22,7 +22,6 @@ sealed class PaymentEventData() {
      * @property isExpiryComplete     Whether the expiry is valid and not in the past
      * @property isCardNumberValid    Whether the card number passes Luhn validation
      * @property isExpiryValid        Whether the expiry date is valid
-     * @property isCvcValid           Whether the CVC is valid for the given brand
      */
     data class CardInfo(
         val bin: String?,
@@ -35,7 +34,6 @@ sealed class PaymentEventData() {
         val isExpiryComplete: Boolean,
         val isCardNumberValid: Boolean,
         val isExpiryValid: Boolean,
-        val isCvcValid: Boolean,
     ) : PaymentEventData() {
 
         companion object {
@@ -50,7 +48,6 @@ sealed class PaymentEventData() {
                 isExpiryComplete = (map["isExpiryComplete"] as? Boolean) ?: false,
                 isCardNumberValid = (map["isCardNumberValid"] as? Boolean) ?: false,
                 isExpiryValid = (map["isExpiryValid"] as? Boolean) ?: false,
-                isCvcValid = (map["isCvcValid"] as? Boolean) ?: false,
             )
         }
     }

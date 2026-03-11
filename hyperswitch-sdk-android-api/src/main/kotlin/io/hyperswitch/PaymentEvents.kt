@@ -38,7 +38,6 @@ object PaymentEvents {
      * - isExpiryComplete: Boolean       Expiry is valid and not in the past
      * - isCardNumberValid: Boolean      Card number passes Luhn validation
      * - isExpiryValid: Boolean          Expiry date is valid
-     * - isCvcValid: Boolean             CVC is valid for the brand
      */
     object PaymentMethodInfoCard : EventType("PAYMENT_METHOD_INFO_CARD")
 
