@@ -41,14 +41,14 @@ object ReactNativeController {
     private var isInitialized = false
 
     /**
-     * Resolves the JavaScript bundle path using Hyper Airborne OTA if available.
+     * Resolves the JavaScript bundle path using Airborne OTA if available.
      *
      * Behavior:
      * - Determines SDK environment using the publishable key
-     * - Reads OTA endpoint from resources based on environment
+     * - Reads Airborne release config endpoint from resources based on environment
      * - Dynamically loads AirborneOTA via reflection (optional dependency)
      * - Fetches the OTA-downloaded bundle path
-     * - Falls back to bundled assets if OTA is disabled, unavailable, or fails
+     * - Falls back to bundled assets if Airborne is disabled, unavailable, or fails
      *
      * @param application Application context
      * @return Path to the JS bundle (OTA or bundled asset)
@@ -59,13 +59,13 @@ object ReactNativeController {
                 LogUtils.getEnvironment(PaymentConfiguration.Companion.publishableKey())
             val airborneUrl = application.getString(
                 if (environment == SDKEnvironment.SANDBOX)
-                    R.string.hyperOTASandBoxEndPoint
+                    R.string.airborneSandBoxEndPoint
                 else
-                    R.string.hyperOTAEndPoint
+                    R.string.airborneEndPoint
             )
 
-            // Ensure OTA endpoint is valid
-            if (airborneUrl != "hyperOTA_END_POINT_") {
+            // Ensure Airborne endpoint is valid (not the default placeholder)
+            if (airborneUrl != "airborne_END_POINT_") {
                 val airborneClass =
                     Class.forName("io.hyperswitch.airborne.AirborneOTA")
 
