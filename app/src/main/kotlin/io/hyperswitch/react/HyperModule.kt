@@ -10,6 +10,7 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.payments.GooglePayCallbackManager
+import io.hyperswitch.payments.PazeCallbackManager
 import io.hyperswitch.payments.view.WidgetLauncher
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
@@ -110,6 +111,40 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
             GooglePayCallbackManager.setCallback(
                 reactApplicationContext,
                 googlePayRequest,
+                fun(data: Map<String, Any?>) {
+                    callBack.invoke(
+                        Arguments.fromBundle(
+                            LaunchOptions(
+                                reactApplicationContext, BuildConfig.VERSION_NAME
+                            ).toBundle(data)
+                        )
+                    )
+                },
+            )
+        }
+    }
+
+    // Method to launch Paze payment
+    @ReactMethod
+    fun launchPaze(pazeRequest: String, callBack: Callback) {
+        currentActivity?.let {
+            PazeCallbackManager.setCallback(
+                it,
+                pazeRequest,
+                fun(data: Map<String, Any?>) {
+                    callBack.invoke(
+                        Arguments.fromBundle(
+                            LaunchOptions(
+                                it, BuildConfig.VERSION_NAME
+                            ).toBundle(data)
+                        )
+                    )
+                },
+            )
+        } ?: run {
+            PazeCallbackManager.setCallback(
+                reactApplicationContext,
+                pazeRequest,
                 fun(data: Map<String, Any?>) {
                     callBack.invoke(
                         Arguments.fromBundle(
