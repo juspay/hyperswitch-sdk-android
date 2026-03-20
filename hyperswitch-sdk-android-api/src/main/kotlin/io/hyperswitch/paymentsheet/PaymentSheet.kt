@@ -178,7 +178,8 @@ class PaymentSheet internal constructor(
         val netceteraSDKApiKey: String? = null,
         val disableBranding: Boolean? = null,
         val defaultView: Boolean? = null,
-        val showVersionInfo: Boolean = false
+        val showVersionInfo: Boolean = false,
+        val readOnly: Boolean = false
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -218,6 +219,7 @@ class PaymentSheet internal constructor(
                         putBoolean("defaultView", defaultView)
                     }
                     putBoolean("showVersionInfo", showVersionInfo)
+                    putBoolean("readOnly", readOnly)
                 }
             }
 
@@ -246,6 +248,7 @@ class PaymentSheet internal constructor(
             private var savedPaymentSheetHeaderLabel: String? = null
             private var netceteraSDKApiKey: String? = null
             private var showVersionInfo : Boolean = false
+            private var readOnly: Boolean = false
             fun merchantDisplayName(merchantDisplayName: String) =
                 apply { this.merchantDisplayName = merchantDisplayName }
 
@@ -321,6 +324,9 @@ class PaymentSheet internal constructor(
             fun savedPaymentSheetHeaderLabel(savedPaymentSheetHeaderLabel: String) =
                 apply { this.savedPaymentSheetHeaderLabel = savedPaymentSheetHeaderLabel }
 
+            fun readOnly(readOnly: Boolean) =
+                apply { this.readOnly = readOnly }
+
             fun build() = Configuration(
                 merchantDisplayName,
                 customer,
@@ -341,7 +347,8 @@ class PaymentSheet internal constructor(
                 netceteraSDKApiKey,
                 disableBranding,
                 defaultView,
-                showVersionInfo
+                showVersionInfo,
+                readOnly
             )
         }
     }
