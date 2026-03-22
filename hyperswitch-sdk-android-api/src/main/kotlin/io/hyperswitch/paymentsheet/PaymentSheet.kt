@@ -414,16 +414,6 @@ class PaymentSheet internal constructor(
             fun locale(locale: String) = apply { this.locale = locale }
             fun layout(layout: Layout) = apply { this.layout = layout }
 
-            fun build() = Appearance(
-                colorsLight,
-                colorsDark,
-                shapes,
-                typography,
-                primaryButton,
-                locale,
-                theme,
-                layout
-            )
         }
     }
 
