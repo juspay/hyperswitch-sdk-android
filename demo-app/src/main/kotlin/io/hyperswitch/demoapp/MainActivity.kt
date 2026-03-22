@@ -105,12 +105,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             surface = "#F5F8F9".toColorInt(),
         )
 
-        val layout = PaymentSheet.Layout(
-            type = PaymentSheet.LayoutType.Tabs,
-            showOneClickWalletsOnTop = true,
-            paymentMethodsArrangementForTabs = PaymentSheet.PaymentMethodsArrangement.Default,
-            spacedAccordionItems = false
-        )
+        val layout = PaymentSheet.Layout.Tabs()
 
         val appearance: PaymentSheet.Appearance = PaymentSheet.Appearance(
             typography = PaymentSheet.Typography(
