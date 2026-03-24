@@ -181,11 +181,17 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                                     Log.d("PaymentEvents", "Selected: ${selected?.paymentMethod}")
                                     Log.d("PaymentEvents", "Type: ${selected?.paymentMethodType}")
                                     Log.d("PaymentEvents", "Is Saved: ${selected?.isSavedPaymentMethod}")
+                                    Log.d("PaymentEvents", "Is oneclickwallet: ${selected?.isOneClickWallet}")
+
                                 }
 
                                 on(PaymentEvents.PaymentMethodInfoCard) { event ->
                                     val cardInfo = event.data as? PaymentEventData.CardInfo
                                     Log.d("PaymentEvents", "card: $cardInfo")
+                                }
+                                on(PaymentEvents.PaymentMethodInfoBillingAddress) { event ->
+                                    val paymentMethodInfoAddress = event.data as? PaymentEventData.PaymentMethodInfoAddress
+                                    Log.d("PaymentEvents", "address: $paymentMethodInfoAddress")
                                 }
                             }
                             

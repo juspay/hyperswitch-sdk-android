@@ -16,7 +16,8 @@ sealed class PaymentEventData() {
      * @property last4                Last 4 digits of the card number, or null if fewer than 4 entered
      * @property brand                Card network brand (e.g. "Visa", "Mastercard"), or null if unknown
      * @property expiryMonth          Two-digit expiry month (e.g. "01"), or null if not entered
-     * @property expiryYear           Two-digit expiry year (e.g. "25"), or null if not entered
+     * @property expiryYear           Four-digit expiry year (e.g. "2025"), or null if not entered
+     * @property formattedExpiry      Formatted expiry string (e.g. "01/25"), or null if not complete
      * @property isCardNumberComplete Whether the card number passes length validation
      * @property isCvcComplete        Whether the CVC passes length validation for the given brand
      * @property isExpiryComplete     Whether the expiry is valid and not in the past
@@ -29,6 +30,7 @@ sealed class PaymentEventData() {
         val brand: String?,
         val expiryMonth: String?,
         val expiryYear: String?,
+        val formattedExpiry: String?,
         val isCardNumberComplete: Boolean,
         val isCvcComplete: Boolean,
         val isExpiryComplete: Boolean,
@@ -43,6 +45,7 @@ sealed class PaymentEventData() {
                 brand = map["brand"] as? String,
                 expiryMonth = map["expiryMonth"] as? String,
                 expiryYear = map["expiryYear"] as? String,
+                formattedExpiry = map["formattedExpiry"] as? String,
                 isCardNumberComplete = (map["isCardNumberComplete"] as? Boolean) ?: false,
                 isCvcComplete = (map["isCvcComplete"] as? Boolean) ?: false,
                 isExpiryComplete = (map["isExpiryComplete"] as? Boolean) ?: false,
@@ -57,23 +60,23 @@ sealed class PaymentEventData() {
      * Matches the canonical PAYMENT_METHOD_STATUS structure exactly.
      *
      * @property paymentMethod        Payment method category (e.g., "card", "wallet", "bank_redirect")
-     * @property paymentMethodType    Payment method sub-type (e.g., "sofort", "ideal"), or null
+     * @property paymentMethodType    Payment method sub-type (e.g., "sofort", "ideal")
      * @property isSavedPaymentMethod Whether a saved payment method was selected
-     * @property isOneClickWallet     Whether a one-click wallet was selected, or null
+     * @property isOneClickWallet     Whether a one-click wallet was selected
      */
     data class PaymentMethodStatus(
         val paymentMethod: String,
-        val paymentMethodType: String?,
+        val paymentMethodType: String,
         val isSavedPaymentMethod: Boolean,
-        val isOneClickWallet: Boolean?,
+        val isOneClickWallet: Boolean,
     ) : PaymentEventData() {
 
         companion object {
             fun fromMap(map: Map<String, Any>): PaymentMethodStatus = PaymentMethodStatus(
                 paymentMethod = (map["paymentMethod"] as? String).orEmpty(),
-                paymentMethodType = map["paymentMethodType"] as? String,
+                paymentMethodType = (map["paymentMethodType"] as? String).orEmpty(),
                 isSavedPaymentMethod = (map["isSavedPaymentMethod"] as? Boolean) ?: false,
-                isOneClickWallet = map["isOneClickWallet"] as? Boolean,
+                isOneClickWallet = (map["isOneClickWallet"] as? Boolean) ?: false,
             )
         }
     }
@@ -110,23 +113,23 @@ sealed class PaymentEventData() {
 
     /**
      * Address information event payload.
-     * Matches the canonical PAYMENT_METHOD_INFO_ADDRESS structure exactly.
+     * Matches the canonical PAYMENT_METHOD_INFO_BILLING_ADDRESS structure exactly.
      *
-     * @property country    Country code, or null if not entered
-     * @property state      State/province, or null if not entered
-     * @property postalCode Postal/ZIP code, or null if not entered
+     * @property country    Country code
+     * @property state      State/province
+     * @property postalCode Postal/ZIP code
      */
     data class PaymentMethodInfoAddress(
-        val country: String?,
-        val state: String?,
-        val postalCode: String?,
+        val country: String,
+        val state: String,
+        val postalCode: String,
     ) : PaymentEventData() {
 
         companion object {
             fun fromMap(map: Map<String, Any>): PaymentMethodInfoAddress = PaymentMethodInfoAddress(
-                country = map["country"] as? String,
-                state = map["state"] as? String,
-                postalCode = map["postalCode"] as? String,
+                country = (map["country"] as? String).orEmpty(),
+                state = (map["state"] as? String).orEmpty(),
+                postalCode = (map["postalCode"] as? String).orEmpty(),
             )
         }
     }
@@ -144,7 +147,7 @@ sealed class PaymentEventData() {
                 "PAYMENT_METHOD_INFO_CARD" -> CardInfo.fromMap(payload)
                 "PAYMENT_METHOD_STATUS" -> PaymentMethodStatus.fromMap(payload)
                 "FORM_STATUS" -> FormStatus.fromMap(payload)
-                "PAYMENT_METHOD_INFO_ADDRESS" -> PaymentMethodInfoAddress.fromMap(payload)
+                "PAYMENT_METHOD_INFO_BILLING_ADDRESS" -> PaymentMethodInfoAddress.fromMap(payload)
                 else -> null
             }
     }

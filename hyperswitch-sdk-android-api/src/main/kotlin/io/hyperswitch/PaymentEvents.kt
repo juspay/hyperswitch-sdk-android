@@ -32,7 +32,8 @@ object PaymentEvents {
      * - last4?: String                  Last 4 digits of card number
      * - brand?: String                  Card brand (Visa, Mastercard, Amex)
      * - expiryMonth?: String            Two-digit expiry month
-     * - expiryYear?: String             Two-digit expiry year
+     * - expiryYear?: String             Four-digit expiry year
+     * - formattedExpiry?: String         Formatted expiry string (e.g. "01/25")
      * - isCardNumberComplete: Boolean   Card number passes length validation
      * - isCvcComplete: Boolean          CVC passes length validation
      * - isExpiryComplete: Boolean       Expiry is valid and not in the past
@@ -44,13 +45,13 @@ object PaymentEvents {
     /**
      * Payment method status event - emitted when user selects a payment method.
      * Event type: "PAYMENT_METHOD_STATUS"
-     * Payload: PaymentEventData.PaymentMethodStatusEvent
+     * Payload: PaymentEventData.PaymentMethodStatus
      *
      * Fields:
      * - paymentMethod: String           Payment method category (card, wallet, bank_redirect)
-     * - paymentMethodType?: String      Payment method sub-type (sofort, ideal)
+     * - paymentMethodType: String       Payment method sub-type (sofort, ideal)
      * - isSavedPaymentMethod: Boolean   Whether a saved payment method was selected
-     * - isOneClickWallet?: Boolean      Whether a one-click wallet was selected
+     * - isOneClickWallet: Boolean       Whether a one-click wallet was selected
      */
     object PaymentMethodStatus : EventType("PAYMENT_METHOD_STATUS")
 
@@ -66,15 +67,15 @@ object PaymentEvents {
 
     /**
      * Address information event - emitted when billing address fields change.
-     * Event type: "PAYMENT_METHOD_INFO_ADDRESS"
+     * Event type: "PAYMENT_METHOD_INFO_BILLING_ADDRESS"
      * Payload: PaymentEventData.PaymentMethodInfoAddress
      *
      * Fields:
-     * - country?: String                Country code
-     * - state?: String                  State/province
-     * - postalCode?: String             Postal/ZIP code
+     * - country: String                 Country code
+     * - state: String                   State/province
+     * - postalCode: String              Postal/ZIP code
      */
-    object PaymentMethodInfoAddress : EventType("PAYMENT_METHOD_INFO_ADDRESS")
+    object PaymentMethodInfoBillingAddress : EventType("PAYMENT_METHOD_INFO_BILLING_ADDRESS")
 }
 
 /**
