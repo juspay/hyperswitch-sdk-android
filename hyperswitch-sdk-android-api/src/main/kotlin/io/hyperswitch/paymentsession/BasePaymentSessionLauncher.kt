@@ -18,13 +18,21 @@ abstract class BasePaymentSessionLauncher(
 
     init {
         if (publishableKey != null) {
+            // Preserve existing sdkAuthorization if present
+            val existingSdkAuth = try {
+                PaymentConfiguration.getInstance(activity.applicationContext).sdkAuthorization
+            } catch (e: IllegalStateException) {
+                null
+            }
+            
             PaymentConfiguration.init(
                 activity.applicationContext,
                 publishableKey,
                 "",
                 customBackendUrl,
                 customLogUrl,
-                customParams
+                customParams,
+                existingSdkAuth
             )
         }
     }

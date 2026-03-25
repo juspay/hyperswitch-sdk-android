@@ -16,6 +16,7 @@ data class PaymentConfiguration
     val customBackendUrl: String? = null,
     val customLogUrl: String? = null,
     val customParams: Bundle? = null,
+    val sdkAuthorization: String? = null,
 ) : Parcelable {
 
     /**
@@ -31,12 +32,14 @@ data class PaymentConfiguration
             stripeAccountId: String?,
             customBackendUrl: String?,
             customLogUrl: String?,
+            sdkAuthorization: String?,
         ) {
             prefs.edit {
                 putString(KEY_PUBLISHABLE_KEY, publishableKey)
                     .putString(KEY_ACCOUNT_ID, stripeAccountId)
                     .putString(KEY_CUSTOM_BACKEND_URL, customBackendUrl)
                     .putString(KEY_CUSTOM_LOG_URL, customLogUrl)
+                    .putString(KEY_SDK_AUTHORIZATION, sdkAuthorization)
             }
         }
 
@@ -48,6 +51,7 @@ data class PaymentConfiguration
                     stripeAccountId = prefs.getString(KEY_ACCOUNT_ID, null),
                     customBackendUrl = prefs.getString(KEY_CUSTOM_BACKEND_URL, null),
                     customLogUrl = prefs.getString(KEY_CUSTOM_LOG_URL, null),
+                    sdkAuthorization = prefs.getString(KEY_SDK_AUTHORIZATION, null),
                 )
             }
         }
@@ -59,6 +63,7 @@ data class PaymentConfiguration
             private const val KEY_ACCOUNT_ID = "key_account_id"
             private const val KEY_CUSTOM_BACKEND_URL = "key_custom_backend_url"
             private const val KEY_CUSTOM_LOG_URL = "key_custom_log_url"
+            private const val KEY_SDK_AUTHORIZATION = "key_sdk_authorization"
         }
     }
 
@@ -106,20 +111,23 @@ data class PaymentConfiguration
             stripeAccountId: String? = null,
             customBackendUrl: String? = null,
             customLogUrl: String? = null,
-            customParams: Bundle? = null
+            customParams: Bundle? = null,
+            sdkAuthorization: String? = null
         ) {
             instance = PaymentConfiguration(
                 publishableKey = publishableKey,
                 stripeAccountId = stripeAccountId,
                 customBackendUrl = customBackendUrl,
                 customLogUrl = customLogUrl,
-                customParams = customParams
+                customParams = customParams,
+                sdkAuthorization = sdkAuthorization
             )
             Store(context).save(
                 publishableKey = publishableKey,
                 stripeAccountId = stripeAccountId,
                 customBackendUrl = customBackendUrl,
-                customLogUrl = customLogUrl
+                customLogUrl = customLogUrl,
+                sdkAuthorization = sdkAuthorization
             )
         }
 

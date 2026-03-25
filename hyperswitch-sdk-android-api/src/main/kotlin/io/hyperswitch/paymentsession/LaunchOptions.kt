@@ -80,6 +80,7 @@ class LaunchOptions(
                 PaymentConfiguration.getInstance(context).customBackendUrl
             )
             putString("customLogUrl", PaymentConfiguration.getInstance(context).customLogUrl)
+            putString("sdkAuthorization", PaymentConfiguration.getInstance(context).sdkAuthorization)
             putString("theme", configuration?.appearance?.theme?.name)
             putBundle("customParams", PaymentConfiguration.getInstance(context).customParams)
             putBundle("configuration", configuration?.bundle)
