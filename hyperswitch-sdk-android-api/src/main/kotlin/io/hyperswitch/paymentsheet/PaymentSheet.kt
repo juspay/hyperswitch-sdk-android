@@ -1003,16 +1003,22 @@ class PaymentSheet internal constructor(
         Grid
     }
 
-    enum class GroupingBehavior {
-        GroupByPaymentMethods,
-        Default
+    @Parcelize
+    data class GroupingBehavior(
+        val displayInSeparateScreen: Boolean = true,
+        val groupByPaymentMethods: Boolean = false
+    ) : Parcelable {
+        val bundle: Bundle
+            get() = Bundle().apply {
+                putBoolean("displayInSeparateScreen", displayInSeparateScreen)
+                putBoolean("groupByPaymentMethods", groupByPaymentMethods)
+            }
     }
 
     @Parcelize
     data class SavedMethodCustomization(
         /**
-         * How to group saved payment methods.
-         * Can be GroupByPaymentMethods or Default.
+         * How to group and display saved payment methods.
          */
         val groupingBehavior: GroupingBehavior? = null
     ) : Parcelable {
@@ -1020,11 +1026,7 @@ class PaymentSheet internal constructor(
             get() {
                 return Bundle().apply {
                     if (groupingBehavior != null) {
-                        val behaviorString = when (groupingBehavior) {
-                            GroupingBehavior.GroupByPaymentMethods -> "groupByPaymentMethods"
-                            GroupingBehavior.Default -> "default"
-                        }
-                        putString("groupingBehavior", behaviorString)
+                        putBundle("groupingBehavior", groupingBehavior.bundle)
                     }
                 }
             }
