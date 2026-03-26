@@ -375,7 +375,9 @@ class PaymentSheet internal constructor(
 
         val locale: String? = null,
 
-        val theme: Theme? = null
+        val theme: Theme? = null,
+
+        val layout: Layout? = null
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -387,6 +389,7 @@ class PaymentSheet internal constructor(
                     putBundle("primaryButton", primaryButton?.bundle)
                     putString("locale", locale)
                     putString("theme", theme?.name)
+                    putBundle("layout", layout?.bundle)
                 }
             }
 
@@ -398,6 +401,7 @@ class PaymentSheet internal constructor(
             private var primaryButton: PrimaryButton? = null
             private var theme: Theme? = null
             private var locale: String? = null
+            private var layout: Layout? = null
 
             fun colorsLight(colors: Colors) = apply { this.colorsLight = colors }
             fun colorsDark(colors: Colors) = apply { this.colorsDark = colors }
@@ -408,6 +412,8 @@ class PaymentSheet internal constructor(
 
             fun theme(theme: Theme) = apply { this.theme = theme }
             fun locale(locale: String) = apply { this.locale = locale }
+            fun layout(layout: Layout) = apply { this.layout = layout }
+
         }
     }
 
@@ -990,6 +996,152 @@ class PaymentSheet internal constructor(
         FlatMinimal,
         Minimal,
         Default,
+    }
+
+    enum class PaymentMethodsArrangement {
+        Default,
+        Grid
+    }
+
+    @Parcelize
+    data class GroupingBehavior(
+        val displayInSeparateScreen: Boolean = true,
+        val groupByPaymentMethods: Boolean = false
+    ) : Parcelable {
+        val bundle: Bundle
+            get() = Bundle().apply {
+                putBoolean("displayInSeparateScreen", displayInSeparateScreen)
+                putBoolean("groupByPaymentMethods", groupByPaymentMethods)
+            }
+    }
+
+    @Parcelize
+    data class SavedMethodCustomization(
+        /**
+         * How to group and display saved payment methods.
+         */
+        val groupingBehavior: GroupingBehavior? = null
+    ) : Parcelable {
+        val bundle: Bundle
+            get() {
+                return Bundle().apply {
+                    if (groupingBehavior != null) {
+                        putBundle("groupingBehavior", groupingBehavior.bundle)
+                    }
+                }
+            }
+    }
+
+    sealed class Layout : Parcelable {
+        abstract val bundle: Bundle
+
+        @Parcelize
+        data class Tabs(
+            val showOneClickWalletsOnTop: Boolean = true,
+            val paymentMethodsArrangement: PaymentMethodsArrangement = PaymentMethodsArrangement.Default,
+            val savedMethodCustomization: SavedMethodCustomization? = null
+        ) : Layout() {
+            override val bundle: Bundle
+                get() {
+                    return Bundle().apply {
+                        putString("type", "tabs")
+                        putBoolean("showOneClickWalletsOnTop", showOneClickWalletsOnTop)
+                        putString(
+                            "paymentMethodsArrangementForTabs",
+                            paymentMethodsArrangement.name.lowercase()
+                        )
+                        putBoolean("defaultCollapsed", false)
+                        putBoolean("radios", false)
+                        putBoolean("spacedAccordionItems", false)
+                        putBundle("savedMethodCustomization", savedMethodCustomization?.bundle)
+                    }
+                }
+
+            class Builder {
+                private var showOneClickWalletsOnTop: Boolean = true
+                private var paymentMethodsArrangement: PaymentMethodsArrangement =
+                    PaymentMethodsArrangement.Default
+                private var savedMethodCustomization: SavedMethodCustomization? = null
+
+                fun setShowOneClickWalletsOnTop(value: Boolean) =
+                    apply { this.showOneClickWalletsOnTop = value }
+
+                fun setPaymentMethodsArrangement(value: PaymentMethodsArrangement) =
+                    apply { this.paymentMethodsArrangement = value }
+
+                fun setSavedMethodCustomization(value: SavedMethodCustomization) =
+                    apply { this.savedMethodCustomization = value }
+
+                fun build() = Tabs(
+                    showOneClickWalletsOnTop,
+                    paymentMethodsArrangement,
+                    savedMethodCustomization
+                )
+            }
+        }
+
+        @Parcelize
+        data class Accordion(
+            val showOneClickWalletsOnTop: Boolean = true,
+            val defaultCollapsed: Boolean = false,
+            val radios: Boolean = false,
+            val spacedAccordionItems: Boolean = false,
+            val maxAccordionItems: Int = 4,
+            val savedMethodCustomization: SavedMethodCustomization? = null
+        ) : Layout() {
+            override val bundle: Bundle
+                get() {
+                    return Bundle().apply {
+                        putString("type", "accordion")
+                        putBoolean("showOneClickWalletsOnTop", showOneClickWalletsOnTop)
+                        putString(
+                            "paymentMethodsArrangementForTabs",
+                            PaymentMethodsArrangement.Default.name.lowercase()
+                        )
+                        putBoolean("defaultCollapsed", defaultCollapsed)
+                        putBoolean("radios", radios)
+                        putBoolean("spacedAccordionItems", spacedAccordionItems)
+                        putInt("maxAccordionItems", maxAccordionItems)
+                        putBundle("savedMethodCustomization", savedMethodCustomization?.bundle)
+                    }
+                }
+
+            class Builder {
+                private var showOneClickWalletsOnTop: Boolean = true
+                private var defaultCollapsed: Boolean = false
+                private var radios: Boolean = false
+                private var spacedAccordionItems: Boolean = false
+                private var maxAccordionItems: Int = 4
+                private var savedMethodCustomization: SavedMethodCustomization? = null
+
+                fun setShowOneClickWalletsOnTop(value: Boolean) =
+                    apply { this.showOneClickWalletsOnTop = value }
+
+                fun setDefaultCollapsed(value: Boolean) =
+                    apply { this.defaultCollapsed = value }
+
+                fun setRadios(value: Boolean) =
+                    apply { this.radios = value }
+
+                fun setSpacedAccordionItems(value: Boolean) =
+                    apply { this.spacedAccordionItems = value }
+
+                fun setMaxAccordionItems(value: Int) =
+                    apply { this.maxAccordionItems = value }
+
+                fun setSavedMethodCustomization(value: SavedMethodCustomization) =
+                    apply { this.savedMethodCustomization = value }
+
+                fun build() = Accordion(
+                    showOneClickWalletsOnTop,
+                    defaultCollapsed,
+                    radios,
+                    spacedAccordionItems,
+                    maxAccordionItems,
+                    savedMethodCustomization
+                )
+            }
+        }
     }
 
     /**
