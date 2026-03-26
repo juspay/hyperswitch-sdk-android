@@ -9,7 +9,7 @@ import io.hyperswitch.PaymentConfiguration
 class DefaultFlowController(
     var activity: Activity,
     override var shippingDetails: AddressDetails?,
-    var paymentIntentClientSecret: String,
+    var paymentIntentClientSecret: String = "",
     var configuration: PaymentSheet.Configuration?
 ) : PaymentSheet.FlowController {
 

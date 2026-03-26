@@ -1007,7 +1007,7 @@ class PaymentSheet internal constructor(
          * @param callback called with the result of configuring the FlowController.
          */
         fun configureWithPaymentIntent(
-            paymentIntentClientSecret: String,
+            paymentIntentClientSecret: String = "",
             configuration: Configuration? = null,
             callback: ConfigCallback
         )
@@ -1020,7 +1020,7 @@ class PaymentSheet internal constructor(
          * @param callback called with the result of configuring the FlowController.
          */
         fun configureWithSetupIntent(
-            setupIntentClientSecret: String,
+            setupIntentClientSecret: String = "",
             configuration: Configuration? = null,
             callback: ConfigCallback
         )

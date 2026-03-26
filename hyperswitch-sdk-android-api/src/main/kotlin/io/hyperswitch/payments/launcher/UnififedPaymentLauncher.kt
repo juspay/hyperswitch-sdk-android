@@ -49,7 +49,7 @@ class UnifiedPaymentLauncher private constructor(
      * For Google Pay and PayPal, this initiates the payment flow.
      * For Express Checkout, this confirms the payment (analogous to EC's original confirm method).
      */
-    fun presentForPayment(clientSecret: String) {
+    fun presentForPayment(clientSecret: String = "") {
         if (paymentMethod == PaymentMethod.CARD) {
             throw IllegalStateException("presentForPayment is not for Card payments. Use confirmCardPayment().")
         }

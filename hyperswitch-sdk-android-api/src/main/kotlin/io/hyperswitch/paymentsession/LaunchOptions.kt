@@ -58,14 +58,14 @@ class LaunchOptions(
         }
 
     fun getBundle(
-        paymentIntentClientSecret: String,
+        paymentIntentClientSecret: String = "",
         configuration: PaymentSheet.Configuration? = null
     ): Bundle =
         context?.let { getBundle(it, paymentIntentClientSecret, configuration) } ?: Bundle()
 
     fun getBundle(
         context: Context,
-        paymentIntentClientSecret: String,
+        paymentIntentClientSecret: String = "",
         configuration: PaymentSheet.Configuration? = null
     ): Bundle = Bundle().apply {
         putBundle("props", Bundle().apply {
@@ -95,7 +95,7 @@ class LaunchOptions(
     }
 
     fun getJson(
-        paymentIntentClientSecret: String,
+        paymentIntentClientSecret: String = "",
         configuration: PaymentSheet.Configuration?
     ): JSONObject = toJson(getBundle(paymentIntentClientSecret, configuration))
 

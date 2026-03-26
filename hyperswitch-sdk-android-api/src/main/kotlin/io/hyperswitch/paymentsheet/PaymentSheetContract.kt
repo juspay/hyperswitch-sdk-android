@@ -30,7 +30,7 @@ class PaymentSheetContract {
 
     @Parcelize
     data class Args @VisibleForTesting internal constructor(
-        internal val clientSecret: String,
+        internal val clientSecret: String = "",
         internal val config: PaymentSheet.Configuration?,
         @ColorInt internal val statusBarColor: Int? = null
     ) : Parcelable {
@@ -42,7 +42,7 @@ class PaymentSheetContract {
             }
 
             fun createPaymentIntentArgs(
-                clientSecret: String,
+                clientSecret: String = "",
                 config: PaymentSheet.Configuration? = null
             ) = Args(
                 clientSecret,
@@ -50,7 +50,7 @@ class PaymentSheetContract {
             )
 
             fun createSetupIntentArgs(
-                clientSecret: String,
+                clientSecret: String = "",
                 config: PaymentSheet.Configuration? = null
             ) = Args(
                 clientSecret,
@@ -58,7 +58,7 @@ class PaymentSheetContract {
             )
 
             internal fun createPaymentIntentArgsWithInjectorKey(
-                clientSecret: String,
+                clientSecret: String = "",
                 config: PaymentSheet.Configuration? = null
             ) = Args(
                 clientSecret,
@@ -66,7 +66,7 @@ class PaymentSheetContract {
             )
 
             internal fun createSetupIntentArgsWithInjectorKey(
-                clientSecret: String,
+                clientSecret: String = "",
                 config: PaymentSheet.Configuration? = null
             ) = Args(
                 clientSecret,
