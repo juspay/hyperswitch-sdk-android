@@ -106,18 +106,27 @@ class MainActivity : AppCompatActivity(), HyperInterface {
         )
 
         val appearance: PaymentSheet.Appearance = PaymentSheet.Appearance(
-            typography = PaymentSheet.Typography(
-                sizeScaleFactor = 1f, fontResId = R.font.montserrat
-            ),
-            primaryButton = primaryButton,
-            colorsLight = color1,
-            colorsDark = color2,
+//            typography = PaymentSheet.Typography(
+//                sizeScaleFactor = 1f, fontResId = R.font.montserrat
+//            ),
+//            primaryButton = primaryButton,
+//            colorsLight = color1,
+//            colorsDark = color2,
             theme = PaymentSheet.Theme.Light
+        )
+
+        val wallets = PaymentSheet.WalletConfiguration(
+            googlePay = PaymentSheet.WalletShowType.Auto,
+            style = PaymentSheet.WalletStyle(
+                theme = PaymentSheet.WalletTheme.Dark,
+                height = 52,
+            )
         )
 
         val configuration =
             PaymentSheet.Configuration.Builder("Example, Inc.")
-                //.appearance(appearance)
+                .appearance(appearance)
+                .wallets(wallets)
                 .defaultBillingDetails(billingDetails).primaryButtonLabel("Purchase ($2.00)")
                 .paymentSheetHeaderLabel("Select payment method")
                 .savedPaymentSheetHeaderLabel("Payment methods").shippingDetails(shippingDetails)

@@ -178,7 +178,12 @@ class PaymentSheet internal constructor(
         val netceteraSDKApiKey: String? = null,
         val disableBranding: Boolean? = null,
         val defaultView: Boolean? = null,
-        val showVersionInfo: Boolean = false
+        val showVersionInfo: Boolean = false,
+
+        /**
+         * Configuration for wallet visibility and button styling.
+         */
+        val wallets: WalletConfiguration? = null
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -218,6 +223,7 @@ class PaymentSheet internal constructor(
                         putBoolean("defaultView", defaultView)
                     }
                     putBoolean("showVersionInfo", showVersionInfo)
+                    putBundle("wallets", wallets?.bundle)
                 }
             }
 
@@ -246,6 +252,7 @@ class PaymentSheet internal constructor(
             private var savedPaymentSheetHeaderLabel: String? = null
             private var netceteraSDKApiKey: String? = null
             private var showVersionInfo : Boolean = false
+            private var wallets: WalletConfiguration? = null
             fun merchantDisplayName(merchantDisplayName: String) =
                 apply { this.merchantDisplayName = merchantDisplayName }
 
@@ -321,6 +328,9 @@ class PaymentSheet internal constructor(
             fun savedPaymentSheetHeaderLabel(savedPaymentSheetHeaderLabel: String) =
                 apply { this.savedPaymentSheetHeaderLabel = savedPaymentSheetHeaderLabel }
 
+            fun wallets(wallets: WalletConfiguration?) =
+                apply { this.wallets = wallets }
+
             fun build() = Configuration(
                 merchantDisplayName,
                 customer,
@@ -341,7 +351,8 @@ class PaymentSheet internal constructor(
                 netceteraSDKApiKey,
                 disableBranding,
                 defaultView,
-                showVersionInfo
+                showVersionInfo,
+                wallets
             )
         }
     }
@@ -966,6 +977,127 @@ class PaymentSheet internal constructor(
             Production,
             Test
         }
+    }
+
+    /**
+     * Configuration for wallet button styling.
+     */
+    /**
+     * Controls whether a wallet payment method is shown.
+     */
+    enum class WalletShowType(val value: String) {
+        /** Show the wallet when available (default). */
+        Auto("auto"),
+        /** Never show the wallet. */
+        Never("never")
+    }
+
+    /**
+     * Wallet button theme.
+     */
+    enum class WalletTheme(val value: String) {
+        Dark("dark"),
+        Light("light"),
+        Outline("outline")
+    }
+
+    /**
+     * Google Pay button type.
+     * See: https://developers.google.com/pay/api/android/reference/request-objects#ButtonOptions
+     */
+    enum class GooglePayButtonType(val value: String) {
+        BUY("BUY"),
+        BOOK("BOOK"),
+        CHECKOUT("CHECKOUT"),
+        DONATE("DONATE"),
+        ORDER("ORDER"),
+        PAY("PAY"),
+        SUBSCRIBE("SUBSCRIBE"),
+        PLAIN("PLAIN")
+    }
+
+    /**
+     * PayPal button type.
+     */
+    enum class PaypalButtonType(val value: String) {
+        Paypal("paypal"),
+        Checkout("checkout"),
+        Buynow("buynow"),
+        Pay("pay"),
+        Installment("installment")
+    }
+
+    /**
+     * Samsung Pay button type.
+     */
+    enum class SamsungPayButtonType(val value: String) {
+        Buy("buy")
+    }
+
+    @Parcelize
+    data class WalletStyle @JvmOverloads constructor(
+        /** Apple Pay button type string (iOS only, ignored on Android). E.g. "plain", "buy", "setUp". */
+        val applePayType: String? = null,
+        /** Google Pay button type. */
+        val googlePayType: GooglePayButtonType? = null,
+        /** PayPal button type. */
+        val paypalType: PaypalButtonType? = null,
+        /** Samsung Pay button type. */
+        val samsungPayType: SamsungPayButtonType? = null,
+        /** Wallet button theme. */
+        val theme: WalletTheme? = null,
+        /** Wallet button height in dp. Default 48. */
+        val height: Int? = null,
+        /** Wallet button corner radius in dp. Default 2. */
+        val buttonRadius: Int? = null
+    ) : Parcelable {
+        val bundle: Bundle
+            get() {
+                return Bundle().apply {
+                    putString("applePayType", applePayType)
+                    putString("googlePayType", googlePayType?.value)
+                    putString("paypalType", paypalType?.value)
+                    putString("samsungPayType", samsungPayType?.value)
+                    putString("theme", theme?.value)
+                    if (height != null) putInt("height", height)
+                    if (buttonRadius != null) putInt("buttonRadius", buttonRadius)
+                }
+            }
+    }
+
+    /**
+     * Configuration for wallet visibility and styling.
+     * Controls which wallets are shown and how their buttons appear.
+     */
+    @Parcelize
+    data class WalletConfiguration @JvmOverloads constructor(
+        /** Apple Pay visibility. */
+        val applePay: WalletShowType? = null,
+        /** Google Pay visibility. */
+        val googlePay: WalletShowType? = null,
+        /** PayPal visibility. */
+        val payPal: WalletShowType? = null,
+        /** Klarna visibility. */
+        val klarna: WalletShowType? = null,
+        /** Paze visibility. */
+        val paze: WalletShowType? = null,
+        /** Samsung Pay visibility. */
+        val samsungPay: WalletShowType? = null,
+        /** Wallet button style configuration. */
+        val style: WalletStyle? = null
+    ) : Parcelable {
+        val bundle: Bundle
+            get() {
+                return Bundle().apply {
+                    putString("applePay", applePay?.value)
+                    putString("googlePay", googlePay?.value)
+                    putString("payPal", payPal?.value)
+                    putString("klarna", klarna?.value)
+                    putString("paze", paze?.value)
+                    putString("samsungPay", samsungPay?.value)
+                    putBundle("style", style?.bundle)
+                }
+            }
     }
 
     @Parcelize
