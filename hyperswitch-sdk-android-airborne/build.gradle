@@ -32,6 +32,6 @@ rootProject.allprojects {
 }
 
 dependencies {
-    implementation("in.juspay:hyperotareact:0.0.1-xota.10")
+    implementation("in.juspay:hyperotareact:2.2.2-xota.07")
     implementation project(':hyperswitch-sdk-android-logger')
 }
