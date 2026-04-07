@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
+import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.PaymentSession
 import io.hyperswitch.payments.paymentlauncher.PaymentResult
 import io.hyperswitch.paymentsession.PMError
@@ -28,7 +29,8 @@ import io.hyperswitch.HyperInterface
 class MainActivity : AppCompatActivity(), HyperInterface {
     lateinit var ctx: AppCompatActivity
     private var publishableKey: String = ""
-    private var paymentIntentClientSecret: String = "clientSecret"
+    private var paymentIntentClientSecret: String = ""
+    private var sdkAuthorization: String? = null
     private var netceteraApiKey: String? = null
     private val prefsName = "HyperswitchPrefs"
     private val keyServerUrl = "server_url"
@@ -144,8 +146,13 @@ class MainActivity : AppCompatActivity(), HyperInterface {
 
                         val result = value?.let { JSONObject(it) }
                         if (result != null) {
-                            paymentIntentClientSecret = result.getString("clientSecret")
                             publishableKey = result.getString("publishableKey")
+                            sdkAuthorization = result.optString("sdkAuthorization", null)
+
+                            // clientSecret is optional — when sdkAuthorization is present,
+                            // the SDK extracts clientSecret internally from the token.
+                            // When neither is present, the SDK handles the error internally.
+                            paymentIntentClientSecret = result.optString("clientSecret", "")
 
                             /**
                              *
@@ -153,6 +160,15 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                              *
                              * */
 
+                            PaymentConfiguration.init(
+                                ctx.applicationContext,
+                                publishableKey,
+                                null,
+                                null,
+                                null,
+                                null,
+                                sdkAuthorization
+                            )
                             paymentSession = PaymentSession(ctx, publishableKey)
 
                             /**

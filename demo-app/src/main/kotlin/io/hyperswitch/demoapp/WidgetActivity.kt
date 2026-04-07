@@ -30,6 +30,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
 
     private var paymentIntentClientSecret: String = "clientSecret"
     private var publishableKey: String = ""
+    private var sdkAuthorization: String? = null
 
 
     private lateinit var googlePayButton: BasePaymentWidget
@@ -62,8 +63,13 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                         val result = value?.let { JSONObject(it) }
                         if (result != null) {
 
-                            paymentIntentClientSecret = result.getString("clientSecret")
                             publishableKey = result.getString("publishableKey")
+                            sdkAuthorization = result.optString("sdkAuthorization", null)
+
+                            // clientSecret is optional — when sdkAuthorization is present,
+                            // the SDK extracts clientSecret internally from the token.
+                            // When neither is present, the SDK handles the error internally.
+                            paymentIntentClientSecret = result.optString("clientSecret", "")
 
                             ctx.runOnUiThread {
                                 initialiseSDK()
@@ -93,7 +99,15 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
          *
          * */
 
-        PaymentConfiguration.init(applicationContext, publishableKey)
+        PaymentConfiguration.init(
+            applicationContext,
+            publishableKey,
+            null,
+            null,
+            null,
+            null,
+            sdkAuthorization
+        )
 
         /**
          *
