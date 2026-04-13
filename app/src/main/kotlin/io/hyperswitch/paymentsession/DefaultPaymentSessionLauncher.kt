@@ -5,6 +5,7 @@ import android.os.Bundle
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
 import io.hyperswitch.logs.LogUtils.getLoggingUrl
+import io.hyperswitch.superposition.SuperpositionManager
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentSheetResult
 
@@ -32,6 +33,15 @@ class DefaultPaymentSessionLauncher(
             }
             HyperLogManager.initialise(publishableKey, loggingEndPoint)
             HyperLogManager.sendLogsFromFile(LogFileManager(activity))
+
+            // Initialize and fetch Superposition config
+            val superpositionHost = "http://10.0.2.2:5252"
+            SuperpositionManager.initialise(
+                host = superpositionHost,
+                profileId = "test-id",
+                publishableKey = publishableKey
+            )
+            SuperpositionManager.fetchConfig()
         }
         paymentSessionReactLauncher.initializeReactNativeInstance()
     }
