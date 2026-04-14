@@ -13,7 +13,7 @@ import io.hyperswitch.payments.GooglePayCallbackManager
 import io.hyperswitch.payments.view.WidgetLauncher
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
-import io.hyperswitch.view.BasePaymentWidget
+import io.hyperswitch.view.PaymentWidgetView
 import io.hyperswitch.payments.launcher.PaymentMethod
 import org.json.JSONObject
 
@@ -57,24 +57,24 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
             val widget = findFirstExpressCheckoutWidget(rootView)
 
             // Update its height if found
-            widget?.setWidgetHeight(height)
+//            widget?.setWidgetHeight(height)
         }
     }
 
-    private fun findFirstExpressCheckoutWidget(rootView: View): BasePaymentWidget? {
-        if (rootView is BasePaymentWidget && rootView.getPaymentMethod() == "expressCheckout") {
-            return rootView
-        }
-        // Check child views
-        if (rootView is ViewGroup) {
-            for (i in 0 until rootView.childCount) {
-                val childView = rootView.getChildAt(i)
-                val result = findFirstExpressCheckoutWidget(childView)
-                if (result != null) {
-                    return result
-                }
-            }
-        }
+    private fun findFirstExpressCheckoutWidget(rootView: View): PaymentWidgetView? {
+//        if (rootView is PaymentWidgetView && rootView.getPaymentMethod() == "expressCheckout") {
+//            return rootView
+//        }
+//        // Check child views
+//        if (rootView is ViewGroup) {
+//            for (i in 0 until rootView.childCount) {
+//                val childView = rootView.getChildAt(i)
+//                val result = findFirstExpressCheckoutWidget(childView)
+//                if (result != null) {
+//                    return result
+//                }
+//            }
+//        }
 
         // Not found in this branch
         return null

@@ -2,44 +2,51 @@ package io.hyperswitch.demoapp
 
 import android.app.Activity
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.facebook.react.bridge.Callback
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
+import io.hyperswitch.CVCWidget
 import io.hyperswitch.HyperInterface
 import io.hyperswitch.PaymentConfiguration
-import io.hyperswitch.model.ConfirmPaymentIntentParams
-import io.hyperswitch.model.PaymentMethodCreateParams
-import io.hyperswitch.payments.expresscheckoutlauncher.ExpressCheckoutPaymentMethodLauncher
-import io.hyperswitch.payments.GooglePayEnvironment
-import io.hyperswitch.payments.googlepaylauncher.GooglePayPaymentMethodLauncher
-import io.hyperswitch.payments.launcher.UnifiedPaymentLauncher
-import io.hyperswitch.payments.paymentlauncher.PaymentResult
-import io.hyperswitch.payments.paypallauncher.PayPalPaymentMethodLauncher
-import io.hyperswitch.view.BasePaymentWidget
+import io.hyperswitch.PaymentWidget
 import org.json.JSONException
 import org.json.JSONObject
-import io.hyperswitch.payments.googlepaylauncher.Config as GooglePayConfig
 
-
+/**
+ * WidgetActivity demonstrates how to use PaymentWidget and CVCWidget
+ * for embedding payment forms in your Android application.
+ *
+ * Based on React Native SDK initialization pattern from PaymentSheet.tsx:
+ * - PaymentConfiguration.init() - SDK setup with publishableKey
+ * - PaymentWidget.initWidget() - Widget initialization
+ * - PaymentWidget.setSdkAuthorization() - Set payment intent token
+ * - PaymentWidget.confirmPayment() - Trigger payment confirmation
+ *
+ * For saved cards (CVCWidget):
+ * - Same initialization pattern as PaymentWidget
+ * - CVCWidget.confirmCvcPayment() - Confirm with paymentToken and paymentMethodId
+ */
 class WidgetActivity : AppCompatActivity(), HyperInterface {
-    lateinit var ctx: Activity;
+    lateinit var ctx: Activity
 
-    private var paymentIntentClientSecret: String = "clientSecret"
+    private var sdkAuthorization: String = ""
     private var publishableKey: String = ""
 
+    // PaymentWidget reference - holds the main payment form (card input)
+    private lateinit var paymentWidget: PaymentWidget
 
-    private lateinit var googlePayButton: BasePaymentWidget
-    private lateinit var payPalButton: BasePaymentWidget
+    // CVCWidget reference - holds the CVC input for saved cards (optional)
+    private var cvcWidget: CVCWidget? = null
 
-    private lateinit var cardPaymentLauncher: UnifiedPaymentLauncher
-    private lateinit var googlePayLauncherInstance: UnifiedPaymentLauncher
-    private lateinit var payPalLauncherInstance: UnifiedPaymentLauncher
-    private lateinit var ecLauncherInstance: UnifiedPaymentLauncher
-
+    // Saved payment method data (for CVC payments)
+    private var paymentToken: String? = null
+    private var paymentMethodId: String? = null
 
     private fun setStatus(error: String = "could not connect to the server") {
         runOnUiThread {
@@ -48,34 +55,29 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
     }
 
     private fun getCL() {
-
-        ctx.findViewById<View>(R.id.confirmButton2).isEnabled = false;
-        ctx.findViewById<View>(R.id.googlePayButton2).isEnabled = false;
-        ctx.findViewById<View>(R.id.payPalButton2).isEnabled = false;
-
+        ctx.findViewById<View>(R.id.confirmButton2).isEnabled = false
 
         reset().get("http://10.0.2.2:5252/create-payment-intent", null)
             .responseString(object : Handler<String?> {
                 override fun success(value: String?) {
                     try {
-
                         val result = value?.let { JSONObject(it) }
                         if (result != null) {
-
-                            paymentIntentClientSecret = result.getString("clientSecret")
+                            sdkAuthorization = result.getString("sdkAuthorization")
                             publishableKey = result.getString("publishableKey")
 
+                            // Extract saved payment method data if available
+                            if (result.has("paymentToken") && result.has("paymentMethodId")) {
+                                paymentToken = result.optString("paymentToken")
+                                paymentMethodId = result.optString("paymentMethodId")
+                            }
+
                             ctx.runOnUiThread {
-                                initialiseSDK()
-                                setupGooglePayLauncher()
-                                setupPayPalLauncher()
-                                setupECLauncher()
+                                initialiseWidgets()
                                 ctx.findViewById<View>(R.id.confirmButton2).isEnabled = true
-                                ctx.findViewById<View>(R.id.googlePayButton2).isEnabled = true;
-                                ctx.findViewById<View>(R.id.payPalButton2).isEnabled = true;
                             }
                         }
-                    } catch (_: JSONException) {
+                    } catch (e: JSONException) {
                         setStatus()
                     }
                 }
@@ -86,92 +88,106 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             })
     }
 
-    private fun initialiseSDK() {
+    private fun initialiseWidgets() {
         /**
-         *
-         * Initialise Payment Configuration
-         *
-         * */
-
+         * Step 1: Initialise Payment Configuration with publishableKey
+         * This is required before using any widget
+         */
         PaymentConfiguration.init(applicationContext, publishableKey)
 
         /**
-         *
-         * Launch Card Form
-         *
-         * */
+         * Step 2: Initialise PaymentWidget
+         * - initWidget() initializes the internal view
+         * - setSdkAuthorization() sets the payment intent token
+         */
+        paymentWidget = findViewById(R.id.paymentSheet)
+        paymentWidget.setSdkAuthorization(sdkAuthorization)
 
-        cardPaymentLauncher = UnifiedPaymentLauncher.createCardLauncher(
-            activity = this,
-            resultCallback = ::onPaymentResult
-        )
-    }
+        cvcWidget = findViewById(R.id.cvcWidget)
+        cvcWidget?.setSdkAuthorization(sdkAuthorization)
 
-    private fun setupGooglePayLauncher() {
-        googlePayButton = findViewById(R.id.googlePayButton2)
-        googlePayButton.isEnabled = false
-        googlePayLauncherInstance = UnifiedPaymentLauncher.createGooglePayLauncher(
-            activity = this,
-            clientSecret = paymentIntentClientSecret,
-            config = GooglePayConfig(
-                environment = GooglePayEnvironment.Test,
-                merchantCountryCode = "US",
-                merchantName = "Widget Store"
-            ),
-            readyCallback = ::onGooglePayReady,
-            resultCallback = ::onGooglePayResult
-        )
+        /**
+         * Step 3: Initialise CVCWidget (optional - for saved card payments)
+         * Same initialization pattern as PaymentWidget
+         */
+//        val cvcWidgetView = findViewById<CVCWidget?>(R.id.cvcWidget)
+//        if (cvcWidgetView != null) {
+//            cvcWidget = cvcWidgetView
+//            cvcWidget?.initWidget(publishableKey)
+//            cvcWidget?.setSdkAuthorization(sdkAuthorization)
+//        }
 
-        googlePayButton.setOnClickListener {
-            if (this::googlePayLauncherInstance.isInitialized) {
-                googlePayLauncherInstance.presentForPayment(paymentIntentClientSecret)
-            } else {
-                Toast.makeText(this, "Google Pay Launcher not initialized", Toast.LENGTH_SHORT)
-                    .show()
-            }
+        /**
+         * Step 4: Setup button click listeners
+         */
+        findViewById<View>(R.id.confirmButton2).setOnClickListener {
+            confirmPayment()
         }
     }
 
-    private fun setupPayPalLauncher() {
-        payPalButton = findViewById(R.id.payPalButton2)
-        payPalButton.isEnabled = false
-        payPalLauncherInstance = UnifiedPaymentLauncher.createPayPalLauncher(
-            activity = this,
-            clientSecret = paymentIntentClientSecret,
-            readyCallback = ::onPayPalReady,
-            resultCallback = ::onPayPalResult
-        )
+    /**
+     * Confirm payment using PaymentWidget
+     * Use this for new card payments
+     */
+    private fun confirmPayment() {
+        val callback = Callback { args ->
+            val result = args[0] as? String ?: ""
+            handlePaymentResult(result)
+        }
+        paymentWidget.confirmPayment(callback)
+    }
 
-        payPalButton.setOnClickListener {
-            if (this::payPalLauncherInstance.isInitialized) {
-                payPalLauncherInstance.presentForPayment(paymentIntentClientSecret)
-            } else {
-                Toast.makeText(this, "PayPal Launcher not initialized", Toast.LENGTH_SHORT).show()
+    /**
+     * Confirm CVC payment using CVCWidget
+     * Use this for saved card payments where CVC is required
+     *
+     * @param paymentToken The payment token for the saved card
+     * @param paymentMethodId The payment method ID for the saved card
+     */
+    private fun confirmCvcPayment(paymentToken: String, paymentMethodId: String) {
+        val cvcWidgetRef = cvcWidget
+        if (cvcWidgetRef == null) {
+            Toast.makeText(this, "CVC Widget not initialized", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val callback: (Array<out Any?>) -> Unit = { args ->
+            val result = args[0] as? String ?: ""
+            handlePaymentResult(result)
+        }
+
+//        cvcWidgetRef.confirmCvcPayment(callback, paymentToken, paymentMethodId)
+    }
+
+    /**
+     * Parse and handle payment result from widget callbacks
+     */
+    private fun handlePaymentResult(result: String) {
+        runOnUiThread {
+            try {
+                val jsonObject = JSONObject(result)
+                val status = jsonObject.optString("status", "unknown")
+                val message = jsonObject.optString("message", "")
+
+                when (status) {
+                    "succeeded" -> {
+                        Toast.makeText(this, "Payment Successful: $message", Toast.LENGTH_LONG).show()
+                    }
+                    "failed", "requires_payment_method" -> {
+                        Toast.makeText(this, "Payment Failed: $message", Toast.LENGTH_LONG).show()
+                    }
+                    "cancelled" -> {
+                        Toast.makeText(this, "Payment Cancelled", Toast.LENGTH_SHORT).show()
+                    }
+                    else -> {
+                        Toast.makeText(this, "Status: $status", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (_: JSONException) {
+                Toast.makeText(this, result, Toast.LENGTH_SHORT).show()
             }
         }
     }
-
-    private fun setupECLauncher() {
-        ecLauncherInstance = UnifiedPaymentLauncher.createExpressCheckoutLauncher(
-            activity = this,
-            clientSecret = paymentIntentClientSecret,
-            readyCallback = ::onExpressCheckoutReady,
-            resultCallback = ::onExpressCheckoutResult
-        )
-
-        findViewById<View>(R.id.confirmEC).setOnClickListener {
-            if (this::ecLauncherInstance.isInitialized) {
-                ecLauncherInstance.presentForPayment(paymentIntentClientSecret)
-            } else {
-                Toast.makeText(
-                    this,
-                    "Express Checkout Launcher not initialized",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-    }
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -180,123 +196,5 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         getCL()
 
         findViewById<View>(R.id.reloadButton2).setOnClickListener { getCL() }
-        findViewById<View>(R.id.confirmButton2).setOnClickListener {
-            val cardInputWidget: BasePaymentWidget = findViewById(R.id.cardElement)
-            val params: PaymentMethodCreateParams = cardInputWidget.paymentMethodCreateParams
-            val confirmParams = ConfirmPaymentIntentParams.createWithPaymentMethodCreateParams(
-                params,
-                paymentIntentClientSecret
-            )
-
-            if (this::cardPaymentLauncher.isInitialized) {
-                cardPaymentLauncher.confirmCardPayment(confirmParams)
-            } else {
-                Toast.makeText(this, "SDK is not initialised", Toast.LENGTH_SHORT).show()
-            }
-        }
     }
-
-    private fun onPaymentResult(paymentResult: PaymentResult) {
-        when (paymentResult) {
-            is PaymentResult.Completed -> {
-                Toast.makeText(this, paymentResult.data, Toast.LENGTH_SHORT).show()
-            }
-
-            is PaymentResult.Canceled -> {
-                Toast.makeText(this, paymentResult.data, Toast.LENGTH_SHORT).show()
-            }
-
-            is PaymentResult.Failed -> {
-                // This string comes from the PaymentIntent's error message.
-                // See here: https://docs.hyperswitch.io/api/payment_intents/object#payment_intent_object-last_payment_error-message
-                Toast.makeText(this, paymentResult.throwable.message ?: "", Toast.LENGTH_SHORT)
-                    .show()
-            }
-        }
-    }
-
-
-    private fun onGooglePayReady(isReady: Boolean) {
-        googlePayButton.isEnabled = isReady
-    }
-
-    private fun onGooglePayResult(
-        result: GooglePayPaymentMethodLauncher.Result
-    ) {
-        when (result) {
-            is GooglePayPaymentMethodLauncher.Result.Completed -> {
-                // Payment details successfully captured.
-                // Send the paymentMethodId to your server to finalize payment.
-                val paymentMethodId = result.paymentMethod.id
-                Toast.makeText(this, paymentMethodId, Toast.LENGTH_LONG).show()
-            }
-
-            is GooglePayPaymentMethodLauncher.Result.Canceled -> {
-                // User canceled the operation
-                Toast.makeText(this, result.data, Toast.LENGTH_LONG).show()
-            }
-
-            is GooglePayPaymentMethodLauncher.Result.Failed -> {
-                // Operation failed; inspect `result.error` for the exception
-                Toast.makeText(this, result.error.message, Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-
-    private fun onPayPalReady(isReady: Boolean) {
-        payPalButton.isEnabled = isReady
-    }
-
-    private fun onPayPalResult(
-        result: PayPalPaymentMethodLauncher.Result
-    ) {
-        when (result) {
-            is PayPalPaymentMethodLauncher.Result.Completed -> {
-                // Payment details successfully captured.
-                // Send the paymentMethodId to your server to finalize payment.
-                val paymentMethodId = result.paymentMethod.id
-                Toast.makeText(applicationContext, paymentMethodId, Toast.LENGTH_LONG).show()
-            }
-
-            is PayPalPaymentMethodLauncher.Result.Canceled -> {
-                // User canceled the operation
-                Toast.makeText(applicationContext, result.data, Toast.LENGTH_LONG).show()
-            }
-
-            is PayPalPaymentMethodLauncher.Result.Failed -> {
-                // Operation failed; inspect `result.error` for the exception
-                Toast.makeText(applicationContext, result.error.message, Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-
-    private fun onExpressCheckoutReady(isReady: Boolean) {
-        googlePayButton.isEnabled = isReady
-    }
-
-    private fun onExpressCheckoutResult(paymentSheetResult: ExpressCheckoutPaymentMethodLauncher.Result) {
-        when (paymentSheetResult) {
-            is ExpressCheckoutPaymentMethodLauncher.Result.Canceled -> {
-                Toast.makeText(applicationContext, paymentSheetResult.data, Toast.LENGTH_LONG)
-                    .show()
-            }
-
-            is ExpressCheckoutPaymentMethodLauncher.Result.Failed -> {
-                Toast.makeText(
-                    applicationContext,
-                    paymentSheetResult.error.message ?: "",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-
-            is ExpressCheckoutPaymentMethodLauncher.Result.Completed -> {
-                Toast.makeText(
-                    applicationContext,
-                    paymentSheetResult.paymentMethod.toString(),
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
-
 }

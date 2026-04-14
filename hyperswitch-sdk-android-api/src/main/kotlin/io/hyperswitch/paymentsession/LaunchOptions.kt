@@ -87,6 +87,41 @@ class LaunchOptions(
         })
     }
 
+    fun getBundle(
+        publishableKey: String? = null,
+        configuration: Map<String, Any>? = null,
+        customBackendUrl: String? = null,
+        customLogUrl: String? = null,
+        customParams: Map<String, Any>? = null,
+        type: String? = "payment",
+        widgetId: String? = null,
+        sdkAuthorization : String? = null,
+    ): Bundle = Bundle().apply {
+        putBundle("props", Bundle().apply {
+            putString("type", type)
+            putString("from", "rn")
+            putString("publishableKey", publishableKey ?: "")
+            putString("sdkAuthorization", sdkAuthorization?:"")
+            putBundle("configuration", toBundle(configuration ?: emptyMap<String, Any>()))
+            customBackendUrl?.let { url -> putString("customBackendUrl", url) }
+            customLogUrl?.let { url -> putString("customLogUrl", url) }
+
+            if (configuration?.containsKey("subscribedEvents") == true) {
+                val subscribedEventsArray = configuration["subscribedEvents"] as? List<*>
+                if (subscribedEventsArray != null) {
+                    putSerializable("subscribedEvents", ArrayList(subscribedEventsArray))
+                }
+            }
+            customParams?.let { params ->
+                putBundle(
+                    "customParams", toBundle(params)
+                )
+            }
+            putBundle("hyperParams", getHyperParams())
+            putString("widgetId", widgetId)
+        })
+    }
+
     fun getBundleWithHyperParams(readableMap: Map<*, *>): Bundle = Bundle().apply {
         putBundle("props", toBundle(readableMap).apply {
             putBundle("hyperParams", getHyperParams())
