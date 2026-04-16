@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- NFC permission for reading EMV cards -->
+    <uses-permission android:name="android.permission.NFC" />
+
+    <!-- Declare NFC feature with required="false" for graceful degradation -->
+    <uses-feature
+        android:name="android.hardware.nfc"
+        android:required="false" />
+
+</manifest>
