@@ -251,10 +251,42 @@ class TapCardReader(
     @Throws(TapCardException::class)
     private fun tryPPSEFlow(isoDep: IsoDep): TapCardData {
         log("=== SELECT PPSE ===")
-        val ppseResp = transceive(isoDep, TapCardApduCommand.selectPPSE())
-        val sw = extractSw(ppseResp)
+        var ppseResp = transceive(isoDep, TapCardApduCommand.selectPPSE())
+        var sw = extractSw(ppseResp)
         log("PPSE SW: ${getSwString(ppseResp)}")
         log("PPSE raw response: ${bytesToHex(ppseResp)}")
+
+        // Retry with different CLA if needed
+        if (sw == SW_CLA_NOT_SUPPORTED) {
+            log("Retrying PPSE with CLA=0x80...")
+            val altCmd = TapCardApduCommand(
+                cla = 0x80.toByte(),
+                ins = 0xA4.toByte(),
+                p1 = 0x04.toByte(),
+                p2 = 0x00.toByte(),
+                data = TapCardApduCommand.PPSE_FCI_NAME,
+                le = null
+            )
+            ppseResp = transceive(isoDep, altCmd)
+            sw = extractSw(ppseResp)
+            log("PPSE Retry SW: ${getSwString(ppseResp)}")
+        }
+
+        // If we get 0x6700 (Wrong length), the card might need a specific Le byte
+        if (sw == SW_WRONG_LENGTH) {
+            log("Retrying PPSE with explicit Le=0x00...")
+            val altCmd = TapCardApduCommand(
+                cla = 0x00.toByte(),
+                ins = 0xA4.toByte(),
+                p1 = 0x04.toByte(),
+                p2 = 0x00.toByte(),
+                data = TapCardApduCommand.PPSE_FCI_NAME,
+                le = 0x00.toByte()
+            )
+            ppseResp = transceive(isoDep, altCmd)
+            sw = extractSw(ppseResp)
+            log("PPSE with Le SW: ${getSwString(ppseResp)}")
+        }
 
         // Check if PPSE selection succeeded
         if (!isSuccessSw(ppseResp)) {
@@ -498,8 +530,10 @@ class TapCardReader(
             val error = TapCardException.ApduException.fromStatusWord(gpoSw)
 
             // Retry with alternate formats for common errors
+            // Include SW_WRONG_LENGTH (0x6700) as some cards reject specific data lengths
             if (gpoSw == SW_CLA_NOT_SUPPORTED || gpoSw == SW_INS_NOT_SUPPORTED ||
-                gpoSw == SW_WRONG_DATA || gpoSw == SW_CONDITIONS_NOT_SATISFIED) {
+                gpoSw == SW_WRONG_DATA || gpoSw == SW_WRONG_LENGTH ||
+                gpoSw == SW_CONDITIONS_NOT_SATISFIED) {
                 log("GPO failed with SW=${getSwString(gpoResp)}, trying fallback strategies...")
 
                 // Try card-specific GPO formats
@@ -532,6 +566,14 @@ class TapCardReader(
                 if (cardData.cardNumber != null) {
                     return cardData
                 }
+
+                // Final fallback: skip GPO entirely and use brute force record reading
+                log("Final fallback: skipping GPO, using brute-force record reading...")
+                val bruteForceData = readRecordsBruteForce(isoDep, appLabel, aidStr)
+                if (bruteForceData.cardNumber != null) {
+                    return bruteForceData
+                }
+
                 // Fall through to throw error
             }
 
@@ -548,27 +590,17 @@ class TapCardReader(
     private fun tryGpoFallbacks(isoDep: IsoDep, originalData: ByteArray, profile: CardProfile): ByteArray {
         val fallbackFormats = mutableListOf<ByteArray>()
 
-        // Strategy 1: Alternate CLA (0x80)
-        fallbackFormats.add(TapCardApduCommand(
-            cla = 0x80.toByte(),
-            ins = 0xA8.toByte(),
-            p1 = 0x00.toByte(),
-            p2 = 0x00.toByte(),
-            data = originalData,
-            le = null
-        ).toByteArray())
-
-        // Strategy 2: 8100 format (some cards expect this)
+        // Strategy 1: Empty GPO (8300) - simplest form, works on many cards
         fallbackFormats.add(TapCardApduCommand(
             cla = 0x00.toByte(),
             ins = 0xA8.toByte(),
             p1 = 0x00.toByte(),
             p2 = 0x00.toByte(),
-            data = byteArrayOf(0x81.toByte(), 0x00.toByte()),
+            data = byteArrayOf(0x83.toByte(), 0x00.toByte()),
             le = null
         ).toByteArray())
 
-        // Strategy 3: Empty data with CLA 0x80
+        // Strategy 2: Empty GPO with CLA 0x80
         fallbackFormats.add(TapCardApduCommand(
             cla = 0x80.toByte(),
             ins = 0xA8.toByte(),
@@ -578,8 +610,94 @@ class TapCardReader(
             le = null
         ).toByteArray())
 
+        // Strategy 3: 8100 format (some cards expect this)
+        fallbackFormats.add(TapCardApduCommand(
+            cla = 0x00.toByte(),
+            ins = 0xA8.toByte(),
+            p1 = 0x00.toByte(),
+            p2 = 0x00.toByte(),
+            data = byteArrayOf(0x81.toByte(), 0x00.toByte()),
+            le = null
+        ).toByteArray())
+
+        // Strategy 4: Original data with CLA 0x80
+        fallbackFormats.add(TapCardApduCommand(
+            cla = 0x80.toByte(),
+            ins = 0xA8.toByte(),
+            p1 = 0x00.toByte(),
+            p2 = 0x00.toByte(),
+            data = originalData,
+            le = null
+        ).toByteArray())
+
+        // Strategy 5: Minimal TTQ-only GPO (some Visa cards require just this)
+        // 83 06 9F 66 04 XX XX XX XX - TTQ with tag-length wrapper
+        val ttqOnlyData = byteArrayOf(
+            0x83.toByte(), 0x06,  // Tag 83, length 6
+            0x9F.toByte(), 0x66.toByte(), 0x04,  // TTQ tag (9F66), length 4
+            0x26.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte()  // Minimal TTQ value
+        )
+        fallbackFormats.add(TapCardApduCommand(
+            cla = 0x00.toByte(),
+            ins = 0xA8.toByte(),
+            p1 = 0x00.toByte(),
+            p2 = 0x00.toByte(),
+            data = ttqOnlyData,
+            le = null
+        ).toByteArray())
+
+        // Strategy 6: Even more minimal - just TTQ value without inner tag wrapper
+        val rawTtqData = byteArrayOf(
+            0x83.toByte(), 0x04,  // Tag 83, length 4 (raw TTQ value only)
+            0x26.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte()
+        )
+        fallbackFormats.add(TapCardApduCommand(
+            cla = 0x00.toByte(),
+            ins = 0xA8.toByte(),
+            p1 = 0x00.toByte(),
+            p2 = 0x00.toByte(),
+            data = rawTtqData,
+            le = null
+        ).toByteArray())
+
         // Card-specific strategies
         when (profile) {
+            CardProfile.VISA -> {
+                // Visa qVSDC cards often need minimal GPO
+                // Try with just TTQ (Terminal Transaction Qualifiers)
+                fallbackFormats.add(TapCardApduCommand(
+                    cla = 0x00.toByte(),
+                    ins = 0xA8.toByte(),
+                    p1 = 0x00.toByte(),
+                    p2 = 0x00.toByte(),
+                    data = byteArrayOf(0x83.toByte(), 0x06, 0x9F.toByte(), 0x66.toByte(), 0x04, 0xF6.toByte(), 0x20.toByte(), 0xC0.toByte(), 0x00.toByte()),
+                    le = null
+                ).toByteArray())
+                // Visa: try with Le=00
+                fallbackFormats.add(byteArrayOf(0x00.toByte(), 0xA8.toByte(), 0x00.toByte(), 0x00.toByte(), 0x02.toByte(), 0x83.toByte(), 0x00.toByte(), 0x00.toByte()))
+
+                // Visa cards with strict PDOL requirements
+                // Try raw 80-style APDU (Format 1 response)
+                fallbackFormats.add(TapCardApduCommand(
+                    cla = 0x00.toByte(),
+                    ins = 0xA8.toByte(),
+                    p1 = 0x00.toByte(),
+                    p2 = 0x00.toByte(),
+                    data = byteArrayOf(0x80.toByte(), 0x00.toByte()),  // Some Visa cards use 80 instead of 83
+                    le = 0x00.toByte()
+                ).toByteArray())
+
+                // Try raw binary TTQ (no TLV wrapper) - for very strict cards
+                val rawTtq = byteArrayOf(0x26.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte())
+                fallbackFormats.add(TapCardApduCommand(
+                    cla = 0x00.toByte(),
+                    ins = 0xA8.toByte(),
+                    p1 = 0x00.toByte(),
+                    p2 = 0x00.toByte(),
+                    data = byteArrayOf(0x83.toByte(), rawTtq.size.toByte()) + rawTtq,
+                    le = null
+                ).toByteArray())
+            }
             CardProfile.AMEX -> {
                 // Amex sometimes needs 8300 format
                 fallbackFormats.add(TapCardApduCommand(
@@ -709,7 +827,22 @@ class TapCardReader(
 
         return if (afl != null && afl.isNotEmpty()) {
             log("AFL: ${bytesToHex(afl)}")
-            readWithAfl(isoDep, afl, appLabel, aidStr)
+            try {
+                readWithAfl(isoDep, afl, appLabel, aidStr)
+            } catch (e: TapCardException.EmvDataNotFoundException) {
+                // Try brute force reading
+                log("Normal AFL reading failed, trying brute force...")
+                val bruteForceData = readRecordsBruteForce(isoDep, appLabel, aidStr)
+                if (bruteForceData.cardNumber != null) {
+                    bruteForceData
+                } else {
+                    // Return partial data if we have any
+                    val combined = mutableListOf<TlvParser.TlvElement>()
+                    combined.addAll(appTlvs)
+                    combined.addAll(gpoTlvs)
+                    extractCardData(combined, appLabel, aidStr, forceReturn = true)
+                }
+            }
         } else {
             log("No AFL, extracting from responses...")
             // Extract from combined TLVs
@@ -744,6 +877,19 @@ class TapCardReader(
 
                     if (isSuccessSw(resp)) {
                         val tlvs = parseResponse(resp)
+                        log("  Record $recNum TLVs: ${tlvs.map { "0x${it.tag.toString(16)}" }}")
+                        // Log each TLV for debugging
+                        tlvs.forEach { tlv ->
+                            log("    Tag 0x${tlv.tag.toString(16)}, len=${tlv.length}, value=${bytesToHex(tlv.value).take(32)}")
+                            if (tlv.isConstructed()) {
+                                try {
+                                    val children = tlv.parseChildren(tlvParser)
+                                    log("    Children: ${children.map { "0x${it.tag.toString(16)}" }}")
+                                } catch (e: Exception) {
+                                    log("    Failed to parse children: ${e.message}")
+                                }
+                            }
+                        }
                         allTlvs.addAll(tlvs)
                     }
                 } catch (e: TapCardException) {
@@ -759,7 +905,8 @@ class TapCardReader(
     private fun extractCardData(
         tlvs: List<TlvParser.TlvElement>,
         appLabel: String?,
-        aidStr: String
+        aidStr: String,
+        forceReturn: Boolean = false
     ): TapCardData {
         log("Extracting from ${tlvs.size} TLVs")
 
@@ -768,12 +915,13 @@ class TapCardReader(
 
         log("PAN found: ${pan != null}, Expiry found: ${expiry != null}")
 
-        if (pan == null && expiry == null) {
-            throw TapCardException.EmvDataNotFoundException("No card data found in records")
-        }
-
         // Detect network from AID
         val network = TapCardApduCommand.Companion.Aids.detectNetwork(aidStr.hexToByteArray())
+
+        // If we have at least some data, or forceReturn is set, return what we have
+        if (!forceReturn && pan == null && expiry == null) {
+            throw TapCardException.EmvDataNotFoundException("No card data found in records")
+        }
 
         return TapCardData(
             cardNumber = pan,
@@ -1007,22 +1155,190 @@ class TapCardReader(
         return TapCardData.EMPTY
     }
 
-    private fun findPan(tlvs: List<TlvParser.TlvElement>): String? {
-        tlvs.findTagRecursive(TAG_PAN)?.value?.let {
-            return bytesToHex(it).trimEnd { c -> c == 'F' || c == 'f' }
+    /**
+     * Aggressive brute-force record reading for secure cards that don't expose data through normal EMV flow.
+     * Tries extended SFI ranges and record numbers to find any available card data.
+     */
+    private fun readRecordsBruteForce(isoDep: IsoDep, appLabel: String?, aidStr: String): TapCardData {
+        log("=== BRUTE FORCE RECORD READING ===")
+        val allTlvs = mutableListOf<TlvParser.TlvElement>()
+
+        // Extended SFI range - try more SFIs than usual
+        val extendedSfis = 1..20
+        // Extended record range
+        val extendedRecords = 1..10
+
+        var successfulReads = 0
+
+        for (sfi in extendedSfis) {
+            for (recNum in extendedRecords) {
+                try {
+                    val resp = transceive(isoDep, TapCardApduCommand.readRecord(recNum, sfi))
+                    if (isSuccessSw(resp)) {
+                        log("  Brute force SFI=$sfi record=$recNum: SUCCESS")
+                        val tlvs = parseResponse(resp)
+                        if (tlvs.isNotEmpty()) {
+                            allTlvs.addAll(tlvs)
+                            successfulReads++
+
+                            // Log what we found for debugging
+                            tlvs.forEach { tlv ->
+                                log("    Tag 0x${tlv.tag.toString(16)} (${getTagName(tlv.tag)}): ${bytesToHex(tlv.value).take(40)}")
+                            }
+
+                            // Early exit if we found PAN
+                            val tempPan = findPan(allTlvs)
+                            if (tempPan != null) {
+                                log("Found PAN during brute force, stopping early")
+                                return extractCardData(allTlvs, appLabel, aidStr, forceReturn = true)
+                            }
+                        }
+                    }
+                } catch (e: TapCardException) {
+                    // Expected for invalid SFI/record combinations
+                }
+            }
         }
+
+        log("Brute force completed: $successfulReads successful reads, ${allTlvs.size} total TLVs")
+
+        return if (allTlvs.isNotEmpty()) {
+            extractCardData(allTlvs, appLabel, aidStr, forceReturn = true)
+        } else {
+            TapCardData.EMPTY
+        }
+    }
+
+    /**
+     * Helper to get human-readable tag names for debugging
+     */
+    private fun getTagName(tag: Int): String {
+        return when (tag) {
+            TAG_PAN -> "PAN"
+            TAG_EXPIRY_DATE -> "EXPIRY"
+            TAG_TRACK2_EQUIVALENT -> "TRACK2"
+            TAG_TRACK1_EQUIVALENT -> "TRACK1"
+            TAG_AFL -> "AFL"
+            TAG_AIP -> "AIP"
+            TAG_FCI_TEMPLATE -> "FCI"
+            TAG_CARDHOLDER_NAME -> "CARDHOLDER"
+            TAG_ISSUER_COUNTRY -> "COUNTRY"
+            TAG_APPLICATION_LABEL -> "APP_LABEL"
+            TAG_PDOL -> "PDOL"
+            0x57 -> "TRACK2_ALT"
+            0x5A -> "PAN_ALT"
+            0x5F24 -> "EXPIRY_ALT"
+            0x5F20 -> "NAME_ALT"
+            0x5F28 -> "COUNTRY_ALT"
+            0x5F34 -> "PAN_SEQ"
+            0x8C -> "CDOL1"
+            0x8D -> "CDOL2"
+            0x90 -> "ISSUER_PK_CERT"
+            0x93 -> "SIGNED_STATIC_APP_DATA"
+            0x9F32 -> "ISSUER_PK_EXP"
+            0x9F46 -> "ICC_PK_CERT"
+            0x9F47 -> "ICC_PK_EXP"
+            0x9F4B -> "SIGNED_DYNAMIC_APP_DATA"
+            0x9F66 -> "TTQ"
+            else -> "0x${tag.toString(16).uppercase()}"
+        }
+    }
+
+    private fun findPan(tlvs: List<TlvParser.TlvElement>): String? {
+        // Try standard PAN tag (0x5A)
+        tlvs.findTagRecursive(TAG_PAN)?.value?.let {
+            val pan = bytesToHex(it).trimEnd { c -> c == 'F' || c == 'f' }
+            if (pan.length >= 13) return pan
+        }
+
+        // Try track 2 equivalent (0x57)
         tlvs.findTagRecursive(TAG_TRACK2_EQUIVALENT)?.value?.let {
-            return parseTrack2Pan(it)
+            parseTrack2Pan(it)?.let { pan -> if (pan.length >= 13) return pan }
+        }
+
+        // Try to find PAN in any TLV value that looks like a card number
+        // This is an aggressive fallback for secure cards
+        for (tlv in tlvs) {
+            val value = tlv.value
+            if (value.size in 6..10) { // PANs are typically 8 bytes (16 digits)
+                val hex = bytesToHex(value)
+                // Check if it looks like a PAN (starts with 4, 5, 3, or 6 and has valid length)
+                if (hex.matches(Regex("^[0-9]{13,19}$"))) {
+                    if (hex.startsWith("4") || hex.startsWith("5") ||
+                        hex.startsWith("3") || hex.startsWith("6") ||
+                        hex.startsWith("2")) {
+                        log("Found potential PAN in tag 0x${tlv.tag.toString(16)}: ${hex.take(6)}****${hex.takeLast(4)}")
+                        return hex
+                    }
+                }
+            }
+        }
+
+        // Deep search in constructed TLVs
+        return deepSearchPan(tlvs)
+    }
+
+    /**
+     * Deep search for PAN in all TLV children recursively
+     */
+    private fun deepSearchPan(tlvs: List<TlvParser.TlvElement>): String? {
+        for (tlv in tlvs) {
+            if (tlv.isConstructed()) {
+                try {
+                    val children = tlv.parseChildren(tlvParser)
+                    findPan(children)?.let { return it }
+                } catch (e: Exception) {
+                    // Ignore parse errors
+                }
+            }
         }
         return null
     }
 
     private fun findExpiry(tlvs: List<TlvParser.TlvElement>): String? {
+        // Try standard expiry tag (0x5F24)
         tlvs.findTagRecursive(TAG_EXPIRY_DATE)?.value?.let {
-            return parseBcdDate(it)
+            parseBcdDate(it)?.let { date -> return date }
         }
+
+        // Try track 2 equivalent (0x57)
         tlvs.findTagRecursive(TAG_TRACK2_EQUIVALENT)?.value?.let {
-            return parseTrack2Expiry(it)
+            parseTrack2Expiry(it)?.let { date -> return date }
+        }
+
+        // Deep search in constructed TLVs
+        return deepSearchExpiry(tlvs)
+    }
+
+    /**
+     * Deep search for expiry in all TLV children recursively
+     */
+    private fun deepSearchExpiry(tlvs: List<TlvParser.TlvElement>): String? {
+        for (tlv in tlvs) {
+            // Try to parse any 3-byte value as YYMMDD
+            if (tlv.value.size == 3) {
+                val hex = bytesToHex(tlv.value)
+                if (hex.matches(Regex("^[0-9]{6}$"))) {
+                    val yy = hex.substring(0, 2)
+                    val mm = hex.substring(2, 4)
+                    val dd = hex.substring(4, 6) // Day, usually ignored for expiry
+                    // Validate month
+                    val monthInt = mm.toIntOrNull()
+                    if (monthInt != null && monthInt in 1..12) {
+                        log("Found potential expiry in tag 0x${tlv.tag.toString(16)}: $mm/$yy")
+                        return "$mm/$yy"
+                    }
+                }
+            }
+
+            if (tlv.isConstructed()) {
+                try {
+                    val children = tlv.parseChildren(tlvParser)
+                    findExpiry(children)?.let { return it }
+                } catch (e: Exception) {
+                    // Ignore parse errors
+                }
+            }
         }
         return null
     }

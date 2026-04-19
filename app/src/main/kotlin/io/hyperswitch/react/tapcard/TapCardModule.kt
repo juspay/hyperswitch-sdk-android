@@ -49,7 +49,7 @@ class TapCardModule(private val reactContext: ReactApplicationContext) :
     /**
      * Creates a TapCardConfig using reflection.
      */
-    private fun createConfig(timeoutMs: Long = 30000, enableDebug: Boolean = false): Any? {
+    private fun createConfig(timeoutMs: Long = 30000, enableDebug: Boolean = true): Any? {
         return try {
             val builder = tapCardConfigBuilderClass?.getDeclaredConstructor()?.newInstance()
             builder?.let { b ->
