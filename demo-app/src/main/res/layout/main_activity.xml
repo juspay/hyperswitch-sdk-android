@@ -1,90 +1,144 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/white"
-    android:fitsSystemWindows="true"
-    tools:context=".MainActivity">
+    android:background="#F3F4F6">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_gravity="center"
-        android:maxWidth="320dp"
-        android:orientation="vertical">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
 
-        <EditText
-            android:id="@+id/ipAddressInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="20dp"
-            android:layout_weight="1"
-            android:autofillHints="http://"
-            android:ems="10"
-            android:textSize="32sp"
-            android:hint="@string/ip_address"
-            android:inputType="text"
-            android:textAlignment="center"
-            />
-
-        <Button
-            android:id="@+id/reloadButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="20dp"
-            android:layout_weight="1"
-            android:background="@drawable/rounded_button"
-            android:text="@string/reload_client_secret"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp" />
-
-        <Button
-            android:id="@+id/launchButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="20dp"
-            android:layout_weight="1"
-            android:background="@drawable/rounded_button"
-            android:text="@string/launch_payment_sheet"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp" />
-
-        <Button
-            android:id="@+id/launchWidgetLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="20dp"
-            android:layout_weight="1"
-            android:background="@drawable/rounded_button"
-            android:text="@string/launch_widget_layout"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp" />
-
+        <!-- TITLE -->
         <TextView
-            android:id="@+id/resultText"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_margin="20dp"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:textSize="20sp" />
+            android:text="Payment Demo"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:layout_gravity="center"
+            android:layout_marginBottom="20dp"/>
 
-        <Button
-            android:id="@+id/confirmButton"
+        <!-- SERVER SECTION -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="20dp"
-            android:layout_weight="1"
-            android:background="@drawable/rounded_button"
-            android:text="@string/confirm_with_last_used_pm"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp" />
+            android:background="@drawable/card_bg"
+            android:elevation="4dp"
+            android:layout_marginBottom="16dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:text="Server"
+                android:textStyle="bold"
+                android:textSize="18sp"
+                android:layout_marginBottom="12dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+            <EditText
+                android:id="@+id/ipAddressInput"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:hint="Server IP Address"
+                android:padding="12dp"
+                android:background="@android:drawable/edit_text"
+                android:textSize="16sp"
+                android:layout_marginBottom="12dp"/>
+
+            <Button
+                android:id="@+id/reloadButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="Reload Client Secret"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/rounded_button"/>
+        </LinearLayout>
+
+        <!-- PAYMENT ACTIONS -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/card_bg"
+            android:elevation="4dp"
+            android:layout_marginBottom="16dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:text="Payment Actions"
+                android:textStyle="bold"
+                android:textSize="18sp"
+                android:layout_marginBottom="12dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+<!--            <FrameLayout-->
+<!--                android:id="@+id/widgetContainer"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="200dp"-->
+<!--                android:layout_marginBottom="12dp"/>-->
+
+            <io.hyperswitch.view.PaymentWidget
+                android:id="@+id/paymentWidget"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                />
+
+            <Button
+                android:id="@+id/launchButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="Launch Payment Sheet"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/rounded_button"
+                android:layout_marginBottom="12dp"/>
+
+            <Button
+                android:id="@+id/launchWidgetLayout"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="Launch Widget Layout"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/rounded_button"
+                android:layout_marginBottom="12dp"/>
+
+            <Button
+                android:id="@+id/confirmButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="Confirm with Last Used PM"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/rounded_button"/>
+        </LinearLayout>
+
+        <!-- RESULT -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/card_bg"
+            android:elevation="4dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:text="Result"
+                android:textStyle="bold"
+                android:textSize="18sp"
+                android:layout_marginBottom="12dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+            <TextView
+                android:id="@+id/resultText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:gravity="center"/>
+        </LinearLayout>
 
     </LinearLayout>
-
 </ScrollView>
