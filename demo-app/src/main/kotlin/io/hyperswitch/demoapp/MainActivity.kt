@@ -14,11 +14,11 @@ import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.sdk.PaymentSession
-import io.hyperswitch.payments.paymentlauncher.PaymentResult
+//import io.hyperswitch.payments.paymentlauncher.PaymentResult
 import io.hyperswitch.paymentsession.PMError
 import io.hyperswitch.paymentsheet.AddressDetails
 import io.hyperswitch.paymentsheet.PaymentSheet
-import io.hyperswitch.paymentsheet.PaymentSheetResult
+import io.hyperswitch.paymentsheet.PaymentResult
 import org.json.JSONException
 import org.json.JSONObject
 import androidx.core.content.edit
@@ -200,9 +200,9 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                                     ctx.findViewById<View>(R.id.confirmButton).isEnabled = true
                                     ctx.findViewById<View>(R.id.confirmButton)
                                         .setOnClickListener { _ ->
-                                            it.confirmWithCustomerLastUsedPaymentMethod {
-                                                onPaymentResult(it)
-                                            }
+//                                            it.confirmWithCustomerLastUsedPaymentMethod {
+//                                                onPaymentResult(it)
+//                                            }
                                         }
                                 }
                             }
@@ -270,11 +270,11 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             val customisations = getCustomisations()
             lifecycleScope.launch {
               val result =   paymentSession?.presentPaymentSheet(customisations)
-                result?.let { onPaymentSheetResult(it) }
+//                result?.let { onPaymentResult(it) }
             }
             //
             //val result =  paymentSession.presentPaymentSheet(customisations)
-//            onPaymentSheetResult(result)
+//            onPaymentResult(result)
         }
 
         findViewById<View>(R.id.launchWidgetLayout).setOnClickListener {
@@ -290,35 +290,35 @@ class MainActivity : AppCompatActivity(), HyperInterface {
         }
     }
 
-    private fun onPaymentSheetResult(paymentSheetResult: PaymentSheetResult) {
-        when (paymentSheetResult) {
-            is PaymentSheetResult.Canceled -> {
-                setStatus(paymentSheetResult.data)
-            }
-
-            is PaymentSheetResult.Failed -> {
-                setStatus(paymentSheetResult.error.message ?: "")
-            }
-
-            is PaymentSheetResult.Completed -> {
-                setStatus(paymentSheetResult.data)
-            }
-        }
-    }
-
-    private fun onPaymentResult(paymentResult: PaymentResult) {
-        when (paymentResult) {
+    private fun onPaymentResult(PaymentResult: PaymentResult) {
+        when (PaymentResult) {
             is PaymentResult.Canceled -> {
-                setStatus(paymentResult.data)
+                setStatus(PaymentResult.data)
             }
 
             is PaymentResult.Failed -> {
-                setStatus(paymentResult.throwable.message ?: "")
+                setStatus(PaymentResult.error.message ?: "")
             }
 
             is PaymentResult.Completed -> {
-                setStatus(paymentResult.data)
+                setStatus(PaymentResult.data)
             }
         }
     }
+
+//    private fun onPaymentResult(paymentResult: PaymentResult) {
+//        when (paymentResult) {
+//            is PaymentResult.Canceled -> {
+//                setStatus(paymentResult.data)
+//            }
+//
+//            is PaymentResult.Failed -> {
+//                setStatus(paymentResult.throwable.message ?: "")
+//            }
+//
+//            is PaymentResult.Completed -> {
+//                setStatus(paymentResult.data)
+//            }
+//        }
+//    }
 }

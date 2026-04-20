@@ -1,7 +1,6 @@
 package io.hyperswitch.sdk
 
-import com.facebook.react.bridge.Callback
-import io.hyperswitch.payments.paymentlauncher.PaymentResult
+import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.view.HyperswitchElement
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -17,9 +16,8 @@ class HyperswitchBoundElement internal constructor(
 
     suspend fun confirmPayment(): PaymentResult {
         return suspendCancellableCoroutine { continuation ->
-            val callback = Callback { args ->
-                val result = PaymentResult.Completed("success")
-                continuation.resume(result)
+            val callback = { paymentResult : PaymentResult ->
+                continuation.resume(paymentResult)
             }
             element.confirmPayment(callback)
         }

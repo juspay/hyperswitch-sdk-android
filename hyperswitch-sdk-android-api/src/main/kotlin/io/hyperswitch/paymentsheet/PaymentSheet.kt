@@ -27,7 +27,7 @@ class PaymentSheet internal constructor(
      */
     constructor(
         activity: Activity,
-        callback: PaymentSheetResultCallback
+        callback: PaymentResultCallback
     ) : this(
         DefaultPaymentSheetLauncher(activity, callback)
     )
@@ -40,15 +40,15 @@ class PaymentSheet internal constructor(
      */
     constructor(
         fragment: Fragment,
-        callback: PaymentSheetResultCallback
+        callback: PaymentResultCallback
     ) : this(
         DefaultPaymentSheetLauncher(fragment, callback)
     )
 
     /**
      * Present the payment sheet to process a [PaymentIntent].
-     * If the [PaymentIntent] is already confirmed, [PaymentSheetResultCallback] will be invoked
-     * with [PaymentSheetResult.Completed].
+     * If the [PaymentIntent] is already confirmed, [PaymentResultCallback] will be invoked
+     * with [PaymentResult.Completed].
      *
      * @param paymentIntentClientSecret the client secret for the [PaymentIntent].
      * @param configuration optional [PaymentSheet] settings.
@@ -63,8 +63,8 @@ class PaymentSheet internal constructor(
 
     /**
      * Present the payment sheet to process a [SetupIntent].
-     * If the [SetupIntent] is already confirmed, [PaymentSheetResultCallback] will be invoked
-     * with [PaymentSheetResult.Completed].
+     * If the [SetupIntent] is already confirmed, [PaymentResultCallback] will be invoked
+     * with [PaymentResult.Completed].
      *
      * @param setupIntentClientSecret the client secret for the [SetupIntent].
      * @param configuration optional [PaymentSheet] settings.
@@ -1066,13 +1066,13 @@ class PaymentSheet internal constructor(
              * @param activity  the Activity that is presenting the payment sheet.
              * @param paymentOptionCallback called when the customer's desired payment method
              *      changes.  Called in response to the [PaymentSheet#presentPaymentOptions()]
-             * @param paymentResultCallback called when a [PaymentSheetResult] is available.
+             * @param paymentResultCallback called when a [PaymentResult] is available.
              */
             @JvmStatic
             fun create(
                 activity: Activity,
                 paymentOptionCallback: PaymentOptionCallback,
-                paymentResultCallback: PaymentSheetResultCallback
+                paymentResultCallback: PaymentResultCallback
             ): FlowController {
                 return FlowControllerFactory(
                     activity,
@@ -1086,13 +1086,13 @@ class PaymentSheet internal constructor(
              *
              * @param fragment the Fragment that is presenting the payment sheet.
              * @param paymentOptionCallback called when the customer's [PaymentOption] selection changes.
-             * @param paymentResultCallback called when a [PaymentSheetResult] is available.
+             * @param paymentResultCallback called when a [PaymentResult] is available.
              */
             @JvmStatic
             fun create(
                 fragment: Fragment,
                 paymentOptionCallback: PaymentOptionCallback,
-                paymentResultCallback: PaymentSheetResultCallback
+                paymentResultCallback: PaymentResultCallback
             ): FlowController {
                 return FlowControllerFactory(
                     fragment,

@@ -1,9 +1,9 @@
 package io.hyperswitch.paymentsession
 
-import io.hyperswitch.paymentsheet.PaymentSheetResult
+import io.hyperswitch.paymentsheet.PaymentResult
 import org.json.JSONObject
 
-typealias Callback = (PaymentSheetResult) -> Unit
+typealias Callback = (PaymentResult) -> Unit
 
 object PaymentSheetCallbackManager {
     private var callback: Callback? = null
@@ -21,15 +21,15 @@ object PaymentSheetCallbackManager {
     fun executeCallback(data: String): Boolean {
         val jsonObject = JSONObject(data)
         val result = when (val status = jsonObject.getString("status")) {
-            "cancelled" -> PaymentSheetResult.Canceled(status)
+            "cancelled" -> PaymentResult.Canceled(status)
             "failed", "requires_payment_method" -> {
                 val message = jsonObject.getString("message")
                 val throwable = Throwable(message.ifEmpty { status })
                 throwable.initCause(Throwable(jsonObject.getString("code")))
-                PaymentSheetResult.Failed(throwable)
+                PaymentResult.Failed(throwable)
             }
 
-            else -> PaymentSheetResult.Completed(status)
+            else -> PaymentResult.Completed(status)
         }
         callback?.invoke(result) ?: println("No callback set")
         return isFragment

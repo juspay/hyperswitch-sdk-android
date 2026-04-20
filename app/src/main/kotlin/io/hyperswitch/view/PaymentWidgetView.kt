@@ -11,11 +11,13 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.paymentsession.LaunchOptions
+import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.react.EventCallback
 import io.hyperswitch.react.HyperFragment
 import io.hyperswitch.react.HyperFragmentManager
@@ -32,7 +34,7 @@ class PaymentWidgetView : FrameLayout {
     private var profileId: String? = null
     private var sdkAuthorization : String = ""
 
-    private var callback: Callback? = null
+    private var callback:  ((PaymentResult) -> Unit)? = null
 
     private var onEventCallback: EventCallback? = null
     private val choreographerCallbacks = mutableMapOf<Int, Choreographer.FrameCallback>()
@@ -130,7 +132,7 @@ class PaymentWidgetView : FrameLayout {
         this.configuration = configuration
     }
 
-    fun onPaymentResult(callback: Callback) {
+    fun onPaymentResult( callback: (PaymentResult) -> Unit) {
         this.callback = callback
     }
 
@@ -141,7 +143,7 @@ class PaymentWidgetView : FrameLayout {
 
     fun getLaunchOptions(): Bundle =
         this.launchOptions.getBundle(
-            publishableKey = PaymentConfiguration.publishableKey(),
+            publishableKey = this.publishableKey,
             configuration = this.getConfiguration() as Map<String, Any>?,
             customBackendUrl = PaymentConfiguration.customBackendUrl,
             customLogUrl = PaymentConfiguration.customLogUrl,
@@ -151,19 +153,19 @@ class PaymentWidgetView : FrameLayout {
             sdkAuthorization= this.sdkAuthorization,
         )
 
-    fun confirmPayment(callback: Callback) {
+    fun confirmPayment(callback:  (PaymentResult) -> Unit) {
         this.fragment?.confirmPayment(callback)
     }
-    fun updatePaymentIntentInit(callback: Callback){
+    fun updatePaymentIntentInit(callback:  () -> Unit){
         this.fragment?.updatePaymentIntentInit(callback)
     }
 
-    fun updatePaymentIntentComplete(sdkAuthorization : String, callback: Callback){
+    fun updatePaymentIntentComplete(sdkAuthorization : String, callback:  (PaymentResult) -> Unit){
         this.fragment?.updatePaymentIntentComplete(sdkAuthorization, callback)
     }
 
-    fun confirmCvcPayment(paymentToken: String, paymentMethodId: String, callback: Callback) {
-        this.fragment?.confirmCvcPayment(callback, paymentToken, paymentMethodId)
+    fun confirmCvcPayment(paymentToken: String, paymentMethodId: String, callback : (PaymentResult) -> Unit){
+        this.fragment?.confirmCvcPayment( paymentToken, paymentMethodId, callback)
     }
 
     fun setSdkAuthorization(sdkAuthorization: String){
@@ -180,7 +182,7 @@ class PaymentWidgetView : FrameLayout {
             return
         }
         if(this.publishableKey == null) {
-            this.initWidget(PaymentConfiguration.publishableKey() ?: "")
+            this.initWidget(this.publishableKey ?: "")
         }
         val activity = context as? FragmentActivity
 
@@ -215,8 +217,24 @@ class PaymentWidgetView : FrameLayout {
                 frameLayout.post { this.getFragment()?.view?.requestLayout() }
             }
             callback?.let { originalCallback ->
-                this.fragment?.setOnPaymentResult { args ->
-                    originalCallback.invoke(*args)
+                this.fragment?.setOnPaymentResult { result ->
+                    val args = Arguments.createMap()
+                    when (result) {
+                        is PaymentResult.Completed -> {
+                            args.putString("status", "completed")
+                            args.putString("data", result.data)
+                        }
+                        is PaymentResult.Failed -> {
+                            args.putString("status", "failed")
+                            args.putString("message", result.error.message)
+                            args.putString("code", "")
+                        }
+                        is PaymentResult.Canceled -> {
+                            args.putString("status", "cancelled")
+                            args.putString("data", result.data)
+                        }
+                    }
+                    originalCallback.invoke(result)
                 }
             }
             onEventCallback?.let { it -> this.fragment?.setOnEventCallback(it) }

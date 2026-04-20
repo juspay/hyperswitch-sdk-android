@@ -1,8 +1,8 @@
 package io.hyperswitch.paymentsheet
 
 /**
- * Callback that is invoked when a [PaymentSheetResult] is available.
+ * Callback that is invoked when a [PaymentResult] is available.
  */
-fun interface PaymentSheetResultCallback {
-    fun onPaymentSheetResult(paymentSheetResult: PaymentSheetResult)
+fun interface PaymentResultCallback {
+    fun onPaymentResult(PaymentResult: PaymentResult)
 }

@@ -6,7 +6,7 @@ import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
 import io.hyperswitch.logs.LogUtils.getLoggingUrl
 import io.hyperswitch.paymentsheet.PaymentSheet
-import io.hyperswitch.paymentsheet.PaymentSheetResult
+import io.hyperswitch.paymentsheet.PaymentResult
 
 class DefaultPaymentSessionLauncher(
     activity: Activity,
@@ -43,7 +43,7 @@ class DefaultPaymentSessionLauncher(
 
     override fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration?,
-        resultCallback: (PaymentSheetResult) -> Unit
+        resultCallback: (PaymentResult) -> Unit
     ) {
         isPresented = true
         val isFragment =
@@ -53,7 +53,7 @@ class DefaultPaymentSessionLauncher(
 
     override fun presentPaymentSheet(
         configurationMap: Map<String, Any?>,
-        resultCallback: (PaymentSheetResult) -> Unit
+        resultCallback: (PaymentResult) -> Unit
     ) {
         isPresented = true
         val isFragment = paymentSessionReactLauncher.presentSheet(configurationMap)

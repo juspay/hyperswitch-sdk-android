@@ -7,4 +7,8 @@ class CVCWidget @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : HyperswitchElement(context, "cvcWidget", attrs, defStyleAttr)
+) : HyperswitchElement(context, attrs, defStyleAttr) {
+    init {
+        type = "cvcWidget"
+    }
+}

@@ -7,4 +7,4 @@ class PaymentElement @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : HyperswitchElement(context, "", attrs, defStyleAttr)
+) : HyperswitchElement(context, attrs, defStyleAttr)

@@ -6,7 +6,7 @@ import kotlinx.parcelize.Parcelize
 /**
  * The result of an attempt to confirm a [PaymentIntent] or [SetupIntent].
  */
-sealed class PaymentSheetResult : Parcelable {
+sealed class PaymentResult : Parcelable {
 
     /**
      * The customer completed the payment or setup.
@@ -21,7 +21,7 @@ sealed class PaymentSheetResult : Parcelable {
     @Parcelize
     data class Completed(
         val data: String
-    ) : PaymentSheetResult()
+    ) : PaymentResult()
 
     /**
      * The customer canceled the payment or setup attempt.
@@ -29,7 +29,7 @@ sealed class PaymentSheetResult : Parcelable {
     @Parcelize
     data class Canceled(
         val data: String
-    ) : PaymentSheetResult()
+    ) : PaymentResult()
 
     /**
      * The payment or setup attempt failed.
@@ -38,5 +38,5 @@ sealed class PaymentSheetResult : Parcelable {
     @Parcelize
     data class Failed(
         val error: Throwable,
-    ) : PaymentSheetResult()
+    ) : PaymentResult()
 }

@@ -8,7 +8,7 @@ import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSessionLauncher
 import io.hyperswitch.paymentsheet.PaymentSheet
-import io.hyperswitch.paymentsheet.PaymentSheetResult
+import io.hyperswitch.paymentsheet.PaymentResult
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
 
@@ -118,7 +118,7 @@ class PaymentSession internal constructor(
         paymentSessionLauncher.initPaymentSession(sessionToken)
     }
 
-    suspend fun presentPaymentSheet(configuration: PaymentSheet.Configuration): PaymentSheetResult {
+    suspend fun presentPaymentSheet(configuration: PaymentSheet.Configuration): PaymentResult {
         return suspendCancellableCoroutine { continuation ->
             paymentSessionLauncher.presentPaymentSheet(configuration) { result ->
                 continuation.resume(result)
@@ -130,7 +130,7 @@ class PaymentSession internal constructor(
      *
      * @param resultCallback A callback that will be invoked when the payment sheet is closed.
      */
-    fun presentPaymentSheet(resultCallback: (PaymentSheetResult) -> Unit) {
+    fun presentPaymentSheet(resultCallback: (PaymentResult) -> Unit) {
         paymentSessionLauncher.presentPaymentSheet(configuration = null, resultCallback)
     }
 
@@ -141,7 +141,7 @@ class PaymentSession internal constructor(
      * @param resultCallback A callback that will be invoked when the payment sheet is closed.
      */
     fun presentPaymentSheet(
-        configuration: PaymentSheet.Configuration, resultCallback: (PaymentSheetResult) -> Unit
+        configuration: PaymentSheet.Configuration, resultCallback: (PaymentResult) -> Unit
     ) {
         paymentSessionLauncher.presentPaymentSheet(configuration, resultCallback)
     }
@@ -154,7 +154,7 @@ class PaymentSession internal constructor(
      */
     fun presentPaymentSheet(
         configurationMap: Map<String, Any?>,
-        resultCallback: (PaymentSheetResult) -> Unit
+        resultCallback: (PaymentResult) -> Unit
     ) {
         paymentSessionLauncher.presentPaymentSheet(configurationMap, resultCallback)
     }

@@ -21,10 +21,10 @@ class PaymentSheetContract {
     fun parseResult(
         resultCode: Int,
         intent: Intent?
-    ): PaymentSheetResult {
+    ): PaymentResult {
         val paymentResult = null
-        return paymentResult ?: PaymentSheetResult.Failed(
-            IllegalArgumentException("Failed to retrieve a PaymentSheetResult.")
+        return paymentResult ?: PaymentResult.Failed(
+            IllegalArgumentException("Failed to retrieve a PaymentResult.")
         )
     }
 
@@ -77,7 +77,7 @@ class PaymentSheetContract {
 
     @Parcelize
     internal data class Result(
-        val paymentSheetResult: PaymentSheetResult
+        val PaymentResult: PaymentResult
     ) : Parcelable {
         fun toBundle(): Bundle {
             return Bundle().apply {

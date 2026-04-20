@@ -6,7 +6,7 @@ import io.hyperswitch.lite.DefaultPaymentSessionLauncherLite
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSessionLauncher
 import io.hyperswitch.paymentsheet.PaymentSheet
-import io.hyperswitch.paymentsheet.PaymentSheetResult
+import io.hyperswitch.paymentsheet.PaymentResult
 
 /**
  * A class that manages payment sessions using a [io.hyperswitch.paymentsession.PaymentSessionLauncher].
@@ -88,7 +88,7 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
      *
      * @param resultCallback A callback that will be invoked when the payment sheet is closed.
      */
-    fun presentPaymentSheet(resultCallback: (PaymentSheetResult) -> Unit) {
+    fun presentPaymentSheet(resultCallback: (PaymentResult) -> Unit) {
         paymentSessionLauncher.presentPaymentSheet(configuration = null, resultCallback)
     }
 
@@ -99,7 +99,7 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
      * @param resultCallback A callback that will be invoked when the payment sheet is closed.
      */
     fun presentPaymentSheet(
-        configuration: PaymentSheet.Configuration, resultCallback: (PaymentSheetResult) -> Unit
+        configuration: PaymentSheet.Configuration, resultCallback: (PaymentResult) -> Unit
     ) {
         paymentSessionLauncher.presentPaymentSheet(configuration, resultCallback)
     }
@@ -112,7 +112,7 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
      */
     fun presentPaymentSheet(
         configurationMap: Map<String, Any?>,
-        resultCallback: (PaymentSheetResult) -> Unit
+        resultCallback: (PaymentResult) -> Unit
     ) {
         paymentSessionLauncher.presentPaymentSheet(configurationMap, resultCallback)
     }

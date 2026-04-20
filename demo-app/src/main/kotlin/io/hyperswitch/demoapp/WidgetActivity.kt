@@ -100,7 +100,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         val hs = Hyperswitch.init(
             activity = ctx,
             config = HyperswitchConfiguration(
-                publishableKey = "pk_snd_xxxx",
+                publishableKey = publishableKey,
                 profileId = "pro_xxxx",
             )
         )
@@ -143,11 +143,9 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
      * Use this for new card payments
      */
     private fun confirmPayment() {
-        val callback = Callback { args ->
-            val result = args[0] as? String ?: ""
-            handlePaymentResult(result)
+        lifecycleScope.launch {
+            paymentElement.confirmPayment()
         }
-        paymentElement.confirmPayment(callback)
     }
 
     /**
