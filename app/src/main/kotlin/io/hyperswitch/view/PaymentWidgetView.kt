@@ -226,7 +226,7 @@ class PaymentWidgetView : FrameLayout {
                         }
                         is PaymentResult.Failed -> {
                             args.putString("status", "failed")
-                            args.putString("message", result.error.message)
+                            args.putString("message", result.throwable.message)
                             args.putString("code", "")
                         }
                         is PaymentResult.Canceled -> {

@@ -14,7 +14,6 @@ import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.sdk.PaymentSession
-//import io.hyperswitch.payments.paymentlauncher.PaymentResult
 import io.hyperswitch.paymentsession.PMError
 import io.hyperswitch.paymentsheet.AddressDetails
 import io.hyperswitch.paymentsheet.PaymentSheet
@@ -200,9 +199,9 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                                     ctx.findViewById<View>(R.id.confirmButton).isEnabled = true
                                     ctx.findViewById<View>(R.id.confirmButton)
                                         .setOnClickListener { _ ->
-//                                            it.confirmWithCustomerLastUsedPaymentMethod {
-//                                                onPaymentResult(it)
-//                                            }
+                                            it.confirmWithCustomerLastUsedPaymentMethod {
+                                                onPaymentResult(it)
+                                            }
                                         }
                                 }
                             }
@@ -297,7 +296,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             }
 
             is PaymentResult.Failed -> {
-                setStatus(PaymentResult.error.message ?: "")
+                setStatus(PaymentResult.throwable.message ?: "")
             }
 
             is PaymentResult.Completed -> {

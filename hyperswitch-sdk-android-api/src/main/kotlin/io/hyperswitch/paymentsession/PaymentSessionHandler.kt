@@ -1,6 +1,7 @@
 package io.hyperswitch.paymentsession
 
-import io.hyperswitch.payments.paymentlauncher.PaymentResult
+import io.hyperswitch.paymentsheet.PaymentResult
+
 
 interface PaymentSessionHandler {
     fun getCustomerDefaultSavedPaymentMethodData(): Result<PaymentMethod>
