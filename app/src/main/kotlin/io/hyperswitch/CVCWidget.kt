@@ -3,6 +3,7 @@ package io.hyperswitch
 import android.content.Context
 import android.util.AttributeSet
 import android.widget.FrameLayout
+import io.hyperswitch.payments.paymentlauncher.PaymentResult
 import io.hyperswitch.paymentsession.Callback
 import io.hyperswitch.view.PaymentWidgetView
 
@@ -18,10 +19,9 @@ class CVCWidget @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
-    private val internalView: PaymentWidgetView
+    private val internalView: PaymentWidgetView = PaymentWidgetView(context, attrs, defStyleAttr)
 
     init {
-        internalView = PaymentWidgetView(context, attrs, defStyleAttr)
         internalView.setWidgetType("cvcWidget")
         addView(internalView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     }
@@ -48,10 +48,12 @@ class CVCWidget @JvmOverloads constructor(
      * @param paymentMethodId The payment method ID for the saved card
      */
     fun confirmCvcPayment(
-        callback: Callback,
         paymentToken: String,
-        paymentMethodId: String
+        paymentMethodId: String,
+        onComplete: (PaymentResult) -> Unit
     ) {
-        internalView.confirmCvcPayment(callback as (Array<out Any?>) -> Unit, paymentToken, paymentMethodId)
+        internalView.confirmCvcPayment(paymentToken, paymentMethodId, { args ->
+            onComplete(args[0] as PaymentResult)
+        })
     }
 }

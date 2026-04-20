@@ -2,7 +2,6 @@ package io.hyperswitch
 
 import android.content.Context
 import android.util.AttributeSet
-import android.util.Log
 import android.widget.FrameLayout
 import com.facebook.react.bridge.Callback
 import io.hyperswitch.view.PaymentWidgetView
@@ -53,12 +52,16 @@ class PaymentWidget @JvmOverloads constructor(
     /**
      * Updates the payment intent initialization.
      */
-    fun updateIntent(callback: ()-> String) {
-        val internalCallback : () -> Unit = {
-
+    fun updateIntent(
+        sdkAuthorizationProvider: () -> String,
+        onComplete: (String) -> Unit
+    ) {
+        internalView.updatePaymentIntentInit { _ ->
         }
-//        internalView.updatePaymentIntentInit(internalCallback)
-        val sdkAuthorization: String = callback()
-//        internalView.updatePaymentIntentComplete(sdkAuthorization, internalCallback)
+        val sdkAuthorization = sdkAuthorizationProvider()
+        internalView.updatePaymentIntentComplete(sdkAuthorization) { result ->
+            val resultString = result.firstOrNull()?.toString() ?: ""
+            onComplete(resultString)
+        }
     }
 }
