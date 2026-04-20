@@ -34,6 +34,7 @@ class UnifiedPaymentLauncher private constructor(
         val map = mutableMapOf<String, String?>()
         val paymentConfiguration = PaymentConfiguration.getInstance(activity)
         map["publishableKey"] = paymentConfiguration.publishableKey
+        map["profileId"] = paymentConfiguration.profileId
         map["stripeAccountId"] = paymentConfiguration.stripeAccountId
         map["clientSecret"] = params[0].toString()
         map["paymentMethodData"] = params[1].toString()
@@ -56,6 +57,7 @@ class UnifiedPaymentLauncher private constructor(
 
         val map = mutableMapOf<String, String?>()
         map["publishableKey"] = PaymentConfiguration.getInstance(activity).publishableKey
+        map["profileId"] = PaymentConfiguration.getInstance(activity).profileId
         map["clientSecret"] = clientSecret
         map["paymentMethodType"] = paymentMethod.apiValue
         map["confirm"] = "true"
@@ -83,6 +85,7 @@ class UnifiedPaymentLauncher private constructor(
     private fun initializePaymentMethod(clientSecret: String?) {
         val map = mutableMapOf<String, String?>()
         map["publishableKey"] = PaymentConfiguration.getInstance(activity).publishableKey
+        map["profileId"] = PaymentConfiguration.getInstance(activity).profileId
         map["clientSecret"] = clientSecret
         map["paymentMethodType"] = paymentMethod.apiValue
 

@@ -74,6 +74,10 @@ class LaunchOptions(
                 "publishableKey",
                 PaymentConfiguration.getInstance(context).publishableKey
             )
+            putString(
+                "profileId",
+                PaymentConfiguration.getInstance(context).profileId
+            )
             putString("clientSecret", paymentIntentClientSecret)
             putString(
                 "customBackendUrl",
