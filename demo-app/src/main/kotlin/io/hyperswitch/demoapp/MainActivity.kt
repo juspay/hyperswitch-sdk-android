@@ -13,7 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
-import io.hyperswitch.PaymentSession
+import io.hyperswitch.sdk.PaymentSession
 import io.hyperswitch.payments.paymentlauncher.PaymentResult
 import io.hyperswitch.paymentsession.PMError
 import io.hyperswitch.paymentsheet.AddressDetails
@@ -23,17 +23,27 @@ import org.json.JSONException
 import org.json.JSONObject
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
-import io.hyperswitch.HyperInterface
+import androidx.lifecycle.lifecycleScope
+import io.hyperswitch.sdk.HyperInterface
+import io.hyperswitch.PaymentConfiguration
+import io.hyperswitch.model.HyperswitchConfiguration
+import io.hyperswitch.model.PaymentSessionConfiguration
+import io.hyperswitch.sdk.Hyperswitch
+import io.hyperswitch.sdk.HyperswitchInstance
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity(), HyperInterface {
     lateinit var ctx: AppCompatActivity
     private var publishableKey: String = ""
     private var paymentIntentClientSecret: String = "clientSecret"
+    private var sdkAuthorization : String = ""
+    private var profileId : String = ""
     private var netceteraApiKey: String? = null
     private val prefsName = "HyperswitchPrefs"
     private val keyServerUrl = "server_url"
     private var serverUrl = "http://10.0.2.2:5252"
-    private lateinit var paymentSession: PaymentSession
+    private lateinit var hyperswitchInstance: HyperswitchInstance
+    private var paymentSession: PaymentSession? = null
     private lateinit var editText: EditText
 
     private fun fetchNetceteraApiKey() {
@@ -146,23 +156,34 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                         if (result != null) {
                             paymentIntentClientSecret = result.getString("clientSecret")
                             publishableKey = result.getString("publishableKey")
-
+                            sdkAuthorization = result.getString("sdkAuthorization")
+                            profileId = result.optString("profileId")
                             /**
                              *
                              * Create Payment Session Object
                              *
                              * */
 
-                            paymentSession = PaymentSession(ctx, publishableKey)
-
+                            hyperswitchInstance = Hyperswitch.init(
+                                activity = ctx,
+                                config = HyperswitchConfiguration(
+                                    publishableKey = publishableKey,
+                                    profileId = profileId
+                                )
+                            )
                             /**
                              *
                              * Initialise Payment Session
                              *
                              * */
 
-                            paymentSession.initPaymentSession(paymentIntentClientSecret)
-                            paymentSession.getCustomerSavedPaymentMethods { it ->
+                            lifecycleScope.launch {
+                                paymentSession = hyperswitchInstance.initPaymentSession(
+                                    PaymentSessionConfiguration(sdkAuthorization = sdkAuthorization)
+                                )
+                            }
+
+                            paymentSession?.getCustomerSavedPaymentMethods { it ->
                                 val text = it.getCustomerLastUsedPaymentMethodData().fold(
                                     onSuccess = { data ->
                                         data.card?.let { "${it.scheme} - ${it.last4Digits}" }
@@ -247,7 +268,13 @@ class MainActivity : AppCompatActivity(), HyperInterface {
 
         findViewById<View>(R.id.launchButton).setOnClickListener {
             val customisations = getCustomisations()
-            paymentSession.presentPaymentSheet(customisations, ::onPaymentSheetResult)
+            lifecycleScope.launch {
+              val result =   paymentSession?.presentPaymentSheet(customisations)
+                result?.let { onPaymentSheetResult(it) }
+            }
+            //
+            //val result =  paymentSession.presentPaymentSheet(customisations)
+//            onPaymentSheetResult(result)
         }
 
         findViewById<View>(R.id.launchWidgetLayout).setOnClickListener {

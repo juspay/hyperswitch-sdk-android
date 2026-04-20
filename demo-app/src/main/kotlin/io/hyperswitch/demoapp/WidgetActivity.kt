@@ -2,19 +2,23 @@ package io.hyperswitch.demoapp
 
 import android.app.Activity
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.facebook.react.bridge.Callback
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
-import io.hyperswitch.CVCWidget
-import io.hyperswitch.HyperInterface
-import io.hyperswitch.PaymentConfiguration
-import io.hyperswitch.PaymentWidget
+import io.hyperswitch.view.CVCWidget
+import io.hyperswitch.sdk.HyperInterface
+import io.hyperswitch.model.ElementConfiguration
+import io.hyperswitch.model.HyperswitchConfiguration
+import io.hyperswitch.model.PaymentSessionConfiguration
+import io.hyperswitch.sdk.Hyperswitch
+import io.hyperswitch.view.PaymentElement
+import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -39,10 +43,10 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
     private var publishableKey: String = ""
 
     // PaymentWidget reference - holds the main payment form (card input)
-    private lateinit var paymentWidget: PaymentWidget
+    private lateinit var paymentElement: PaymentElement
 
     // CVCWidget reference - holds the CVC input for saved cards (optional)
-    private var cvcWidget: CVCWidget? = null
+    private lateinit var cvcWidget: CVCWidget
 
     // Saved payment method data (for CVC payments)
     private var paymentToken: String? = null
@@ -93,29 +97,38 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
          * Step 1: Initialise Payment Configuration with publishableKey
          * This is required before using any widget
          */
-        PaymentConfiguration.init(applicationContext, publishableKey)
-
+        val hs = Hyperswitch.init(
+            activity = ctx,
+            config = HyperswitchConfiguration(
+                publishableKey = "pk_snd_xxxx",
+                profileId = "pro_xxxx",
+            )
+        )
         /**
          * Step 2: Initialise PaymentWidget
          * - initWidget() initializes the internal view
          * - setSdkAuthorization() sets the payment intent token
          */
-        paymentWidget = findViewById(R.id.paymentSheet)
-        paymentWidget.setSdkAuthorization(sdkAuthorization)
+        paymentElement = findViewById(R.id.paymentElement)
+        lifecycleScope.launch {
+            val bound = hs.elements(
+                PaymentSessionConfiguration(sdkAuthorization)
+            ).bind(ElementConfiguration(paymentElement))
+        }
 
-        cvcWidget = findViewById(R.id.cvcWidget)
-        cvcWidget?.setSdkAuthorization(sdkAuthorization)
+
 
         /**
          * Step 3: Initialise CVCWidget (optional - for saved card payments)
          * Same initialization pattern as PaymentWidget
          */
-//        val cvcWidgetView = findViewById<CVCWidget?>(R.id.cvcWidget)
-//        if (cvcWidgetView != null) {
-//            cvcWidget = cvcWidgetView
-//            cvcWidget?.initWidget(publishableKey)
-//            cvcWidget?.setSdkAuthorization(sdkAuthorization)
-//        }
+        cvcWidget = findViewById(R.id.cvcWidget)
+        lifecycleScope.launch {
+            val bound = hs.elements(
+                PaymentSessionConfiguration(sdkAuthorization)
+            ).bind(ElementConfiguration(cvcWidget))
+
+        }
 
         /**
          * Step 4: Setup button click listeners
@@ -134,7 +147,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             val result = args[0] as? String ?: ""
             handlePaymentResult(result)
         }
-        paymentWidget.confirmPayment(callback)
+        paymentElement.confirmPayment(callback)
     }
 
     /**
@@ -171,14 +184,18 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
 
                 when (status) {
                     "succeeded" -> {
-                        Toast.makeText(this, "Payment Successful: $message", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this, "Payment Successful: $message", Toast.LENGTH_LONG)
+                            .show()
                     }
+
                     "failed", "requires_payment_method" -> {
                         Toast.makeText(this, "Payment Failed: $message", Toast.LENGTH_LONG).show()
                     }
+
                     "cancelled" -> {
                         Toast.makeText(this, "Payment Cancelled", Toast.LENGTH_SHORT).show()
                     }
+
                     else -> {
                         Toast.makeText(this, "Status: $status", Toast.LENGTH_SHORT).show()
                     }

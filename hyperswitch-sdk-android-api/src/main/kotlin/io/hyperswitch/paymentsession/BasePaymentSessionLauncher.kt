@@ -14,7 +14,7 @@ abstract class BasePaymentSessionLauncher(
     customParams: Bundle?
 ) : PaymentSessionLauncher {
 
-    protected var paymentIntentClientSecret: String? = null
+    protected var sessionToken: String? = null
 
     init {
         if (publishableKey != null) {
@@ -29,8 +29,8 @@ abstract class BasePaymentSessionLauncher(
         }
     }
 
-    override fun initPaymentSession(paymentIntentClientSecret: String) {
-        this.paymentIntentClientSecret = paymentIntentClientSecret
+    override fun initPaymentSession(sessionToken: String) {
+        this.sessionToken = sessionToken
     }
 
     abstract override fun presentPaymentSheet(

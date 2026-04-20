@@ -35,8 +35,8 @@
             android:textColor="#FFFFFF"
             android:textSize="20sp" />
 
-        <io.hyperswitch.PaymentWidget
-            android:id="@+id/paymentSheet"
+        <io.hyperswitch.view.HyperswitchElement
+            android:id="@+id/paymentElement"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="20dp"
@@ -54,7 +54,7 @@
             android:textColor="#FFFFFF"
             android:textSize="20sp" />
 
-        <io.hyperswitch.CVCWidget
+        <io.hyperswitch.view.HyperswitchElement
             android:id="@+id/cvcWidget"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

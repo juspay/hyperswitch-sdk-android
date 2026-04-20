@@ -13,23 +13,23 @@ import com.facebook.react.ReactRootView
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReadableMap
-import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import com.facebook.react.views.scroll.ReactHorizontalScrollView
 import com.facebook.react.views.scroll.ReactScrollView
 import com.proyecto26.inappbrowser.ChromeTabsDismissedEvent
 import com.proyecto26.inappbrowser.ChromeTabsManagerActivity
+import io.hyperswitch.events.EventResult
+import io.hyperswitch.paymentsheet.PaymentSheetResult
 import io.hyperswitch.redirect.RedirectEvent
+import io.hyperswitch.utils.ConversionUtils
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
+import kotlin.text.ifEmpty
 
-data class OnEventResult(
-    val eventName: String,
-    val payload: ReadableMap? = null
-)
+
 
 enum class EventName {
     CONFIRM_PAYMENT_ACTION,
@@ -37,7 +37,7 @@ enum class EventName {
 }
 
 
-typealias EventCallback = (OnEventResult) -> Unit
+typealias EventCallback = (EventResult) -> Unit
 
 enum class CallbackType {
     PAYMENT_RESULT,
@@ -174,28 +174,28 @@ class HyperFragment : ReactFragment() {
                 CallbackType.PAYMENT_RESULT -> {
                     val confirmCallback = callbacks.remove(CallbackType.CONFIRM_ACTION) as? HyperCallback.Payment
                     if (confirmCallback != null) {
-                        confirmCallback.fn.invoke(parsed.toWritableMap())
+                        confirmCallback.fn.invoke(parsed)
                         if(this.onExit != null){
                             this.onExit!!.invoke()
                         }
                     } else {
-                        (callbacks[CallbackType.PAYMENT_RESULT] as? HyperCallback.Payment)?.fn?.invoke(parsed.toWritableMap())
+                        (callbacks[CallbackType.PAYMENT_RESULT] as? HyperCallback.Payment)?.fn?.invoke(parsed)
                     }
                 }
 
                 CallbackType.UPDATE_INTENT_INIT ->
                     (callbacks.remove(CallbackType.UPDATE_INTENT_INIT) as? HyperCallback.UpdateIntent)?.fn?.invoke(
-                        parsed.toWritableMap()
+                        parsed
                     )
 
                 CallbackType.UPDATE_INTENT_COMPLETE ->
                     (callbacks.remove(CallbackType.UPDATE_INTENT_COMPLETE) as? HyperCallback.UpdateIntent)?.fn?.invoke(
-                        parsed.toWritableMap()
+                        parsed
                     )
 
                 CallbackType.CONFIRM_ACTION -> {
                     (callbacks.remove(CallbackType.CONFIRM_ACTION) as? HyperCallback.Payment)?.fn?.invoke(
-                        parsed.toWritableMap()
+                        parsed
                     )
                 }
 
@@ -206,13 +206,30 @@ class HyperFragment : ReactFragment() {
         }
     }
 
+
+    private fun parseResult(data: String) {
+        val jsonObject = JSONObject(data)
+        val result = when (val status = jsonObject.getString("status")) {
+            "cancelled" -> PaymentSheetResult.Canceled(status)
+            "failed", "requires_payment_method" -> {
+                val message = jsonObject.getString("message")
+                val throwable = Throwable(message.ifEmpty { status })
+                throwable.initCause(Throwable(jsonObject.getString("code")))
+                PaymentSheetResult.Failed(throwable)
+            }
+
+            else -> PaymentSheetResult.Completed(status)
+        }
+    }
+
     /**
      * Called directly on this instance for streaming widget lifecycle events.
      */
     fun notifyEvent(eventType: String, result: ReadableMap) {
         try {
+
             (callbacks[CallbackType.ON_EVENT] as? HyperCallback.Event)
-                ?.fn?.invoke(OnEventResult(eventType, result))
+                ?.fn?.invoke(EventResult(eventType, ConversionUtils.convertMapToJson(result)))
         } catch (e: Exception) {
             Log.e("HyperFragment", "Error in notifyEvent", e)
         }
@@ -294,39 +311,6 @@ class HyperFragment : ReactFragment() {
         error?.let { putString("error", it) }
         type?.let { putString("type", it) }
     }
-    private data class PaymentResult(
-        val status: String,
-        val message: String,
-        val error: String? = null,
-        val type: String? = null
-    )
-
-    private fun parseResult(result: String): PaymentResult {
-        // Plain status strings from RN bridge (e.g. "cancelled", "failed", "ok")
-        val trimmed = result.trim()
-        if (!trimmed.startsWith("{")) {
-            return PaymentResult(status = trimmed, message = trimmed)
-        }
-        return try {
-            val json = JSONObject(trimmed)
-            PaymentResult(
-                status = json.optString("status", ""),
-                message = json.optString("message", ""),
-                error = json.optString("error").takeIf { json.has("error") },
-                type = json.optString("type").takeIf { json.has("type") }
-            )
-        } catch (e: Exception) {
-            PaymentResult(status = "error", message = trimmed, error = "PARSE_ERROR")
-        }
-    }
-
-    private fun PaymentResult.toWritableMap(): WritableMap = Arguments.createMap().apply {
-        putString("status", status)
-        putString("message", message)
-        error?.let { putString("error", it) }
-        type?.let { putString("type", it) }
-    }
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

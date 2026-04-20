@@ -177,6 +177,7 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
 //      Log.i("HyperModule", "Error in notifyWidgetPaymentResult")
         }
     }
+
     @ReactMethod
     fun onUpdateIntentEvent(rootTag: Int, type: String, result: String) {
         try {
@@ -208,28 +209,24 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
         if (listenerCount.get() == 0) {
             HyperEventEmitter.initialize(rct)
         }
-        listenerCount.set(listenerCount.get() +  1)
+        listenerCount.set(listenerCount.get() + 1)
     }
 
     // Method to remove event listeners
     @ReactMethod
     fun removeListeners(count: Int) {
         listenerCount.set(listenerCount.get() - count)
-        if (listenerCount.get()  == 0) {
-            // Remove upstream listeners, stop unnecessary background task
-        }
+//        if (listenerCount.get() == 0) {
+//            // Remove upstream listeners, stop unnecessary background task
+//        }
     }
 
     @ReactMethod
     fun emitPaymentEvent(rootTag: Int, eventType: String, payload: ReadableMap) {
         try {
-//            if (rootTag <= 0) {
-//                HyperswitchRNWrapperNativeModule.emitPaymentSheetEvent(eventType, payload)
-//            } else {
-                findFragmentWithRootTag(rootTag, {
-                    it?.notifyEvent(eventType, payload)
-                })
-//            }
+            findFragmentWithRootTag(rootTag, {
+                it?.notifyEvent(eventType, payload)
+            })
         } catch (_: Exception) {
         }
     }
