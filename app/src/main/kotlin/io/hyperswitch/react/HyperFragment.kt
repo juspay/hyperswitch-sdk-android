@@ -207,7 +207,7 @@ class HyperFragment : ReactFragment() {
         val jsonObject = JSONObject(data)
         val result = when (val status = jsonObject.getString("status")) {
             "cancelled" -> PaymentResult.Canceled(status)
-            "failed", "requires_payment_method" -> {
+            "failed", "requires_payment_method", "form_invalid" -> {
                 val message = jsonObject.getString("message")
                 val throwable = Throwable(message.ifEmpty { status })
                 throwable.initCause(Throwable(jsonObject.getString("code")))

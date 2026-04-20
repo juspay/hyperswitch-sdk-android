@@ -80,19 +80,7 @@ class PaymentWidgetView : FrameLayout {
         return this.configuration
     }
 
-    fun getSdkAuthorization(): String{
-        return this.sdkAuthorization
-    }
     private var widgetType: String? = null
-
-//    fun setWidgetId(widgetId: String) {
-//        this.widgetId = widgetId
-//    }
-//
-//    fun getWidgetId() : String{
-//        return this.widgetId;
-//    }
-
 
     fun initWidget(publishableKey: String) {
         initWidget(publishableKey, this.profileId ?: "")
@@ -156,6 +144,8 @@ class PaymentWidgetView : FrameLayout {
     fun confirmPayment(callback:  (PaymentResult) -> Unit) {
         this.fragment?.confirmPayment(callback)
     }
+
+
     fun updatePaymentIntentInit(callback:  () -> Unit){
         this.fragment?.updatePaymentIntentInit(callback)
     }

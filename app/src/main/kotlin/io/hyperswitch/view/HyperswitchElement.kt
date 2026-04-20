@@ -52,13 +52,19 @@ open class HyperswitchElement @JvmOverloads constructor(
     fun showWidget() {
         internalView.showWidgetInternal()
     }
+
     suspend fun confirmPayment(): PaymentResult {
         return suspendCancellableCoroutine { continuation ->
-            val callback = { paymentResult : PaymentResult ->
+            val callback = { paymentResult: PaymentResult ->
+                when (paymentResult) {
+                    is PaymentResult.Completed -> {
+                        internalView.removeWidget()
+                    }
+                    else -> {}
+                }
                 continuation.resume(paymentResult)
             }
             internalView.confirmPayment(callback)
-            internalView.removeWidget()
         }
     }
 
@@ -69,9 +75,8 @@ open class HyperswitchElement @JvmOverloads constructor(
         internalView.confirmPayment(callback)
     }
 
-    fun _onPaymentResult(){
+    fun _onPaymentResult() {
         internalView.onPaymentResult { result ->
-            Log.i("Manideep", result.toString())
             internalView.removeWidget()
         }
     }
@@ -79,31 +84,10 @@ open class HyperswitchElement @JvmOverloads constructor(
     fun onPaymentResult(onResult: (PaymentResult) -> Unit) {
         try {
             internalView.onPaymentResult { result ->
-//                val parsed = result.getOrNull(0) as? ReadableMap
-//                val paymentResult = if (parsed != null) {
-//                    val jsonObject = ConversionUtils.convertMapToJson(parsed)
-//                    val status = jsonObject.optString("status")
-//                    when (status) {
-//                        "cancelled" -> PaymentResult.Canceled(status)
-//                        "failed", "requires_payment_method" -> {
-//                            val message = jsonObject.optString("message", status)
-//                            val code = jsonObject.optString("code")
-//                            val throwable = Throwable(message).apply {
-//                                initCause(Throwable(code))
-//                            }
-//                            PaymentResult.Failed(throwable)
-//                        }
-//
-//                        else -> PaymentResult.Completed(status)
-//                    }
-//                } else {
-//                    PaymentResult.Failed(Throwable("Invalid result"))
-//                }
                 onResult(result)
             }
-        }catch(e: Exception){
-
-        }finally {
+        } catch (_: Exception) {
+        } finally {
             internalView.removeWidget()
         }
     }
