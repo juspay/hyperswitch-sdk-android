@@ -178,7 +178,15 @@ class PaymentSheet internal constructor(
         val netceteraSDKApiKey: String? = null,
         val disableBranding: Boolean? = null,
         val defaultView: Boolean? = null,
-        val showVersionInfo: Boolean = false
+        val showVersionInfo: Boolean = false,
+
+        /**
+         * Custom display names for payment methods shown as tabs.
+         *
+         * Each entry maps a payment method name (e.g. "klarna") to a merchant-defined alias
+         * (e.g. "Buy Now, Pay Later"). Only applies to TAB-type payment methods.
+         */
+        val customMethodNames: List<PaymentMethodAlias>? = null
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -218,6 +226,16 @@ class PaymentSheet internal constructor(
                         putBoolean("defaultView", defaultView)
                     }
                     putBoolean("showVersionInfo", showVersionInfo)
+                    if (customMethodNames != null) {
+                        val jsonArray = org.json.JSONArray()
+                        for (alias in customMethodNames) {
+                            val obj = org.json.JSONObject()
+                            obj.put("paymentMethodName", alias.paymentMethodName)
+                            obj.put("aliasName", alias.aliasName)
+                            jsonArray.put(obj)
+                        }
+                        putString("customMethodNames", jsonArray.toString())
+                    }
                 }
             }
 
@@ -246,6 +264,7 @@ class PaymentSheet internal constructor(
             private var savedPaymentSheetHeaderLabel: String? = null
             private var netceteraSDKApiKey: String? = null
             private var showVersionInfo : Boolean = false
+            private var customMethodNames: List<PaymentMethodAlias>? = null
             fun merchantDisplayName(merchantDisplayName: String) =
                 apply { this.merchantDisplayName = merchantDisplayName }
 
@@ -318,6 +337,9 @@ class PaymentSheet internal constructor(
                 this.showVersionInfo = showVersionInfo
             }
 
+            fun customMethodNames(customMethodNames: List<PaymentMethodAlias>?) =
+                apply { this.customMethodNames = customMethodNames }
+
             fun savedPaymentSheetHeaderLabel(savedPaymentSheetHeaderLabel: String) =
                 apply { this.savedPaymentSheetHeaderLabel = savedPaymentSheetHeaderLabel }
 
@@ -341,7 +363,8 @@ class PaymentSheet internal constructor(
                 netceteraSDKApiKey,
                 disableBranding,
                 defaultView,
-                showVersionInfo
+                showVersionInfo,
+                customMethodNames
             )
         }
     }
@@ -983,6 +1006,18 @@ class PaymentSheet internal constructor(
                 }
             }
     }
+
+    /**
+     * A custom display name mapping for a TAB-type payment method.
+     *
+     * @param paymentMethodName the internal name of the payment method (e.g. "klarna").
+     * @param aliasName         the merchant-defined display name shown to the customer.
+     */
+    @Parcelize
+    data class PaymentMethodAlias(
+        val paymentMethodName: String,
+        val aliasName: String
+    ) : Parcelable
 
     enum class Theme {
         Light,
