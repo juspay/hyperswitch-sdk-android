@@ -16,6 +16,7 @@ import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsheet.PaymentResult
+import io.hyperswitch.CvcWidgetEvents
 import io.hyperswitch.PaymentEventData
 import io.hyperswitch.PaymentEvents
 import io.hyperswitch.sdk.Hyperswitch
@@ -194,10 +195,6 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                     val address = event.data as? PaymentEventData.PaymentMethodInfoAddress
                     Log.d("WidgetEvents", "PaymentElement address: $address")
                 }
-                on(PaymentEvents.CvcStatus) { event ->
-                    val address = event.data as? PaymentEventData.CvcStatus
-                    Log.d("WidgetEvents", "PaymentElement CVC: $address")
-                }
             }
         }
 
@@ -234,7 +231,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                     lifecycleScope.launch {
                         cvcWidgetBound = elements
                             .bind(cvcWidget) {
-                                on(PaymentEvents.CvcStatus) { event ->
+                                on(CvcWidgetEvents.CvcStatus) { event ->
                                     val cvcStatus = event.data as? PaymentEventData.CvcStatus
                                     Log.d("CvcWidgetEvents", "CvcWidget focused: ${cvcStatus?.isCvcFocused}")
                                     Log.d("CvcWidgetEvents", "CvcWidget empty: ${cvcStatus?.isCvcEmpty}")
