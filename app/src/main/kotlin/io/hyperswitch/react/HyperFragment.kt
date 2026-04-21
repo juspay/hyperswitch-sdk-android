@@ -164,7 +164,7 @@ class HyperFragment : ReactFragment() {
      * CONFIRM_ACTION  → fires and removes CONFIRM_ACTION (one-shot resolve).
      */
     fun notifyResult(type: CallbackType, result: String) {
-        val parsed = parseResult(result)
+        Log.i("Manideep", "$type $result $id")
         try {
             when (type) {
                 CallbackType.PAYMENT_RESULT -> {
@@ -175,15 +175,18 @@ class HyperFragment : ReactFragment() {
 
                     when {
                         confirmCallback != null -> {
+                            val parsed = parseResult(result)
                             confirmCallback.fn.invoke(parsed)
                             onExit?.invoke()
                         }
 
                         confirmCvcCallback != null -> {
+                            val parsed = parseResult(result)
                             confirmCvcCallback.fn.invoke(parsed)
                         }
 
                         else -> {
+                            val parsed = parseResult(result)
                             (callbacks[CallbackType.PAYMENT_RESULT] as? HyperCallback.Payment)
                                 ?.fn?.invoke(parsed)
                         }
@@ -192,19 +195,20 @@ class HyperFragment : ReactFragment() {
 
                 CallbackType.UPDATE_INTENT_INIT ->
                     (callbacks.remove(CallbackType.UPDATE_INTENT_INIT) as? HyperCallback.UpdateIntentInit)?.fn?.invoke()
-
                 CallbackType.UPDATE_INTENT_COMPLETE ->
                     (callbacks.remove(CallbackType.UPDATE_INTENT_COMPLETE) as? HyperCallback.UpdateIntentComplete)?.fn?.invoke(
                         parseElementUpdateResult(result)
                     )
 
                 CallbackType.CONFIRM_ACTION -> {
+                    val parsed = parseResult(result)
                     (callbacks.remove(CallbackType.CONFIRM_ACTION) as? HyperCallback.Payment)?.fn?.invoke(
                         parsed
                     )
                 }
 
                 CallbackType.CONFIRM_CVC_ACTION -> {
+                    val parsed = parseResult(result)
                     (callbacks.remove(CallbackType.CONFIRM_CVC_ACTION) as? HyperCallback.Payment)?.fn?.invoke(
                         parsed
                     )
@@ -221,7 +225,7 @@ class HyperFragment : ReactFragment() {
         val jsonObject = JSONObject(data)
         return when (val status = jsonObject.getString("status")) {
             "cancelled" -> ElementUpdateIntentResult.Cancelled
-            "failed", "requires_payment_method", "form_invalid" -> {
+            "failed" -> {
                 val message = jsonObject.getString("message")
                 val throwable = Throwable(message.ifEmpty { status })
                 throwable.initCause(Throwable(jsonObject.getString("code")))

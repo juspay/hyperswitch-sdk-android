@@ -213,7 +213,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
 
     private suspend fun updateIntent(): String {
         return suspendCancellableCoroutine { continuation ->
-            reset().get("http://10.0.2.2:5252/create-payment-intent", null)
+            reset().get("http://10.0.2.2:5252/update-payment", null)
                 .responseString(object : Handler<String?> {
                     override fun success(value: String?) {
                         try {
