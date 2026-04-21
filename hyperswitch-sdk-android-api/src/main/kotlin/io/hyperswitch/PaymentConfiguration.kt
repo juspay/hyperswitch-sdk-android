@@ -11,7 +11,7 @@ import androidx.core.content.edit
 @Parcelize
 data class PaymentConfiguration
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) constructor(
-    val publishableKey: String,
+    val publishableKey: String? = null,
     val stripeAccountId: String? = null,
     val customBackendUrl: String? = null,
     val customLogUrl: String? = null,
@@ -27,7 +27,7 @@ data class PaymentConfiguration
 
         @JvmSynthetic
         fun save(
-            publishableKey: String,
+            publishableKey: String?,
             stripeAccountId: String?,
             customBackendUrl: String?,
             customLogUrl: String?,
@@ -106,7 +106,7 @@ data class PaymentConfiguration
         @JvmOverloads
         fun init(
             context: Context,
-            publishableKey: String,
+            publishableKey: String? = null,
             stripeAccountId: String? = null,
             customBackendUrl: String? = null,
             customLogUrl: String? = null,

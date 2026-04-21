@@ -4,12 +4,14 @@ import android.content.Context
 import android.util.AttributeSet
 import android.widget.FrameLayout
 import com.facebook.react.bridge.ReadableMap
+import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * A payment widget that wraps the internal [PaymentWidgetView].
@@ -128,30 +130,19 @@ open class HyperswitchElement @JvmOverloads constructor(
         internalView.setConfiguration(configuration)
     }
 
-    /**
-     * Fetches a fresh SDK authorization and updates the payment intent.
-     */
-    fun updateIntent(
-        sdkAuthorizationProvider: () -> String,
-        onComplete: (PaymentResult) -> Unit
-    ) {
+    fun updateIntentInit(onInitComplete: () -> Unit) {
         internalView.updatePaymentIntentInit {
-            val sdkAuthorization = sdkAuthorizationProvider()
-            internalView.updatePaymentIntentComplete(sdkAuthorization) { result ->
-                onComplete(result)
-            }
+            onInitComplete()
         }
     }
-    fun updateIntent(
-        scope: CoroutineScope,
-        sessionTokenProvider: suspend () -> String,
-        onResult: (PaymentResult) -> Unit
-    ) {
-        internalView.updatePaymentIntentInit {
-            scope.launch {
-                val sdkAuthorization = sessionTokenProvider()
-                internalView.updatePaymentIntentComplete(sdkAuthorization) { result ->
-                    onResult(result)
+
+    suspend fun updateIntentComplete(
+        sdkAuthorization: String
+    ): ElementUpdateIntentResult {
+        return suspendCancellableCoroutine { continuation ->
+            internalView.updatePaymentIntentComplete(sdkAuthorization) { result ->
+                if (continuation.isActive) {
+                    continuation.resume(result)
                 }
             }
         }

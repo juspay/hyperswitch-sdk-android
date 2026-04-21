@@ -43,4 +43,11 @@ class HyperswitchInstance internal constructor(
         val hsConfig = initDeferred.await()
         return Elements(activity, hsConfig, config)
     }
+
+    fun elements(config: PaymentSessionConfiguration, onResult: (Elements) -> Unit) {
+        CoroutineScope(this.initDeferred).launch {
+            val hsConfig = initDeferred.await()
+             onResult(Elements(activity, hsConfig, config))
+        }
+    }
 }

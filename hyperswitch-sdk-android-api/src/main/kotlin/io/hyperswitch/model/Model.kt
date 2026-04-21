@@ -50,3 +50,4 @@ data class Appearance(
 data class PaymentSheetConfiguration(
     val appearance: Appearance? = null,
 )
+

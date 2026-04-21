@@ -154,6 +154,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                         val result = value?.let { JSONObject(it) }
                         if (result != null) {
                             paymentIntentClientSecret = result.getString("clientSecret")
+                            publishableKey = result.getString("publishableKey")
                             sdkAuthorization = result.getString("sdkAuthorization")
                             profileId = result.optString("profileId")
                             /**
@@ -163,7 +164,11 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                              * */
 
                             hyperswitchInstance = Hyperswitch.init(
-                                activity = ctx
+                                activity = ctx,
+                                config = HyperswitchConfiguration(
+                                    publishableKey = publishableKey,
+                                    profileId = profileId
+                                )
                             )
                             /**
                              *

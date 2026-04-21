@@ -2,6 +2,7 @@ package io.hyperswitch.demoapp
 
 import android.app.Activity
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
@@ -12,6 +13,7 @@ import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.model.ElementConfiguration
+import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsheet.PaymentResult
@@ -45,6 +47,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
     private lateinit var cvcWidgetBound : HyperswitchBoundElement
 
     private lateinit var hyperswitchInstance: HyperswitchInstance
+    private lateinit var elements : Elements
     private var paymentSession: PaymentSession? = null
 
     // Resolved from PaymentSession — not from server response
@@ -158,8 +161,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         hyperswitchInstance = Hyperswitch.init(
             activity = ctx,
             config = HyperswitchConfiguration(
-                publishableKey = publishableKey,
-                profileId = profileId,
+                publishableKey = publishableKey
             )
         )
 
@@ -168,20 +170,15 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         // Bind PaymentElement
         val paymentElement = findViewById<PaymentElement>(R.id.paymentElement)
         lifecycleScope.launch {
-            paymentElement.setConfiguration(getCustomisations())
-            paymentElementBound = hyperswitchInstance
+            elements = hyperswitchInstance
                 .elements(session)
-                .bind(ElementConfiguration(paymentElement))
+            paymentElementBound = elements.bind(paymentElement, getCustomisations())
         }
 
-
-
-        // Bind CVCWidget
 
         // Init PaymentSession and fetch saved methods
         lifecycleScope.launch {
             paymentSession = hyperswitchInstance.initPaymentSession(session)
-
             paymentSession?.getCustomerSavedPaymentMethods { savedMethods ->
                 // ── Last Used ──
                 savedMethods.getCustomerLastUsedPaymentMethodData().fold(
@@ -209,8 +206,8 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                 val cvcWidget = findViewById<CVCWidget>(R.id.cvcWidget)
                 if(defaultPaymentToken != null || lastUsedPaymentToken  != null ) {
                     lifecycleScope.launch {
-                        cvcWidgetBound = hyperswitchInstance.elements(session)
-                            .bind(ElementConfiguration(cvcWidget))
+                        cvcWidgetBound = elements
+                            .bind(cvcWidget)
                     }
                 }
 
@@ -272,13 +269,51 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         }
 
         findViewById<View>(R.id.updateIntent).setOnClickListener {
-            paymentElementBound.updateIntent(
+            elements.updateIntent(
                 scope = lifecycleScope,
-                sessionTokenProvider = { updateIntent() },
-                onResult = { result ->
-                    handlePaymentResult(result)
+                sessionTokenProvider = { updateIntent() }
+            ) { result ->
+                when (result) {
+                    is ElementsUpdateResult.Success -> {
+                        // All elements updated — proceed to confirm
+                        Log.i("Payment", "elements success")
+                    }
+
+                    is ElementsUpdateResult.TotalFailure -> {
+                        // Token fetch failed or all elements failed
+                        // Safe to retry the entire call
+                        Log.e("Payment", "Total failure: ${result.cause.message}")
+                    }
+
+                    is ElementsUpdateResult.PartialFailure -> {
+                        // Some elements live, some failed
+                        Log.e("Payment", "Partial failure: ${result.failed.size} elements failed")
+
+//                        if (result.canRetry) {
+//                            elements.retry(
+//                                scope = lifecycleScope,
+//                                failedElements = result.failed,
+//                                sessionTokenProvider = { updateIntent() }
+//                            ) { retryResult ->
+//                                when (retryResult) {
+//                                    is ElementsUpdateResult.Success -> {
+//                                        // All recovered
+//
+//                                    }
+//                                    is ElementsUpdateResult.TotalFailure -> {
+//                                        // Retry also failed entirely
+//                                    }
+//                                    is ElementsUpdateResult.PartialFailure -> {
+//                                        // Some still failing after retry — surface to user
+//                                    }
+//                                }
+//                            }
+//                        }
+
+                    }
                 }
-            )
+            }
+
         }
 
         findViewById<View>(R.id.confirmDefaultWithCVCButton).setOnClickListener {
