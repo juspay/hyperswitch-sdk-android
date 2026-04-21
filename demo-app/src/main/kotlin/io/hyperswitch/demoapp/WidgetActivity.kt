@@ -7,209 +7,274 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.facebook.react.bridge.Callback
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
-import io.hyperswitch.view.CVCWidget
-import io.hyperswitch.sdk.HyperInterface
 import io.hyperswitch.model.ElementConfiguration
 import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
+import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.sdk.Hyperswitch
+import io.hyperswitch.sdk.HyperswitchInstance
+import io.hyperswitch.sdk.HyperInterface
+import io.hyperswitch.sdk.PaymentSession
+import io.hyperswitch.paymentsession.PMError
+import io.hyperswitch.sdk.Elements
+import io.hyperswitch.sdk.HyperswitchBoundElement
+import io.hyperswitch.view.CVCWidget
 import io.hyperswitch.view.PaymentElement
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONException
 import org.json.JSONObject
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
-/**
- * WidgetActivity demonstrates how to use PaymentWidget and CVCWidget
- * for embedding payment forms in your Android application.
- *
- * Based on React Native SDK initialization pattern from PaymentSheet.tsx:
- * - PaymentConfiguration.init() - SDK setup with publishableKey
- * - PaymentWidget.initWidget() - Widget initialization
- * - PaymentWidget.setSdkAuthorization() - Set payment intent token
- * - PaymentWidget.confirmPayment() - Trigger payment confirmation
- *
- * For saved cards (CVCWidget):
- * - Same initialization pattern as PaymentWidget
- * - CVCWidget.confirmCvcPayment() - Confirm with paymentToken and paymentMethodId
- */
 class WidgetActivity : AppCompatActivity(), HyperInterface {
-    lateinit var ctx: Activity
+
+    private lateinit var ctx: Activity
 
     private var sdkAuthorization: String = ""
     private var publishableKey: String = ""
+    private var profileId: String = ""
 
-    // PaymentWidget reference - holds the main payment form (card input)
-    private lateinit var paymentElement: PaymentElement
+    private lateinit var paymentElementBound : HyperswitchBoundElement
+    private lateinit var cvcWidgetBound : HyperswitchBoundElement
 
-    // CVCWidget reference - holds the CVC input for saved cards (optional)
-    private lateinit var cvcWidget: CVCWidget
+    private lateinit var hyperswitchInstance: HyperswitchInstance
+    private var paymentSession: PaymentSession? = null
 
-    // Saved payment method data (for CVC payments)
-    private var paymentToken: String? = null
-    private var paymentMethodId: String? = null
+    // Resolved from PaymentSession — not from server response
+    private var lastUsedPaymentToken: String? = null
+    private var lastUsedPaymentMethodId: String? = null
+    private var defaultPaymentToken: String? = null
+    private var defaultPaymentMethodId: String? = null
 
-    private fun setStatus(error: String = "could not connect to the server") {
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private fun setStatus(message: String = "Could not connect to the server") {
         runOnUiThread {
-            findViewById<TextView>(R.id.resultText).text = error
+            findViewById<TextView>(R.id.resultText).text = message
         }
     }
 
+    private fun toast(message: String) {
+        runOnUiThread { Toast.makeText(this, message, Toast.LENGTH_LONG).show() }
+    }
+
+    private fun setButtonsEnabled(enabled: Boolean) {
+        listOf(
+            R.id.confirmButton2,
+            R.id.getLastUsedButton,
+            R.id.getDefaultSavedMethodButton,
+            R.id.confirmDefaultWithCVCButton,
+            R.id.confirmLastUsedWithCVCButton,
+        ).forEach { findViewById<View>(it).isEnabled = enabled }
+    }
+
+    // ── Network ──────────────────────────────────────────────────────────────
+
     private fun getCL() {
-        ctx.findViewById<View>(R.id.confirmButton2).isEnabled = false
+        setButtonsEnabled(false)
 
         reset().get("http://10.0.2.2:5252/create-payment-intent", null)
             .responseString(object : Handler<String?> {
                 override fun success(value: String?) {
                     try {
-                        val result = value?.let { JSONObject(it) }
-                        if (result != null) {
-                            sdkAuthorization = result.getString("sdkAuthorization")
-                            publishableKey = result.getString("publishableKey")
+                        val result = JSONObject(value ?: return)
+                        sdkAuthorization = result.getString("sdkAuthorization")
+                        publishableKey = result.getString("publishableKey")
+                        profileId = result.optString("profileId")
 
-                            // Extract saved payment method data if available
-                            if (result.has("paymentToken") && result.has("paymentMethodId")) {
-                                paymentToken = result.optString("paymentToken")
-                                paymentMethodId = result.optString("paymentMethodId")
-                            }
-
-                            ctx.runOnUiThread {
-                                initialiseWidgets()
-                                ctx.findViewById<View>(R.id.confirmButton2).isEnabled = true
-                            }
-                        }
+                        runOnUiThread { initialiseWidgets() }
                     } catch (e: JSONException) {
-                        setStatus()
+                        setStatus("Error parsing server response")
                     }
                 }
 
-                override fun failure(error: FuelError) {
-                    setStatus()
-                }
+                override fun failure(error: FuelError) { setStatus() }
             })
     }
 
+    // ── Initialisation ───────────────────────────────────────────────────────
+
     private fun initialiseWidgets() {
-        /**
-         * Step 1: Initialise Payment Configuration with publishableKey
-         * This is required before using any widget
-         */
-        val hs = Hyperswitch.init(
+        hyperswitchInstance = Hyperswitch.init(
             activity = ctx,
             config = HyperswitchConfiguration(
                 publishableKey = publishableKey,
-                profileId = "pro_xxxx",
+                profileId = profileId,
             )
         )
-        /**
-         * Step 2: Initialise PaymentWidget
-         * - initWidget() initializes the internal view
-         * - setSdkAuthorization() sets the payment intent token
-         */
-        paymentElement = findViewById(R.id.paymentElement)
+
+        val session = PaymentSessionConfiguration(sdkAuthorization)
+
+        // Bind PaymentElement
+        val paymentElement = findViewById<PaymentElement>(R.id.paymentElement)
         lifecycleScope.launch {
-            val bound = hs.elements(
-                PaymentSessionConfiguration(sdkAuthorization)
-            ).bind(ElementConfiguration(paymentElement))
+            paymentElementBound = hyperswitchInstance
+                .elements(session)
+                .bind(ElementConfiguration(paymentElement))
         }
 
+        // Bind CVCWidget
 
-
-        /**
-         * Step 3: Initialise CVCWidget (optional - for saved card payments)
-         * Same initialization pattern as PaymentWidget
-         */
-        cvcWidget = findViewById(R.id.cvcWidget)
+        // Init PaymentSession and fetch saved methods
         lifecycleScope.launch {
-            val bound = hs.elements(
-                PaymentSessionConfiguration(sdkAuthorization)
-            ).bind(ElementConfiguration(cvcWidget))
+            paymentSession = hyperswitchInstance.initPaymentSession(session)
 
-        }
+            paymentSession?.getCustomerSavedPaymentMethods { savedMethods ->
+                // ── Last Used ──
+                savedMethods.getCustomerLastUsedPaymentMethodData().fold(
+                    onSuccess = { data ->
+                        lastUsedPaymentToken = data.paymentToken
+                        lastUsedPaymentMethodId = data.paymentMethodId
+                        val label = data.card?.let { "${it.scheme} - ${it.last4Digits}" }
+                            ?: data.paymentMethodType
+                        setStatus("Last Used: $label")
 
-        /**
-         * Step 4: Setup button click listeners
-         */
-        findViewById<View>(R.id.confirmButton2).setOnClickListener {
-            confirmPayment()
-        }
-    }
-
-    /**
-     * Confirm payment using PaymentWidget
-     * Use this for new card payments
-     */
-    private fun confirmPayment() {
-        lifecycleScope.launch {
-            paymentElement.confirmPayment()
-        }
-    }
-
-    /**
-     * Confirm CVC payment using CVCWidget
-     * Use this for saved card payments where CVC is required
-     *
-     * @param paymentToken The payment token for the saved card
-     * @param paymentMethodId The payment method ID for the saved card
-     */
-    private fun confirmCvcPayment(paymentToken: String, paymentMethodId: String) {
-        val cvcWidgetRef = cvcWidget
-        if (cvcWidgetRef == null) {
-            Toast.makeText(this, "CVC Widget not initialized", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val callback: (Array<out Any?>) -> Unit = { args ->
-            val result = args[0] as? String ?: ""
-            handlePaymentResult(result)
-        }
-
-//        cvcWidgetRef.confirmCvcPayment(callback, paymentToken, paymentMethodId)
-    }
-
-    /**
-     * Parse and handle payment result from widget callbacks
-     */
-    private fun handlePaymentResult(result: String) {
-        runOnUiThread {
-            try {
-                val jsonObject = JSONObject(result)
-                val status = jsonObject.optString("status", "unknown")
-                val message = jsonObject.optString("message", "")
-
-                when (status) {
-                    "succeeded" -> {
-                        Toast.makeText(this, "Payment Successful: $message", Toast.LENGTH_LONG)
-                            .show()
+                    },
+                    onFailure = { error ->
+                        setStatus("Last Used: ${(error as? PMError)?.message ?: "Unknown error"}")
                     }
+                )
 
-                    "failed", "requires_payment_method" -> {
-                        Toast.makeText(this, "Payment Failed: $message", Toast.LENGTH_LONG).show()
-                    }
-
-                    "cancelled" -> {
-                        Toast.makeText(this, "Payment Cancelled", Toast.LENGTH_SHORT).show()
-                    }
-
-                    else -> {
-                        Toast.makeText(this, "Status: $status", Toast.LENGTH_SHORT).show()
+                // ── Default Saved ──
+                savedMethods.getCustomerDefaultSavedPaymentMethodData().fold(
+                    onSuccess = { data ->
+                        defaultPaymentToken = data.paymentToken
+                        defaultPaymentMethodId = data.paymentMethodId
+                    },
+                    onFailure = { /* no default set — that's fine */ }
+                )
+                val cvcWidget = findViewById<CVCWidget>(R.id.cvcWidget)
+                if(defaultPaymentToken != null || lastUsedPaymentToken  != null ) {
+                    lifecycleScope.launch {
+                        cvcWidgetBound = hyperswitchInstance.elements(session)
+                            .bind(ElementConfiguration(cvcWidget))
                     }
                 }
-            } catch (_: JSONException) {
-                Toast.makeText(this, result, Toast.LENGTH_SHORT).show()
+
+                runOnUiThread { setButtonsEnabled(true) }
             }
         }
     }
+
+
+    private suspend fun updateIntent(): String {
+        return suspendCancellableCoroutine { continuation ->
+            reset().get("http://10.0.2.2:5252/create-payment-intent", null)
+                .responseString(object : Handler<String?> {
+                    override fun success(value: String?) {
+                        try {
+                            val result = JSONObject(value ?: run {
+                                continuation.cancel()
+                                return
+                            })
+                            val auth = result.getString("sdkAuthorization")
+                            sdkAuthorization = auth
+                            continuation.resume(auth)
+                        } catch (e: JSONException) {
+                            continuation.resumeWithException(e)
+                        }
+                    }
+
+                    override fun failure(error: FuelError) {
+                        continuation.resumeWithException(error.exception)
+                    }
+                })
+        }
+    }
+    // ── Button wiring ────────────────────────────────────────────────────────
+
+    private fun setupButtons() {
+        findViewById<View>(R.id.reloadButton2).setOnClickListener { getCL() }
+
+        findViewById<View>(R.id.confirmButton2).setOnClickListener { confirmPayment() }
+
+        findViewById<View>(R.id.getLastUsedButton).setOnClickListener {
+            val token = lastUsedPaymentToken
+            val methodId = lastUsedPaymentMethodId
+            if (token != null && methodId != null) {
+                setStatus("Last Used → token: $token | methodId: $methodId")
+            } else {
+                setStatus("No last-used saved method available")
+            }
+        }
+
+        findViewById<View>(R.id.getDefaultSavedMethodButton).setOnClickListener {
+            val token = defaultPaymentToken
+            val methodId = defaultPaymentMethodId
+            if (token != null && methodId != null) {
+                setStatus("Default → token: $token | methodId: $methodId")
+            } else {
+                setStatus("No default saved method available")
+            }
+        }
+
+        findViewById<View>(R.id.updateIntent).setOnClickListener {
+            paymentElementBound.updateIntent(
+                scope = lifecycleScope,
+                sessionTokenProvider = { updateIntent() },
+                onResult = { result ->
+                    handlePaymentResult(result)
+                }
+            )
+        }
+
+        findViewById<View>(R.id.confirmDefaultWithCVCButton).setOnClickListener {
+            val token = defaultPaymentToken
+            val methodId = defaultPaymentMethodId
+            if (token != null && methodId != null) {
+                confirmCvcPayment(token, methodId)
+            } else {
+                toast("No default saved method — reload first")
+            }
+        }
+
+        findViewById<View>(R.id.confirmLastUsedWithCVCButton).setOnClickListener {
+            val token = lastUsedPaymentToken
+            val methodId = lastUsedPaymentMethodId
+            if (token != null && methodId != null) {
+                confirmCvcPayment(token, methodId)
+            } else {
+                toast("No last-used saved method — reload first")
+            }
+        }
+    }
+
+    // ── Payment actions ──────────────────────────────────────────────────────
+
+    private fun confirmPayment() {
+        lifecycleScope.launch {
+            val result = paymentElementBound.confirmPayment()
+            handlePaymentResult(result)
+        }
+    }
+
+    private fun confirmCvcPayment(paymentToken: String, paymentMethodId: String) {
+        cvcWidgetBound.confirmCVCWidget(paymentToken, paymentMethodId) { result ->
+            handlePaymentResult(result)
+        }
+    }
+
+    private fun handlePaymentResult(result: PaymentResult) {
+        runOnUiThread {
+            when (result) {
+                is PaymentResult.Completed -> toast("Payment Successful: ${result.data}")
+                is PaymentResult.Failed -> toast("Payment Failed: ${result.throwable.message}")
+                is PaymentResult.Canceled -> toast("Payment Cancelled")
+            }
+        }
+    }
+
+    // ── Lifecycle ────────────────────────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.widget_activity)
         ctx = this
+        setupButtons()
         getCL()
-
-        findViewById<View>(R.id.reloadButton2).setOnClickListener { getCL() }
     }
 }

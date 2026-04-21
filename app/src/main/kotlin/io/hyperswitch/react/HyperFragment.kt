@@ -18,6 +18,7 @@ import com.facebook.react.views.scroll.ReactScrollView
 import com.proyecto26.inappbrowser.ChromeTabsDismissedEvent
 import com.proyecto26.inappbrowser.ChromeTabsManagerActivity
 import io.hyperswitch.events.EventResult
+import io.hyperswitch.paymentsession.ExitHeadlessCallBackManager
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.redirect.RedirectEvent
 import io.hyperswitch.utils.ConversionUtils
@@ -169,15 +170,21 @@ class HyperFragment : ReactFragment() {
                 CallbackType.PAYMENT_RESULT -> {
                     val confirmCallback =
                         callbacks.remove(CallbackType.CONFIRM_ACTION) as? HyperCallback.Payment
-                    if (confirmCallback != null) {
-                        confirmCallback.fn.invoke(parsed)
-                        if (this.onExit != null) {
-                            this.onExit!!.invoke()
+                    val confirmCvcCallback =
+                        callbacks.remove(CallbackType.CONFIRM_CVC_ACTION) as? HyperCallback.Payment
+
+                    when {
+                        confirmCallback != null -> {
+                            confirmCallback.fn.invoke(parsed)
+                            onExit?.invoke()
                         }
-                    } else {
-                        (callbacks[CallbackType.PAYMENT_RESULT] as? HyperCallback.Payment)?.fn?.invoke(
-                            parsed
-                        )
+                        confirmCvcCallback != null -> {
+                            confirmCvcCallback.fn.invoke(parsed)
+                        }
+                        else -> {
+                            (callbacks[CallbackType.PAYMENT_RESULT] as? HyperCallback.Payment)
+                                ?.fn?.invoke(parsed)
+                        }
                     }
                 }
 
@@ -191,6 +198,12 @@ class HyperFragment : ReactFragment() {
 
                 CallbackType.CONFIRM_ACTION -> {
                     (callbacks.remove(CallbackType.CONFIRM_ACTION) as? HyperCallback.Payment)?.fn?.invoke(
+                        parsed
+                    )
+                }
+
+                CallbackType.CONFIRM_CVC_ACTION -> {
+                    (callbacks.remove(CallbackType.CONFIRM_CVC_ACTION) as? HyperCallback.Payment)?.fn?.invoke(
                         parsed
                     )
                 }
@@ -238,56 +251,23 @@ class HyperFragment : ReactFragment() {
         paymentMethodId: String,
         callback: ((PaymentResult) -> Unit)
     ) {
-        if (callbacks.containsKey(CallbackType.CONFIRM_CVC_ACTION)) {
-//            val json = JSONObject()
-            val paymentResult =  PaymentResult.Failed(Throwable("CVC payment already in progress"))
-//            json.put("status", "error")
-//            json.put("message", "CVC payment already in progress")
-//            json.put("code", "ALREADY_IN_PROGRESS")
+        if (ExitHeadlessCallBackManager.getCallback() != null) {
+            val paymentResult = PaymentResult.Failed(
+                Throwable("CVC payment already in progress").apply {
+                    initCause(Throwable("ALREADY_IN_PROGRESS"))
+                }
+            )
             callback.invoke(paymentResult)
             return
         }
         val rootTag = view?.id ?: -1
         if (rootTag == -1) {
-            val paymentResult =  PaymentResult.Failed(Throwable("cannot find the view"))
+            val paymentResult = PaymentResult.Failed(Throwable("cannot find the view"))
             callback.invoke(paymentResult)
             return
         }
 
-        callbacks[CallbackType.CONFIRM_CVC_ACTION] = HyperCallback.Payment(callback)
-
-        // Wire ExitHeadlessCallBackManager so that when CvcWidget JS calls exitHeadless(result),
-        // the result flows back to our callback → promise.resolve in the wrapper module.
-//        ExitHeadlessCallBackManager.setCallback { result: HeadlessPaymentResult ->
-//            callbacks.remove(CallbackType.CONFIRM_CVC_ACTION)
-//            val json = JSONObject()
-//            when (result) {
-//                is HeadlessPaymentResult.Completed -> {
-//                    if (result.data == "requires_customer_action") {
-//                        json.put("status", "failed")
-//                        json.put("code", "requires_customer_action")
-//                        json.put("message", "Payment requires additional authentication")
-//                    } else {
-//                        json.put("status", "success")
-//                        json.put("message", "Payment confirmed successfully")
-//                        json.put("data", result.data)
-//                    }
-//                }
-//
-//                is HeadlessPaymentResult.Failed -> {
-//                    json.put("status", "failed")
-//                    json.put("code", result.throwable.cause?.message ?: "UNKNOWN_ERROR")
-//                    json.put("message", result.throwable.message ?: "An error has occurred.")
-//                }
-//
-//                is HeadlessPaymentResult.Canceled -> {
-//                    json.put("status", "cancelled")
-//                    json.put("message", "Payment confirmation cancelled")
-//                    json.put("data", result.data)
-//                }
-//            }
-//            callback.invoke(json.toString())
-//        }
+        ExitHeadlessCallBackManager.setCallback(callback)
 
 
         val map = Arguments.createMap()

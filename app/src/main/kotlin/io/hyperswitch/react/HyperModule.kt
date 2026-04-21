@@ -161,7 +161,7 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
 
     // Method to exit widget payment sheet
     @ReactMethod
-    fun exitWidgetPaymentsheet(rootTag: Int, paymentResult: String, reset: Boolean) {
+    fun exitWidgetPaymentsheet(rootTag: Double, paymentResult: String, reset: Boolean) {
         findFragmentWithRootTag(rootTag.toInt(), {
             it?.notifyResult(CallbackType.PAYMENT_RESULT, paymentResult)
         })
@@ -198,7 +198,6 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
 
         }
     }
-
     // Variable to keep track of event listener count
     private val listenerCount = AtomicInteger(0)
 

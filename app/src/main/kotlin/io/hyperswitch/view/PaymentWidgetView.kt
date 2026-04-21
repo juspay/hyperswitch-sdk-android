@@ -18,6 +18,7 @@ import io.hyperswitch.BuildConfig
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsheet.PaymentResult
+import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.EventCallback
 import io.hyperswitch.react.HyperFragment
 import io.hyperswitch.react.HyperFragmentManager
@@ -25,8 +26,31 @@ import io.hyperswitch.react.ReactNativeController
 
 import kotlin.math.abs
 
+/**
+ * Sealed interface representing the configuration source for the payment widget.
+ * Supports both native Android (PaymentSheet.Configuration) and React Native (ReadableMap) paths.
+ */
+sealed interface PaymentWidgetConfig {
+    data class Native(val configuration: PaymentSheet.Configuration) : PaymentWidgetConfig
+    data class ReactNative(val configuration: ReadableMap) : PaymentWidgetConfig
+}
+
+/**
+ * Functional interface for listening to payment results.
+ * Unified interface used by both native and React Native callers.
+ */
+fun interface PaymentResultListener {
+    fun onPaymentResult(result: PaymentResult)
+}
+
+/**
+ * Extension function to convert PaymentSheet.Configuration to Map<String, Any>.
+ * TODO: Fill in the actual mapping implementation.
+ */
+fun PaymentSheet.Configuration.toMap(): Map<String, Any> = emptyMap()
+
 class PaymentWidgetView : FrameLayout {
-    private var configuration: ReadableMap? = null
+    private var widgetConfig: PaymentWidgetConfig? = null
     private lateinit var launchOptions: LaunchOptions
     private var fragment: HyperFragment? = null
     private lateinit var mContext: Context
@@ -34,12 +58,12 @@ class PaymentWidgetView : FrameLayout {
     private var profileId: String? = null
     private var sdkAuthorization : String = ""
 
-    private var callback:  ((PaymentResult) -> Unit)? = null
+    private var resultListener: PaymentResultListener? = null
 
     private var onEventCallback: EventCallback? = null
     private val choreographerCallbacks = mutableMapOf<Int, Choreographer.FrameCallback>()
 
-    constructor(context: Context?) : super(context!!) {
+    constructor(context: Context) : super(context) {
         init(context)
     }
 
@@ -74,10 +98,6 @@ class PaymentWidgetView : FrameLayout {
 
     fun getFragment(): HyperFragment? {
         return this.fragment
-    }
-
-    fun getConfiguration(): ReadableMap? {
-        return this.configuration
     }
 
     private var widgetType: String? = null
@@ -116,12 +136,54 @@ class PaymentWidgetView : FrameLayout {
     }
 
 
-    fun configuration(configuration: ReadableMap) {
-        this.configuration = configuration
+    /** Native path - sets configuration using PaymentSheet.Configuration */
+    fun setConfiguration(configuration: PaymentSheet.Configuration) {
+        widgetConfig = PaymentWidgetConfig.Native(configuration)
     }
 
-    fun onPaymentResult( callback: (PaymentResult) -> Unit) {
-        this.callback = callback
+    /** RN bridge path - sets configuration using ReadableMap */
+    fun setConfiguration(configuration: ReadableMap) {
+        widgetConfig = PaymentWidgetConfig.ReactNative(configuration)
+    }
+
+    /** Resolves the configuration to a Map<String, Any>? regardless of source */
+    private fun resolveConfiguration(): Map<String, Any>? = when (val c = widgetConfig) {
+        is PaymentWidgetConfig.Native     -> c.configuration.toMap()
+        is PaymentWidgetConfig.ReactNative -> c.configuration as? Map<String, Any>
+        null -> null
+    }
+
+    /** Native / coroutine path - caller passes a PaymentResultListener */
+    fun onPaymentResult(listener: PaymentResultListener) {
+        resultListener = listener
+    }
+
+    /** RN bridge path - converts PaymentResult to ReadableMap before invoking Callback */
+    fun onPaymentResult(callback: Callback) {
+        resultListener = PaymentResultListener { result ->
+            val args = Arguments.createMap()
+            when (result) {
+                is PaymentResult.Completed -> {
+                    args.putString("status", "completed")
+                    args.putString("data", result.data)
+                }
+                is PaymentResult.Failed -> {
+                    args.putString("status", "failed")
+                    args.putString("message", result.throwable.message)
+                    args.putString("code", "")
+                }
+                is PaymentResult.Canceled -> {
+                    args.putString("status", "cancelled")
+                    args.putString("data", result.data)
+                }
+            }
+            callback.invoke(args)
+        }
+    }
+
+    /** Dispatches the result to the registered listener */
+    private fun dispatchResult(result: PaymentResult) {
+        resultListener?.onPaymentResult(result)
     }
 
     fun onEvent(eventCallback: EventCallback) {
@@ -132,7 +194,7 @@ class PaymentWidgetView : FrameLayout {
     fun getLaunchOptions(): Bundle =
         this.launchOptions.getBundle(
             publishableKey = this.publishableKey,
-            configuration = this.getConfiguration() as Map<String, Any>?,
+            configuration = resolveConfiguration(),
             customBackendUrl = PaymentConfiguration.customBackendUrl,
             customLogUrl = PaymentConfiguration.customLogUrl,
             customParams = PaymentConfiguration.customParams as Map<String, Any>?,
@@ -206,27 +268,7 @@ class PaymentWidgetView : FrameLayout {
 
                 frameLayout.post { this.getFragment()?.view?.requestLayout() }
             }
-            callback?.let { originalCallback ->
-                this.fragment?.setOnPaymentResult { result ->
-                    val args = Arguments.createMap()
-                    when (result) {
-                        is PaymentResult.Completed -> {
-                            args.putString("status", "completed")
-                            args.putString("data", result.data)
-                        }
-                        is PaymentResult.Failed -> {
-                            args.putString("status", "failed")
-                            args.putString("message", result.throwable.message)
-                            args.putString("code", "")
-                        }
-                        is PaymentResult.Canceled -> {
-                            args.putString("status", "cancelled")
-                            args.putString("data", result.data)
-                        }
-                    }
-                    originalCallback.invoke(result)
-                }
-            }
+            this.fragment?.setOnPaymentResult { result -> dispatchResult(result) }
             onEventCallback?.let { it -> this.fragment?.setOnEventCallback(it) }
             this.fragment?.setOnExit {
                 removeWidget()
@@ -310,13 +352,7 @@ class PaymentWidgetView : FrameLayout {
             MotionEvent.ACTION_MOVE -> {
                 val dy = abs(ev.y - startY)
                 val dx = abs(ev.x - startX)
-                if (dy > dx) {
-                    // Vertical scroll - let fragment's inner ReactScrollView handle it
-                    parent?.requestDisallowInterceptTouchEvent(true)
-                } else {
-                    // Horizontal scroll - let parent decide
-                    parent?.requestDisallowInterceptTouchEvent(false)
-                }
+                parent?.requestDisallowInterceptTouchEvent(dy > dx)
             }
 
             MotionEvent.ACTION_UP,

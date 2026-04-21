@@ -7,7 +7,6 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
-import io.hyperswitch.payments.paymentlauncher.PaymentResult
 import io.hyperswitch.paymentsession.Card
 import io.hyperswitch.paymentsession.ExitHeadlessCallBackManager
 import io.hyperswitch.paymentsession.GetPaymentSessionCallBackManager
@@ -15,6 +14,7 @@ import io.hyperswitch.paymentsession.PMError
 import io.hyperswitch.paymentsession.PaymentMethod
 import io.hyperswitch.paymentsession.PaymentMethodType
 import io.hyperswitch.paymentsession.PaymentSessionHandler
+import io.hyperswitch.paymentsheet.PaymentResult
 
 class HyperHeadlessModule internal constructor(private val rct: ReactApplicationContext) :
     ReactContextBaseJavaModule(rct) {

@@ -2,14 +2,13 @@ package io.hyperswitch.view
 
 import android.content.Context
 import android.util.AttributeSet
-import android.util.Log
 import android.widget.FrameLayout
-import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.paymentsheet.PaymentResult
-import io.hyperswitch.utils.ConversionUtils
+import io.hyperswitch.paymentsheet.PaymentSheet
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import org.json.JSONObject
 import kotlin.coroutines.resume
 
 /**
@@ -22,6 +21,7 @@ open class HyperswitchElement @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
 ) : FrameLayout(context, attrs, defStyleAttr) {
+
     private val internalView: PaymentWidgetView = PaymentWidgetView(context, attrs, defStyleAttr)
 
     var type: String? = null
@@ -32,13 +32,16 @@ open class HyperswitchElement @JvmOverloads constructor(
 
     /**
      * Initializes the widget with the given publishable key.
+     * Registers an internal result handler that cleans up on completion.
      */
     fun initWidget(publishableKey: String) {
         internalView.initWidget(publishableKey)
-        type?.let {
-            internalView.setWidgetType(type)
-        }
-        this._onPaymentResult()
+        type?.let { internalView.setWidgetType(it) }
+        internalView.onPaymentResult(PaymentResultListener { result ->
+            if (result is PaymentResult.Completed) {
+                internalView.removeWidget()
+            }
+        })
     }
 
     /**
@@ -48,61 +51,109 @@ open class HyperswitchElement @JvmOverloads constructor(
         internalView.setSdkAuthorization(sdkAuthorization)
     }
 
-
     fun showWidget() {
         internalView.showWidgetInternal()
     }
 
-    suspend fun confirmPayment(): PaymentResult {
-        return suspendCancellableCoroutine { continuation ->
-            val callback = { paymentResult: PaymentResult ->
-                when (paymentResult) {
-                    is PaymentResult.Completed -> {
-                        internalView.removeWidget()
-                    }
-                    else -> {}
+    /**
+     * Suspending variant — resumes with the result and cleans up on completion.
+     */
+    suspend fun confirmPayment(): PaymentResult =
+        suspendCancellableCoroutine { continuation ->
+            internalView.confirmPayment { result ->
+                if (result is PaymentResult.Completed) {
+                    internalView.removeWidget()
                 }
-                continuation.resume(paymentResult)
+                continuation.resume(result)
             }
-            internalView.confirmPayment(callback)
         }
-    }
 
     /**
-     * Confirms the payment with the given callback.
+     * Callback variant — caller is responsible for any post-result cleanup.
      */
     fun confirmPayment(callback: (PaymentResult) -> Unit) {
         internalView.confirmPayment(callback)
     }
 
-    fun _onPaymentResult() {
-        internalView.onPaymentResult { result ->
-            internalView.removeWidget()
-        }
-    }
-
-    fun onPaymentResult(onResult: (PaymentResult) -> Unit) {
-        try {
-            internalView.onPaymentResult { result ->
-                onResult(result)
-            }
-        } catch (_: Exception) {
-        } finally {
-            internalView.removeWidget()
-        }
+    /**
+     * Registers a result handler using PaymentResultListener.
+     */
+    fun onPaymentResult(listener: PaymentResultListener) {
+        internalView.onPaymentResult(listener)
     }
 
     /**
-     * Updates the payment intent initialization.
+     * Registers a result handler with a lambda. Widget is removed only on completion.
+     */
+    fun onPaymentResult(onResult: (PaymentResult) -> Unit) {
+        internalView.onPaymentResult(PaymentResultListener { result ->
+            onResult(result)
+            if (result is PaymentResult.Completed) {
+                internalView.removeWidget()
+            }
+        })
+    }
+
+    /**
+     * Suspending CVC confirmation.
+     */
+    suspend fun confirmCVCWidget(
+        paymentToken: String,
+        paymentMethodId: String
+    ): PaymentResult =
+        suspendCancellableCoroutine { continuation ->
+            internalView.confirmCvcPayment(paymentToken, paymentMethodId) { result ->
+                continuation.resume(result)
+            }
+        }
+
+    /**
+     * Callback CVC confirmation.
+     */
+    fun confirmCVCWidget(
+        paymentToken: String,
+        paymentMethodId: String,
+        callback: (PaymentResult) -> Unit
+    ) {
+        internalView.confirmCvcPayment(paymentToken, paymentMethodId, callback)
+    }
+
+    /** Native path - sets configuration using PaymentSheet.Configuration */
+    fun setConfiguration(configuration: PaymentSheet.Configuration) {
+        internalView.setConfiguration(configuration)
+    }
+
+    /** RN bridge path - sets configuration using ReadableMap */
+    fun setConfiguration(configuration: ReadableMap) {
+        internalView.setConfiguration(configuration)
+    }
+
+    /**
+     * Fetches a fresh SDK authorization and updates the payment intent.
      */
     fun updateIntent(
         sdkAuthorizationProvider: () -> String,
         onComplete: (PaymentResult) -> Unit
     ) {
-        internalView.updatePaymentIntentInit { -> }
-        val sdkAuthorization = sdkAuthorizationProvider()
-        internalView.updatePaymentIntentComplete(sdkAuthorization) { result ->
-            onComplete(result)
+        internalView.updatePaymentIntentInit {
+            val sdkAuthorization = sdkAuthorizationProvider()
+            internalView.updatePaymentIntentComplete(sdkAuthorization) { result ->
+                onComplete(result)
+            }
+        }
+    }
+    fun updateIntent(
+        scope: CoroutineScope,
+        sessionTokenProvider: suspend () -> String,
+        onResult: (PaymentResult) -> Unit
+    ) {
+        internalView.updatePaymentIntentInit {
+            scope.launch {
+                val sdkAuthorization = sessionTokenProvider()
+                internalView.updatePaymentIntentComplete(sdkAuthorization) { result ->
+                    onResult(result)
+                }
+            }
         }
     }
 }
