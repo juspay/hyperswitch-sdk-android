@@ -2,6 +2,7 @@ package io.hyperswitch.sdk
 
 import android.app.Activity
 import android.os.Bundle
+import io.hyperswitch.PaymentEventSubscriptionBuilder
 import android.util.Log
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
@@ -12,6 +13,7 @@ import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
+import io.hyperswitch.react.HyperEventEmitter
 
 /**
  * A class that manages payment sessions using a [io.hyperswitch.paymentsession.PaymentSessionLauncher].
@@ -119,41 +121,35 @@ class PaymentSession internal constructor(
         paymentSessionLauncher.initPaymentSession(sdkAuthorization)
     }
 
-    suspend fun presentPaymentSheet(configuration: PaymentSheet.Configuration): PaymentResult {
+    suspend fun presentPaymentSheet(
+        configuration: PaymentSheet.Configuration,
+        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null
+    ): PaymentResult {
+        if (subscribe != null) {
+            val builder = PaymentEventSubscriptionBuilder()
+            builder.subscribe()
+            val (subscription, listener) = builder.build()
+            HyperEventEmitter.setEventListener(listener, subscription)
+        }
         return suspendCancellableCoroutine { continuation ->
             paymentSessionLauncher.presentPaymentSheet(configuration) { result ->
                 continuation.resume(result)
             }
         }
     }
-    /**
-     * Presents the payment sheet to the user.
-     *
-     * @param resultCallback A callback that will be invoked when the payment sheet is closed.
-     */
-    fun presentPaymentSheet(resultCallback: (PaymentResult) -> Unit) {
+
+    fun launchPaymentSheet(resultCallback: (PaymentResult) -> Unit) {
         paymentSessionLauncher.presentPaymentSheet(configuration = null, resultCallback)
     }
 
-    /**
-     * Presents the payment sheet to the user.
-     *
-     * @param configuration The configuration for the payment sheet.
-     * @param resultCallback A callback that will be invoked when the payment sheet is closed.
-     */
-    fun presentPaymentSheet(
-        configuration: PaymentSheet.Configuration, resultCallback: (PaymentResult) -> Unit
+    fun launchPaymentSheet(
+        configuration: PaymentSheet.Configuration,
+        resultCallback: (PaymentResult) -> Unit
     ) {
         paymentSessionLauncher.presentPaymentSheet(configuration, resultCallback)
     }
 
-    /**
-     * Presents the payment sheet to the user with a configuration map.
-     *
-     * @param configurationMap The configuration map for the payment sheet.
-     * @param resultCallback A callback that will be invoked when the payment sheet is closed.
-     */
-    fun presentPaymentSheet(
+    fun launchPaymentSheet(
         configurationMap: Map<String, Any?>,
         resultCallback: (PaymentResult) -> Unit
     ) {
@@ -169,16 +165,10 @@ class PaymentSession internal constructor(
         paymentSessionLauncher.getCustomerSavedPaymentMethods(savedPaymentMethodCallback)
     }
 
-    /**
-     * Returns the publishable key for this payment session.
-     */
     fun getPublishableKey(): String {
         return publishableKey ?: ""
     }
 
-    /**
-     * Returns the SDK authorization for this payment session.
-     */
     fun getSdkAuthorization(): String {
         return sessionConfig?.sdkAuthorization ?: ""
     }

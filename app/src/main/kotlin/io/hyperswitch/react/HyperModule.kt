@@ -1,5 +1,6 @@
 package io.hyperswitch.react
 
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.FragmentActivity
@@ -13,6 +14,8 @@ import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.uimanager.IllegalViewOperationException
 import com.facebook.react.uimanager.UIManagerModule
 import io.hyperswitch.BuildConfig
+import io.hyperswitch.PaymentConfiguration
+import io.hyperswitch.PaymentEventSubscription
 import io.hyperswitch.payments.GooglePayCallbackManager
 import io.hyperswitch.payments.view.WidgetLauncher
 import io.hyperswitch.paymentsession.LaunchOptions
@@ -211,7 +214,7 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
         listenerCount.set(listenerCount.get() + 1)
     }
 
-    // Method to remove event listeners
+// Method to remove event listeners
     @ReactMethod
     fun removeListeners(count: Int) {
         listenerCount.set(listenerCount.get() - count)

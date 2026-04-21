@@ -124,6 +124,7 @@ data class PaymentMethod(
     val requiresCvv: Boolean,
     val lastUsedAt: String,
     val defaultPaymentMethodSet: Boolean,
+    val billing: String?,
 ) {
     fun toMap(): HashMap<String, Any?> {
         return HashMap<String, Any?>().apply {
@@ -145,6 +146,7 @@ data class PaymentMethod(
             this["requires_cvv"] = requiresCvv
             this["last_used_at"] = lastUsedAt
             this["default_payment_method_set"] = defaultPaymentMethodSet
+            this["billing"] = billing
         }
     }
 }

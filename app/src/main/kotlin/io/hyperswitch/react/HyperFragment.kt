@@ -17,7 +17,8 @@ import com.facebook.react.views.scroll.ReactHorizontalScrollView
 import com.facebook.react.views.scroll.ReactScrollView
 import com.proyecto26.inappbrowser.ChromeTabsDismissedEvent
 import com.proyecto26.inappbrowser.ChromeTabsManagerActivity
-import io.hyperswitch.events.EventResult
+import io.hyperswitch.PaymentEvent
+import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.paymentsession.ExitHeadlessCallBackManager
 import io.hyperswitch.paymentsheet.PaymentResult
@@ -36,14 +37,10 @@ enum class EventName {
     CONFIRM_CVC_PAYMENT
 }
 
-
-typealias EventCallback = (EventResult) -> Unit
-
 enum class CallbackType {
     PAYMENT_RESULT,
     CONFIRM_ACTION,
     CONFIRM_CVC_ACTION,
-    ON_EVENT,
     UPDATE_INTENT_INIT,
     UPDATE_INTENT_COMPLETE
 }
@@ -51,7 +48,6 @@ enum class CallbackType {
 
 sealed class HyperCallback {
     class Payment(val fn: ((PaymentResult) -> Unit)) : HyperCallback()
-    class Event(val fn: EventCallback) : HyperCallback()
     class UpdateIntentInit(val fn: (() -> Unit)?) : HyperCallback()
     class UpdateIntentComplete(val fn: ((ElementUpdateIntentResult) -> Unit)) : HyperCallback()
 }
@@ -64,6 +60,8 @@ class HyperFragment : ReactFragment() {
      */
     private val callbacks = ConcurrentHashMap<CallbackType, HyperCallback>()
 
+    /** Per-widget listener set by HyperswitchBoundElement.subscribe(). Null for PaymentSheet. */
+    private var paymentEventListener: PaymentEventListener? = null
 
     private var onExit: (() -> Unit)? = null
 
@@ -75,8 +73,8 @@ class HyperFragment : ReactFragment() {
         callbacks[CallbackType.PAYMENT_RESULT] = HyperCallback.Payment(callback)
     }
 
-    fun setOnEventCallback(eventCallback: EventCallback) {
-        callbacks[CallbackType.ON_EVENT] = HyperCallback.Event(eventCallback)
+    fun setOnEventCallback(listener: PaymentEventListener) {
+        this.paymentEventListener = listener
     }
 
     fun updatePaymentIntentInit(callback: (() -> Unit)?) {
@@ -247,7 +245,6 @@ class HyperFragment : ReactFragment() {
                 throwable.initCause(Throwable(jsonObject.getString("code")))
                 PaymentResult.Failed(throwable)
             }
-
             else -> PaymentResult.Completed(status)
         }
         return result
@@ -258,9 +255,14 @@ class HyperFragment : ReactFragment() {
      */
     fun notifyEvent(eventType: String, result: ReadableMap) {
         try {
-
-            (callbacks[CallbackType.ON_EVENT] as? HyperCallback.Event)
-                ?.fn?.invoke(EventResult(eventType, ConversionUtils.convertMapToJson(result)))
+            val payload = ConversionUtils.readableMapToMap(result)
+            val listener = paymentEventListener
+            if (listener != null) {
+                val event = PaymentEvent(type = eventType, payload = payload)
+                listener.onPaymentEvent(event)
+            } else {
+                HyperEventEmitter.emitPaymentEvent(eventType, payload)
+            }
         } catch (e: Exception) {
             Log.e("HyperFragment", "Error in notifyEvent", e)
         }
@@ -269,7 +271,7 @@ class HyperFragment : ReactFragment() {
 
     fun confirmCvcPayment(
         paymentToken: String,
-        paymentMethodId: String,
+        billing: String?,
         callback: ((PaymentResult) -> Unit)
     ) {
         if (ExitHeadlessCallBackManager.getCallback() != null) {
@@ -290,12 +292,11 @@ class HyperFragment : ReactFragment() {
 
         ExitHeadlessCallBackManager.setCallback(callback)
 
-
         val map = Arguments.createMap()
         map.putString("actionType", EventName.CONFIRM_CVC_PAYMENT.name)
         map.putInt("rootTag", rootTag)
         map.putString("paymentToken", paymentToken)
-        map.putString("paymentMethodId", paymentMethodId)
+        billing?.let { map.putString("billing", it) }
         reactNativeHost.reactInstanceManager.currentReactContext
             ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
             ?.emit("triggerWidgetAction", map)
