@@ -24,6 +24,7 @@ class DefaultPaymentSessionLauncher(
 ) {
 
     init {
+        // TODO: Remove the publishable KEY
         if (publishableKey != null) {
             val loggingEndPoint = if (customLogUrl != "" && customLogUrl != null) {
                 customLogUrl

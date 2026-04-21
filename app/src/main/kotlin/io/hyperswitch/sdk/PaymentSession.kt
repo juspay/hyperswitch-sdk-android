@@ -37,13 +37,13 @@ class PaymentSession internal constructor(
         sessionConfig = null
     )
 
-    constructor(activity: Activity, config: HyperswitchBaseConfiguration, sessionConfig: PaymentSessionConfiguration): this(
+    constructor(activity: Activity, config: HyperswitchBaseConfiguration?, sessionConfig: PaymentSessionConfiguration): this(
         DefaultPaymentSessionLauncher(activity,
-            config.publishableKey,
-            config.customConfig?.overrideCustomBackendEndpoint,
-            config.customConfig?.overrideCustomLoggingEndpoint,
+            config?.publishableKey,
+            config?.customConfig?.overrideCustomBackendEndpoint,
+            config?.customConfig?.overrideCustomLoggingEndpoint,
             null),
-        publishableKey = config.publishableKey,
+        publishableKey = config?.publishableKey,
         sessionConfig = sessionConfig
     )
 

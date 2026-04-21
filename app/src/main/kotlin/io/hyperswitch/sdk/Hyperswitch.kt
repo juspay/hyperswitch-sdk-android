@@ -14,6 +14,10 @@ object Hyperswitch {
         activity: Activity,
         config: HyperswitchConfiguration,
     ): HyperswitchInstance = init(activity, config as HyperswitchBaseConfiguration)
+    fun init(
+        activity: Activity
+    ): HyperswitchInstance = init(activity, config = null)
+
 
     fun init(
         activity: Activity,
@@ -22,7 +26,7 @@ object Hyperswitch {
 
     private fun init(
         activity: Activity,
-        config: HyperswitchBaseConfiguration,
+        config: HyperswitchBaseConfiguration?,
     ): HyperswitchInstance {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val initDeferred = scope.async {
