@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.widget.FrameLayout
 import com.facebook.react.bridge.ReadableMap
+import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 import kotlinx.coroutines.CoroutineScope
@@ -126,6 +127,14 @@ open class HyperswitchElement @JvmOverloads constructor(
     /** RN bridge path - sets configuration using ReadableMap */
     fun setConfiguration(configuration: ReadableMap) {
         internalView.setConfiguration(configuration)
+    }
+
+    fun setSubscribedEvents(events: List<String>) {
+        internalView.setSubscribedEvents(events)
+    }
+
+    fun setOnEventCallback(listener: PaymentEventListener) {
+        internalView.onEvent(listener)
     }
 
     /**

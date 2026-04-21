@@ -186,58 +186,55 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                                 paymentSession = hyperswitchInstance.initPaymentSession(
                                     PaymentSessionConfiguration(sdkAuthorization = sdkAuthorization)
                                 )
-                            }
 
-                            paymentSession?.subscribe {
-                                on(PaymentEvents.FormStatus) { event ->
-                                    val formStatus = event.data as? PaymentEventData.FormStatus
-                                    Log.d("PaymentEvents", "Form status: ${formStatus?.status?.name}")
-                                }
-
-                                on(PaymentEvents.PaymentMethodStatus) { event ->
-                                    val selected = event.data as? PaymentEventData.PaymentMethodStatus
-                                    Log.d("PaymentEvents", "Selected: ${selected?.paymentMethod}")
-                                    Log.d("PaymentEvents", "Type: ${selected?.paymentMethodType}")
-                                    Log.d("PaymentEvents", "Is Saved: ${selected?.isSavedPaymentMethod}")
-                                    Log.d("PaymentEvents", "Is oneclickwallet: ${selected?.isOneClickWallet}")
-
-                                }
-
-                                on(PaymentEvents.PaymentMethodInfoCard) { event ->
-                                    val cardInfo = event.data as? PaymentEventData.CardInfo
-                                    Log.d("PaymentEvents", "card: $cardInfo")
-                                }
-                                on(PaymentEvents.PaymentMethodInfoBillingAddress) { event ->
-                                    val paymentMethodInfoAddress = event.data as? PaymentEventData.PaymentMethodInfoAddress
-                                    Log.d("PaymentEvents", "address: $paymentMethodInfoAddress")
-                                }
-                            }
-
-
-
-
-                            paymentSession?.getCustomerSavedPaymentMethods { it ->
-
-                                val text = it.getCustomerLastUsedPaymentMethodData().fold(
-                                    onSuccess = { data ->
-                                        data.card?.let { "${it.scheme} - ${it.last4Digits}" }
-                                            ?: data.paymentMethodType
-                                    },
-                                    onFailure = { error ->
-                                        (error as? PMError)?.message ?: "Unknown error"
+                                paymentSession?.subscribe {
+                                    on(PaymentEvents.FormStatus) { event ->
+                                        val formStatus = event.data as? PaymentEventData.FormStatus
+                                        Log.d("PaymentEvents", "Form status: ${formStatus?.status?.name}")
                                     }
-                                )
 
-                                setStatus("Last Used PM: $text")
+                                    on(PaymentEvents.PaymentMethodStatus) { event ->
+                                        val selected = event.data as? PaymentEventData.PaymentMethodStatus
+                                        Log.d("PaymentEvents", "Selected: ${selected?.paymentMethod}")
+                                        Log.d("PaymentEvents", "Type: ${selected?.paymentMethodType}")
+                                        Log.d("PaymentEvents", "Is Saved: ${selected?.isSavedPaymentMethod}")
+                                        Log.d("PaymentEvents", "Is oneclickwallet: ${selected?.isOneClickWallet}")
+                                    }
 
-                                ctx.runOnUiThread {
-                                    ctx.findViewById<View>(R.id.confirmButton).isEnabled = true
-                                    ctx.findViewById<View>(R.id.confirmButton)
-                                        .setOnClickListener { _ ->
-                                            it.confirmWithCustomerLastUsedPaymentMethod {
-                                                onPaymentResult(it)
-                                            }
+                                    on(PaymentEvents.PaymentMethodInfoCard) { event ->
+                                        val cardInfo = event.data as? PaymentEventData.CardInfo
+                                        Log.d("PaymentEvents", "card: $cardInfo")
+                                    }
+
+                                    on(PaymentEvents.PaymentMethodInfoBillingAddress) { event ->
+                                        val paymentMethodInfoAddress = event.data as? PaymentEventData.PaymentMethodInfoAddress
+                                        Log.d("PaymentEvents", "address: $paymentMethodInfoAddress")
+                                    }
+                                }
+
+                                paymentSession?.getCustomerSavedPaymentMethods { it ->
+
+                                    val text = it.getCustomerLastUsedPaymentMethodData().fold(
+                                        onSuccess = { data ->
+                                            data.card?.let { "${it.scheme} - ${it.last4Digits}" }
+                                                ?: data.paymentMethodType
+                                        },
+                                        onFailure = { error ->
+                                            (error as? PMError)?.message ?: "Unknown error"
                                         }
+                                    )
+
+                                    setStatus("Last Used PM: $text")
+
+                                    ctx.runOnUiThread {
+                                        ctx.findViewById<View>(R.id.confirmButton).isEnabled = true
+                                        ctx.findViewById<View>(R.id.confirmButton)
+                                            .setOnClickListener { _ ->
+                                                it.confirmWithCustomerLastUsedPaymentMethod {
+                                                    onPaymentResult(it)
+                                                }
+                                            }
+                                    }
                                 }
                             }
 

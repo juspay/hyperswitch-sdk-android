@@ -1,6 +1,7 @@
 package io.hyperswitch.sdk
 
 import com.facebook.react.bridge.ReadableMap
+import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.view.HyperswitchElement
@@ -17,6 +18,16 @@ class HyperswitchBoundElement internal constructor(
     init {
         element.initWidget(paymentSession.getPublishableKey())
         element.setSdkAuthorization(paymentSession.getSdkAuthorization())
+    }
+
+    fun subscribe(block: PaymentEventSubscriptionBuilder.() -> Unit) {
+        val builder = PaymentEventSubscriptionBuilder()
+        builder.block()
+
+        val (subscription, listener) = builder.build()
+
+        element.setSubscribedEvents(subscription.getSubscribedEventStrings())
+        element.setOnEventCallback(listener)
     }
 
     /** Native path - sets configuration using PaymentSheet.Configuration */

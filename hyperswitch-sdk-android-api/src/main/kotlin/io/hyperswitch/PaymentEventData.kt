@@ -134,6 +134,32 @@ sealed class PaymentEventData() {
         }
     }
 
+    /**
+     * CVC status event payload.
+     *
+     * @property isCvcFocused Whether the CVC field is currently focused
+     * @property isCvcBlur    Whether the CVC field has lost focus
+     * @property isCvcEmpty   Whether the CVC field is empty
+     */
+    data class CvcStatus(
+        val isCvcFocused: Boolean,
+        val isCvcBlur: Boolean,
+        val isCvcEmpty: Boolean,
+    ) : PaymentEventData() {
+
+        companion object {
+            @Suppress("UNCHECKED_CAST")
+            fun fromMap(map: Map<String, Any>): CvcStatus {
+                val nested = map["cvcStatus"] as? Map<String, Any> ?: map
+                return CvcStatus(
+                    isCvcFocused = (nested["isCvcFocused"] as? Boolean) ?: false,
+                    isCvcBlur = (nested["isCvcBlur"] as? Boolean) ?: false,
+                    isCvcEmpty = (nested["isCvcEmpty"] as? Boolean) ?: true,
+                )
+            }
+        }
+    }
+
     companion object {
         /**
          * Parse a [PaymentEventData] subclass from a raw event-type string and payload map.
@@ -148,6 +174,7 @@ sealed class PaymentEventData() {
                 "PAYMENT_METHOD_STATUS" -> PaymentMethodStatus.fromMap(payload)
                 "FORM_STATUS" -> FormStatus.fromMap(payload)
                 "PAYMENT_METHOD_INFO_BILLING_ADDRESS" -> PaymentMethodInfoAddress.fromMap(payload)
+                "CVC_STATUS" -> CvcStatus.fromMap(payload)
                 else -> null
             }
     }

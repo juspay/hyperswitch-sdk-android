@@ -2,6 +2,7 @@ package io.hyperswitch.demoapp
 
 import android.app.Activity
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
@@ -15,6 +16,8 @@ import io.hyperswitch.model.ElementConfiguration
 import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsheet.PaymentResult
+import io.hyperswitch.PaymentEventData
+import io.hyperswitch.PaymentEvents
 import io.hyperswitch.sdk.Hyperswitch
 import io.hyperswitch.sdk.HyperswitchInstance
 import io.hyperswitch.sdk.HyperInterface
@@ -172,6 +175,33 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             paymentElementBound = hyperswitchInstance
                 .elements(session)
                 .bind(ElementConfiguration(paymentElement))
+
+            paymentElementBound.subscribe {
+                on(PaymentEvents.FormStatus) { event ->
+                    val formStatus = event.data as? PaymentEventData.FormStatus
+                    Log.d("WidgetEvents", "PaymentElement form status: ${formStatus?.status?.name}")
+                }
+
+                on(PaymentEvents.PaymentMethodStatus) { event ->
+                    val status = event.data as? PaymentEventData.PaymentMethodStatus
+                    Log.d("WidgetEvents", "PaymentElement method: ${status?.paymentMethod}")
+                    Log.d("WidgetEvents", "PaymentElement type: ${status?.paymentMethodType}")
+                }
+
+                on(PaymentEvents.PaymentMethodInfoCard) { event ->
+                    val cardInfo = event.data as? PaymentEventData.CardInfo
+                    Log.d("WidgetEvents", "PaymentElement card: $cardInfo")
+                }
+
+                on(PaymentEvents.PaymentMethodInfoBillingAddress) { event ->
+                    val address = event.data as? PaymentEventData.PaymentMethodInfoAddress
+                    Log.d("WidgetEvents", "PaymentElement address: $address")
+                }
+                on(PaymentEvents.CvcStatus) { event ->
+                    val address = event.data as? PaymentEventData.CvcStatus
+                    Log.d("WidgetEvents", "PaymentElement CVC: $address")
+                }
+            }
         }
 
 
@@ -211,6 +241,14 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                     lifecycleScope.launch {
                         cvcWidgetBound = hyperswitchInstance.elements(session)
                             .bind(ElementConfiguration(cvcWidget))
+
+                        cvcWidgetBound.subscribe {
+                            on(PaymentEvents.CvcStatus) { event ->
+                                val cvcStatus = event.data as? PaymentEventData.CvcStatus
+                                Log.d("CvcWidgetEvents", "CvcWidget focused: ${cvcStatus?.isCvcFocused}")
+                                Log.d("CvcWidgetEvents", "CvcWidget empty: ${cvcStatus?.isCvcEmpty}")
+                            }
+                        }
                     }
                 }
 

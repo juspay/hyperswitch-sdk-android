@@ -76,6 +76,18 @@ object PaymentEvents {
      * - postalCode: String              Postal/ZIP code
      */
     object PaymentMethodInfoBillingAddress : EventType("PAYMENT_METHOD_INFO_BILLING_ADDRESS")
+
+    /**
+     * CVC status event - emitted when CVC field state changes in a CVC widget.
+     * Event type: "CVC_STATUS"
+     * Payload: PaymentEventData.CvcStatus
+     *
+     * Fields:
+     * - isCvcFocused: Boolean           Whether the CVC field is focused
+     * - isCvcBlur: Boolean              Whether the CVC field has lost focus
+     * - isCvcEmpty: Boolean             Whether the CVC field is empty
+     */
+    object CvcStatus : EventType("CVC_STATUS")
 }
 
 /**
