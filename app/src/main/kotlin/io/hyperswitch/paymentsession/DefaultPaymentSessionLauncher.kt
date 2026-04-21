@@ -36,9 +36,9 @@ class DefaultPaymentSessionLauncher(
         paymentSessionReactLauncher.initializeReactNativeInstance()
     }
 
-    override fun initPaymentSession(sessionToken: String) {
-        super.initPaymentSession(sessionToken)
-        Companion.sessionToken = sessionToken
+    override fun initPaymentSession(sdkAuthorization: String) {
+        super.initPaymentSession(sdkAuthorization)
+        Companion.sdkAuthorization = sdkAuthorization
     }
 
     override fun presentPaymentSheet(
@@ -47,7 +47,7 @@ class DefaultPaymentSessionLauncher(
     ) {
         isPresented = true
         val isFragment =
-            paymentSessionReactLauncher.presentSheet(Companion.sessionToken ?: "", configuration)
+            paymentSessionReactLauncher.presentSheet(Companion.sdkAuthorization ?: "", configuration)
         PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
     }
 
@@ -70,6 +70,6 @@ class DefaultPaymentSessionLauncher(
 
     companion object {
         var isPresented: Boolean = false
-        var sessionToken: String? = null
+        var sdkAuthorization: String? = null
     }
 }

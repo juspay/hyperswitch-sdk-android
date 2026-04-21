@@ -4,7 +4,7 @@ import io.hyperswitch.paymentsheet.PaymentSheet
 
 interface SDKInterface {
     fun presentSheet(
-        sessionToken: String,
+        sdkAuthorization: String,
         configuration: PaymentSheet.Configuration?
     ): Boolean
 

@@ -59,14 +59,14 @@ class LaunchOptions(
         }
 
     fun getBundle(
-        sessionToken: String,
+        sdkAuthorization: String,
         configuration: PaymentSheet.Configuration? = null
     ): Bundle =
-        context?.let { getBundle(it, sessionToken, configuration) } ?: Bundle()
+        context?.let { getBundle(it, sdkAuthorization, configuration) } ?: Bundle()
 
     fun getBundle(
         context: Context,
-        sessionToken: String,
+        sdkAuthorization: String,
         configuration: PaymentSheet.Configuration? = null
     ): Bundle = Bundle().apply {
         putBundle("props", Bundle().apply {
@@ -75,7 +75,7 @@ class LaunchOptions(
                 "publishableKey",
                 PaymentConfiguration.getInstance(context).publishableKey
             )
-            putString("sdkAuthorization", sessionToken)
+            putString("sdkAuthorization", sdkAuthorization)
             putString(
                 "customBackendUrl",
                 PaymentConfiguration.getInstance(context).customBackendUrl

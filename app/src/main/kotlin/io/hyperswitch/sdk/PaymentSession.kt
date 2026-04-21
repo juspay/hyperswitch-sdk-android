@@ -114,8 +114,8 @@ class PaymentSession internal constructor(
      *
      * @param paymentIntentClientSecret The client secret of the payment intent.
      */
-    fun initPaymentSession(sessionToken: String) {
-        paymentSessionLauncher.initPaymentSession(sessionToken)
+    fun initPaymentSession(sdkAuthorization: String) {
+        paymentSessionLauncher.initPaymentSession(sdkAuthorization)
     }
 
     suspend fun presentPaymentSheet(configuration: PaymentSheet.Configuration): PaymentResult {

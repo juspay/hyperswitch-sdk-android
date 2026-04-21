@@ -79,8 +79,8 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
      *
      * @param paymentIntentClientSecret The client secret of the payment intent.
      */
-    fun initPaymentSession(sessionToken: String) {
-        paymentSessionLauncher.initPaymentSession(sessionToken)
+    fun initPaymentSession(sdkAuthorization: String) {
+        paymentSessionLauncher.initPaymentSession(sdkAuthorization)
     }
 
     /**
