@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.widget.FrameLayout
 import com.facebook.react.bridge.ReadableMap
+import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
@@ -101,10 +102,10 @@ open class HyperswitchElement @JvmOverloads constructor(
      */
     suspend fun confirmCVCWidget(
         paymentToken: String,
-        paymentMethodId: String
+        billing: String? = null
     ): PaymentResult =
         suspendCancellableCoroutine { continuation ->
-            internalView.confirmCvcPayment(paymentToken, paymentMethodId) { result ->
+            internalView.confirmCvcPayment(paymentToken, billing) { result ->
                 continuation.resume(result)
             }
         }
@@ -114,10 +115,10 @@ open class HyperswitchElement @JvmOverloads constructor(
      */
     fun confirmCVCWidget(
         paymentToken: String,
-        paymentMethodId: String,
+        billing: String? = null,
         callback: (PaymentResult) -> Unit
     ) {
-        internalView.confirmCvcPayment(paymentToken, paymentMethodId, callback)
+        internalView.confirmCvcPayment(paymentToken, billing, callback)
     }
 
     /** Native path - sets configuration using PaymentSheet.Configuration */
@@ -128,6 +129,14 @@ open class HyperswitchElement @JvmOverloads constructor(
     /** RN bridge path - sets configuration using ReadableMap */
     fun setConfiguration(configuration: ReadableMap) {
         internalView.setConfiguration(configuration)
+    }
+
+    fun setSubscribedEvents(events: List<String>) {
+        internalView.setSubscribedEvents(events)
+    }
+
+    fun setOnEventCallback(listener: PaymentEventListener) {
+        internalView.onEvent(listener)
     }
 
     fun updateIntentInit(onInitComplete: () -> Unit) {

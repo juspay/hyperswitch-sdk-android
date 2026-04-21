@@ -1,13 +1,21 @@
 package io.hyperswitch.react
 
+import android.os.Handler
+import android.os.Looper
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.modules.core.DeviceEventManagerModule
+import io.hyperswitch.PaymentEvent
+import io.hyperswitch.PaymentEventListener
+import io.hyperswitch.PaymentEventSubscription
 import java.util.concurrent.ConcurrentLinkedQueue
 
 object HyperEventEmitter {
     private var reactContext: ReactApplicationContext? = null
     private val pendingEvents = ConcurrentLinkedQueue<Pair<String, Map<String, String?>>>()
+    private var eventListener: PaymentEventListener? = null
+    private var subscriptionEvents: PaymentEventSubscription? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     fun initialize(context: ReactApplicationContext) {
         reactContext = context
@@ -16,6 +24,55 @@ object HyperEventEmitter {
 
     fun deinitialize() {
         reactContext = null
+        eventListener = null
+    }
+
+    /**
+     * Set the payment event listener for merchant callbacks
+     * @param listener The listener to receive payment events
+     * @param subscription The event subscription configuration
+     */
+    fun setEventListener(listener: PaymentEventListener?, subscription: PaymentEventSubscription? = null) {
+        eventListener = listener
+        subscriptionEvents = subscription
+    }
+
+    /**
+     * Emit a payment event to merchant listener (if subscribed)
+     * @param eventType The type of event (e.g., "payment_method.info.card")
+     * @param payload The event payload data
+     */
+    fun emitPaymentEvent(
+        eventType: String,
+        payload: Map<String, Any>
+    ) {
+        val shouldEmit = isSubscribed(eventType)
+        
+        if (shouldEmit && eventListener != null) {
+            val event = PaymentEvent(
+                type = eventType,
+                payload = payload
+            )
+            
+            mainHandler.post {
+                eventListener?.onPaymentEvent(event)
+            }
+        }
+    }
+    
+    fun isSubscribed(eventType: String): Boolean {
+        val subscription = subscriptionEvents ?: return false
+        return subscription.isSubscribed(eventType)
+    }
+
+    /**
+     * Get the list of subscribed event types
+     * Called by React Native to initialize subscription state
+     * @return List of subscribed event type strings
+     */
+    fun getSubscribedEvents(): List<String> {
+        val subscription = subscriptionEvents ?: return emptyList()
+        return subscription.getSubscribedEventStrings()
     }
 
     fun confirmStatic(tag: String, map: MutableMap<String, String?>) {
@@ -81,4 +138,4 @@ object HyperEventEmitter {
                 iterator.remove()
         }
     }
-} 
+}

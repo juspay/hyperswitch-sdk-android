@@ -87,6 +87,47 @@ object ConversionUtils {
         return obj
     }
 
+    /**
+     * Recursively convert a [ReadableMap] into a plain [Map]<String, Any>.
+     * Nested maps and arrays are converted recursively so that callers never
+     * receive raw [org.json.JSONObject] / [org.json.JSONArray] values.
+     */
+    @JvmStatic
+    fun readableMapToMap(readableMap: ReadableMap?): Map<String, Any> {
+        if (readableMap == null) return emptyMap()
+        val result = mutableMapOf<String, Any>()
+        val iterator = readableMap.keySetIterator()
+        while (iterator.hasNextKey()) {
+            val key = iterator.nextKey()
+            when (readableMap.getType(key)) {
+                ReadableType.Null -> {}
+                ReadableType.Boolean -> result[key] = readableMap.getBoolean(key)
+                ReadableType.Number -> result[key] = readableMap.getDouble(key)
+                ReadableType.String -> result[key] = readableMap.getString(key) ?: ""
+                ReadableType.Map -> result[key] = readableMapToMap(readableMap.getMap(key))
+                ReadableType.Array -> result[key] = readableArrayToList(readableMap.getArray(key))
+            }
+        }
+        return result
+    }
+
+    @JvmStatic
+    fun readableArrayToList(readableArray: ReadableArray?): List<Any> {
+        if (readableArray == null) return emptyList()
+        val result = mutableListOf<Any>()
+        for (i in 0 until readableArray.size()) {
+            when (readableArray.getType(i)) {
+                ReadableType.Null -> {}
+                ReadableType.Boolean -> result.add(readableArray.getBoolean(i))
+                ReadableType.Number -> result.add(readableArray.getDouble(i))
+                ReadableType.String -> result.add(readableArray.getString(i) ?: "")
+                ReadableType.Map -> result.add(readableMapToMap(readableArray.getMap(i)))
+                ReadableType.Array -> result.add(readableArrayToList(readableArray.getArray(i)))
+            }
+        }
+        return result
+    }
+
     @JvmStatic
     @Throws(JSONException::class)
     fun convertArrayToJson(readableArray: ReadableArray?): JSONArray {

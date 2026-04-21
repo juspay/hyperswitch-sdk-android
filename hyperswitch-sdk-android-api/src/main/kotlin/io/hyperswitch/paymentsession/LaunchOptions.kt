@@ -60,14 +60,16 @@ class LaunchOptions(
 
     fun getBundle(
         sdkAuthorization: String,
-        configuration: PaymentSheet.Configuration? = null
+        configuration: PaymentSheet.Configuration? = null,
+        subscribedEvents: List<String> = emptyList()
     ): Bundle =
-        context?.let { getBundle(it, sdkAuthorization, configuration) } ?: Bundle()
+        context?.let { getBundle(it, sdkAuthorization, configuration, subscribedEvents) } ?: Bundle()
 
     fun getBundle(
         context: Context,
         sdkAuthorization: String,
-        configuration: PaymentSheet.Configuration? = null
+        configuration: PaymentSheet.Configuration? = null,
+        subscribedEvents: List<String> = emptyList()
     ): Bundle = Bundle().apply {
         putBundle("props", Bundle().apply {
             putString("type", "payment")
@@ -85,6 +87,7 @@ class LaunchOptions(
             putBundle("customParams", PaymentConfiguration.getInstance(context).customParams)
             putBundle("configuration", configuration?.bundle)
             putBundle("hyperParams", getHyperParams())
+            putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
         })
     }
 
@@ -97,6 +100,7 @@ class LaunchOptions(
         type: String? = "payment",
         widgetId: String? = null,
         sdkAuthorization : String? = null,
+        subscribedEvents: List<String> = emptyList(),
     ): Bundle = Bundle().apply {
         putBundle("props", Bundle().apply {
             putString("type", type)
@@ -110,7 +114,9 @@ class LaunchOptions(
             customBackendUrl?.let { url -> putString("customBackendUrl", url) }
             customLogUrl?.let { url -> putString("customLogUrl", url) }
 
-            if (configuration?.containsKey("subscribedEvents") == true) {
+            if (subscribedEvents.isNotEmpty()) {
+                putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
+            } else if (configuration?.containsKey("subscribedEvents") == true) {
                 val subscribedEventsArray = configuration["subscribedEvents"] as? List<*>
                 if (subscribedEventsArray != null) {
                     putSerializable("subscribedEvents", ArrayList(subscribedEventsArray))
@@ -126,9 +132,12 @@ class LaunchOptions(
         })
     }
 
-    fun getBundleWithHyperParams(readableMap: Map<*, *>): Bundle = Bundle().apply {
+
+
+    fun getBundleWithHyperParams(readableMap: Map<*, *>, subscribedEvents: List<String> = emptyList()): Bundle = Bundle().apply {
         putBundle("props", toBundle(readableMap).apply {
             putBundle("hyperParams", getHyperParams())
+            putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
         })
     }
 

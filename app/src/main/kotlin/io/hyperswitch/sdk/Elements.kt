@@ -1,6 +1,7 @@
 package io.hyperswitch.sdk
 
 import android.app.Activity
+import io.hyperswitch.PaymentEventSubscriptionBuilder
 import android.util.Log
 import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchBaseConfiguration
@@ -14,7 +15,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class Elements internal constructor(
     activity: Activity,
@@ -33,9 +33,10 @@ class Elements internal constructor(
 
     fun bind(
         element: HyperswitchElement,
-        configuration: PaymentSheet.Configuration? = null
+        configuration: PaymentSheet.Configuration? = null,
+        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null
     ): HyperswitchBoundElement {
-        val hsElement = HyperswitchBoundElement(paymentSession, element, configuration)
+        val hsElement = HyperswitchBoundElement(paymentSession, element, configuration, subscribe)
         hsElements.add(hsElement)
         return hsElement
     }
