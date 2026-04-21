@@ -6,7 +6,7 @@ import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
 import io.hyperswitch.logs.LogUtils.getLoggingUrl
 import io.hyperswitch.paymentsheet.PaymentSheet
-import io.hyperswitch.paymentsheet.PaymentSheetResult
+import io.hyperswitch.paymentsheet.PaymentResult
 
 class DefaultPaymentSessionLauncher(
     activity: Activity,
@@ -24,6 +24,7 @@ class DefaultPaymentSessionLauncher(
 ) {
 
     init {
+        // TODO: Remove the publishable KEY
         if (publishableKey != null) {
             val loggingEndPoint = if (customLogUrl != "" && customLogUrl != null) {
                 customLogUrl
@@ -36,24 +37,24 @@ class DefaultPaymentSessionLauncher(
         paymentSessionReactLauncher.initializeReactNativeInstance()
     }
 
-    override fun initPaymentSession(paymentIntentClientSecret: String) {
-        super.initPaymentSession(paymentIntentClientSecret)
-        Companion.paymentIntentClientSecret = paymentIntentClientSecret
+    override fun initPaymentSession(sdkAuthorization: String) {
+        super.initPaymentSession(sdkAuthorization)
+        Companion.sdkAuthorization = sdkAuthorization
     }
 
     override fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration?,
-        resultCallback: (PaymentSheetResult) -> Unit
+        resultCallback: (PaymentResult) -> Unit
     ) {
         isPresented = true
         val isFragment =
-            paymentSessionReactLauncher.presentSheet(paymentIntentClientSecret ?: "", configuration)
+            paymentSessionReactLauncher.presentSheet(Companion.sdkAuthorization ?: "", configuration)
         PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
     }
 
     override fun presentPaymentSheet(
         configurationMap: Map<String, Any?>,
-        resultCallback: (PaymentSheetResult) -> Unit
+        resultCallback: (PaymentResult) -> Unit
     ) {
         isPresented = true
         val isFragment = paymentSessionReactLauncher.presentSheet(configurationMap)
@@ -70,6 +71,6 @@ class DefaultPaymentSessionLauncher(
 
     companion object {
         var isPresented: Boolean = false
-        var paymentIntentClientSecret: String? = null
+        var sdkAuthorization: String? = null
     }
 }

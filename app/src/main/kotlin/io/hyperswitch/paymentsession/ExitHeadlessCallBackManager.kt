@@ -1,6 +1,7 @@
 package io.hyperswitch.paymentsession
 
-import io.hyperswitch.payments.paymentlauncher.PaymentResult
+import io.hyperswitch.paymentsheet.PaymentResult
+
 import org.json.JSONObject
 
 typealias ExitCallback = (PaymentResult) -> Unit
@@ -28,6 +29,9 @@ object ExitHeadlessCallBackManager {
 
             else -> PaymentResult.Completed(status ?: "default")
         }
-        callback?.invoke(result) ?: println("No callback set")
+        val cb = callback
+        callback = null
+        cb?.invoke(result)
+
     }
 }

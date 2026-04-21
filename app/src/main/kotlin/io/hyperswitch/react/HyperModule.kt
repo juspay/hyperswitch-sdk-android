@@ -3,19 +3,24 @@ package io.hyperswitch.react
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.FragmentActivity
+import androidx.fragment.app.FragmentManager
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.uimanager.IllegalViewOperationException
+import com.facebook.react.uimanager.UIManagerModule
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.payments.GooglePayCallbackManager
 import io.hyperswitch.payments.view.WidgetLauncher
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
-import io.hyperswitch.view.BasePaymentWidget
+import io.hyperswitch.view.PaymentWidgetView
 import io.hyperswitch.payments.launcher.PaymentMethod
 import org.json.JSONObject
+import java.util.concurrent.atomic.AtomicInteger
 
 class HyperModule internal constructor(private val rct: ReactApplicationContext) :
     ReactContextBaseJavaModule(rct) {
@@ -57,24 +62,24 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
             val widget = findFirstExpressCheckoutWidget(rootView)
 
             // Update its height if found
-            widget?.setWidgetHeight(height)
+//            widget?.setWidgetHeight(height)
         }
     }
 
-    private fun findFirstExpressCheckoutWidget(rootView: View): BasePaymentWidget? {
-        if (rootView is BasePaymentWidget && rootView.getPaymentMethod() == "expressCheckout") {
-            return rootView
-        }
-        // Check child views
-        if (rootView is ViewGroup) {
-            for (i in 0 until rootView.childCount) {
-                val childView = rootView.getChildAt(i)
-                val result = findFirstExpressCheckoutWidget(childView)
-                if (result != null) {
-                    return result
-                }
-            }
-        }
+    private fun findFirstExpressCheckoutWidget(rootView: View): PaymentWidgetView? {
+//        if (rootView is PaymentWidgetView && rootView.getPaymentMethod() == "expressCheckout") {
+//            return rootView
+//        }
+//        // Check child views
+//        if (rootView is ViewGroup) {
+//            for (i in 0 until rootView.childCount) {
+//                val childView = rootView.getChildAt(i)
+//                val result = findFirstExpressCheckoutWidget(childView)
+//                if (result != null) {
+//                    return result
+//                }
+//            }
+//        }
 
         // Not found in this branch
         return null
@@ -156,27 +161,93 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
 
     // Method to exit widget payment sheet
     @ReactMethod
-    fun exitWidgetPaymentsheet(rootTag: Int, paymentResult: String, reset: Boolean) {
+    fun exitWidgetPaymentsheet(rootTag: Double, paymentResult: String, reset: Boolean) {
+        findFragmentWithRootTag(rootTag.toInt(), {
+            it?.notifyResult(CallbackType.PAYMENT_RESULT, paymentResult)
+        })
     }
 
+    @ReactMethod
+    fun notifyWidgetPaymentResult(rootTag: Int, result: String) {
+        try {
+            findFragmentWithRootTag(rootTag, {
+                it?.notifyResult(CallbackType.CONFIRM_ACTION, result)
+            })
+        } catch (_: Exception) {
+//      Log.i("HyperModule", "Error in notifyWidgetPaymentResult")
+        }
+    }
+
+    @ReactMethod
+    fun onUpdateIntentEvent(rootTag: Int, type: String, result: String) {
+        try {
+            findFragmentWithRootTag(rootTag, {
+                if (type == "UPDATE_INTENT_INIT_RETURNED") {
+                    it?.notifyResult(
+                        CallbackType.UPDATE_INTENT_INIT,
+                        result
+                    )
+                } else if (type == "UPDATE_INTENT_COMPLETE_RETURNED") {
+                    it?.notifyResult(
+                        CallbackType.UPDATE_INTENT_COMPLETE,
+                        result
+                    )
+                }
+            })
+        } catch (_: Exception) {
+
+        }
+    }
     // Variable to keep track of event listener count
-    private var listenerCount = 0
+    private val listenerCount = AtomicInteger(0)
+
 
     // Method to add event listener
     @ReactMethod
     fun addListener(eventName: String?) {
-        if (listenerCount == 0) {
+        if (listenerCount.get() == 0) {
             HyperEventEmitter.initialize(rct)
         }
-        listenerCount += 1
+        listenerCount.set(listenerCount.get() + 1)
     }
 
     // Method to remove event listeners
     @ReactMethod
     fun removeListeners(count: Int) {
-        listenerCount -= count
-        if (listenerCount == 0) {
-            // Remove upstream listeners, stop unnecessary background task
+        listenerCount.set(listenerCount.get() - count)
+//        if (listenerCount.get() == 0) {
+//            // Remove upstream listeners, stop unnecessary background task
+//        }
+    }
+
+    @ReactMethod
+    fun emitPaymentEvent(rootTag: Int, eventType: String, payload: ReadableMap) {
+        try {
+            findFragmentWithRootTag(rootTag, {
+                it?.notifyEvent(eventType, payload)
+            })
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun findFragmentWithRootTag(rootTag: Int, onFound: (HyperFragment?) -> Unit) {
+        val uiManagerModule =
+            reactApplicationContext.getNativeModule<UIManagerModule?>(UIManagerModule::class.java)
+
+        if (uiManagerModule == null) {
+            onFound(null)
+            return
+        }
+
+        uiManagerModule.addUIBlock { nvhm ->
+            try {
+                val reactRootView = nvhm.resolveView(rootTag)
+                onFound(FragmentManager.findFragment(reactRootView))
+            } catch (e: IllegalViewOperationException) {
+                onFound(null)
+            } catch (e: Exception) {
+                onFound(null)
+            }
         }
     }
 }

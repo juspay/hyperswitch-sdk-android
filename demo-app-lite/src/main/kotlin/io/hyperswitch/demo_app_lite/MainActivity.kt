@@ -16,7 +16,7 @@ import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.PaymentSession
 import io.hyperswitch.paymentsheet.AddressDetails
 import io.hyperswitch.paymentsheet.PaymentSheet
-import io.hyperswitch.paymentsheet.PaymentSheetResult
+import io.hyperswitch.paymentsheet.PaymentResult
 import org.json.JSONException
 import org.json.JSONObject
 import androidx.core.content.edit
@@ -221,7 +221,7 @@ class MainActivity : Activity() {
 
         findViewById<View>(R.id.launchButton).setOnClickListener {
             val customisations = getCustomisations()
-            paymentSession.presentPaymentSheet(customisations, ::onPaymentSheetResult)
+            paymentSession.presentPaymentSheet(customisations, ::onPaymentResult)
         }
 
         findViewById<View>(R.id.c2pButton).setOnClickListener {
@@ -235,18 +235,18 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun onPaymentSheetResult(paymentSheetResult: PaymentSheetResult) {
-        when (paymentSheetResult) {
-            is PaymentSheetResult.Canceled -> {
-                setStatus(paymentSheetResult.data)
+    private fun onPaymentResult(PaymentResult: PaymentResult) {
+        when (PaymentResult) {
+            is PaymentResult.Canceled -> {
+                setStatus(PaymentResult.data)
             }
 
-            is PaymentSheetResult.Failed -> {
-                setStatus(paymentSheetResult.error.message ?: "")
+            is PaymentResult.Failed -> {
+                setStatus(PaymentResult.error.message ?: "")
             }
 
-            is PaymentSheetResult.Completed -> {
-                setStatus(paymentSheetResult.data)
+            is PaymentResult.Completed -> {
+                setStatus(PaymentResult.data)
             }
         }
     }

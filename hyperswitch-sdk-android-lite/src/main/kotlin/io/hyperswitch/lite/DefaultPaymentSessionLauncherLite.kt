@@ -7,7 +7,7 @@ import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
 import io.hyperswitch.paymentsession.SDKInterface
 import io.hyperswitch.paymentsheet.PaymentSheet
-import io.hyperswitch.paymentsheet.PaymentSheetResult
+import io.hyperswitch.paymentsheet.PaymentResult
 
 open class DefaultPaymentSessionLauncherLite(
     activity: Activity,
@@ -26,7 +26,7 @@ open class DefaultPaymentSessionLauncherLite(
 
     override fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration?,
-        resultCallback: (PaymentSheetResult) -> Unit
+        resultCallback: (PaymentResult) -> Unit
     ) {
         PaymentSheetCallbackManager.setCallback(resultCallback)
         webViewUtils.presentSheet(paymentIntentClientSecret ?: "", configuration)
@@ -34,7 +34,7 @@ open class DefaultPaymentSessionLauncherLite(
 
     override fun presentPaymentSheet(
         configurationMap: Map<String, Any?>,
-        resultCallback: (PaymentSheetResult) -> Unit
+        resultCallback: (PaymentResult) -> Unit
     ) {
         PaymentSheetCallbackManager.setCallback(resultCallback)
         webViewUtils.presentSheet(configurationMap)
