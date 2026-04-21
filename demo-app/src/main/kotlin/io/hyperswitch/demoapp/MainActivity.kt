@@ -187,31 +187,6 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                                     PaymentSessionConfiguration(sdkAuthorization = sdkAuthorization)
                                 )
 
-                                paymentSession?.subscribe {
-                                    on(PaymentEvents.FormStatus) { event ->
-                                        val formStatus = event.data as? PaymentEventData.FormStatus
-                                        Log.d("PaymentEvents", "Form status: ${formStatus?.status?.name}")
-                                    }
-
-                                    on(PaymentEvents.PaymentMethodStatus) { event ->
-                                        val selected = event.data as? PaymentEventData.PaymentMethodStatus
-                                        Log.d("PaymentEvents", "Selected: ${selected?.paymentMethod}")
-                                        Log.d("PaymentEvents", "Type: ${selected?.paymentMethodType}")
-                                        Log.d("PaymentEvents", "Is Saved: ${selected?.isSavedPaymentMethod}")
-                                        Log.d("PaymentEvents", "Is oneclickwallet: ${selected?.isOneClickWallet}")
-                                    }
-
-                                    on(PaymentEvents.PaymentMethodInfoCard) { event ->
-                                        val cardInfo = event.data as? PaymentEventData.CardInfo
-                                        Log.d("PaymentEvents", "card: $cardInfo")
-                                    }
-
-                                    on(PaymentEvents.PaymentMethodInfoBillingAddress) { event ->
-                                        val paymentMethodInfoAddress = event.data as? PaymentEventData.PaymentMethodInfoAddress
-                                        Log.d("PaymentEvents", "address: $paymentMethodInfoAddress")
-                                    }
-                                }
-
                                 paymentSession?.getCustomerSavedPaymentMethods { it ->
 
                                     val text = it.getCustomerLastUsedPaymentMethodData().fold(
@@ -298,12 +273,29 @@ class MainActivity : AppCompatActivity(), HyperInterface {
         findViewById<View>(R.id.launchButton).setOnClickListener {
             val customisations = getCustomisations()
             lifecycleScope.launch {
-              val result =   paymentSession?.presentPaymentSheet(customisations)
+                val result = paymentSession?.presentPaymentSheet(customisations) {
+                    on(PaymentEvents.FormStatus) { event ->
+                        val formStatus = event.data as? PaymentEventData.FormStatus
+                        Log.d("PaymentEvents", "Form status: ${formStatus?.status?.name}")
+                    }
+                    on(PaymentEvents.PaymentMethodStatus) { event ->
+                        val selected = event.data as? PaymentEventData.PaymentMethodStatus
+                        Log.d("PaymentEvents", "Selected: ${selected?.paymentMethod}")
+                        Log.d("PaymentEvents", "Type: ${selected?.paymentMethodType}")
+                        Log.d("PaymentEvents", "Is Saved: ${selected?.isSavedPaymentMethod}")
+                        Log.d("PaymentEvents", "Is oneclickwallet: ${selected?.isOneClickWallet}")
+                    }
+                    on(PaymentEvents.PaymentMethodInfoCard) { event ->
+                        val cardInfo = event.data as? PaymentEventData.CardInfo
+                        Log.d("PaymentEvents", "card: $cardInfo")
+                    }
+                    on(PaymentEvents.PaymentMethodInfoBillingAddress) { event ->
+                        val paymentMethodInfoAddress = event.data as? PaymentEventData.PaymentMethodInfoAddress
+                        Log.d("PaymentEvents", "address: $paymentMethodInfoAddress")
+                    }
+                }
                 result?.let { onPaymentResult(it) }
             }
-            //
-            //val result =  paymentSession.presentPaymentSheet(customisations)
-//            onPaymentResult(result)
         }
 
         findViewById<View>(R.id.launchWidgetLayout).setOnClickListener {
