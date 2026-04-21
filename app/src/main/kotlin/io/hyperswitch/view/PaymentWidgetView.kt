@@ -17,11 +17,11 @@ import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.PaymentConfiguration
-import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
+import io.hyperswitch.react.EventCallback
 import io.hyperswitch.react.HyperFragment
 import io.hyperswitch.react.HyperFragmentManager
 import io.hyperswitch.react.ReactNativeController
@@ -61,9 +61,8 @@ class PaymentWidgetView : FrameLayout {
     private var sdkAuthorization: String = ""
 
     private var resultListener: PaymentResultListener? = null
-    private var subscribedEvents: List<String> = emptyList()
 
-    private var onEventCallback: PaymentEventListener? = null
+    private var onEventCallback: EventCallback? = null
     private val choreographerCallbacks = mutableMapOf<Int, Choreographer.FrameCallback>()
 
     constructor(context: Context) : super(context) {
@@ -199,14 +198,10 @@ class PaymentWidgetView : FrameLayout {
         resultListener?.onPaymentResult(result)
     }
 
-    fun onEvent(listener: PaymentEventListener) {
-        this.onEventCallback = listener
-        this.fragment?.setOnEventCallback(listener)
+    fun onEvent(eventCallback: EventCallback) {
+        this.onEventCallback = eventCallback
     }
 
-    fun setSubscribedEvents(events: List<String>) {
-        this.subscribedEvents = events
-    }
 
     fun getLaunchOptions(): Bundle =
         this.launchOptions.getBundle(
@@ -218,7 +213,6 @@ class PaymentWidgetView : FrameLayout {
             type = widgetType,
 //            widgetId = this.widgetId,
             sdkAuthorization = this.sdkAuthorization,
-            subscribedEvents = this.subscribedEvents,
         )
 
     fun confirmPayment(callback: (PaymentResult) -> Unit) {
@@ -236,10 +230,10 @@ class PaymentWidgetView : FrameLayout {
 
     fun confirmCvcPayment(
         paymentToken: String,
-        billing: String?,
+        paymentMethodId: String,
         callback: (PaymentResult) -> Unit
     ) {
-        this.fragment?.confirmCvcPayment(paymentToken, billing, callback)
+        this.fragment?.confirmCvcPayment(paymentToken, paymentMethodId, callback)
     }
 
     fun setSdkAuthorization(sdkAuthorization: String) {
@@ -288,7 +282,7 @@ class PaymentWidgetView : FrameLayout {
                 frameLayout.post { this.getFragment()?.view?.requestLayout() }
             }
             this.fragment?.setOnPaymentResult { result -> dispatchResult(result) }
-            onEventCallback?.let { this.fragment?.setOnEventCallback(it) }
+            onEventCallback?.let { it -> this.fragment?.setOnEventCallback(it) }
             this.fragment?.setOnExit {
                 removeWidget()
             }

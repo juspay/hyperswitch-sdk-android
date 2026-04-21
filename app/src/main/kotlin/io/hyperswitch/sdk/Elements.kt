@@ -1,7 +1,6 @@
 package io.hyperswitch.sdk
 
 import android.app.Activity
-import io.hyperswitch.PaymentEventSubscriptionBuilder
 import android.util.Log
 import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchBaseConfiguration
@@ -34,10 +33,9 @@ class Elements internal constructor(
 
     fun bind(
         element: HyperswitchElement,
-        configuration: PaymentSheet.Configuration? = null,
-        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null
+        configuration: PaymentSheet.Configuration? = null
     ): HyperswitchBoundElement {
-        val hsElement = HyperswitchBoundElement(paymentSession, element, configuration, subscribe)
+        val hsElement = HyperswitchBoundElement(paymentSession, element, configuration)
         hsElements.add(hsElement)
         return hsElement
     }

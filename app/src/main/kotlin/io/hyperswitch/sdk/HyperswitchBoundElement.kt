@@ -1,6 +1,6 @@
 package io.hyperswitch.sdk
 
-import io.hyperswitch.PaymentEventSubscriptionBuilder
+import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.paymentsession.Callback
 import io.hyperswitch.paymentsession.PMError
@@ -8,38 +8,32 @@ import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.view.HyperswitchElement
 import io.hyperswitch.view.PaymentResultListener
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 class HyperswitchBoundElement internal constructor(
     paymentSession: PaymentSession,
     private val element: HyperswitchElement,
-    configuration: PaymentSheet.Configuration? = null,
-    subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null
+    configuration: PaymentSheet.Configuration? = null
 ) {
     private var lastUsedPaymentToken: String? = null
-    private var lastUsedBilling: String? = null
+    private var lastUsedPaymentMethodId: String? = null
     private var defaultPaymentToken: String? = null
-    private var defaultBilling: String? = null
+    private var defaultPaymentMethodId: String? = null
 
     init {
         element.initWidget(paymentSession.getPublishableKey())
         if (configuration != null) {
             element.setConfiguration(configuration)
         }
-        if (subscribe != null) {
-            val builder = PaymentEventSubscriptionBuilder()
-            builder.subscribe()
-            val (subscription, listener) = builder.build()
-            element.setSubscribedEvents(subscription.getSubscribedEventStrings())
-            element.setOnEventCallback(listener)
-        }
         element.setSdkAuthorization(paymentSession.getSdkAuthorization())
         paymentSession?.getCustomerSavedPaymentMethods { savedMethods ->
             savedMethods.getCustomerLastUsedPaymentMethodData().fold(
                 onSuccess = { data ->
                     lastUsedPaymentToken = data.paymentToken
-                    lastUsedBilling = data.billing
+                    lastUsedPaymentMethodId = data.paymentMethodId
                 },
                 onFailure = { error ->
                 }
@@ -48,7 +42,7 @@ class HyperswitchBoundElement internal constructor(
             savedMethods.getCustomerDefaultSavedPaymentMethodData().fold(
                 onSuccess = { data ->
                     defaultPaymentToken = data.paymentToken
-                    defaultBilling = data.billing
+                    defaultPaymentMethodId = data.paymentMethodId
                 },
                 onFailure = { /* no default set — that's fine */ }
             )
@@ -92,15 +86,23 @@ class HyperswitchBoundElement internal constructor(
             val callback = { paymentResult: PaymentResult ->
                 continuation.resume(paymentResult)
             }
-            if (lastUsedPaymentToken != null) {
-                element.confirmCVCWidget(lastUsedPaymentToken ?: "", lastUsedBilling, callback)
+            if (lastUsedPaymentToken != null || lastUsedPaymentMethodId != null) {
+                element.confirmCVCWidget(
+                    lastUsedPaymentToken ?: "",
+                    lastUsedPaymentMethodId ?: "",
+                    callback
+                )
             }
         }
     }
 
     fun confirmWithLastUsed(callback: (PaymentResult) -> Unit) {
-        if (lastUsedPaymentToken != null) {
-            element.confirmCVCWidget(lastUsedPaymentToken ?: "", lastUsedBilling, callback)
+        if (lastUsedPaymentToken != null || lastUsedPaymentMethodId != null) {
+            element.confirmCVCWidget(
+                lastUsedPaymentToken ?: "",
+                lastUsedPaymentMethodId ?: "",
+                callback
+            )
         } else {
             callback(PaymentResult.Failed(Exception("No last used payment details found")))
         }
@@ -111,15 +113,23 @@ class HyperswitchBoundElement internal constructor(
             val callback = { paymentResult: PaymentResult ->
                 continuation.resume(paymentResult)
             }
-            if (defaultPaymentToken != null) {
-                element.confirmCVCWidget(defaultPaymentToken ?: "", defaultBilling, callback)
+            if (defaultPaymentToken != null || defaultPaymentMethodId != null) {
+                element.confirmCVCWidget(
+                    defaultPaymentToken ?: "",
+                    defaultPaymentMethodId ?: "",
+                    callback
+                )
             }
         }
     }
 
     fun confirmWithDefaultMethod(callback: (PaymentResult) -> Unit) {
-        if (defaultPaymentToken != null) {
-            element.confirmCVCWidget(defaultPaymentToken ?: "", defaultBilling, callback)
+        if (defaultPaymentToken != null || defaultPaymentMethodId != null) {
+            element.confirmCVCWidget(
+                defaultPaymentToken ?: "",
+                defaultPaymentMethodId ?: "",
+                callback
+            )
         } else {
             callback(PaymentResult.Failed(Exception("No Default method found")))
         }
@@ -130,7 +140,9 @@ class HyperswitchBoundElement internal constructor(
         element.updateIntentInit { onInitComplete() }
     }
 
-    suspend fun updateIntentComplete(sdkAuthorization: String): ElementUpdateIntentResult {
+    suspend fun updateIntentComplete(
+        sdkAuthorization: String
+    ): ElementUpdateIntentResult {
         return element.updateIntentComplete(sdkAuthorization)
     }
 }

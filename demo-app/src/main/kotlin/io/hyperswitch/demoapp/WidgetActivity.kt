@@ -12,13 +12,11 @@ import androidx.lifecycle.lifecycleScope
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
+import io.hyperswitch.model.ElementConfiguration
 import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsheet.PaymentResult
-import io.hyperswitch.CvcWidgetEvents
-import io.hyperswitch.PaymentEventData
-import io.hyperswitch.PaymentEvents
 import io.hyperswitch.sdk.Hyperswitch
 import io.hyperswitch.sdk.HyperswitchInstance
 import io.hyperswitch.sdk.HyperInterface
@@ -177,28 +175,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         lifecycleScope.launch {
             elements = hyperswitchInstance
                 .elements(session)
-            paymentElementBound = elements.bind(paymentElement, getCustomisations()) {
-                on(PaymentEvents.FormStatus) { event ->
-                    val formStatus = event.data as? PaymentEventData.FormStatus
-                    Log.d("WidgetEvents", "PaymentElement form status: ${formStatus?.status?.name}")
-                }
-
-                on(PaymentEvents.PaymentMethodStatus) { event ->
-                    val status = event.data as? PaymentEventData.PaymentMethodStatus
-                    Log.d("WidgetEvents", "PaymentElement method: ${status?.paymentMethod}")
-                    Log.d("WidgetEvents", "PaymentElement type: ${status?.paymentMethodType}")
-                }
-
-                on(PaymentEvents.PaymentMethodInfoCard) { event ->
-                    val cardInfo = event.data as? PaymentEventData.CardInfo
-                    Log.d("WidgetEvents", "PaymentElement card: $cardInfo")
-                }
-
-                on(PaymentEvents.PaymentMethodInfoBillingAddress) { event ->
-                    val address = event.data as? PaymentEventData.PaymentMethodInfoAddress
-                    Log.d("WidgetEvents", "PaymentElement address: $address")
-                }
-            }
+            paymentElementBound = elements.bind(paymentElement, getCustomisations())
         }
 
 
@@ -226,13 +203,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             val cvcWidget = findViewById<CVCWidget>(R.id.cvcWidget)
             lifecycleScope.launch {
                 cvcWidgetBound = elements
-                    .bind(cvcWidget) {
-                                on(CvcWidgetEvents.CvcStatus) { event ->
-                                    val cvcStatus = event.data as? PaymentEventData.CvcStatus
-                                    Log.d("CvcWidgetEvents", "CvcWidget focused: ${cvcStatus?.isCvcFocused}")
-                                    Log.d("CvcWidgetEvents", "CvcWidget empty: ${cvcStatus?.isCvcEmpty}")
-                                }
-                            }
+                    .bind(cvcWidget)
                 runOnUiThread { setButtonsEnabled(true) }
             }
 

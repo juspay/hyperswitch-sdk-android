@@ -1,6 +1,5 @@
 package io.hyperswitch.react
 
-import android.util.Log
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactApplicationContext
@@ -87,6 +86,7 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
 
     private fun parseGetPaymentMethodData(readableMap: ReadableMap): Result<PaymentMethod> {
         val paymentMethod = readableMap.getString("payment_method_str")
+
         return if (paymentMethod != null) {
             val cardMap = readableMap.getMap("card")
 
@@ -137,9 +137,6 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
                 requiresCvv = readableMap.getBoolean("requires_cvv"),
                 lastUsedAt = readableMap.getString("last_used_at") ?: "",
                 defaultPaymentMethodSet = readableMap.getBoolean("default_payment_method_set"),
-                billing = readableMap.getMap("billing")?.let { billingMap ->
-                    org.json.JSONObject(billingMap.toHashMap()).toString()
-                },
             ))
         } else {
             Result.failure(PMError(
