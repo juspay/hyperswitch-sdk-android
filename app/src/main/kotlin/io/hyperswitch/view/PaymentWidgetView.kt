@@ -249,9 +249,6 @@ class PaymentWidgetView : FrameLayout {
             this.post { showWidgetInternal() }
             return
         }
-//        if (this.publishableKey == null) {
-//            this.initWidget(this.publishableKey ?: "")
-//        }
         val activity = context as? FragmentActivity
 
         activity?.let {

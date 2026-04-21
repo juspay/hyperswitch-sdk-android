@@ -93,7 +93,10 @@ class HyperFragment : ReactFragment() {
             })
     }
 
-    fun updatePaymentIntentComplete(sdkAuthorization: String, callback: ((ElementUpdateIntentResult) -> Unit)) {
+    fun updatePaymentIntentComplete(
+        sdkAuthorization: String,
+        callback: ((ElementUpdateIntentResult) -> Unit)
+    ) {
         val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
         if (rootTag == -1) {
             callback.invoke(
@@ -115,7 +118,8 @@ class HyperFragment : ReactFragment() {
             )
             return
         }
-        callbacks[CallbackType.UPDATE_INTENT_COMPLETE] = HyperCallback.UpdateIntentComplete(callback)
+        callbacks[CallbackType.UPDATE_INTENT_COMPLETE] =
+            HyperCallback.UpdateIntentComplete(callback)
         reactNativeHost.reactInstanceManager.currentReactContext
             ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
             ?.emit("updateIntentComplete", Arguments.createMap().apply {
@@ -128,11 +132,6 @@ class HyperFragment : ReactFragment() {
         if (callbacks.containsKey(CallbackType.CONFIRM_ACTION)) {
             callback.invoke(
                 PaymentResult.Failed(Throwable("Payment already in progress"))
-//                createPaymentResult(
-//                    "error",
-//                    "Payment already in progress",
-//                    "ALREADY_IN_PROGRESS"
-//                )
             )
             return
         }
@@ -140,13 +139,13 @@ class HyperFragment : ReactFragment() {
         if (rootTag == -1) {
             callback.invoke(
                 PaymentResult.Failed(Throwable("React Context not ready"))
-//                createPaymentResult(
-//                    "error",
-//                    "React context not ready",
-//                    "REACT_CONTEXT_NOT_READY"
-//                )
             )
             return
+        }
+        if (callbacks[CallbackType.UPDATE_INTENT_COMPLETE] != null) {
+            callback.invoke(
+                PaymentResult.Failed(Throwable("Payment Intent update is in progress"))
+            )
         }
         callbacks[CallbackType.CONFIRM_ACTION] = HyperCallback.Payment(callback)
         reactNativeHost.reactInstanceManager.currentReactContext
@@ -179,9 +178,11 @@ class HyperFragment : ReactFragment() {
                             confirmCallback.fn.invoke(parsed)
                             onExit?.invoke()
                         }
+
                         confirmCvcCallback != null -> {
                             confirmCvcCallback.fn.invoke(parsed)
                         }
+
                         else -> {
                             (callbacks[CallbackType.PAYMENT_RESULT] as? HyperCallback.Payment)
                                 ?.fn?.invoke(parsed)
@@ -226,6 +227,7 @@ class HyperFragment : ReactFragment() {
                 throwable.initCause(Throwable(jsonObject.getString("code")))
                 ElementUpdateIntentResult.Failure(throwable)
             }
+
             else -> ElementUpdateIntentResult.Success
         }
     }
