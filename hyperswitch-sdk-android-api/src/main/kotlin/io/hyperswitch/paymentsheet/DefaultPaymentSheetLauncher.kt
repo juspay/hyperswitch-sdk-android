@@ -14,13 +14,13 @@ internal class DefaultPaymentSheetLauncher(
 ) : PaymentSheetLauncher {
 
     constructor(
-        activity: Activity, callback: PaymentSheetResultCallback
+        activity: Activity, callback: PaymentResultCallback
     ) : this(
         activity.application
     )
 
     constructor(
-        fragment: Fragment, callback: PaymentSheetResultCallback
+        fragment: Fragment, callback: PaymentResultCallback
     ) : this(
         fragment.activity.application
     )

@@ -13,17 +13,23 @@ import androidx.appcompat.app.AppCompatActivity
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
-import io.hyperswitch.PaymentSession
-import io.hyperswitch.payments.paymentlauncher.PaymentResult
+import io.hyperswitch.sdk.PaymentSession
 import io.hyperswitch.paymentsession.PMError
 import io.hyperswitch.paymentsheet.AddressDetails
 import io.hyperswitch.paymentsheet.PaymentSheet
-import io.hyperswitch.paymentsheet.PaymentSheetResult
+import io.hyperswitch.paymentsheet.PaymentResult
 import org.json.JSONException
 import org.json.JSONObject
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
-import io.hyperswitch.HyperInterface
+import androidx.lifecycle.lifecycleScope
+import io.hyperswitch.sdk.HyperInterface
+import io.hyperswitch.PaymentConfiguration
+import io.hyperswitch.model.HyperswitchConfiguration
+import io.hyperswitch.model.PaymentSessionConfiguration
+import io.hyperswitch.sdk.Hyperswitch
+import io.hyperswitch.sdk.HyperswitchInstance
+import kotlinx.coroutines.launch
 import io.hyperswitch.PaymentEvents
 import io.hyperswitch.PaymentEventData
 
@@ -31,11 +37,14 @@ class MainActivity : AppCompatActivity(), HyperInterface {
     lateinit var ctx: AppCompatActivity
     private var publishableKey: String = ""
     private var paymentIntentClientSecret: String = "clientSecret"
+    private var sdkAuthorization : String = ""
+    private var profileId : String = ""
     private var netceteraApiKey: String? = null
     private val prefsName = "HyperswitchPrefs"
     private val keyServerUrl = "server_url"
     private var serverUrl = "http://10.0.2.2:5252"
-    private lateinit var paymentSession: PaymentSession
+    private lateinit var hyperswitchInstance: HyperswitchInstance
+    private var paymentSession: PaymentSession? = null
     private lateinit var editText: EditText
 
     private fun fetchNetceteraApiKey() {
@@ -153,21 +162,31 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                         if (result != null) {
                             paymentIntentClientSecret = result.getString("clientSecret")
                             publishableKey = result.getString("publishableKey")
-
+                            sdkAuthorization = result.getString("sdkAuthorization")
+                            profileId = result.optString("profileId")
                             /**
                              *
                              * Create Payment Session Object
                              *
                              * */
 
-                            paymentSession = PaymentSession(ctx, publishableKey)
-
+                            hyperswitchInstance = Hyperswitch.init(
+                                activity = ctx,
+                                config = HyperswitchConfiguration(
+                                    publishableKey = publishableKey,
+                                    profileId = profileId
+                                )
+                            )
                             /**
                              *
                              * Initialise Payment Session
                              *
                              * */
-
+                            lifecycleScope.launch {
+                                paymentSession = hyperswitchInstance.initPaymentSession(
+                                    PaymentSessionConfiguration(sdkAuthorization = sdkAuthorization)
+                                )
+                            }
                             paymentSession.initPaymentSession(paymentIntentClientSecret)
 
                             paymentSession.subscribe {
@@ -194,8 +213,12 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                                     Log.d("PaymentEvents", "address: $paymentMethodInfoAddress")
                                 }
                             }
-                            
-                            paymentSession.getCustomerSavedPaymentMethods { it ->
+
+
+
+
+                            paymentSession?.getCustomerSavedPaymentMethods { it ->
+
                                 val text = it.getCustomerLastUsedPaymentMethodData().fold(
                                     onSuccess = { data ->
                                         data.card?.let { "${it.scheme} - ${it.last4Digits}" }
@@ -278,7 +301,13 @@ class MainActivity : AppCompatActivity(), HyperInterface {
 
         findViewById<View>(R.id.launchButton).setOnClickListener {
             val customisations = getCustomisations()
-            paymentSession.presentPaymentSheet(customisations, ::onPaymentSheetResult)
+            lifecycleScope.launch {
+              val result =   paymentSession?.presentPaymentSheet(customisations)
+//                result?.let { onPaymentResult(it) }
+            }
+            //
+            //val result =  paymentSession.presentPaymentSheet(customisations)
+//            onPaymentResult(result)
         }
 
         findViewById<View>(R.id.launchWidgetLayout).setOnClickListener {
@@ -294,35 +323,35 @@ class MainActivity : AppCompatActivity(), HyperInterface {
         }
     }
 
-    private fun onPaymentSheetResult(paymentSheetResult: PaymentSheetResult) {
-        when (paymentSheetResult) {
-            is PaymentSheetResult.Canceled -> {
-                setStatus(paymentSheetResult.data)
-            }
-
-            is PaymentSheetResult.Failed -> {
-                setStatus(paymentSheetResult.error.message ?: "")
-            }
-
-            is PaymentSheetResult.Completed -> {
-                setStatus(paymentSheetResult.data)
-            }
-        }
-    }
-
-    private fun onPaymentResult(paymentResult: PaymentResult) {
-        when (paymentResult) {
+    private fun onPaymentResult(PaymentResult: PaymentResult) {
+        when (PaymentResult) {
             is PaymentResult.Canceled -> {
-                setStatus(paymentResult.data)
+                setStatus(PaymentResult.data)
             }
 
             is PaymentResult.Failed -> {
-                setStatus(paymentResult.throwable.message ?: "")
+                setStatus(PaymentResult.throwable.message ?: "")
             }
 
             is PaymentResult.Completed -> {
-                setStatus(paymentResult.data)
+                setStatus(PaymentResult.data)
             }
         }
     }
+
+//    private fun onPaymentResult(paymentResult: PaymentResult) {
+//        when (paymentResult) {
+//            is PaymentResult.Canceled -> {
+//                setStatus(paymentResult.data)
+//            }
+//
+//            is PaymentResult.Failed -> {
+//                setStatus(paymentResult.throwable.message ?: "")
+//            }
+//
+//            is PaymentResult.Completed -> {
+//                setStatus(paymentResult.data)
+//            }
+//        }
+//    }
 }

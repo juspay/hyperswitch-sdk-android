@@ -6,12 +6,12 @@ import android.app.Fragment
 internal class FlowControllerFactory(
     private val activity: Activity,
     private val paymentOptionCallback: PaymentOptionCallback,
-    private val paymentResultCallback: PaymentSheetResultCallback
+    private val paymentResultCallback: PaymentResultCallback
 ) {
     constructor(
         fragment: Fragment,
         paymentOptionCallback: PaymentOptionCallback,
-        paymentResultCallback: PaymentSheetResultCallback
+        paymentResultCallback: PaymentResultCallback
     ) : this(
         activity = fragment.activity,
         paymentOptionCallback = paymentOptionCallback,

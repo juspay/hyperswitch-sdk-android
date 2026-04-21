@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.WindowInsets
 import android.webkit.WebSettings
@@ -58,15 +59,15 @@ class LaunchOptions(
         }
 
     fun getBundle(
-        paymentIntentClientSecret: String,
+        sdkAuthorization: String,
         configuration: PaymentSheet.Configuration? = null,
         subscribedEvents: List<String> = emptyList()
     ): Bundle =
-        context?.let { getBundle(it, paymentIntentClientSecret, configuration, subscribedEvents) } ?: Bundle()
+        context?.let { getBundle(it, sdkAuthorization, configuration, subscribedEvents) } ?: Bundle()
 
     fun getBundle(
         context: Context,
-        paymentIntentClientSecret: String,
+        sdkAuthorization: String,
         configuration: PaymentSheet.Configuration? = null,
         subscribedEvents: List<String> = emptyList()
     ): Bundle = Bundle().apply {
@@ -76,7 +77,7 @@ class LaunchOptions(
                 "publishableKey",
                 PaymentConfiguration.getInstance(context).publishableKey
             )
-            putString("clientSecret", paymentIntentClientSecret)
+            putString("sdkAuthorization", sdkAuthorization)
             putString(
                 "customBackendUrl",
                 PaymentConfiguration.getInstance(context).customBackendUrl
@@ -87,6 +88,82 @@ class LaunchOptions(
             putBundle("configuration", configuration?.bundle)
             putBundle("hyperParams", getHyperParams())
             putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
+        })
+    }
+
+    fun getBundle(
+        publishableKey: String? = null,
+        configuration: Bundle? = null,
+        customBackendUrl: String? = null,
+        customLogUrl: String? = null,
+        customParams: Map<String, Any>? = null,
+        type: String? = "payment",
+        widgetId: String? = null,
+        sdkAuthorization : String? = null,
+    ): Bundle = Bundle().apply {
+        putBundle("props", Bundle().apply {
+            putString("type", type)
+            putString("from", "rn")
+            putString("publishableKey", publishableKey ?: "")
+            putString("sdkAuthorization", sdkAuthorization?:"")
+            if (configuration?.containsKey("hideConfirmButton") == false) {
+                configuration.putBoolean("hideConfirmButton", true)
+            }
+            putBundle("configuration", configuration)
+            customBackendUrl?.let { url -> putString("customBackendUrl", url) }
+            customLogUrl?.let { url -> putString("customLogUrl", url) }
+
+            if (configuration?.containsKey("subscribedEvents") == true) {
+                val subscribedEventsArray = configuration["subscribedEvents"] as? List<*>
+                if (subscribedEventsArray != null) {
+                    putSerializable("subscribedEvents", ArrayList(subscribedEventsArray))
+                }
+            }
+            customParams?.let { params ->
+                putBundle(
+                    "customParams", toBundle(params)
+                )
+            }
+            putBundle("hyperParams", getHyperParams())
+            putString("widgetId", widgetId)
+        })
+    }
+
+    fun getBundle(
+        publishableKey: String? = null,
+        configuration: Bundle? = null,
+        customBackendUrl: String? = null,
+        customLogUrl: String? = null,
+        customParams: Map<String, Any>? = null,
+        type: String? = "payment",
+        widgetId: String? = null,
+        sdkAuthorization : String? = null,
+    ): Bundle = Bundle().apply {
+        putBundle("props", Bundle().apply {
+            putString("type", type)
+            putString("from", "rn")
+            putString("publishableKey", publishableKey ?: "")
+            putString("sdkAuthorization", sdkAuthorization?:"")
+            if (configuration?.containsKey("hideConfirmButton") == false) {
+                configuration.putBoolean("hideConfirmButton", true)
+            }
+            putBundle("configuration", configuration)
+            customBackendUrl?.let { url -> putString("customBackendUrl", url) }
+            customLogUrl?.let { url -> putString("customLogUrl", url) }
+
+            if (configuration?.containsKey("subscribedEvents") == true) {
+                val subscribedEventsArray = configuration["subscribedEvents"] as? List<*>
+                if (subscribedEventsArray != null) {
+                    putSerializable("subscribedEvents", ArrayList(subscribedEventsArray))
+                }
+            }
+            customParams?.let { params ->
+                putBundle(
+                    "customParams", toBundle(params)
+                )
+            }
+            putBundle("hyperParams", getHyperParams())
+            putString("widgetId", widgetId)
         })
     }
 

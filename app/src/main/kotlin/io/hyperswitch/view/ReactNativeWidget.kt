@@ -15,7 +15,7 @@ import io.hyperswitch.react.Utils
  *
  *
  * To enable 19-digit card support, [io.hyperswitch.PaymentConfiguration] must be called before
- * [ReactNativeWidget] is instantiated.
+// * [ReactNativeWidget] is instantiated.
  *
  *
  * The individual EditText views of this widget can be styled by defining a style

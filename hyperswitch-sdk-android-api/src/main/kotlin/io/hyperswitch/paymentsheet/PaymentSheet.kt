@@ -27,7 +27,7 @@ class PaymentSheet internal constructor(
      */
     constructor(
         activity: Activity,
-        callback: PaymentSheetResultCallback
+        callback: PaymentResultCallback
     ) : this(
         DefaultPaymentSheetLauncher(activity, callback)
     )
@@ -40,15 +40,15 @@ class PaymentSheet internal constructor(
      */
     constructor(
         fragment: Fragment,
-        callback: PaymentSheetResultCallback
+        callback: PaymentResultCallback
     ) : this(
         DefaultPaymentSheetLauncher(fragment, callback)
     )
 
     /**
      * Present the payment sheet to process a [PaymentIntent].
-     * If the [PaymentIntent] is already confirmed, [PaymentSheetResultCallback] will be invoked
-     * with [PaymentSheetResult.Completed].
+     * If the [PaymentIntent] is already confirmed, [PaymentResultCallback] will be invoked
+     * with [PaymentResult.Completed].
      *
      * @param paymentIntentClientSecret the client secret for the [PaymentIntent].
      * @param configuration optional [PaymentSheet] settings.
@@ -63,8 +63,8 @@ class PaymentSheet internal constructor(
 
     /**
      * Present the payment sheet to process a [SetupIntent].
-     * If the [SetupIntent] is already confirmed, [PaymentSheetResultCallback] will be invoked
-     * with [PaymentSheetResult.Completed].
+     * If the [SetupIntent] is already confirmed, [PaymentResultCallback] will be invoked
+     * with [PaymentResult.Completed].
      *
      * @param setupIntentClientSecret the client secret for the [SetupIntent].
      * @param configuration optional [PaymentSheet] settings.
@@ -172,6 +172,7 @@ class PaymentSheet internal constructor(
         val displaySavedPaymentMethodsCheckbox: Boolean? = null,
         val displaySavedPaymentMethods: Boolean? = null,
         val placeHolder: PlaceHolder? = null,
+        val hideConfirmButton: Boolean? = null,
         /**
          * Api key used to invoke netcetera sdk for redirection-less 3DS authentication.
          */
@@ -210,6 +211,9 @@ class PaymentSheet internal constructor(
                         putBoolean("displaySavedPaymentMethods", displaySavedPaymentMethods)
                     }
                     putBundle("placeHolder", placeHolder?.bundle)
+                    if (hideConfirmButton != null){
+                        putBoolean("hideConfirmButton", hideConfirmButton)
+                    }
                     putString("netceteraSDKApiKey", netceteraSDKApiKey)
                     if (disableBranding != null) {
                         putBoolean("disableBranding", disableBranding)
@@ -238,6 +242,7 @@ class PaymentSheet internal constructor(
             private var displaySavedPaymentMethodsCheckbox: Boolean = true
             private var displaySavedPaymentMethods: Boolean = true
             private var placeHolder: PlaceHolder? = null
+            private var hideConfirmButton : Boolean? = null
             private var primaryButtonLabel: String? = null
             private var disableBranding: Boolean? = null
             private var defaultView: Boolean? = null
@@ -338,6 +343,7 @@ class PaymentSheet internal constructor(
                 displaySavedPaymentMethodsCheckbox,
                 displaySavedPaymentMethods,
                 placeHolder,
+                hideConfirmButton,
                 netceteraSDKApiKey,
                 disableBranding,
                 defaultView,
@@ -1066,13 +1072,13 @@ class PaymentSheet internal constructor(
              * @param activity  the Activity that is presenting the payment sheet.
              * @param paymentOptionCallback called when the customer's desired payment method
              *      changes.  Called in response to the [PaymentSheet#presentPaymentOptions()]
-             * @param paymentResultCallback called when a [PaymentSheetResult] is available.
+             * @param paymentResultCallback called when a [PaymentResult] is available.
              */
             @JvmStatic
             fun create(
                 activity: Activity,
                 paymentOptionCallback: PaymentOptionCallback,
-                paymentResultCallback: PaymentSheetResultCallback
+                paymentResultCallback: PaymentResultCallback
             ): FlowController {
                 return FlowControllerFactory(
                     activity,
@@ -1086,13 +1092,13 @@ class PaymentSheet internal constructor(
              *
              * @param fragment the Fragment that is presenting the payment sheet.
              * @param paymentOptionCallback called when the customer's [PaymentOption] selection changes.
-             * @param paymentResultCallback called when a [PaymentSheetResult] is available.
+             * @param paymentResultCallback called when a [PaymentResult] is available.
              */
             @JvmStatic
             fun create(
                 fragment: Fragment,
                 paymentOptionCallback: PaymentOptionCallback,
-                paymentResultCallback: PaymentSheetResultCallback
+                paymentResultCallback: PaymentResultCallback
             ): FlowController {
                 return FlowControllerFactory(
                     fragment,

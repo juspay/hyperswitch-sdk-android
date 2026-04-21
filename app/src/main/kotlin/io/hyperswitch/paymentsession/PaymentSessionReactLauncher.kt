@@ -20,7 +20,7 @@ import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.facebook.react.uimanager.PixelUtil
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.react.ReactNativeController
-import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.paymentIntentClientSecret
+import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.sdkAuthorization
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
 import io.hyperswitch.react.HyperFragment
@@ -108,7 +108,7 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
             "HyperHeadless", Arguments.fromBundle(
                 launchOptions.getBundle(
                     reactContext,
-                    paymentIntentClientSecret ?: "",
+                    sdkAuthorization ?: "",
                     null,
                     subscribedEvents
                 )
@@ -125,15 +125,15 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
     }
 
     override fun presentSheet(
-        paymentIntentClientSecret: String,
+        sdkAuthorization: String,
         configuration: PaymentSheet.Configuration?
     ): Boolean {
-        val subscribedEvents = try {
+         val subscribedEvents = try {
             HyperEventEmitter.getSubscribedEvents()
         } catch (e: Exception) {
             emptyList()
         }
-        val bundle = launchOptions.getBundle(paymentIntentClientSecret, configuration, subscribedEvents)
+        val bundle = launchOptions.getBundle(sdkAuthorization, configuration,subscribedEvents)
         applyFonts(configuration, bundle)
         return presentSheet(bottomInsetToDIPFromPixel(bundle))
     }

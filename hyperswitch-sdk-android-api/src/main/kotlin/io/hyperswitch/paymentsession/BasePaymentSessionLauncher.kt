@@ -3,8 +3,8 @@ package io.hyperswitch.paymentsession
 import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.PaymentConfiguration
+import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
-import io.hyperswitch.paymentsheet.PaymentSheetResult
 
 abstract class BasePaymentSessionLauncher(
     protected val activity: Activity,
@@ -14,7 +14,7 @@ abstract class BasePaymentSessionLauncher(
     customParams: Bundle?
 ) : PaymentSessionLauncher {
 
-    protected var paymentIntentClientSecret: String? = null
+    protected var sdkAuthorization: String? = null
 
     init {
         if (publishableKey != null) {
@@ -29,18 +29,18 @@ abstract class BasePaymentSessionLauncher(
         }
     }
 
-    override fun initPaymentSession(paymentIntentClientSecret: String) {
-        this.paymentIntentClientSecret = paymentIntentClientSecret
+    override fun initPaymentSession(sdkAuthorization: String) {
+        this.sdkAuthorization = sdkAuthorization
     }
 
     abstract override fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration?,
-        resultCallback: (PaymentSheetResult) -> Unit
+        resultCallback: (PaymentResult) -> Unit
     )
 
     abstract override fun presentPaymentSheet(
         configurationMap: Map<String, Any?>,
-        resultCallback: (PaymentSheetResult) -> Unit
+        resultCallback: (PaymentResult) -> Unit
     )
 
     abstract override fun getCustomerSavedPaymentMethods(

@@ -95,6 +95,10 @@ data class PaymentConfiguration
             return instance?.publishableKey ?: ""
         }
 
+        val customBackendUrl: String? = instance?.customBackendUrl
+        val customLogUrl: String? = instance?.customLogUrl
+        val customParams: Bundle? = instance?.customParams
+
         /**
          * A publishable key from the Dashboard's [API keys](https://app.hyperswitch.io/apikeys) page.
          */
