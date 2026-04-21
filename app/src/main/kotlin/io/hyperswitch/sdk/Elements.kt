@@ -15,7 +15,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class Elements internal constructor(
     activity: Activity,

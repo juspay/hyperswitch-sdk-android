@@ -1,8 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">Hyperswitch Demo</string>
+
+    <!-- Main screen -->
+    <string name="label_server_url">Server URL</string>
+    <string name="btn_reload">Reload</string>
+    <string name="btn_launch_payment_sheet">Launch Payment Sheet</string>
+    <string name="btn_confirm_last_used">Confirm with Last Used PM</string>
+    <string name="btn_launch_widget">Launch Widget</string>
+    <string name="section_payment">Payment</string>
+    <string name="section_server">Server</string>
+
+    <!-- Widget screen -->
+    <string name="btn_update_intent">Update Intent</string>
+    <string name="btn_reload_secret">Reload Client Secret</string>
+    <string name="btn_confirm_card">Confirm</string>
+    <string name="btn_get_last_used">Get Last Used</string>
+    <string name="btn_get_default">Get Default</string>
+    <string name="btn_confirm_default_cvc">Confirm Default + CVC</string>
+    <string name="btn_confirm_last_used_cvc">Confirm Last Used + CVC</string>
+    <string name="section_payment_element">Payment Element</string>
+    <string name="section_cvc_widget">CVC Widget</string>
+    <string name="section_saved_methods">Saved Methods</string>
+
+    <!-- Legacy / kept for compatibility -->
     <string name="ip_address">IP Address</string>
     <string name="reload_client_secret">Reload Client Secret</string>
     <string name="launch_payment_sheet">Launch Payment Sheet</string>
-    <string name="launch_widget_layout">Launch Widget Layout</string>
+    <string name="launch_widget_layout">Launch Widget</string>
     <string name="confirm_with_last_used_pm">Confirm with Last Used PM</string>
 </resources>

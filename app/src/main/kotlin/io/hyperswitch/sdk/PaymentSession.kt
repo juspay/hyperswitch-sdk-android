@@ -3,7 +3,6 @@ package io.hyperswitch.sdk
 import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.PaymentEventSubscriptionBuilder
-import android.util.Log
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher
@@ -115,7 +114,7 @@ class PaymentSession internal constructor(
     /**
      * Initializes the payment session with the given payment intent client secret.
      *
-     * @param paymentIntentClientSecret The client secret of the payment intent.
+     * @param sdkAuthorization The client secret of the payment intent.
      */
     fun initPaymentSession(sdkAuthorization: String) {
         paymentSessionLauncher.initPaymentSession(sdkAuthorization)

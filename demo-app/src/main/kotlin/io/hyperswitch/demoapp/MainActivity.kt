@@ -1,136 +1,180 @@
 package io.hyperswitch.demoapp
 
 import android.content.Intent
-import android.util.Patterns
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.util.Patterns
 import android.view.View
 import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import com.github.kittinunf.fuel.Fuel.reset
-import com.github.kittinunf.fuel.core.FuelError
-import com.github.kittinunf.fuel.core.Handler
-import io.hyperswitch.sdk.PaymentSession
-import io.hyperswitch.paymentsession.PMError
-import io.hyperswitch.paymentsheet.AddressDetails
-import io.hyperswitch.paymentsheet.PaymentSheet
-import io.hyperswitch.paymentsheet.PaymentResult
-import org.json.JSONException
-import org.json.JSONObject
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import androidx.lifecycle.lifecycleScope
-import io.hyperswitch.sdk.HyperInterface
-import io.hyperswitch.PaymentConfiguration
+import com.github.kittinunf.fuel.Fuel.reset
+import com.github.kittinunf.fuel.core.FuelError
+import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
+import io.hyperswitch.paymentsession.PMError
+import io.hyperswitch.paymentsheet.AddressDetails
+import io.hyperswitch.paymentsheet.PaymentResult
+import io.hyperswitch.paymentsheet.PaymentSheet
+import io.hyperswitch.sdk.HyperInterface
 import io.hyperswitch.sdk.Hyperswitch
 import io.hyperswitch.sdk.HyperswitchInstance
+import io.hyperswitch.sdk.PaymentSession
 import kotlinx.coroutines.launch
-import io.hyperswitch.PaymentEvents
-import io.hyperswitch.PaymentEventData
+import org.json.JSONException
+import org.json.JSONObject
 
 class MainActivity : AppCompatActivity(), HyperInterface {
-    lateinit var ctx: AppCompatActivity
-    private var publishableKey: String = ""
-    private var paymentIntentClientSecret: String = "clientSecret"
-    private var sdkAuthorization : String = ""
-    private var profileId : String = ""
+
+    // ── State ──────────────────────────────────────────────────────────────────────────────────
+
     private var netceteraApiKey: String? = null
-    private val prefsName = "HyperswitchPrefs"
-    private val keyServerUrl = "server_url"
-    private var serverUrl = "http://10.0.2.2:5252"
-    private lateinit var hyperswitchInstance: HyperswitchInstance
+    private var serverUrl = DEFAULT_SERVER_URL
+    private var hyperswitchInstance: HyperswitchInstance? = null
     private var paymentSession: PaymentSession? = null
-    private lateinit var editText: EditText
 
-    private fun fetchNetceteraApiKey() {
-        reset().get("$serverUrl/netcetera-sdk-api-key").responseString(object : Handler<String?> {
-            override fun success(value: String?) {
-                try {
-                    val result = value?.let { JSONObject(it) }
-                    netceteraApiKey = result?.getString("netceteraApiKey")
-                } catch (_: Exception) {
+    // ── Lifecycle ──────────────────────────────────────────────────────────────────────────────
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.main_activity)
+
+        serverUrl = loadServerUrl()
+        findViewById<EditText>(R.id.ipAddressInput).apply {
+            setText(serverUrl)
+            addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+                override fun afterTextChanged(s: Editable?) {
+                    val url = s?.toString().orEmpty()
+                    if (url.isNotEmpty()) updateServerUrl(url)
                 }
+            })
+        }
+
+        fetchPaymentIntent()
+
+        findViewById<View>(R.id.reloadButton).setOnClickListener { fetchPaymentIntent() }
+
+        findViewById<View>(R.id.launchButton).setOnClickListener {
+            lifecycleScope.launch {
+                val result = paymentSession?.presentPaymentSheet(buildConfiguration())
+                result?.let { handleResult(it) }
             }
+        }
 
-            override fun failure(error: FuelError) {}
-        })
-    }
-
-    private fun getSharedPreferences(): android.content.SharedPreferences {
-        return ctx.getSharedPreferences(prefsName, MODE_PRIVATE)
-    }
-
-    private fun saveServerUrl(url: String) {
-        getSharedPreferences().edit { putString(keyServerUrl, url) }
-    }
-
-    private fun loadServerUrl(): String {
-        return getSharedPreferences().getString(keyServerUrl, serverUrl) ?: serverUrl
-    }
-
-    private fun isValidUrl(url: String): Boolean {
-        return Patterns.WEB_URL.matcher(url).matches()
-    }
-
-    private fun updateServerUrl(newUrl: String) {
-        if (isValidUrl(newUrl)) {
-            serverUrl = newUrl
-            saveServerUrl(newUrl)
-            setStatus("Reload Client Secret")
-        } else {
-            setStatus("Invalid URL format")
+        findViewById<View>(R.id.launchWidgetLayout).setOnClickListener {
+            startActivity(Intent(this, WidgetActivity::class.java))
         }
     }
 
-    private fun getCustomisations(): PaymentSheet.Configuration {
-        /**
-         *
-         * Customisations
-         *
-         * */
+    // ── Backend calls ──────────────────────────────────────────────────────────────────────────
 
-        val primaryButtonShape = PaymentSheet.PrimaryButtonShape(32f, 0f)
+    private fun fetchPaymentIntent() {
+        setButtonsEnabled(launch = false, confirm = false)
+
+        reset().get("$serverUrl/create-payment-intent")
+            .responseString(object : Handler<String?> {
+                override fun success(value: String?) {
+                    try {
+                        val json = value?.let { JSONObject(it) } ?: return
+                        Log.d(TAG, "Backend response: $value")
+
+                        val publishableKey  = json.getString("publishableKey")
+                        val sdkAuthorization = json.getString("sdkAuthorization")
+                        val profileId       = json.optString("profileId")
+
+                        hyperswitchInstance = Hyperswitch.init(
+                            activity = this@MainActivity,
+                            config = HyperswitchConfiguration(
+                                publishableKey = publishableKey,
+                                profileId = profileId,
+                            )
+                        )
+
+                        lifecycleScope.launch {
+                            paymentSession = hyperswitchInstance?.initPaymentSession(
+                                PaymentSessionConfiguration(sdkAuthorization = sdkAuthorization)
+                            )
+                            onSessionReady()
+                        }
+                    } catch (e: JSONException) {
+                        Log.e(TAG, "Failed to parse backend response", e)
+                        setStatus("Could not connect to the server")
+                    }
+                }
+
+                override fun failure(error: FuelError) {
+                    Log.e(TAG, "Backend request failed: ${error.message}")
+                    setStatus("Could not connect to the server")
+                }
+            })
+
+        fetchNetceteraApiKey()
+    }
+
+    private fun fetchNetceteraApiKey() {
+        reset().get("$serverUrl/netcetera-sdk-api-key")
+            .responseString(object : Handler<String?> {
+                override fun success(value: String?) {
+                    runCatching { netceteraApiKey = value?.let { JSONObject(it) }?.getString("netceteraApiKey") }
+                }
+                override fun failure(error: FuelError) = Unit
+            })
+    }
+
+    // ── Session ready ──────────────────────────────────────────────────────────────────────────
+
+    /** Called on the main thread once [paymentSession] is fully initialised. */
+    private fun onSessionReady() {
+        setButtonsEnabled(launch = true, confirm = false)
+
+        paymentSession?.getCustomerSavedPaymentMethods { handler ->
+            val text = handler.getCustomerLastUsedPaymentMethodData().fold(
+                onSuccess = { data ->
+                    data.card?.let { "${it.scheme} - ${it.last4Digits}" } ?: data.paymentMethodType
+                },
+                onFailure = { error -> (error as? PMError)?.message ?: "Unknown error" }
+            )
+            setStatus("Last used: $text")
+
+            runOnUiThread {
+                setButtonsEnabled(launch = true, confirm = true)
+                findViewById<View>(R.id.confirmButton).setOnClickListener {
+                    handler.confirmWithCustomerLastUsedPaymentMethod { handleResult(it) }
+                }
+            }
+        }
+    }
+
+    // ── Configuration ──────────────────────────────────────────────────────────────────────────
+
+    private fun buildConfiguration(): PaymentSheet.Configuration {
         val address = PaymentSheet.Address.Builder()
-            .city("city")
-            .country("US")
-            .line1("US")
-            .line2("line2")
-            .postalCode("560060")
-            .state("California")
-            .build()
+            .city("city").country("US").line1("US").line2("line2")
+            .postalCode("560060").state("California").build()
+
         val billingDetails = PaymentSheet.BillingDetails.Builder()
-            .address(address)
-            .email("email.com")
-            .name("John Doe")
-            .phone("1234123443")
-            .build()
+            .address(address).email("email.com").name("John Doe").phone("1234123443").build()
+
         val shippingDetails = AddressDetails("Shipping Inc.", address, "6205007614", true)
 
-        val primaryButton = PaymentSheet.PrimaryButton(shape = primaryButtonShape)
-        val color1: PaymentSheet.Colors = PaymentSheet.Colors(
-            primary = "#8DBD00".toColorInt(),
-            surface = "#F5F8F9".toColorInt(),
-        )
-        val color2: PaymentSheet.Colors  = PaymentSheet.Colors(
-            primary = "#8DBD00".toColorInt(),
-            surface = "#F5F8F9".toColorInt(),
+        val appearance = PaymentSheet.Appearance(theme = PaymentSheet.Theme.Light)
+
+        val wallets = PaymentSheet.WalletConfiguration(
+            googlePay = PaymentSheet.WalletShowType.Auto,
+            style = PaymentSheet.WalletStyle(theme = PaymentSheet.WalletTheme.Dark, height = 52),
         )
 
-        val appearance: PaymentSheet.Appearance  = PaymentSheet.Appearance(
-            typography = PaymentSheet.Typography(sizeScaleFactor = 1f, fontResId = R.font.montserrat),
-            primaryButton = primaryButton,
-            colorsLight = color1,
-            colorsDark = color2,
-            theme = PaymentSheet.Theme.Dark
-        )
-
-        val configuration = PaymentSheet.Configuration.Builder("Example, Inc.")
-                //.appearance(appearance)
+        return PaymentSheet.Configuration.Builder("Example, Inc.")
+            .appearance(appearance)
+            .wallets(wallets)
             .defaultBillingDetails(billingDetails)
             .primaryButtonLabel("Purchase ($2.00)")
             .paymentSheetHeaderLabel("Select payment method")
@@ -142,204 +186,55 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             .displaySavedPaymentMethods(true)
             .disableBranding(true)
             .showVersionInfo(true)
-
-        netceteraApiKey?.let { configuration.netceteraSDKApiKey(it) }
-
-        return configuration.build()
+            .also { builder -> netceteraApiKey?.let { builder.netceteraSDKApiKey(it) } }
+            .build()
     }
 
-    private fun getCL() {
-        ctx.findViewById<View>(R.id.launchButton).isEnabled = false
-        ctx.findViewById<View>(R.id.confirmButton).isEnabled = false
+    // ── Result handling ────────────────────────────────────────────────────────────────────────
 
-        reset().get("$serverUrl/create-payment-intent", null)
-            .responseString(object : Handler<String?> {
-                override fun success(value: String?) {
-                    try {
-                        Log.d("Backend Response", value.toString())
-
-                        val result = value?.let { JSONObject(it) }
-                        if (result != null) {
-//                            paymentIntentClientSecret = result.getString("clientSecret")
-                            publishableKey = result.getString("publishableKey")
-                            sdkAuthorization = result.getString("sdkAuthorization")
-                            profileId = result.optString("profileId")
-                            /**
-                             *
-                             * Create Payment Session Object
-                             *
-                             * */
-
-                            hyperswitchInstance = Hyperswitch.init(
-                                activity = ctx,
-                                config = HyperswitchConfiguration(
-                                    publishableKey = publishableKey,
-                                    profileId = profileId
-                                )
-                            )
-                            /**
-                             *
-                             * Initialise Payment Session
-                             *
-                             * */
-                            lifecycleScope.launch {
-                                paymentSession = hyperswitchInstance.initPaymentSession(
-                                    PaymentSessionConfiguration(sdkAuthorization = sdkAuthorization)
-                                )
-
-                                paymentSession?.getCustomerSavedPaymentMethods { it ->
-
-                                    val text = it.getCustomerLastUsedPaymentMethodData().fold(
-                                        onSuccess = { data ->
-                                            data.card?.let { "${it.scheme} - ${it.last4Digits}" }
-                                                ?: data.paymentMethodType
-                                        },
-                                        onFailure = { error ->
-                                            (error as? PMError)?.message ?: "Unknown error"
-                                        }
-                                    )
-
-                                    setStatus("Last Used PM: $text")
-
-                                    ctx.runOnUiThread {
-                                        ctx.findViewById<View>(R.id.confirmButton).isEnabled = true
-                                        ctx.findViewById<View>(R.id.confirmButton)
-                                            .setOnClickListener { _ ->
-                                                it.confirmWithCustomerLastUsedPaymentMethod {
-                                                    onPaymentResult(it)
-                                                }
-                                            }
-                                    }
-                                }
-                            }
-
-                            ctx.runOnUiThread {
-                                ctx.findViewById<View>(R.id.launchButton).isEnabled = true
-                            }
-                        }
-                    } catch (e: JSONException) {
-                        Log.d("Backend Response", e.toString())
-                        setStatus("could not connect to the server")
-                    }
-                }
-
-                override fun failure(error: FuelError) {
-                    Log.d("Backend Response", error.message ?: "")
-                    setStatus("could not connect to the server")
-                }
-            })
-
-        fetchNetceteraApiKey()
+    private fun handleResult(result: PaymentResult) {
+        when (result) {
+            is PaymentResult.Completed -> setStatus("Completed: ${result.data}")
+            is PaymentResult.Canceled  -> setStatus("Cancelled: ${result.data}")
+            is PaymentResult.Failed    -> setStatus("Failed: ${result.throwable.message.orEmpty()}")
+        }
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.main_activity)
+    // ── Server URL helpers ─────────────────────────────────────────────────────────────────────
 
-        ctx = this
-        editText = ctx.findViewById(R.id.ipAddressInput)
-        serverUrl = loadServerUrl()
-        editText.setText(serverUrl)
-
-        editText.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                s?.toString()?.let { newUrl ->
-                    if (newUrl.isNotEmpty()) {
-                        updateServerUrl(newUrl)
-                    }
-                }
-            }
-        })
-
-        /**
-         *
-         * Merchant API call to get Client Secret
-         *
-         * */
-
-        getCL()
-        findViewById<View>(R.id.reloadButton).setOnClickListener {
-            getCL()
+    private fun updateServerUrl(newUrl: String) {
+        if (Patterns.WEB_URL.matcher(newUrl).matches()) {
+            serverUrl = newUrl
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit { putString(KEY_SERVER_URL, newUrl) }
+            setStatus("Reload to apply new server URL")
+        } else {
+            setStatus("Invalid URL format")
         }
-
-        /**
-         *
-         * Launch Payment Sheet
-         *
-         * */
-
-        findViewById<View>(R.id.launchButton).setOnClickListener {
-            val customisations = getCustomisations()
-            lifecycleScope.launch {
-                val result = paymentSession?.presentPaymentSheet(customisations) {
-                    on(PaymentEvents.FormStatus) { event ->
-                        val formStatus = event.data as? PaymentEventData.FormStatus
-                        Log.d("PaymentEvents", "Form status: ${formStatus?.status?.name}")
-                    }
-                    on(PaymentEvents.PaymentMethodStatus) { event ->
-                        val selected = event.data as? PaymentEventData.PaymentMethodStatus
-                        Log.d("PaymentEvents", "Selected: ${selected?.paymentMethod}")
-                        Log.d("PaymentEvents", "Type: ${selected?.paymentMethodType}")
-                        Log.d("PaymentEvents", "Is Saved: ${selected?.isSavedPaymentMethod}")
-                        Log.d("PaymentEvents", "Is oneclickwallet: ${selected?.isOneClickWallet}")
-                    }
-                    on(PaymentEvents.PaymentMethodInfoCard) { event ->
-                        val cardInfo = event.data as? PaymentEventData.CardInfo
-                        Log.d("PaymentEvents", "card: $cardInfo")
-                    }
-                    on(PaymentEvents.PaymentMethodInfoBillingAddress) { event ->
-                        val paymentMethodInfoAddress = event.data as? PaymentEventData.PaymentMethodInfoAddress
-                        Log.d("PaymentEvents", "address: $paymentMethodInfoAddress")
-                    }
-                }
-                result?.let { onPaymentResult(it) }
-            }
-        }
-
-        findViewById<View>(R.id.launchWidgetLayout).setOnClickListener {
-            val intent = Intent(this, WidgetActivity::class.java)
-            startActivity(intent)
-        }
-
     }
 
-    private fun setStatus(error: String) {
+    private fun loadServerUrl(): String =
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .getString(KEY_SERVER_URL, DEFAULT_SERVER_URL) ?: DEFAULT_SERVER_URL
+
+    // ── UI helpers ─────────────────────────────────────────────────────────────────────────────
+
+    private fun setStatus(message: String) {
+        runOnUiThread { findViewById<TextView>(R.id.resultText).text = message }
+    }
+
+    private fun setButtonsEnabled(launch: Boolean, confirm: Boolean) {
         runOnUiThread {
-            findViewById<TextView>(R.id.resultText).text = error
+            findViewById<View>(R.id.launchButton).isEnabled = launch
+            findViewById<View>(R.id.confirmButton).isEnabled = confirm
         }
     }
 
-    private fun onPaymentResult(PaymentResult: PaymentResult) {
-        when (PaymentResult) {
-            is PaymentResult.Canceled -> {
-                setStatus(PaymentResult.data)
-            }
+    // ── Constants ──────────────────────────────────────────────────────────────────────────────
 
-            is PaymentResult.Failed -> {
-                setStatus(PaymentResult.throwable.message ?: "")
-            }
-
-            is PaymentResult.Completed -> {
-                setStatus(PaymentResult.data)
-            }
-        }
+    companion object {
+        private const val TAG = "MainActivity"
+        private const val PREFS_NAME = "HyperswitchPrefs"
+        private const val KEY_SERVER_URL = "server_url"
+        private const val DEFAULT_SERVER_URL = "http://10.0.2.2:5252"
     }
-
-//    private fun onPaymentResult(paymentResult: PaymentResult) {
-//        when (paymentResult) {
-//            is PaymentResult.Canceled -> {
-//                setStatus(paymentResult.data)
-//            }
-//
-//            is PaymentResult.Failed -> {
-//                setStatus(paymentResult.throwable.message ?: "")
-//            }
-//
-//            is PaymentResult.Completed -> {
-//                setStatus(paymentResult.data)
-//            }
-//        }
-//    }
 }

@@ -162,7 +162,6 @@ class HyperFragment : ReactFragment() {
      * CONFIRM_ACTION  → fires and removes CONFIRM_ACTION (one-shot resolve).
      */
     fun notifyResult(type: CallbackType, result: String) {
-        Log.i("Manideep", "$type $result $id")
         try {
             when (type) {
                 CallbackType.PAYMENT_RESULT -> {

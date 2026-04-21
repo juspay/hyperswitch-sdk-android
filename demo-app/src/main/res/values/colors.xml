@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand -->
+    <color name="hs_blue">#0E7AFE</color>
+    <color name="hs_blue_disabled">#A0B0C0</color>
+    <color name="hs_blue_outline">#0070F3</color>
+
+    <!-- Surface -->
+    <color name="surface_page">#F6F8FA</color>
+    <color name="surface_card">#FFFFFF</color>
+    <color name="divider">#E2E8F0</color>
+
+    <!-- Text -->
+    <color name="text_primary">#1A1A1A</color>
+    <color name="text_secondary">#555555</color>
+    <color name="text_caption">#888888</color>
+    <color name="text_on_brand">#FFFFFF</color>
+</resources>

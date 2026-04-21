@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F6F8FA"
+    android:background="@color/surface_page"
     android:fitsSystemWindows="true"
     tools:context=".WidgetActivity">
 
@@ -11,93 +11,94 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingTop="?attr/actionBarSize"
+        android:paddingTop="48dp"
         android:paddingBottom="32dp">
 
-        <!-- Status / Result -->
+        <!-- ── Title ────────────────────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="20dp"
+            android:text="Widget Demo"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary" />
+
+        <!-- ── Status ───────────────────────────────────────────────────── -->
         <TextView
             android:id="@+id/resultText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="20dp"
-            android:layout_marginTop="16dp"
-            android:gravity="center"
-            android:textSize="16sp"
-            android:textColor="#333333" />
-
-        <Button
-            android:id="@+id/updateIntent"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginHorizontal="20dp"
             android:layout_marginTop="12dp"
-            android:background="@drawable/rounded_button_outline"
-            android:text="Update Intent"
-            android:textAllCaps="false"
-            android:textColor="#0070F3"
-            android:textSize="15sp" />
+            android:gravity="center"
+            android:minHeight="40dp"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
 
-        <!-- ── Section: Payment Element ── -->
+        <!-- ── Section: Payment Element ────────────────────────────────── -->
         <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="20dp"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="8dp"
-            android:text="PAYMENT ELEMENT"
-            android:textSize="11sp"
-            android:letterSpacing="0.12"
-            android:textColor="#888888" />
+            style="@style/HsSectionLabel"
+            android:text="@string/section_payment_element" />
 
         <io.hyperswitch.view.PaymentElement
             android:id="@+id/paymentElement"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="20dp" />
+            android:layout_height="wrap_content" />
 
-        <Button
-            android:id="@+id/reloadButton2"
+        <!-- Reload and Update Intent side by side -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="48dp"
+            android:layout_height="wrap_content"
             android:layout_marginHorizontal="20dp"
             android:layout_marginTop="12dp"
-            android:background="@drawable/rounded_button_outline"
-            android:text="Reload Client Secret"
-            android:textAllCaps="false"
-            android:textColor="#0070F3"
-            android:textSize="15sp" />
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/reloadButton2"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/rounded_button_outline"
+                android:text="@string/btn_reload_secret"
+                android:textAllCaps="false"
+                android:textColor="@color/hs_blue_outline"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/updateIntent"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/rounded_button_outline"
+                android:text="@string/btn_update_intent"
+                android:textAllCaps="false"
+                android:textColor="@color/hs_blue_outline"
+                android:textSize="14sp" />
+
+        </LinearLayout>
 
         <Button
+            style="@style/HsButtonPrimary"
             android:id="@+id/confirmButton2"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginHorizontal="20dp"
             android:layout_marginTop="8dp"
-            android:background="@drawable/rounded_button"
-            android:text="Confirm Card"
-            android:textAllCaps="false"
-            android:textColor="#FFFFFF"
-            android:textSize="15sp" />
+            android:enabled="false"
+            android:text="@string/btn_confirm_card" />
 
-        <!-- ── Divider ── -->
+        <!-- ── Divider ──────────────────────────────────────────────────── -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginHorizontal="20dp"
             android:layout_marginTop="28dp"
-            android:background="#E2E8F0" />
+            android:background="@color/divider" />
 
-        <!-- ── Section: CVC Widget ── -->
+        <!-- ── Section: CVC Widget ─────────────────────────────────────── -->
         <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="20dp"
-            android:layout_marginTop="20dp"
-            android:layout_marginBottom="8dp"
-            android:text="CVC WIDGET"
-            android:textSize="11sp"
-            android:letterSpacing="0.12"
-            android:textColor="#888888" />
+            style="@style/HsSectionLabel"
+            android:text="@string/section_cvc_widget" />
 
         <io.hyperswitch.view.CVCWidget
             android:id="@+id/cvcWidget"
@@ -105,19 +106,20 @@
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="20dp" />
 
-        <!-- ── Section: Saved Methods ── -->
-        <TextView
+        <!-- ── Divider ──────────────────────────────────────────────────── -->
+        <View
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="1dp"
             android:layout_marginHorizontal="20dp"
             android:layout_marginTop="28dp"
-            android:layout_marginBottom="8dp"
-            android:text="SAVED METHODS"
-            android:textSize="11sp"
-            android:letterSpacing="0.12"
-            android:textColor="#888888" />
+            android:background="@color/divider" />
 
-        <!-- Row 1: Get methods -->
+        <!-- ── Section: Saved Methods ──────────────────────────────────── -->
+        <TextView
+            style="@style/HsSectionLabel"
+            android:text="@string/section_saved_methods" />
+
+        <!-- Row: Inspect saved methods -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -127,30 +129,32 @@
             <Button
                 android:id="@+id/getLastUsedButton"
                 android:layout_width="0dp"
-                android:layout_height="48dp"
+                android:layout_height="52dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/rounded_button_outline"
-                android:text="Get Last Used"
+                android:enabled="false"
+                android:text="@string/btn_get_last_used"
                 android:textAllCaps="false"
-                android:textColor="#0070F3"
+                android:textColor="@color/hs_blue_outline"
                 android:textSize="13sp" />
 
             <Button
                 android:id="@+id/getDefaultSavedMethodButton"
                 android:layout_width="0dp"
-                android:layout_height="48dp"
+                android:layout_height="52dp"
                 android:layout_weight="1"
                 android:layout_marginStart="6dp"
                 android:background="@drawable/rounded_button_outline"
-                android:text="Get Default Saved"
+                android:enabled="false"
+                android:text="@string/btn_get_default"
                 android:textAllCaps="false"
-                android:textColor="#0070F3"
+                android:textColor="@color/hs_blue_outline"
                 android:textSize="13sp" />
 
         </LinearLayout>
 
-        <!-- Row 2: Confirm with CVC -->
+        <!-- Row: Confirm with CVC -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -161,28 +165,31 @@
             <Button
                 android:id="@+id/confirmDefaultWithCVCButton"
                 android:layout_width="0dp"
-                android:layout_height="48dp"
+                android:layout_height="52dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/rounded_button"
-                android:text="Confirm Default + CVC"
+                android:enabled="false"
+                android:text="@string/btn_confirm_default_cvc"
                 android:textAllCaps="false"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/text_on_brand"
                 android:textSize="13sp" />
 
             <Button
                 android:id="@+id/confirmLastUsedWithCVCButton"
                 android:layout_width="0dp"
-                android:layout_height="48dp"
+                android:layout_height="52dp"
                 android:layout_weight="1"
                 android:layout_marginStart="6dp"
                 android:background="@drawable/rounded_button"
-                android:text="Confirm Last Used + CVC"
+                android:enabled="false"
+                android:text="@string/btn_confirm_last_used_cvc"
                 android:textAllCaps="false"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/text_on_brand"
                 android:textSize="13sp" />
 
         </LinearLayout>
 
     </LinearLayout>
+
 </ScrollView>

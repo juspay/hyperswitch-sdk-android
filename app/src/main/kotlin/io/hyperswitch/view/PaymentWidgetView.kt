@@ -282,7 +282,8 @@ class PaymentWidgetView : FrameLayout {
                     activity = activity,
                     container = frameLayout,
                     fragment = this.getFragment() as Fragment,
-                    tag = tag
+                    tag = tag,
+                    addToBackStack = false
                 )
 
                 frameLayout.post { this.getFragment()?.view?.requestLayout() }
