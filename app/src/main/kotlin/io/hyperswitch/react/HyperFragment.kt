@@ -271,7 +271,7 @@ class HyperFragment : ReactFragment() {
 
     fun confirmCvcPayment(
         paymentToken: String,
-        paymentMethodId: String,
+        billing: String?,
         callback: ((PaymentResult) -> Unit)
     ) {
         if (ExitHeadlessCallBackManager.getCallback() != null) {
@@ -292,12 +292,11 @@ class HyperFragment : ReactFragment() {
 
         ExitHeadlessCallBackManager.setCallback(callback)
 
-
         val map = Arguments.createMap()
         map.putString("actionType", EventName.CONFIRM_CVC_PAYMENT.name)
         map.putInt("rootTag", rootTag)
         map.putString("paymentToken", paymentToken)
-        map.putString("paymentMethodId", paymentMethodId)
+        billing?.let { map.putString("billing", it) }
         reactNativeHost.reactInstanceManager.currentReactContext
             ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
             ?.emit("triggerWidgetAction", map)

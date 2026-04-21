@@ -236,10 +236,10 @@ class PaymentWidgetView : FrameLayout {
 
     fun confirmCvcPayment(
         paymentToken: String,
-        paymentMethodId: String,
+        billing: String?,
         callback: (PaymentResult) -> Unit
     ) {
-        this.fragment?.confirmCvcPayment(paymentToken, paymentMethodId, callback)
+        this.fragment?.confirmCvcPayment(paymentToken, billing, callback)
     }
 
     fun setSdkAuthorization(sdkAuthorization: String) {
