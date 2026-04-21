@@ -9,7 +9,7 @@ class DemoApplication : Application(), ReactApplication {
 
     override fun onCreate() {
         super.onCreate()
-//        ReactNativeController.initialize(this)
+        ReactNativeController.initialize(this)
     }
 
     override val reactNativeHost: ReactNativeHost
