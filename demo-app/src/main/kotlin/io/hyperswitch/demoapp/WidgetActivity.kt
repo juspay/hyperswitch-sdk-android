@@ -3,7 +3,6 @@ package io.hyperswitch.demoapp
 import android.app.Activity
 import android.os.Bundle
 import android.util.Log
-import android.util.Log
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
@@ -13,7 +12,6 @@ import androidx.lifecycle.lifecycleScope
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
-import io.hyperswitch.model.ElementConfiguration
 import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration

@@ -35,7 +35,6 @@ object HyperEventEmitter {
     fun setEventListener(listener: PaymentEventListener?, subscription: PaymentEventSubscription? = null) {
         eventListener = listener
         subscriptionEvents = subscription
-        android.util.Log.d("HyperEventEmitter", "SetEventListener with ${subscription?.eventTypes?.size ?: 0} subscribed events")
     }
 
     /**
@@ -50,8 +49,6 @@ object HyperEventEmitter {
         elementType: String = "payment"
     ) {
         val shouldEmit = isSubscribed(eventType)
-        
-        android.util.Log.d("HyperEventEmitter", "Emit event: $eventType, shouldEmit: $shouldEmit, payload: $payload")
         
         if (shouldEmit && eventListener != null) {
             val event = PaymentEvent(
