@@ -204,6 +204,16 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     // Variable to keep track of event listener count
     private val listenerCount = AtomicInteger(0)
 
+
+    // Method to add event listener
+    @ReactMethod
+    fun addListener(eventName: String?) {
+        if (listenerCount.get() == 0) {
+            HyperEventEmitter.initialize(rct)
+        }
+        listenerCount.set(listenerCount.get() + 1)
+    }
+
 // Method to remove event listeners
     @ReactMethod
     fun removeListeners(count: Int) {
