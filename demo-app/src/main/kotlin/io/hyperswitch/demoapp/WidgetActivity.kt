@@ -45,11 +45,11 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
     private var publishableKey: String = ""
     private var profileId: String = ""
 
-    private lateinit var paymentElementBound : HyperswitchBoundElement
-    private lateinit var cvcWidgetBound : HyperswitchBoundElement
+    private lateinit var paymentElementBound: HyperswitchBoundElement
+    private lateinit var cvcWidgetBound: HyperswitchBoundElement
 
     private lateinit var hyperswitchInstance: HyperswitchInstance
-    private lateinit var elements : Elements
+    private lateinit var elements: Elements
     private var paymentSession: PaymentSession? = null
 
     // Resolved from PaymentSession — not from server response
@@ -98,9 +98,12 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                     } catch (e: JSONException) {
                         setStatus("Error parsing server response")
                     }
+
                 }
 
-                override fun failure(error: FuelError) { setStatus() }
+                override fun failure(error: FuelError) {
+                    setStatus()
+                }
             })
     }
 
@@ -203,21 +206,14 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         lifecycleScope.launch {
             paymentSession = hyperswitchInstance.initPaymentSession(session)
             paymentSession?.getCustomerSavedPaymentMethods { savedMethods ->
-                // ── Last Used ──
                 savedMethods.getCustomerLastUsedPaymentMethodData().fold(
                     onSuccess = { data ->
                         lastUsedPaymentToken = data.paymentToken
                         lastUsedPaymentMethodId = data.paymentMethodId
-                        val label = data.card?.let { "${it.scheme} - ${it.last4Digits}" }
-                            ?: data.paymentMethodType
-                        setStatus("Last Used: $label")
-
                     },
                     onFailure = { error ->
-                        setStatus("Last Used: ${(error as? PMError)?.message ?: "Unknown error"}")
                     }
                 )
-
                 // ── Default Saved ──
                 savedMethods.getCustomerDefaultSavedPaymentMethodData().fold(
                     onSuccess = { data ->
@@ -226,29 +222,27 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                     },
                     onFailure = { /* no default set — that's fine */ }
                 )
-                val cvcWidget = findViewById<CVCWidget>(R.id.cvcWidget)
-                if(defaultPaymentToken != null || lastUsedPaymentToken  != null ) {
-                    lifecycleScope.launch {
-                        cvcWidgetBound = elements
-                            .bind(cvcWidget) {
+            }
+            val cvcWidget = findViewById<CVCWidget>(R.id.cvcWidget)
+            lifecycleScope.launch {
+                cvcWidgetBound = elements
+                    .bind(cvcWidget) {
                                 on(CvcWidgetEvents.CvcStatus) { event ->
                                     val cvcStatus = event.data as? PaymentEventData.CvcStatus
                                     Log.d("CvcWidgetEvents", "CvcWidget focused: ${cvcStatus?.isCvcFocused}")
                                     Log.d("CvcWidgetEvents", "CvcWidget empty: ${cvcStatus?.isCvcEmpty}")
                                 }
                             }
-                    }
-                }
-
                 runOnUiThread { setButtonsEnabled(true) }
             }
+
         }
     }
 
 
     private suspend fun updateIntent(): String {
         return suspendCancellableCoroutine { continuation ->
-            reset().get("http://10.0.2.2:5252/create-payment-intent", null)
+            reset().get("http://10.0.2.2:5252/update-payment", null)
                 .responseString(object : Handler<String?> {
                     override fun success(value: String?) {
                         try {
@@ -346,23 +340,11 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         }
 
         findViewById<View>(R.id.confirmDefaultWithCVCButton).setOnClickListener {
-            val token = defaultPaymentToken
-            val methodId = defaultPaymentMethodId
-            if (token != null && methodId != null) {
-                confirmCvcPayment(token, methodId)
-            } else {
-                toast("No default saved method — reload first")
-            }
+            confirmDefaultUsed()
         }
 
         findViewById<View>(R.id.confirmLastUsedWithCVCButton).setOnClickListener {
-            val token = lastUsedPaymentToken
-            val methodId = lastUsedPaymentMethodId
-            if (token != null && methodId != null) {
-                confirmCvcPayment(token, methodId)
-            } else {
-                toast("No last-used saved method — reload first")
-            }
+            confirmLastUsed()
         }
     }
 
@@ -375,9 +357,19 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         }
     }
 
-    private fun confirmCvcPayment(paymentToken: String, paymentMethodId: String) {
-        cvcWidgetBound.confirmCVCWidget(paymentToken, paymentMethodId) { result ->
-            handlePaymentResult(result)
+    private fun confirmLastUsed() {
+        lifecycleScope.launch {
+            cvcWidgetBound.confirmWithLastUsed { result ->
+                handlePaymentResult(result)
+            }
+        }
+    }
+
+    private fun confirmDefaultUsed() {
+        lifecycleScope.launch {
+            cvcWidgetBound.confirmWithDefaultMethod { result ->
+                handlePaymentResult(result)
+            }
         }
     }
 

@@ -2,6 +2,7 @@ package io.hyperswitch.sdk
 
 import android.app.Activity
 import io.hyperswitch.PaymentEventSubscriptionBuilder
+import android.util.Log
 import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
@@ -70,7 +71,6 @@ class Elements internal constructor(
         }
 
         scope.launch {
-
             // Phase 1: fan-out inits concurrently, capture per-element init failures
             val initResults: List<Pair<HyperswitchBoundElement, Result<Unit>>> = targets
                 .map { hsElement ->
@@ -78,7 +78,7 @@ class Elements internal constructor(
                         hsElement to runCatching<Unit> {
                             suspendCancellableCoroutine { continuation ->
                                 hsElement.updateIntentInit {
-                                    continuation.resume(Unit)
+                                    if (continuation.isActive) continuation.resume(Unit)
                                 }
                             }
                         }

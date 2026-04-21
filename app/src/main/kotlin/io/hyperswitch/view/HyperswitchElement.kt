@@ -140,9 +140,9 @@ open class HyperswitchElement @JvmOverloads constructor(
     }
 
     fun updateIntentInit(onInitComplete: () -> Unit) {
-        internalView.updatePaymentIntentInit {
-            onInitComplete()
-        }
+        internalView.updatePaymentIntentInit(
+            onInitComplete
+        )
     }
 
     suspend fun updateIntentComplete(
