@@ -160,7 +160,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
 
                         val result = value?.let { JSONObject(it) }
                         if (result != null) {
-                            paymentIntentClientSecret = result.getString("clientSecret")
+//                            paymentIntentClientSecret = result.getString("clientSecret")
                             publishableKey = result.getString("publishableKey")
                             sdkAuthorization = result.getString("sdkAuthorization")
                             profileId = result.optString("profileId")
@@ -187,9 +187,8 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                                     PaymentSessionConfiguration(sdkAuthorization = sdkAuthorization)
                                 )
                             }
-                            paymentSession.initPaymentSession(paymentIntentClientSecret)
 
-                            paymentSession.subscribe {
+                            paymentSession?.subscribe {
                                 on(PaymentEvents.FormStatus) { event ->
                                     val formStatus = event.data as? PaymentEventData.FormStatus
                                     Log.d("PaymentEvents", "Form status: ${formStatus?.status?.name}")
