@@ -63,8 +63,6 @@ class HyperFragment : ReactFragment() {
     /** Per-widget listener set by HyperswitchBoundElement.subscribe(). Null for PaymentSheet. */
     private var paymentEventListener: PaymentEventListener? = null
 
-    private var elementType: String = "payment"
-
     private var onExit: (() -> Unit)? = null
 
     fun setOnExit(callback: () -> Unit) {
@@ -75,9 +73,8 @@ class HyperFragment : ReactFragment() {
         callbacks[CallbackType.PAYMENT_RESULT] = HyperCallback.Payment(callback)
     }
 
-    fun setOnEventCallback(listener: PaymentEventListener, elementType: String = "payment") {
+    fun setOnEventCallback(listener: PaymentEventListener) {
         this.paymentEventListener = listener
-        this.elementType = elementType
     }
 
     fun updatePaymentIntentInit(callback: (() -> Unit)?) {
@@ -255,7 +252,7 @@ class HyperFragment : ReactFragment() {
             val payload = ConversionUtils.readableMapToMap(result)
             val listener = paymentEventListener
             if (listener != null) {
-                val event = PaymentEvent(type = eventType, elementType = elementType, payload = payload)
+                val event = PaymentEvent(type = eventType, payload = payload)
                 listener.onPaymentEvent(event)
             } else {
                 HyperEventEmitter.emitPaymentEvent(eventType, payload)

@@ -41,19 +41,16 @@ object HyperEventEmitter {
      * Emit a payment event to merchant listener (if subscribed)
      * @param eventType The type of event (e.g., "payment_method.info.card")
      * @param payload The event payload data
-     * @param elementType The element type (default: "payment")
      */
     fun emitPaymentEvent(
         eventType: String,
-        payload: Map<String, Any>,
-        elementType: String = "payment"
+        payload: Map<String, Any>
     ) {
         val shouldEmit = isSubscribed(eventType)
         
         if (shouldEmit && eventListener != null) {
             val event = PaymentEvent(
                 type = eventType,
-                elementType = elementType,
                 payload = payload
             )
             

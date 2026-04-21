@@ -201,7 +201,7 @@ class PaymentWidgetView : FrameLayout {
 
     fun onEvent(listener: PaymentEventListener) {
         this.onEventCallback = listener
-        this.fragment?.setOnEventCallback(listener, widgetType ?: "payment")
+        this.fragment?.setOnEventCallback(listener)
     }
 
     fun setSubscribedEvents(events: List<String>) {
@@ -246,7 +246,7 @@ class PaymentWidgetView : FrameLayout {
         this.sdkAuthorization = sdkAuthorization
         // Auto-show widget if already attached to window
         if (isAttachedToWindow && !isSdkAuthorizationEmpty()) {
-            post { showWidgetInternal() }
+            showWidgetInternal()
         }
     }
 
@@ -291,7 +291,7 @@ class PaymentWidgetView : FrameLayout {
                 frameLayout.post { this.getFragment()?.view?.requestLayout() }
             }
             this.fragment?.setOnPaymentResult { result -> dispatchResult(result) }
-            onEventCallback?.let { this.fragment?.setOnEventCallback(it, widgetType ?: "payment") }
+            onEventCallback?.let { this.fragment?.setOnEventCallback(it) }
             this.fragment?.setOnExit {
                 removeWidget()
             }

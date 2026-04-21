@@ -173,9 +173,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         lifecycleScope.launch {
             elements = hyperswitchInstance
                 .elements(session)
-            paymentElementBound = elements.bind(paymentElement, getCustomisations())
-
-            paymentElementBound.subscribe {
+            paymentElementBound = elements.bind(paymentElement, getCustomisations()) {
                 on(PaymentEvents.FormStatus) { event ->
                     val formStatus = event.data as? PaymentEventData.FormStatus
                     Log.d("WidgetEvents", "PaymentElement form status: ${formStatus?.status?.name}")
@@ -235,15 +233,13 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                 if(defaultPaymentToken != null || lastUsedPaymentToken  != null ) {
                     lifecycleScope.launch {
                         cvcWidgetBound = elements
-                            .bind(cvcWidget)
-
-                        cvcWidgetBound.subscribe {
-                            on(PaymentEvents.CvcStatus) { event ->
-                                val cvcStatus = event.data as? PaymentEventData.CvcStatus
-                                Log.d("CvcWidgetEvents", "CvcWidget focused: ${cvcStatus?.isCvcFocused}")
-                                Log.d("CvcWidgetEvents", "CvcWidget empty: ${cvcStatus?.isCvcEmpty}")
+                            .bind(cvcWidget) {
+                                on(PaymentEvents.CvcStatus) { event ->
+                                    val cvcStatus = event.data as? PaymentEventData.CvcStatus
+                                    Log.d("CvcWidgetEvents", "CvcWidget focused: ${cvcStatus?.isCvcFocused}")
+                                    Log.d("CvcWidgetEvents", "CvcWidget empty: ${cvcStatus?.isCvcEmpty}")
+                                }
                             }
-                        }
                     }
                 }
 
