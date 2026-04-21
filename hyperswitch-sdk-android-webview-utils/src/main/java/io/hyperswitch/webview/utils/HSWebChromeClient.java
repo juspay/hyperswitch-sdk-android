@@ -4,7 +4,6 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.graphics.Insets;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Message;
 import android.view.Gravity;
 import android.view.View;
@@ -144,17 +143,15 @@ public class HSWebChromeClient extends WebChromeClient /*implements LifecycleEve
         ViewGroup parent = (ViewGroup) view.getParent().getParent();
         if (parent != null) {
             HSWebViewWrapper hsView = new HSWebViewWrapper(view.getContext(), newWebView);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                WindowInsets windowInsets = parent.getRootView().getRootWindowInsets();
-                if (windowInsets != null) {
-                    Insets insets = windowInsets.getInsets(
-                            WindowInsets.Type.statusBars()
-                                    | WindowInsets.Type.displayCutout()
-                                    | WindowInsets.Type.navigationBars()
-                                    | WindowInsets.Type.captionBar()
-                    );
-                    hsView.setPadding(insets.left, insets.top, insets.right, insets.bottom);
-                }
+            WindowInsets windowInsets = parent.getRootView().getRootWindowInsets();
+            if (windowInsets != null) {
+                Insets insets = windowInsets.getInsets(
+                        WindowInsets.Type.statusBars()
+                                | WindowInsets.Type.displayCutout()
+                                | WindowInsets.Type.navigationBars()
+                                | WindowInsets.Type.captionBar()
+                );
+                hsView.setPadding(insets.left, insets.top, insets.right, insets.bottom);
             }
             parent.addView(hsView);
         }
