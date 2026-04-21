@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.os.Bundle
 import android.util.AttributeSet
+import android.util.Log
 import android.view.Choreographer
 import android.view.MotionEvent
 import android.view.View
@@ -56,7 +57,7 @@ class PaymentWidgetView : FrameLayout {
     private lateinit var mContext: Context
     private var publishableKey: String? = null
     private var profileId: String? = null
-    private var sdkAuthorization : String = ""
+    private var sdkAuthorization: String = ""
 
     private var resultListener: PaymentResultListener? = null
 
@@ -110,7 +111,10 @@ class PaymentWidgetView : FrameLayout {
         publishableKey: String, profileId: String
     ) {
         initWidget(
-            mContext.applicationContext as Application, this.widgetType ?: "widgetPaymentSheet", publishableKey, profileId
+            mContext.applicationContext as Application,
+            this.widgetType ?: "widgetPaymentSheet",
+            publishableKey,
+            profileId
         )
     }
 
@@ -147,10 +151,15 @@ class PaymentWidgetView : FrameLayout {
     }
 
     /** Resolves the configuration to a Map<String, Any>? regardless of source */
-    private fun resolveConfiguration(): Map<String, Any>? = when (val c = widgetConfig) {
-        is PaymentWidgetConfig.Native     -> c.configuration.toMap()
-        is PaymentWidgetConfig.ReactNative -> c.configuration as? Map<String, Any>
-        null -> null
+    private fun resolveConfiguration(): Bundle? {
+        return when (val c = widgetConfig) {
+            is PaymentWidgetConfig.Native -> {
+                c.configuration.bundle
+            }
+
+            is PaymentWidgetConfig.ReactNative -> this.launchOptions.toBundle(c.configuration as Map<*, *>)
+            null -> null
+        }
     }
 
     /** Native / coroutine path - caller passes a PaymentResultListener */
@@ -167,11 +176,13 @@ class PaymentWidgetView : FrameLayout {
                     args.putString("status", "completed")
                     args.putString("data", result.data)
                 }
+
                 is PaymentResult.Failed -> {
                     args.putString("status", "failed")
                     args.putString("message", result.throwable.message)
                     args.putString("code", "")
                 }
+
                 is PaymentResult.Canceled -> {
                     args.putString("status", "cancelled")
                     args.putString("data", result.data)
@@ -200,27 +211,31 @@ class PaymentWidgetView : FrameLayout {
             customParams = PaymentConfiguration.customParams as Map<String, Any>?,
             type = widgetType,
 //            widgetId = this.widgetId,
-            sdkAuthorization= this.sdkAuthorization,
+            sdkAuthorization = this.sdkAuthorization,
         )
 
-    fun confirmPayment(callback:  (PaymentResult) -> Unit) {
+    fun confirmPayment(callback: (PaymentResult) -> Unit) {
         this.fragment?.confirmPayment(callback)
     }
 
 
-    fun updatePaymentIntentInit(callback:  () -> Unit){
+    fun updatePaymentIntentInit(callback: () -> Unit) {
         this.fragment?.updatePaymentIntentInit(callback)
     }
 
-    fun updatePaymentIntentComplete(sdkAuthorization : String, callback:  (PaymentResult) -> Unit){
+    fun updatePaymentIntentComplete(sdkAuthorization: String, callback: (PaymentResult) -> Unit) {
         this.fragment?.updatePaymentIntentComplete(sdkAuthorization, callback)
     }
 
-    fun confirmCvcPayment(paymentToken: String, paymentMethodId: String, callback : (PaymentResult) -> Unit){
-        this.fragment?.confirmCvcPayment( paymentToken, paymentMethodId, callback)
+    fun confirmCvcPayment(
+        paymentToken: String,
+        paymentMethodId: String,
+        callback: (PaymentResult) -> Unit
+    ) {
+        this.fragment?.confirmCvcPayment(paymentToken, paymentMethodId, callback)
     }
 
-    fun setSdkAuthorization(sdkAuthorization: String){
+    fun setSdkAuthorization(sdkAuthorization: String) {
         this.sdkAuthorization = sdkAuthorization
         // Auto-show widget if already attached to window
         if (isAttachedToWindow && !isSdkAuthorizationEmpty()) {
@@ -233,7 +248,7 @@ class PaymentWidgetView : FrameLayout {
             this.post { showWidgetInternal() }
             return
         }
-        if(this.publishableKey == null) {
+        if (this.publishableKey == null) {
             this.initWidget(this.publishableKey ?: "")
         }
         val activity = context as? FragmentActivity
@@ -249,7 +264,7 @@ class PaymentWidgetView : FrameLayout {
             )
 
             val frameLayout = FrameLayout(activity).apply {
-                layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+                layoutParams = LayoutParams(MATCH_PARENT, MATCH_PARENT)
             }
             this.addView(frameLayout, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
             frameLayout.post {
@@ -287,7 +302,7 @@ class PaymentWidgetView : FrameLayout {
                     } else {
                         choreographerCallbacks.remove(view.id)
                     }
-                }catch (_: Exception){
+                } catch (_: Exception) {
 
                 }
             }
@@ -306,7 +321,7 @@ class PaymentWidgetView : FrameLayout {
         try {
             this.cancelPendingInputEvents()
             stopLayout()
-            val activity = context  as FragmentActivity
+            val activity = context as FragmentActivity
 //                (context as ThemedReactContext).reactApplicationContext.currentActivity as? FragmentActivity
             val tag = "HyperPaymentSheet_${this.id}"
             activity?.let { HyperFragmentManager.remove(it, tag) }

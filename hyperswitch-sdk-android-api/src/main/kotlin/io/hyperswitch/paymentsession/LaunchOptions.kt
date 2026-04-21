@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.WindowInsets
 import android.webkit.WebSettings
@@ -89,7 +90,7 @@ class LaunchOptions(
 
     fun getBundle(
         publishableKey: String? = null,
-        configuration: Map<String, Any>? = null,
+        configuration: Bundle? = null,
         customBackendUrl: String? = null,
         customLogUrl: String? = null,
         customParams: Map<String, Any>? = null,
@@ -102,7 +103,10 @@ class LaunchOptions(
             putString("from", "rn")
             putString("publishableKey", publishableKey ?: "")
             putString("sdkAuthorization", sdkAuthorization?:"")
-            putBundle("configuration", toBundle(configuration ?: emptyMap<String, Any>()))
+            if (configuration?.containsKey("hideConfirmButton") == false) {
+                configuration.putBoolean("hideConfirmButton", true)
+            }
+            putBundle("configuration", configuration)
             customBackendUrl?.let { url -> putString("customBackendUrl", url) }
             customLogUrl?.let { url -> putString("customLogUrl", url) }
 

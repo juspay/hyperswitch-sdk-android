@@ -172,6 +172,7 @@ class PaymentSheet internal constructor(
         val displaySavedPaymentMethodsCheckbox: Boolean? = null,
         val displaySavedPaymentMethods: Boolean? = null,
         val placeHolder: PlaceHolder? = null,
+        val hideConfirmButton: Boolean? = null,
         /**
          * Api key used to invoke netcetera sdk for redirection-less 3DS authentication.
          */
@@ -210,6 +211,9 @@ class PaymentSheet internal constructor(
                         putBoolean("displaySavedPaymentMethods", displaySavedPaymentMethods)
                     }
                     putBundle("placeHolder", placeHolder?.bundle)
+                    if (hideConfirmButton != null){
+                        putBoolean("hideConfirmButton", hideConfirmButton)
+                    }
                     putString("netceteraSDKApiKey", netceteraSDKApiKey)
                     if (disableBranding != null) {
                         putBoolean("disableBranding", disableBranding)
@@ -238,6 +242,7 @@ class PaymentSheet internal constructor(
             private var displaySavedPaymentMethodsCheckbox: Boolean = true
             private var displaySavedPaymentMethods: Boolean = true
             private var placeHolder: PlaceHolder? = null
+            private var hideConfirmButton : Boolean? = null
             private var primaryButtonLabel: String? = null
             private var disableBranding: Boolean? = null
             private var defaultView: Boolean? = null
@@ -338,6 +343,7 @@ class PaymentSheet internal constructor(
                 displaySavedPaymentMethodsCheckbox,
                 displaySavedPaymentMethods,
                 placeHolder,
+                hideConfirmButton,
                 netceteraSDKApiKey,
                 disableBranding,
                 defaultView,

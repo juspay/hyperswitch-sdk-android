@@ -6,6 +6,7 @@ import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.toColorInt
 import androidx.lifecycle.lifecycleScope
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
@@ -19,6 +20,8 @@ import io.hyperswitch.sdk.HyperswitchInstance
 import io.hyperswitch.sdk.HyperInterface
 import io.hyperswitch.sdk.PaymentSession
 import io.hyperswitch.paymentsession.PMError
+import io.hyperswitch.paymentsheet.AddressDetails
+import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.sdk.Elements
 import io.hyperswitch.sdk.HyperswitchBoundElement
 import io.hyperswitch.view.CVCWidget
@@ -98,6 +101,59 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
 
     // ── Initialisation ───────────────────────────────────────────────────────
 
+
+    private fun getCustomisations(): PaymentSheet.Configuration {
+        /**
+         *
+         * Customisations
+         *
+         * */
+
+        val primaryButtonShape = PaymentSheet.PrimaryButtonShape(32f, 0f)
+        val address =
+            PaymentSheet.Address.Builder().city("city").country("US").line1("US").line2("line2")
+                .postalCode("560060").state("California").build()
+        val billingDetails: PaymentSheet.BillingDetails =
+            PaymentSheet.BillingDetails.Builder().address(address).email("email.com")
+                .name("John Doe").phone("1234123443").build()
+        val shippingDetails = AddressDetails("Shipping Inc.", address, "6205007614", true)
+
+        val primaryButton = PaymentSheet.PrimaryButton(
+            shape = primaryButtonShape,
+        )
+        val color1: PaymentSheet.Colors = PaymentSheet.Colors(
+            primary = "#8DBD00".toColorInt(),
+            surface = "#F5F8F9".toColorInt(),
+        )
+
+        val color2: PaymentSheet.Colors = PaymentSheet.Colors(
+            primary = "#8DBD00".toColorInt(),
+            surface = "#F5F8F9".toColorInt(),
+        )
+
+        val appearance: PaymentSheet.Appearance = PaymentSheet.Appearance(
+            typography = PaymentSheet.Typography(
+                sizeScaleFactor = 1f, fontResId = R.font.montserrat
+            ),
+            primaryButton = primaryButton,
+            colorsLight = color1,
+            colorsDark = color2,
+            theme = PaymentSheet.Theme.Light
+        )
+
+        val configuration =
+            PaymentSheet.Configuration.Builder("Example, Inc.")
+                .appearance(appearance)
+                .defaultBillingDetails(billingDetails).primaryButtonLabel("Purchase ($2.00)")
+                .paymentSheetHeaderLabel("Select payment method")
+                .savedPaymentSheetHeaderLabel("Payment methods").shippingDetails(shippingDetails)
+                .allowsPaymentMethodsRequiringShippingAddress(false)
+                .allowsDelayedPaymentMethods(true).displaySavedPaymentMethodsCheckbox(true)
+                .displaySavedPaymentMethods(true).disableBranding(true).showVersionInfo(true)
+
+        return configuration.build()
+    }
+
     private fun initialiseWidgets() {
         hyperswitchInstance = Hyperswitch.init(
             activity = ctx,
@@ -112,10 +168,13 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         // Bind PaymentElement
         val paymentElement = findViewById<PaymentElement>(R.id.paymentElement)
         lifecycleScope.launch {
+            paymentElement.setConfiguration(getCustomisations())
             paymentElementBound = hyperswitchInstance
                 .elements(session)
                 .bind(ElementConfiguration(paymentElement))
         }
+
+
 
         // Bind CVCWidget
 
