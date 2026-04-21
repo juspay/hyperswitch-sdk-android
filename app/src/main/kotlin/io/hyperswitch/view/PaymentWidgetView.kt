@@ -18,6 +18,7 @@ import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.PaymentEventListener
+import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
@@ -81,7 +82,7 @@ class PaymentWidgetView : FrameLayout {
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        initWidget(PaymentConfiguration.publishableKey() ?: "")
+//        initWidget( ?: "")
         // Auto-show widget if SDK authorization is already set
         if (!isSdkAuthorizationEmpty()) {
             showWidgetInternal()
@@ -229,7 +230,7 @@ class PaymentWidgetView : FrameLayout {
         this.fragment?.updatePaymentIntentInit(callback)
     }
 
-    fun updatePaymentIntentComplete(sdkAuthorization: String, callback: (PaymentResult) -> Unit) {
+    fun updatePaymentIntentComplete(sdkAuthorization: String, callback: (ElementUpdateIntentResult) -> Unit) {
         this.fragment?.updatePaymentIntentComplete(sdkAuthorization, callback)
     }
 
@@ -254,9 +255,9 @@ class PaymentWidgetView : FrameLayout {
             this.post { showWidgetInternal() }
             return
         }
-        if (this.publishableKey == null) {
-            this.initWidget(this.publishableKey ?: "")
-        }
+//        if (this.publishableKey == null) {
+//            this.initWidget(this.publishableKey ?: "")
+//        }
         val activity = context as? FragmentActivity
 
         activity?.let {

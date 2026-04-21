@@ -299,7 +299,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             val customisations = getCustomisations()
             lifecycleScope.launch {
               val result =   paymentSession?.presentPaymentSheet(customisations)
-//                result?.let { onPaymentResult(it) }
+                result?.let { onPaymentResult(it) }
             }
             //
             //val result =  paymentSession.presentPaymentSheet(customisations)

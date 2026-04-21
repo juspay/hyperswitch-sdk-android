@@ -55,13 +55,10 @@ object ReactNativeController {
      */
     private fun getBundleFromAirborne(application: Application): String {
         try {
-            val environment =
-                LogUtils.getEnvironment(PaymentConfiguration.Companion.publishableKey())
+//            val environment = SDKEnvironment.PROD
+            // TODO: change this to ENV check based on the Configuration.
             val airborneUrl = application.getString(
-                if (environment == SDKEnvironment.SANDBOX)
-                    R.string.hyperOTASandBoxEndPoint
-                else
-                    R.string.hyperOTAEndPoint
+                R.string.hyperOTAEndPoint
             )
 
             // Ensure OTA endpoint is valid

@@ -4,6 +4,7 @@ import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.PaymentEventSubscription
 import io.hyperswitch.PaymentEventSubscriptionBuilder
+import android.util.Log
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher
@@ -43,13 +44,13 @@ class PaymentSession internal constructor(
         sessionConfig = null
     )
 
-    constructor(activity: Activity, config: HyperswitchBaseConfiguration, sessionConfig: PaymentSessionConfiguration): this(
+    constructor(activity: Activity, config: HyperswitchBaseConfiguration?, sessionConfig: PaymentSessionConfiguration): this(
         DefaultPaymentSessionLauncher(activity,
-            config.publishableKey,
-            config.customConfig?.overrideCustomBackendEndpoint,
-            config.customConfig?.overrideCustomLoggingEndpoint,
+            config?.publishableKey,
+            config?.customConfig?.overrideCustomBackendEndpoint,
+            config?.customConfig?.overrideCustomLoggingEndpoint,
             null),
-        publishableKey = config.publishableKey,
+        publishableKey = config?.publishableKey,
         sessionConfig = sessionConfig
     )
 

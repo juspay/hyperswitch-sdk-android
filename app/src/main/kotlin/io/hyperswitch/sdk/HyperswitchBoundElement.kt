@@ -2,6 +2,7 @@ package io.hyperswitch.sdk
 
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.PaymentEventSubscriptionBuilder
+import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.view.HyperswitchElement
@@ -14,9 +15,13 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 class HyperswitchBoundElement internal constructor(
     paymentSession: PaymentSession,
     private val element: HyperswitchElement,
+    configuration: PaymentSheet.Configuration? = null
 ) {
     init {
         element.initWidget(paymentSession.getPublishableKey())
+        if(configuration != null) {
+            element.setConfiguration(configuration)
+        }
         element.setSdkAuthorization(paymentSession.getSdkAuthorization())
     }
 
@@ -41,9 +46,9 @@ class HyperswitchBoundElement internal constructor(
 //    }
 
 //    /** Registers a PaymentResultListener */
-//    fun onPaymentResult(listener: PaymentResultListener) {
-//        element.onPaymentResult(listener)
-//    }
+    fun onPaymentResult(listener: PaymentResultListener) {
+        element.onPaymentResult(listener)
+    }
 
     fun onPaymentResult(onResult: (PaymentResult) -> Unit) {
         element.onPaymentResult(onResult)
@@ -74,17 +79,13 @@ class HyperswitchBoundElement internal constructor(
         element.confirmCVCWidget(paymentToken, paymentMethodId, onResult)
     }
 
-    fun updateIntent(
-        scope: CoroutineScope,
-        sessionTokenProvider: suspend () -> String,
-        onResult: (PaymentResult) -> Unit
-    ) {
-        element.updateIntent(scope, sessionTokenProvider, onResult)
+    fun updateIntentInit(onInitComplete: () -> Unit) {
+        element.updateIntentInit { onInitComplete() }
     }
-    fun updateIntent(
-        sessionTokenProvider:  () -> String,
-        onResult: (PaymentResult) -> Unit
-    ) {
-        element.updateIntent(sessionTokenProvider, onResult)
+
+    suspend fun updateIntentComplete(
+        sdkAuthorization: String
+    ): ElementUpdateIntentResult {
+        return element.updateIntentComplete(sdkAuthorization)
     }
 }

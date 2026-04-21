@@ -19,6 +19,7 @@ import com.proyecto26.inappbrowser.ChromeTabsDismissedEvent
 import com.proyecto26.inappbrowser.ChromeTabsManagerActivity
 import io.hyperswitch.PaymentEvent
 import io.hyperswitch.PaymentEventListener
+import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.paymentsession.ExitHeadlessCallBackManager
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.redirect.RedirectEvent
@@ -48,7 +49,7 @@ enum class CallbackType {
 sealed class HyperCallback {
     class Payment(val fn: ((PaymentResult) -> Unit)) : HyperCallback()
     class UpdateIntentInit(val fn: (() -> Unit)?) : HyperCallback()
-    class UpdateIntentComplete(val fn: ((PaymentResult) -> Unit)) : HyperCallback()
+    class UpdateIntentComplete(val fn: ((ElementUpdateIntentResult) -> Unit)) : HyperCallback()
 }
 
 class HyperFragment : ReactFragment() {
@@ -93,11 +94,11 @@ class HyperFragment : ReactFragment() {
             })
     }
 
-    fun updatePaymentIntentComplete(sdkAuthorization: String, callback: ((PaymentResult) -> Unit)) {
+    fun updatePaymentIntentComplete(sdkAuthorization: String, callback: ((ElementUpdateIntentResult) -> Unit)) {
         val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
         if (rootTag == -1) {
             callback.invoke(
-                PaymentResult.Failed(
+                ElementUpdateIntentResult.Failure(
                     Throwable("React context not ready").apply {
                         initCause(Throwable("REACT_CONTEXT_NOT_READY"))
                     }
@@ -107,7 +108,7 @@ class HyperFragment : ReactFragment() {
         }
         if (callbacks[CallbackType.UPDATE_INTENT_COMPLETE] != null) {
             callback.invoke(
-                PaymentResult.Failed(
+                ElementUpdateIntentResult.Failure(
                     Throwable("Update intent complete already in progress").apply {
                         initCause(Throwable("ALREADY_IN_PROGRESS"))
                     }
@@ -194,7 +195,7 @@ class HyperFragment : ReactFragment() {
 
                 CallbackType.UPDATE_INTENT_COMPLETE ->
                     (callbacks.remove(CallbackType.UPDATE_INTENT_COMPLETE) as? HyperCallback.UpdateIntentComplete)?.fn?.invoke(
-                        parsed
+                        parseElementUpdateResult(result)
                     )
 
                 CallbackType.CONFIRM_ACTION -> {
@@ -213,6 +214,20 @@ class HyperFragment : ReactFragment() {
             }
         } catch (e: Exception) {
             Log.e("HyperFragment", "Error in notifyResult", e)
+        }
+    }
+
+    private fun parseElementUpdateResult(data: String): ElementUpdateIntentResult {
+        val jsonObject = JSONObject(data)
+        return when (val status = jsonObject.getString("status")) {
+            "cancelled" -> ElementUpdateIntentResult.Cancelled
+            "failed", "requires_payment_method", "form_invalid" -> {
+                val message = jsonObject.getString("message")
+                val throwable = Throwable(message.ifEmpty { status })
+                throwable.initCause(Throwable(jsonObject.getString("code")))
+                ElementUpdateIntentResult.Failure(throwable)
+            }
+            else -> ElementUpdateIntentResult.Success
         }
     }
 
