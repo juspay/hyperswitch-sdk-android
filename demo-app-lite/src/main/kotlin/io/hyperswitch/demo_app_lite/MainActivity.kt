@@ -25,7 +25,7 @@ import androidx.core.graphics.toColorInt
 class MainActivity : Activity() {
     lateinit var ctx: Activity
     private var publishableKey: String = ""
-    private var paymentIntentClientSecret: String = "clientSecret"
+    private var sdkAuthorization: String = ""
     private var netceteraApiKey: String? = null
     private val prefsName = "HyperswitchPrefs"
     private val keyServerUrl = "server_url"
@@ -33,7 +33,7 @@ class MainActivity : Activity() {
     private lateinit var paymentSession: PaymentSession
     private lateinit var editText: EditText
 
-    private fun fetchNetceteraApiKey() = {
+    private fun fetchNetceteraApiKey() {
         reset().get("$serverUrl/netcetera-sdk-api-key").responseString(object : Handler<String?> {
             override fun success(value: String?) {
                 try {
@@ -141,7 +141,7 @@ class MainActivity : Activity() {
 
                         val result = value?.let { JSONObject(it) }
                         if (result != null) {
-                            paymentIntentClientSecret = result.getString("clientSecret")
+                            sdkAuthorization = result.getString("sdkAuthorization")
                             publishableKey = result.getString("publishableKey")
 
                             /**
@@ -158,7 +158,7 @@ class MainActivity : Activity() {
                              *
                              * */
 
-                            paymentSession.initPaymentSession(paymentIntentClientSecret)
+                            paymentSession.initPaymentSession(sdkAuthorization)
 
                             ctx.runOnUiThread {
                                 ctx.findViewById<View>(R.id.launchButton).isEnabled = true

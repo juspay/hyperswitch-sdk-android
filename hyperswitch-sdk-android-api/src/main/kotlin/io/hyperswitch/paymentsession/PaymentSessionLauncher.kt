@@ -4,7 +4,7 @@ import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
 
 interface PaymentSessionLauncher {
-    fun initPaymentSession(paymentIntentClientSecret: String)
+    fun initPaymentSession(sdkAuthorization: String)
     fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration?, resultCallback: (PaymentResult) -> Unit
     )

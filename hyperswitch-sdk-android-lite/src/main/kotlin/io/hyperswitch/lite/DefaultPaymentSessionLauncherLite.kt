@@ -29,7 +29,7 @@ open class DefaultPaymentSessionLauncherLite(
         resultCallback: (PaymentResult) -> Unit
     ) {
         PaymentSheetCallbackManager.setCallback(resultCallback)
-        webViewUtils.presentSheet(paymentIntentClientSecret ?: "", configuration)
+        webViewUtils.presentSheet(sdkAuthorization ?: "", configuration)
     }
 
     override fun presentPaymentSheet(
@@ -43,5 +43,9 @@ open class DefaultPaymentSessionLauncherLite(
     override fun getCustomerSavedPaymentMethods(
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)
     ) {
+    }
+
+    override suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler {
+        TODO("Not yet implemented")
     }
 }

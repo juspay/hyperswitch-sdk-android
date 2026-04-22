@@ -17,16 +17,14 @@ abstract class BasePaymentSessionLauncher(
     protected var sdkAuthorization: String? = null
 
     init {
-//        if (publishableKey != null) {
-            PaymentConfiguration.init(
-                activity.applicationContext,
-                publishableKey,
-                "",
-                customBackendUrl,
-                customLogUrl,
-                customParams
-            )
-//        }
+        PaymentConfiguration.init(
+            activity.applicationContext,
+            publishableKey,
+            "",
+            customBackendUrl,
+            customLogUrl,
+            customParams
+        )
     }
 
     override fun initPaymentSession(sdkAuthorization: String) {
