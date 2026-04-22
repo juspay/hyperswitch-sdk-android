@@ -246,9 +246,11 @@ class PaymentWidgetView : FrameLayout {
 
     fun setSdkAuthorization(sdkAuthorization: String) {
         this.sdkAuthorization = sdkAuthorization
-        // Auto-show widget if already attached to window
+        // Auto-show widget if already attached to window.
+        // Use post() to guarantee execution on the main thread — callers may
+        // invoke this from a background thread (e.g. Java integration).
         if (isAttachedToWindow && !isSdkAuthorizationEmpty()) {
-            showWidgetInternal()
+            post { showWidgetInternal() }
         }
     }
 

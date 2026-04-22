@@ -9,6 +9,9 @@ import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.utils.ConversionUtils
 import io.hyperswitch.view.CVCWidget
 import kotlin.coroutines.resume
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 internal class PaymentSessionHandlerImpl(
@@ -85,6 +88,24 @@ internal class PaymentSessionHandlerImpl(
             return it.confirmCVCWidget(sdkAuthorization, method.paymentToken, method.billing)
         }
         return PaymentResult.Failed(Throwable("View can't be cast as CVCWidget"))
+    }
+
+    // ── CVCWidget callback overloads (Java-friendly, no Continuation needed) ─
+
+    override fun confirmWithCustomerLastUsedPaymentMethod(
+        cvcWidget: View, resultHandler: (PaymentResult) -> Unit
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            resultHandler(confirmWithCustomerLastUsedPaymentMethod(cvcWidget))
+        }
+    }
+
+    override fun confirmWithCustomerDefaultPaymentMethod(
+        cvcWidget: View, resultHandler: (PaymentResult) -> Unit
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            resultHandler(confirmWithCustomerDefaultPaymentMethod(cvcWidget))
+        }
     }
 
     // ── Parsing ──────────────────────────────────────────────────────────────

@@ -47,6 +47,16 @@ class Elements internal constructor(
         return hsElement
     }
 
+    fun bind(
+        element: HyperswitchElement,
+        configurationMap: Map<String, Any?>,
+        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null
+    ): HyperswitchBoundElement {
+        val hsElement = HyperswitchBoundElement(paymentSession, element, configurationMap, subscribe)
+        hsElements.add(hsElement)
+        return hsElement
+    }
+
     suspend fun updateIntent(completion: suspend () -> PaymentSessionConfiguration): ElementsUpdateResult =
         computeUpdateIntent(hsElements.toList(), completion)
 

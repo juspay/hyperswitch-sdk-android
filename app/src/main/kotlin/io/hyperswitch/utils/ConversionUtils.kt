@@ -128,6 +128,54 @@ object ConversionUtils {
         return result
     }
 
+    /**
+     * Recursively convert a plain [Map] into a [WritableMap] (ReadableMap).
+     * Mirrors the inverse of [readableMapToMap].
+     */
+    @JvmStatic
+    fun convertMapToReadableMap(map: Map<*, *>): WritableMap {
+        val writableMap = WritableNativeMap()
+        for ((key, value) in map) {
+            val k = key?.toString() ?: continue
+            when (value) {
+                null -> writableMap.putNull(k)
+                is Boolean -> writableMap.putBoolean(k, value)
+                is Int -> writableMap.putInt(k, value)
+                is Long -> writableMap.putDouble(k, value.toDouble())
+                is Float -> writableMap.putDouble(k, value.toDouble())
+                is Double -> writableMap.putDouble(k, value)
+                is String -> writableMap.putString(k, value)
+                is Map<*, *> -> writableMap.putMap(k, convertMapToReadableMap(value))
+                is List<*> -> writableMap.putArray(k, convertListToReadableArray(value))
+                else -> writableMap.putString(k, value.toString())
+            }
+        }
+        return writableMap
+    }
+
+    /**
+     * Recursively convert a plain [List] into a [WritableArray] (ReadableArray).
+     */
+    @JvmStatic
+    fun convertListToReadableArray(list: List<*>): WritableArray {
+        val writableArray = WritableNativeArray()
+        for (value in list) {
+            when (value) {
+                null -> writableArray.pushNull()
+                is Boolean -> writableArray.pushBoolean(value)
+                is Int -> writableArray.pushInt(value)
+                is Long -> writableArray.pushDouble(value.toDouble())
+                is Float -> writableArray.pushDouble(value.toDouble())
+                is Double -> writableArray.pushDouble(value)
+                is String -> writableArray.pushString(value)
+                is Map<*, *> -> writableArray.pushMap(convertMapToReadableMap(value))
+                is List<*> -> writableArray.pushArray(convertListToReadableArray(value))
+                else -> writableArray.pushString(value.toString())
+            }
+        }
+        return writableArray
+    }
+
     @JvmStatic
     @Throws(JSONException::class)
     fun convertArrayToJson(readableArray: ReadableArray?): JSONArray {

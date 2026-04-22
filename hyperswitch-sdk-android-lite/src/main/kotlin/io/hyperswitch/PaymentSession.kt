@@ -89,7 +89,7 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
      * @param resultCallback A callback that will be invoked when the payment sheet is closed.
      */
     fun presentPaymentSheet(resultCallback: (PaymentResult) -> Unit) {
-        paymentSessionLauncher.presentPaymentSheet(configuration = null, resultCallback)
+        paymentSessionLauncher.presentPaymentSheet(configuration = null, subscribe = null, resultCallback)
     }
 
     /**
@@ -101,7 +101,7 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
     fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration, resultCallback: (PaymentResult) -> Unit
     ) {
-        paymentSessionLauncher.presentPaymentSheet(configuration, resultCallback)
+        paymentSessionLauncher.presentPaymentSheet(configuration, subscribe = null, resultCallback)
     }
 
     /**
@@ -114,7 +114,7 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
         configurationMap: Map<String, Any?>,
         resultCallback: (PaymentResult) -> Unit
     ) {
-        paymentSessionLauncher.presentPaymentSheet(configurationMap, resultCallback)
+        paymentSessionLauncher.presentPaymentSheet(configurationMap, subscribe = null, resultCallback)
     }
 
     /**

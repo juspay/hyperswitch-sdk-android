@@ -2,11 +2,13 @@ package io.hyperswitch.paymentsession
 
 import android.app.Activity
 import android.os.Bundle
+import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
 import io.hyperswitch.logs.LogUtils.getLoggingUrl
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
+import io.hyperswitch.react.HyperEventEmitter
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
 
@@ -46,9 +48,16 @@ class DefaultPaymentSessionLauncher(
 
     override fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration?,
+        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?,
         resultCallback: (PaymentResult) -> Unit
     ) {
         isPresented = true
+        if (subscribe != null) {
+            val builder = PaymentEventSubscriptionBuilder()
+            builder.subscribe()
+            val (subscription, listener) = builder.build()
+            HyperEventEmitter.setEventListener(listener, subscription)
+        }
         val isFragment =
             paymentSessionReactLauncher.presentSheet(Companion.sdkAuthorization ?: "", configuration)
         PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
@@ -56,9 +65,16 @@ class DefaultPaymentSessionLauncher(
 
     override fun presentPaymentSheet(
         configurationMap: Map<String, Any?>,
+        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?,
         resultCallback: (PaymentResult) -> Unit
     ) {
         isPresented = true
+        if (subscribe != null) {
+            val builder = PaymentEventSubscriptionBuilder()
+            builder.subscribe()
+            val (subscription, listener) = builder.build()
+            HyperEventEmitter.setEventListener(listener, subscription)
+        }
         val isFragment = paymentSessionReactLauncher.presentSheet(configurationMap)
         PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
     }

@@ -6,6 +6,7 @@ import io.hyperswitch.paymentsession.Callback
 import io.hyperswitch.paymentsession.PMError
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
+import io.hyperswitch.utils.ConversionUtils
 import io.hyperswitch.view.HyperswitchElement
 import io.hyperswitch.view.PaymentResultListener
 import kotlin.coroutines.resume
@@ -17,6 +18,16 @@ class HyperswitchBoundElement internal constructor(
     configuration: PaymentSheet.Configuration? = null,
     subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null
 ) {
+
+    /** Secondary constructor accepting a raw configurationMap (mirrors the presentPaymentSheet overload). */
+    internal constructor(
+        paymentSession: PaymentSession,
+        element: HyperswitchElement,
+        configurationMap: Map<String, Any?>,
+        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null
+    ) : this(paymentSession, element, null, subscribe) {
+        element.setConfiguration(ConversionUtils.convertMapToReadableMap(configurationMap))
+    }
     private var lastUsedPaymentToken: String? = null
     private var lastUsedBilling: String? = null
     private var defaultPaymentToken: String? = null
@@ -58,6 +69,11 @@ class HyperswitchBoundElement internal constructor(
     /** Native path - sets configuration using PaymentSheet.Configuration */
     fun setConfiguration(configuration: PaymentSheet.Configuration) {
         element.setConfiguration(configuration)
+    }
+
+    /** Map path - sets configuration using a raw configurationMap (mirrors presentPaymentSheet overload) */
+    fun setConfiguration(configurationMap: Map<String, Any?>) {
+        element.setConfiguration(ConversionUtils.convertMapToReadableMap(configurationMap))
     }
 
 //    /** RN bridge path - sets configuration using ReadableMap */

@@ -124,35 +124,31 @@ class PaymentSession internal constructor(
         configuration: PaymentSheet.Configuration,
         subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null
     ): PaymentResult {
-        if (subscribe != null) {
-            val builder = PaymentEventSubscriptionBuilder()
-            builder.subscribe()
-            val (subscription, listener) = builder.build()
-            HyperEventEmitter.setEventListener(listener, subscription)
-        }
         return suspendCancellableCoroutine { continuation ->
-            paymentSessionLauncher.presentPaymentSheet(configuration) { result ->
+            paymentSessionLauncher.presentPaymentSheet(configuration, subscribe) { result ->
                 continuation.resume(result)
             }
         }
     }
 
-    fun launchPaymentSheet(resultCallback: (PaymentResult) -> Unit) {
-        paymentSessionLauncher.presentPaymentSheet(configuration = null, resultCallback)
+    fun presentPaymentSheet(subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null, resultCallback: (PaymentResult) -> Unit) {
+        paymentSessionLauncher.presentPaymentSheet(configuration = null, subscribe, resultCallback)
     }
 
-    fun launchPaymentSheet(
+    fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration,
+        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null,
         resultCallback: (PaymentResult) -> Unit
     ) {
-        paymentSessionLauncher.presentPaymentSheet(configuration, resultCallback)
+        paymentSessionLauncher.presentPaymentSheet(configuration, subscribe, resultCallback)
     }
 
-    fun launchPaymentSheet(
+    fun presentPaymentSheet(
         configurationMap: Map<String, Any?>,
+        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null,
         resultCallback: (PaymentResult) -> Unit
     ) {
-        paymentSessionLauncher.presentPaymentSheet(configurationMap, resultCallback)
+        paymentSessionLauncher.presentPaymentSheet(configurationMap, subscribe, resultCallback)
     }
 
     suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler {
