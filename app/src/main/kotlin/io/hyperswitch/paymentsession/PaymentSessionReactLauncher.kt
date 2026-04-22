@@ -98,12 +98,11 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
         }
     }
 
+    private fun getSubscribedEventsSafely(): List<String> =
+        try { HyperEventEmitter.getSubscribedEvents() } catch (_: Exception) { emptyList() }
+
     private fun invokeStartTask(reactContext: ReactContext) {
-        val subscribedEvents = try {
-            HyperEventEmitter.getSubscribedEvents()
-        } catch (e: Exception) {
-            emptyList()
-        }
+        val subscribedEvents = getSubscribedEventsSafely()
         val taskConfig = HeadlessJsTaskConfig(
             "HyperHeadless", Arguments.fromBundle(
                 launchOptions.getBundle(
@@ -128,22 +127,14 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
         sdkAuthorization: String,
         configuration: PaymentSheet.Configuration?
     ): Boolean {
-         val subscribedEvents = try {
-            HyperEventEmitter.getSubscribedEvents()
-        } catch (e: Exception) {
-            emptyList()
-        }
+         val subscribedEvents = getSubscribedEventsSafely()
         val bundle = launchOptions.getBundle(sdkAuthorization, configuration,subscribedEvents)
         applyFonts(configuration, bundle)
         return presentSheet(bottomInsetToDIPFromPixel(bundle))
     }
 
     override fun presentSheet(configurationMap: Map<String, Any?>): Boolean {
-        val subscribedEvents = try {
-            HyperEventEmitter.getSubscribedEvents()
-        } catch (e: Exception) {
-            emptyList()
-        }
+        val subscribedEvents = getSubscribedEventsSafely()
         return presentSheet(
             bottomInsetToDIPFromPixel(
                 launchOptions.getBundleWithHyperParams(

@@ -1,8 +1,6 @@
 package io.hyperswitch.react
 
 import android.util.Log
-import android.view.View
-import android.view.ViewGroup
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import com.facebook.react.bridge.Arguments
@@ -20,7 +18,6 @@ import io.hyperswitch.payments.GooglePayCallbackManager
 import io.hyperswitch.payments.view.WidgetLauncher
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
-import io.hyperswitch.view.PaymentWidgetView
 import io.hyperswitch.payments.launcher.PaymentMethod
 import org.json.JSONObject
 import java.util.concurrent.atomic.AtomicInteger
@@ -58,34 +55,7 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
 
     @ReactMethod
     fun updateWidgetHeight(height: Int) {
-        val activity = currentActivity ?: return
-        activity.runOnUiThread {
-            // Find the first ExpressCheckoutWidget instance
-            val rootView = activity.findViewById<View>(android.R.id.content)
-            val widget = findFirstExpressCheckoutWidget(rootView)
-
-            // Update its height if found
-//            widget?.setWidgetHeight(height)
-        }
-    }
-
-    private fun findFirstExpressCheckoutWidget(rootView: View): PaymentWidgetView? {
-//        if (rootView is PaymentWidgetView && rootView.getPaymentMethod() == "expressCheckout") {
-//            return rootView
-//        }
-//        // Check child views
-//        if (rootView is ViewGroup) {
-//            for (i in 0 until rootView.childCount) {
-//                val childView = rootView.getChildAt(i)
-//                val result = findFirstExpressCheckoutWidget(childView)
-//                if (result != null) {
-//                    return result
-//                }
-//            }
-//        }
-
-        // Not found in this branch
-        return null
+        // Express checkout widget height adjustment is not yet implemented.
     }
 
     @ReactMethod
@@ -171,35 +141,29 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     }
 
     @ReactMethod
-    fun notifyWidgetPaymentResult(rootTag: Int, result: String) {
-        try {
-            findFragmentWithRootTag(rootTag, {
-                it?.notifyResult(CallbackType.CONFIRM_ACTION, result)
-            })
-        } catch (_: Exception) {
-//      Log.i("HyperModule", "Error in notifyWidgetPaymentResult")
-        }
+    fun notifyWidgetPaymentResult(rootTag: Double, result: String) {
+        findFragmentWithRootTag(rootTag.toInt(), { fragment ->
+            if (fragment == null) {
+                Log.w("HyperModule", "notifyWidgetPaymentResult: no fragment found for rootTag=$rootTag")
+            } else {
+                fragment.notifyResult(CallbackType.CONFIRM_ACTION, result)
+            }
+        })
     }
 
     @ReactMethod
-    fun onUpdateIntentEvent(rootTag: Int, type: String, result: String) {
-        try {
-            findFragmentWithRootTag(rootTag, {
-                if (type == "UPDATE_INTENT_INIT_RETURNED") {
-                    it?.notifyResult(
-                        CallbackType.UPDATE_INTENT_INIT,
-                        result
-                    )
-                } else if (type == "UPDATE_INTENT_COMPLETE_RETURNED") {
-                    it?.notifyResult(
-                        CallbackType.UPDATE_INTENT_COMPLETE,
-                        result
-                    )
-                }
-            })
-        } catch (_: Exception) {
-
-        }
+    fun onUpdateIntentEvent(rootTag: Double, type: String, result: String) {
+        findFragmentWithRootTag(rootTag.toInt(), { fragment ->
+            if (fragment == null) {
+                Log.w("HyperModule", "onUpdateIntentEvent: no fragment found for rootTag=$rootTag")
+                return@findFragmentWithRootTag
+            }
+            if (type == "UPDATE_INTENT_INIT_RETURNED") {
+                fragment.notifyResult(CallbackType.UPDATE_INTENT_INIT, result)
+            } else if (type == "UPDATE_INTENT_COMPLETE_RETURNED") {
+                fragment.notifyResult(CallbackType.UPDATE_INTENT_COMPLETE, result)
+            }
+        })
     }
     // Variable to keep track of event listener count
     private val listenerCount = AtomicInteger(0)
@@ -208,29 +172,26 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     // Method to add event listener
     @ReactMethod
     fun addListener(eventName: String?) {
-        if (listenerCount.get() == 0) {
+        if (listenerCount.incrementAndGet() == 1) {
             HyperEventEmitter.initialize(rct)
         }
-        listenerCount.set(listenerCount.get() + 1)
     }
 
 // Method to remove event listeners
     @ReactMethod
     fun removeListeners(count: Int) {
-        listenerCount.set(listenerCount.get() - count)
-//        if (listenerCount.get() == 0) {
-//            // Remove upstream listeners, stop unnecessary background task
-//        }
+        listenerCount.addAndGet(-count)
     }
 
     @ReactMethod
-    fun emitPaymentEvent(rootTag: Int, eventType: String, payload: ReadableMap) {
-        try {
-            findFragmentWithRootTag(rootTag, {
-                it?.notifyEvent(eventType, payload)
-            })
-        } catch (_: Exception) {
-        }
+    fun emitPaymentEvent(rootTag: Double, eventType: String, payload: ReadableMap) {
+        findFragmentWithRootTag(rootTag.toInt(), { fragment ->
+            if (fragment == null) {
+                Log.w("HyperModule", "emitPaymentEvent: no fragment found for rootTag=$rootTag")
+            } else {
+                fragment.notifyEvent(eventType, payload)
+            }
+        })
     }
 
     private fun findFragmentWithRootTag(rootTag: Int, onFound: (HyperFragment?) -> Unit) {

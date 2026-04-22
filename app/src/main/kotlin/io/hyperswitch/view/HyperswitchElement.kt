@@ -101,11 +101,12 @@ open class HyperswitchElement @JvmOverloads constructor(
      * Suspending CVC confirmation.
      */
     suspend fun confirmCVCWidget(
+        sdkAuthorization: String,
         paymentToken: String,
         billing: String? = null
     ): PaymentResult =
         suspendCancellableCoroutine { continuation ->
-            internalView.confirmCvcPayment(paymentToken, billing) { result ->
+            internalView.confirmCvcPayment(sdkAuthorization, paymentToken, billing) { result ->
                 continuation.resume(result)
             }
         }
@@ -114,11 +115,12 @@ open class HyperswitchElement @JvmOverloads constructor(
      * Callback CVC confirmation.
      */
     fun confirmCVCWidget(
+        sdkAuthorization: String,
         paymentToken: String,
         billing: String? = null,
         callback: (PaymentResult) -> Unit
     ) {
-        internalView.confirmCvcPayment(paymentToken, billing, callback)
+        internalView.confirmCvcPayment(sdkAuthorization, paymentToken, billing, callback)
     }
 
     /** Native path - sets configuration using PaymentSheet.Configuration */

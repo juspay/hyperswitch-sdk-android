@@ -7,6 +7,8 @@ import io.hyperswitch.logs.LogFileManager
 import io.hyperswitch.logs.LogUtils.getLoggingUrl
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
+import kotlin.coroutines.resume
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 class DefaultPaymentSessionLauncher(
     activity: Activity,
@@ -65,9 +67,21 @@ class DefaultPaymentSessionLauncher(
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)
     ) {
         isPresented = false
-        GetPaymentSessionCallBackManager.setCallback(savedPaymentMethodCallback)
+        GetPaymentSessionCallBackManager.setCallback(sdkAuthorization, savedPaymentMethodCallback)
         paymentSessionReactLauncher.recreateReactContext()
     }
+
+    override suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler =
+        suspendCancellableCoroutine { continuation ->
+            isPresented = false
+            GetPaymentSessionCallBackManager.setCallback(sdkAuthorization) { handler ->
+                if (continuation.isActive) continuation.resume(handler)
+            }
+            continuation.invokeOnCancellation {
+                GetPaymentSessionCallBackManager.setCallback(sdkAuthorization, null)
+            }
+            paymentSessionReactLauncher.recreateReactContext()
+        }
 
     companion object {
         var isPresented: Boolean = false

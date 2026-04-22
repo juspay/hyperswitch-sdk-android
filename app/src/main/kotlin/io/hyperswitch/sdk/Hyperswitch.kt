@@ -8,8 +8,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 
 object Hyperswitch {
+    private var currentScope: CoroutineScope? = null
+
     fun init(
         activity: Activity,
         config: HyperswitchConfiguration,
@@ -28,7 +31,9 @@ object Hyperswitch {
         activity: Activity,
         config: HyperswitchBaseConfiguration?,
     ): HyperswitchInstance {
+        currentScope?.cancel()
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        currentScope = scope
         val initDeferred = scope.async {
             // TODO: async SDK initialisation (e.g. validate publishable key, fetch remote config)
             config

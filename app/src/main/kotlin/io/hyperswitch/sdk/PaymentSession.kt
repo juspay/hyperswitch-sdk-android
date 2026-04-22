@@ -155,6 +155,10 @@ class PaymentSession internal constructor(
         paymentSessionLauncher.presentPaymentSheet(configurationMap, resultCallback)
     }
 
+    suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler {
+        return paymentSessionLauncher.getCustomerSavedPaymentMethods()
+    }
+
     /**
      * Retrieves the customer's saved payment methods.
      *

@@ -12,7 +12,7 @@ import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 class HyperswitchBoundElement internal constructor(
-    paymentSession: PaymentSession,
+    private val paymentSession: PaymentSession,
     private val element: HyperswitchElement,
     configuration: PaymentSheet.Configuration? = null,
     subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null
@@ -35,7 +35,7 @@ class HyperswitchBoundElement internal constructor(
             element.setOnEventCallback(listener)
         }
         element.setSdkAuthorization(paymentSession.getSdkAuthorization())
-        paymentSession?.getCustomerSavedPaymentMethods { savedMethods ->
+        paymentSession.getCustomerSavedPaymentMethods { savedMethods ->
             savedMethods.getCustomerLastUsedPaymentMethodData().fold(
                 onSuccess = { data ->
                     lastUsedPaymentToken = data.paymentToken
@@ -88,19 +88,16 @@ class HyperswitchBoundElement internal constructor(
     }
 
     suspend fun confirmWithLastUsed(): PaymentResult {
-        return suspendCancellableCoroutine { continuation ->
-            val callback = { paymentResult: PaymentResult ->
-                continuation.resume(paymentResult)
-            }
-            if (lastUsedPaymentToken != null) {
-                element.confirmCVCWidget(lastUsedPaymentToken ?: "", lastUsedBilling, callback)
-            }
+        return if (lastUsedPaymentToken != null) {
+            element.confirmCVCWidget(paymentSession.getSdkAuthorization(), lastUsedPaymentToken ?: "", lastUsedBilling)
+        } else {
+            PaymentResult.Failed(Exception("No last used payment details found"))
         }
     }
 
     fun confirmWithLastUsed(callback: (PaymentResult) -> Unit) {
         if (lastUsedPaymentToken != null) {
-            element.confirmCVCWidget(lastUsedPaymentToken ?: "", lastUsedBilling, callback)
+            element.confirmCVCWidget(paymentSession.getSdkAuthorization(), lastUsedPaymentToken ?: "", lastUsedBilling, callback)
         } else {
             callback(PaymentResult.Failed(Exception("No last used payment details found")))
         }
@@ -112,14 +109,16 @@ class HyperswitchBoundElement internal constructor(
                 continuation.resume(paymentResult)
             }
             if (defaultPaymentToken != null) {
-                element.confirmCVCWidget(defaultPaymentToken ?: "", defaultBilling, callback)
+                element.confirmCVCWidget(paymentSession.getSdkAuthorization(), defaultPaymentToken ?: "", defaultBilling, callback)
+            } else {
+                continuation.resume(PaymentResult.Failed(Exception("No Default method found")))
             }
         }
     }
 
     fun confirmWithDefaultMethod(callback: (PaymentResult) -> Unit) {
         if (defaultPaymentToken != null) {
-            element.confirmCVCWidget(defaultPaymentToken ?: "", defaultBilling, callback)
+            element.confirmCVCWidget(paymentSession.getSdkAuthorization(), defaultPaymentToken ?: "", defaultBilling, callback)
         } else {
             callback(PaymentResult.Failed(Exception("No Default method found")))
         }

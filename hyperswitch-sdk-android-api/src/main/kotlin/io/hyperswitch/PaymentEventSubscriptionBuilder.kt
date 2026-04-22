@@ -15,12 +15,14 @@ class PaymentEventSubscriptionBuilder {
             eventTypes = subscribedEvents
         )
 
+        // Build an O(1) lookup map keyed by event type string
+        val dispatchMap: Map<String, (PaymentEvent) -> Unit> =
+            handlers.entries.associate { (k, v) -> k.value to v }
+
         // Create dispatcher that routes events to appropriate handlers
         val listener = object : PaymentEventListener {
             override fun onPaymentEvent(event: PaymentEvent) {
-                // Find matching handler by exact match
-                val handler = findMatchingHandler(event.type)
-                handler?.invoke(event)
+                dispatchMap[event.type]?.invoke(event)
             }
         }
 

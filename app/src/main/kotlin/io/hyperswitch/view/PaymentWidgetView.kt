@@ -64,7 +64,8 @@ class PaymentWidgetView : FrameLayout {
     private var subscribedEvents: List<String> = emptyList()
 
     private var onEventCallback: PaymentEventListener? = null
-    private val choreographerCallbacks = mutableMapOf<Int, Choreographer.FrameCallback>()
+    private var activeChoreographerCallback: Choreographer.FrameCallback? = null
+    private var widgetShown = false
 
     constructor(context: Context) : super(context) {
         init(context)
@@ -235,11 +236,12 @@ class PaymentWidgetView : FrameLayout {
     }
 
     fun confirmCvcPayment(
+        sdkAuthorization: String,
         paymentToken: String,
         billing: String?,
         callback: (PaymentResult) -> Unit
     ) {
-        this.fragment?.confirmCvcPayment(paymentToken, billing, callback)
+        this.fragment?.confirmCvcPayment(sdkAuthorization, paymentToken, billing, callback)
     }
 
     fun setSdkAuthorization(sdkAuthorization: String) {
@@ -251,48 +253,45 @@ class PaymentWidgetView : FrameLayout {
     }
 
     fun showWidgetInternal() {
-        if (this.isSdkAuthorizationEmpty()) {
-            this.post { showWidgetInternal() }
-            return
+        if (this.isSdkAuthorizationEmpty()) return  // callers already guard; no need to retry
+        if (widgetShown) return
+        widgetShown = true
+        val activity = context as? FragmentActivity ?: return
+
+        if (activity.isFinishing || activity.isDestroyed) return
+
+        val tag = "HyperPaymentSheet_${this.id}"
+        HyperFragmentManager.cancelPending(tag)
+        this.setFragment(
+            HyperFragment.Builder().setComponentName("hyperSwitch")
+                .setLaunchOptions(this.getLaunchOptions()).build()
+        )
+
+        val frameLayout = FrameLayout(activity).apply {
+            layoutParams = LayoutParams(MATCH_PARENT, MATCH_PARENT)
         }
-        val activity = context as? FragmentActivity
-
-        activity?.let {
-            if (activity.isFinishing || activity.isDestroyed) return
-
-            val tag = "HyperPaymentSheet_${this.id}"
-            HyperFragmentManager.cancelPending(tag)
-            this.setFragment(
-                HyperFragment.Builder().setComponentName("hyperSwitch")
-                    .setLaunchOptions(this.getLaunchOptions()).build()
+        this.addView(frameLayout, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        frameLayout.post {
+            frameLayout.measure(
+                View.MeasureSpec.makeMeasureSpec(this.width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(this.height, View.MeasureSpec.EXACTLY)
+            )
+            frameLayout.layout(0, 0, frameLayout.measuredWidth, frameLayout.measuredHeight)
+            setupLayout(frameLayout)
+            HyperFragmentManager.addOrReplace(
+                activity = activity,
+                container = frameLayout,
+                fragment = this.getFragment() as Fragment,
+                tag = tag,
+                addToBackStack = false
             )
 
-            val frameLayout = FrameLayout(activity).apply {
-                layoutParams = LayoutParams(MATCH_PARENT, MATCH_PARENT)
-            }
-            this.addView(frameLayout, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
-            frameLayout.post {
-                frameLayout.measure(
-                    View.MeasureSpec.makeMeasureSpec(this.width, View.MeasureSpec.EXACTLY),
-                    View.MeasureSpec.makeMeasureSpec(this.height, View.MeasureSpec.EXACTLY)
-                )
-                frameLayout.layout(0, 0, frameLayout.measuredWidth, frameLayout.measuredHeight)
-                setupLayout(frameLayout)
-                HyperFragmentManager.addOrReplace(
-                    activity = activity,
-                    container = frameLayout,
-                    fragment = this.getFragment() as Fragment,
-                    tag = tag,
-                    addToBackStack = false
-                )
-
-                frameLayout.post { this.getFragment()?.view?.requestLayout() }
-            }
-            this.fragment?.setOnPaymentResult { result -> dispatchResult(result) }
-            onEventCallback?.let { this.fragment?.setOnEventCallback(it) }
-            this.fragment?.setOnExit {
-                removeWidget()
-            }
+            frameLayout.post { this.getFragment()?.view?.requestLayout() }
+        }
+        this.fragment?.setOnPaymentResult { result -> dispatchResult(result) }
+        onEventCallback?.let { this.fragment?.setOnEventCallback(it) }
+        this.fragment?.setOnExit {
+            removeWidget()
         }
     }
 
@@ -305,20 +304,21 @@ class PaymentWidgetView : FrameLayout {
                         view.viewTreeObserver.dispatchOnGlobalLayout()
                         Choreographer.getInstance().postFrameCallback(this)
                     } else {
-                        choreographerCallbacks.remove(view.id)
+                        activeChoreographerCallback = null
                     }
                 } catch (_: Exception) {
 
                 }
             }
         }
-        choreographerCallbacks[view.id] = callback
+        activeChoreographerCallback = callback
         Choreographer.getInstance().postFrameCallback(callback)
     }
 
     fun stopLayout() {
-        choreographerCallbacks.remove(this.id)?.let {
+        activeChoreographerCallback?.let {
             Choreographer.getInstance().removeFrameCallback(it)
+            activeChoreographerCallback = null
         }
     }
 
@@ -326,10 +326,11 @@ class PaymentWidgetView : FrameLayout {
         try {
             this.cancelPendingInputEvents()
             stopLayout()
-            val activity = context as FragmentActivity
-//                (context as ThemedReactContext).reactApplicationContext.currentActivity as? FragmentActivity
+            val activity = context as? FragmentActivity ?: return
             val tag = "HyperPaymentSheet_${this.id}"
-            activity?.let { HyperFragmentManager.remove(it, tag) }
+            HyperFragmentManager.remove(activity, tag)
+            removeAllViews()
+            widgetShown = false
         } catch (_: Exception) {
             // Handle the errors
         }

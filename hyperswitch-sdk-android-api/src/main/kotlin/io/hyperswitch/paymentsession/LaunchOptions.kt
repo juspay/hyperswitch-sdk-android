@@ -107,17 +107,19 @@ class LaunchOptions(
             putString("from", "rn")
             putString("publishableKey", publishableKey ?: "")
             putString("sdkAuthorization", sdkAuthorization?:"")
-            if (configuration?.containsKey("hideConfirmButton") == false) {
-                configuration.putBoolean("hideConfirmButton", true)
+            // Work on a copy so we don't mutate the caller's Bundle
+            val configCopy = configuration?.let { Bundle(it) }
+            if (configCopy?.containsKey("hideConfirmButton") == false) {
+                configCopy.putBoolean("hideConfirmButton", true)
             }
-            putBundle("configuration", configuration)
+            putBundle("configuration", configCopy)
             customBackendUrl?.let { url -> putString("customBackendUrl", url) }
             customLogUrl?.let { url -> putString("customLogUrl", url) }
 
             if (subscribedEvents.isNotEmpty()) {
                 putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
-            } else if (configuration?.containsKey("subscribedEvents") == true) {
-                val subscribedEventsArray = configuration["subscribedEvents"] as? List<*>
+            } else if (configCopy?.containsKey("subscribedEvents") == true) {
+                val subscribedEventsArray = configCopy["subscribedEvents"] as? List<*>
                 if (subscribedEventsArray != null) {
                     putSerializable("subscribedEvents", ArrayList(subscribedEventsArray))
                 }

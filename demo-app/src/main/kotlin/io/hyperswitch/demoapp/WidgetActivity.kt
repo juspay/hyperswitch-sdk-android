@@ -14,6 +14,7 @@ import io.hyperswitch.CvcWidgetEvents
 import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
+import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.sdk.Elements
@@ -34,11 +35,13 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
 
     // ── State ──────────────────────────────────────────────────────────────────────────────────
 
-    private var sdkAuthorization: String = ""
-    private var paymentId: String = ""
+    @Volatile private var sdkAuthorization: String = ""
+    @Volatile private var paymentId: String = ""
 
     private var hyperswitchInstance: HyperswitchInstance? = null
     private var elements: Elements? = null
+
+    private var paymentSessionHandler: PaymentSessionHandler? = null
     private var paymentElementBound: HyperswitchBoundElement? = null
     private var cvcWidgetBound: HyperswitchBoundElement? = null
 
@@ -56,7 +59,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
     private fun fetchPaymentIntent() {
         setButtonsEnabled(false)
 
-        reset().get("$SERVER_URL/create-payment-intent")
+        reset().get("$serverUrl/create-payment-intent")
             .responseString(object : Handler<String?> {
                 override fun success(value: String?) {
                     try {
@@ -80,18 +83,18 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             })
     }
 
-    private suspend fun fetchUpdatedAuthorization(): String =
+    private suspend fun fetchUpdatedAuthorization(): PaymentSessionConfiguration =
         suspendCancellableCoroutine { continuation ->
-            reset().post("$SERVER_URL/update-payment")
+            reset().post("$serverUrl/update-payment")
                 .header("Content-Type" to "application/json")
-                .body("""{"paymentId":"$paymentId"}""")
+                .body("""{"paymentId":"$paymentId", "currency": "HKD", "amount": 2999}""")
                 .responseString(object : Handler<String?> {
                     override fun success(value: String?) {
                         try {
                             val auth = JSONObject(value ?: run { continuation.cancel(); return })
                                 .getString("sdkAuthorization")
                             sdkAuthorization = auth
-                            continuation.resume(auth)
+                            continuation.resume(PaymentSessionConfiguration(auth))
                         } catch (e: JSONException) {
                             continuation.resumeWithException(e)
                         }
@@ -121,6 +124,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         lifecycleScope.launch {
             // All bindings share one Elements session — initialise once, bind sequentially.
             elements = hyperswitchInstance?.elements(sessionConfig)
+            paymentSessionHandler = elements?.getCustomerSavedPaymentMethods()
             paymentElementBound = elements?.bind(paymentElement, buildConfiguration())
             cvcWidgetBound      = elements?.bind(cvcWidget) {
                 on(CvcWidgetEvents.CvcStatus) {
@@ -185,19 +189,19 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         }
 
         findViewById<View>(R.id.getLastUsedButton).setOnClickListener {
-            setStatus("Fetching last used — handled inside bound element")
+            val data = paymentSessionHandler?.getCustomerLastUsedPaymentMethodData()
+            setStatus("last used — $data")
         }
 
         findViewById<View>(R.id.getDefaultSavedMethodButton).setOnClickListener {
-            setStatus("Fetching default — handled inside bound element")
+            val data = paymentSessionHandler?.getCustomerDefaultSavedPaymentMethodData()
+            setStatus("default — $data")
         }
 
         findViewById<View>(R.id.updateIntent).setOnClickListener {
-            val els = elements ?: return@setOnClickListener
-            els.updateIntent(
-                scope = lifecycleScope,
-                sessionTokenProvider = { fetchUpdatedAuthorization() },
-            ) { result ->
+            lifecycleScope.launch {
+                val result = elements?.updateIntent { fetchUpdatedAuthorization() }
+                    ?: return@launch
                 when (result) {
                     is ElementsUpdateResult.Success ->
                         Log.i(TAG, "Intent updated — all elements ready")
@@ -213,15 +217,17 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
 
         findViewById<View>(R.id.confirmDefaultWithCVCButton).setOnClickListener {
             lifecycleScope.launch {
-                val result = cvcWidgetBound?.confirmWithDefaultMethod() ?: return@launch
-                handleResult(result)
+                val cvcWidget = findViewById<CVCWidget>(R.id.cvcWidget)
+                val result = paymentSessionHandler?.confirmWithCustomerDefaultPaymentMethod(cvcWidget)
+                result?.let { handleResult(it) }
             }
         }
 
         findViewById<View>(R.id.confirmLastUsedWithCVCButton).setOnClickListener {
             lifecycleScope.launch {
-                val result = cvcWidgetBound?.confirmWithLastUsed() ?: return@launch
-                handleResult(result)
+                val cvcWidget = findViewById<CVCWidget>(R.id.cvcWidget)
+                val result = paymentSessionHandler?.confirmWithCustomerLastUsedPaymentMethod(cvcWidget)
+                result?.let { handleResult(it) }
             }
         }
     }
@@ -257,6 +263,14 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
 
     companion object {
         private const val TAG = "WidgetActivity"
-        private const val SERVER_URL = "http://10.0.2.2:5252"
+        private const val DEFAULT_SERVER_URL = "http://10.0.2.2:5252"
+        private const val PREFS_NAME = "HyperswitchPrefs"
+        private const val KEY_SERVER_URL = "server_url"
     }
+
+    private fun loadServerUrl(): String =
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .getString(KEY_SERVER_URL, DEFAULT_SERVER_URL) ?: DEFAULT_SERVER_URL
+
+    private val serverUrl: String by lazy { loadServerUrl() }
 }

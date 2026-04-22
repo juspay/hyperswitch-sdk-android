@@ -1,7 +1,7 @@
 package io.hyperswitch.paymentsession
 
+import android.view.View
 import io.hyperswitch.paymentsheet.PaymentResult
-
 
 interface PaymentSessionHandler {
     fun getCustomerDefaultSavedPaymentMethodData(): Result<PaymentMethod>
@@ -18,4 +18,7 @@ interface PaymentSessionHandler {
     fun confirmWithCustomerPaymentToken(
         paymentToken: String, cvc: String? = null, resultHandler: (PaymentResult) -> Unit
     )
+
+    suspend fun confirmWithCustomerLastUsedPaymentMethod(cvcWidget: View): PaymentResult
+    suspend fun confirmWithCustomerDefaultPaymentMethod(cvcWidget: View): PaymentResult
 }

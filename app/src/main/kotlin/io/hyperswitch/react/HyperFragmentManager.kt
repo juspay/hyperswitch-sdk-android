@@ -7,13 +7,20 @@ import android.widget.FrameLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 
 object HyperFragmentManager {
 
-    private val fragmentRegistry = mutableMapOf<String, Fragment>()
-    private val pendingTags = mutableSetOf<String>()       // tags currently being debounced
-    private val debounceHandlers = mutableMapOf<String, Runnable>() // pending runnables
+    // Thread-safe collections; all mutations happen on the main thread via mainHandler,
+    // but public query methods (isActive, isPending, getFragment) can be called from any thread.
+    private val fragmentRegistry = ConcurrentHashMap<String, Fragment>()
+    private val pendingTags = ConcurrentHashMap.newKeySet<String>()
+    private val debounceHandlers = ConcurrentHashMap<String, Runnable>()
     private val mainHandler = Handler(Looper.getMainLooper())
+
+    // Monotonically increasing counter for stable, collision-free view IDs.
+    private val idCounter = AtomicInteger(0x00F00001)
 
     private const val DEBOUNCE_MS = 300L
 
@@ -70,19 +77,16 @@ object HyperFragmentManager {
     ) {
         val fm: FragmentManager = activity.supportFragmentManager
 
-        // Remove existing fragment with the same tag if present
+        // Remove existing fragment with the same tag if present, including its back-stack entry
+        // so that onDestroy is called and the React tree is fully released.
         val existing = fm.findFragmentByTag(tag)
         if (existing != null) {
-            fm.beginTransaction()
-                .remove(existing)
-                .commitAllowingStateLoss()
-            fm.executePendingTransactions()
-//      fm.popBackStackImmediate(tag, FragmentManager.POP_BACK_STACK_INCLUSIVE)
+            fm.popBackStackImmediate(tag, FragmentManager.POP_BACK_STACK_INCLUSIVE)
             fragmentRegistry.remove(tag)
         }
 
         if (container.id == View.NO_ID) {
-            container.id = generateStableId(tag)
+            container.id = generateStableId()
         }
 
         val tx = fm.beginTransaction().add(container.id, fragment, tag)
@@ -104,13 +108,15 @@ object HyperFragmentManager {
     fun remove(activity: FragmentActivity, tag: String) {
         cancelPending(tag)
         val fm = activity.supportFragmentManager
-        fm.findFragmentByTag(tag)?.let {
-            fm.beginTransaction().remove(it).commitAllowingStateLoss()
-            // popBackStackImmediate is synchronous and also removes the back stack entry,
-            // so the fragment goes through the full lifecycle: onDestroyView → onDestroy.
-            // Plain remove() on a back-stacked fragment only calls onDestroyView, leaving
-            // the fragment instance (and its React tree) alive.
-//      fm.popBackStackImmediate(tag, FragmentManager.POP_BACK_STACK_INCLUSIVE)
+        val fragment = fm.findFragmentByTag(tag)
+        if (fragment != null) {
+            // Pop from back stack if the fragment was added with addToBackStack=true.
+            // This is a no-op when the fragment was added without a back-stack entry.
+            fm.popBackStackImmediate(tag, FragmentManager.POP_BACK_STACK_INCLUSIVE)
+            // If still attached (was never on the back stack), remove it directly.
+            if (fragment.isAdded) {
+                fm.beginTransaction().remove(fragment).commitAllowingStateLoss()
+            }
         }
         fragmentRegistry.remove(tag)
     }
@@ -119,9 +125,8 @@ object HyperFragmentManager {
         debounceHandlers.keys.toList().forEach { cancelPending(it) }
         val fm = activity.supportFragmentManager
         fragmentRegistry.keys.toList().forEach { tag ->
-            fm.findFragmentByTag(tag)?.let {
-                fm.beginTransaction().remove(it).commitAllowingStateLoss()
-//        fm.popBackStackImmediate(tag, FragmentManager.POP_BACK_STACK_INCLUSIVE)
+            if (fm.findFragmentByTag(tag) != null) {
+                fm.popBackStackImmediate(tag, FragmentManager.POP_BACK_STACK_INCLUSIVE)
             }
         }
         fragmentRegistry.clear()
@@ -134,7 +139,6 @@ object HyperFragmentManager {
 
     fun getFragment(tag: String): Fragment? = fragmentRegistry[tag]
 
-    internal fun generateStableId(tag: String): Int {
-        return (tag.hashCode() and 0x000FFFFF) or 0x00F00000
-    }
+    /** Generates a unique, valid view ID using an atomic counter. */
+    internal fun generateStableId(): Int = idCounter.getAndIncrement()
 }

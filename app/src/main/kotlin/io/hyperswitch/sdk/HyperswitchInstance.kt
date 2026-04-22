@@ -5,15 +5,18 @@ import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class HyperswitchInstance internal constructor(
     private val activity: Activity,
     private val initDeferred: Deferred<HyperswitchBaseConfiguration?>,
 ) {
     @OptIn(ExperimentalCoroutinesApi::class)
-    suspend fun initPaymentSession(config: PaymentSessionConfiguration): PaymentSession? {
+    suspend fun initPaymentSession(config: PaymentSessionConfiguration): PaymentSession {
         val hsConfig = if (initDeferred.isCompleted) {
             initDeferred.getCompleted()
         } else {
@@ -26,7 +29,7 @@ class HyperswitchInstance internal constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun initPaymentSession(config: PaymentSessionConfiguration, onResult : (PaymentSession) -> Unit){
-        CoroutineScope(this.initDeferred).launch {
+        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             val hsConfig = if (initDeferred.isCompleted) {
                 initDeferred.getCompleted()
             } else {
@@ -34,7 +37,7 @@ class HyperswitchInstance internal constructor(
             }
             val ps = PaymentSession(activity, hsConfig?.publishableKey, sessionConfig = config)
             ps.initPaymentSession(config.sdkAuthorization)
-            onResult(ps)
+            withContext(Dispatchers.Main) { onResult(ps) }
         }
 
     }
@@ -45,9 +48,9 @@ class HyperswitchInstance internal constructor(
     }
 
     fun elements(config: PaymentSessionConfiguration, onResult: (Elements) -> Unit) {
-        CoroutineScope(this.initDeferred).launch {
+        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             val hsConfig = initDeferred.await()
-             onResult(Elements(activity, hsConfig, config))
+            withContext(Dispatchers.Main) { onResult(Elements(activity, hsConfig, config)) }
         }
     }
 }
