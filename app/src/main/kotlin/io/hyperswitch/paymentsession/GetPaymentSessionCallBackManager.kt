@@ -1,19 +1,24 @@
 package io.hyperswitch.paymentsession
 
+import java.util.concurrent.atomic.AtomicReference
+
 typealias SessionCallback = (PaymentSessionHandler) -> Unit
 
 object GetPaymentSessionCallBackManager {
-    private var callback: SessionCallback? = null
+    private val callbackRef = AtomicReference<SessionCallback?>(null)
+    private val sdkAuthorizationRef = AtomicReference<String?>(null)
 
-    fun setCallback(newCallback: (PaymentSessionHandler) -> Unit) {
-        callback = newCallback
+    fun setCallback(sdkAuthorization: String?, newCallback: SessionCallback?) {
+        callbackRef.set(newCallback)
+        sdkAuthorizationRef.set(sdkAuthorization)
     }
 
-    fun getCallback(): SessionCallback? {
-        return callback
-    }
+    fun getCallback(): SessionCallback? = callbackRef.get()
+
+    fun getSdkAuthorization(): String = sdkAuthorizationRef.get() ?: ""
 
     fun executeCallback(data: PaymentSessionHandler) {
-        callback?.invoke(data) ?: println("No callback set")
+        callbackRef.getAndSet(null)?.invoke(data)
+            ?: println("No callback set")
     }
 }

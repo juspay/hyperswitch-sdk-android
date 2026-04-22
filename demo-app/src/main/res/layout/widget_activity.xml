@@ -19,7 +19,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="20dp"
-            android:text="Widget Demo"
+            android:text="@string/title_widget_demo"
             android:textSize="22sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary" />
@@ -163,27 +163,27 @@
             android:orientation="horizontal">
 
             <Button
-                android:id="@+id/confirmDefaultWithCVCButton"
+                android:id="@+id/confirmLastUsedWithCVCButton"
                 android:layout_width="0dp"
                 android:layout_height="52dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/rounded_button"
                 android:enabled="false"
-                android:text="@string/btn_confirm_default_cvc"
+                android:text="@string/btn_confirm_last_used_cvc"
                 android:textAllCaps="false"
                 android:textColor="@color/text_on_brand"
                 android:textSize="13sp" />
 
             <Button
-                android:id="@+id/confirmLastUsedWithCVCButton"
+                android:id="@+id/confirmDefaultWithCVCButton"
                 android:layout_width="0dp"
                 android:layout_height="52dp"
                 android:layout_weight="1"
                 android:layout_marginStart="6dp"
                 android:background="@drawable/rounded_button"
                 android:enabled="false"
-                android:text="@string/btn_confirm_last_used_cvc"
+                android:text="@string/btn_confirm_default_cvc"
                 android:textAllCaps="false"
                 android:textColor="@color/text_on_brand"
                 android:textSize="13sp" />

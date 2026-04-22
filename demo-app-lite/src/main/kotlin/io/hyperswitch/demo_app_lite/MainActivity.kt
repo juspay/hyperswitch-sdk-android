@@ -235,18 +235,18 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun onPaymentResult(PaymentResult: PaymentResult) {
-        when (PaymentResult) {
+    private fun onPaymentResult(paymentResult: PaymentResult) {
+        when (paymentResult) {
             is PaymentResult.Canceled -> {
-                setStatus(PaymentResult.data)
+                setStatus(paymentResult.data)
             }
 
             is PaymentResult.Failed -> {
-                setStatus(PaymentResult.error.message ?: "")
+                setStatus(paymentResult.throwable.message ?: "")
             }
 
             is PaymentResult.Completed -> {
-                setStatus(PaymentResult.data)
+                setStatus(paymentResult.data)
             }
         }
     }

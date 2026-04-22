@@ -4,6 +4,8 @@
     <color name="hs_blue">#0E7AFE</color>
     <color name="hs_blue_disabled">#A0B0C0</color>
     <color name="hs_blue_outline">#0070F3</color>
+    <color name="hs_blue_outline_disabled">#B0C0D0</color>
+    <color name="hs_blue_outline_pressed">#E8F0FB</color>
 
     <!-- Surface -->
     <color name="surface_page">#F6F8FA</color>

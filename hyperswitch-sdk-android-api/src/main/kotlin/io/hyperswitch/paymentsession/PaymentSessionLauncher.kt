@@ -13,5 +13,7 @@ interface PaymentSessionLauncher {
         configurationMap: Map<String, Any?>, resultCallback: (PaymentResult) -> Unit
     )
 
+    suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler
+
     fun getCustomerSavedPaymentMethods(savedPaymentMethodCallback: (PaymentSessionHandler) -> Unit)
 }

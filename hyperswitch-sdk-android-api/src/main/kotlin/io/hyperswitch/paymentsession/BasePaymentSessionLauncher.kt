@@ -46,4 +46,6 @@ abstract class BasePaymentSessionLauncher(
     abstract override fun getCustomerSavedPaymentMethods(
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)
     )
+
+    abstract override suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler
 }

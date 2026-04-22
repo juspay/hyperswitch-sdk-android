@@ -144,6 +144,7 @@ class HyperFragment : ReactFragment() {
             callback.invoke(
                 PaymentResult.Failed(Throwable("Payment Intent update is in progress"))
             )
+            return
         }
         callbacks[CallbackType.CONFIRM_ACTION] = HyperCallback.Payment(callback)
         reactNativeHost.reactInstanceManager.currentReactContext
@@ -180,12 +181,14 @@ class HyperFragment : ReactFragment() {
                         confirmCvcCallback != null -> {
                             val parsed = parseResult(result)
                             confirmCvcCallback.fn.invoke(parsed)
+                            onExit?.invoke()
                         }
 
                         else -> {
                             val parsed = parseResult(result)
-                            (callbacks[CallbackType.PAYMENT_RESULT] as? HyperCallback.Payment)
+                            (callbacks.remove(CallbackType.PAYMENT_RESULT) as? HyperCallback.Payment)
                                 ?.fn?.invoke(parsed)
+                            onExit?.invoke()
                         }
                     }
                 }
@@ -269,6 +272,7 @@ class HyperFragment : ReactFragment() {
 
 
     fun confirmCvcPayment(
+        sdkAuthorization: String,
         paymentToken: String,
         billing: String?,
         callback: ((PaymentResult) -> Unit)
@@ -282,7 +286,7 @@ class HyperFragment : ReactFragment() {
             callback.invoke(paymentResult)
             return
         }
-        val rootTag = view?.id ?: -1
+        val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
         if (rootTag == -1) {
             val paymentResult = PaymentResult.Failed(Throwable("cannot find the view"))
             callback.invoke(paymentResult)
@@ -294,6 +298,7 @@ class HyperFragment : ReactFragment() {
         val map = Arguments.createMap()
         map.putString("actionType", EventName.CONFIRM_CVC_PAYMENT.name)
         map.putInt("rootTag", rootTag)
+        map.putString("sdkAuthorization", sdkAuthorization)
         map.putString("paymentToken", paymentToken)
         billing?.let { map.putString("billing", it) }
         reactNativeHost.reactInstanceManager.currentReactContext
@@ -324,9 +329,16 @@ class HyperFragment : ReactFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val reactRootView = view as? ReactRootView ?: return
+        var scrollFixScheduled = false
         reactRootView.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener {
             override fun onChildViewAdded(parent: View?, child: View?) {
-                view.post { fixScrollInterception(reactRootView) }
+                if (!scrollFixScheduled) {
+                    scrollFixScheduled = true
+                    view.post {
+                        scrollFixScheduled = false
+                        fixScrollInterception(reactRootView)
+                    }
+                }
             }
 
             override fun onChildViewRemoved(parent: View?, child: View?) {}
@@ -334,7 +346,6 @@ class HyperFragment : ReactFragment() {
     }
 
     override fun onDestroyView() {
-        (view as? ReactRootView)?.unmountReactApplication()
         super.onDestroyView()
     }
 
@@ -380,7 +391,7 @@ class HyperFragment : ReactFragment() {
         if (!EventBus.getDefault().isRegistered(this)) EventBus.getDefault().register(this)
     }
 
-    fun unRegisterEventBus() {
+    private fun unRegisterEventBus() {
         if (EventBus.getDefault().isRegistered(this)) EventBus.getDefault().unregister(this)
     }
 
@@ -409,9 +420,9 @@ class HyperFragment : ReactFragment() {
 
         fun build(): HyperFragment = HyperFragment().also { fragment ->
             fragment.arguments = Bundle().apply {
-                putString("arg_component_name", mComponentName)
-                putBundle("arg_launch_options", mLaunchOptions)
-                putBoolean("arg_fabric_enabled", mFabricEnabled)
+                putString(ARG_COMPONENT_NAME, mComponentName)
+                putBundle(ARG_LAUNCH_OPTIONS, mLaunchOptions)
+                putBoolean(ARG_FABRIC_ENABLED, mFabricEnabled)
             }
         }
     }

@@ -20,7 +20,7 @@ sealed class PaymentResult : Parcelable {
 
     @JvmSynthetic
     fun toBundle() = Bundle().apply {
-        putParcelable(EXTRA, this)
+        putParcelable(EXTRA, this@PaymentResult)
     }
 
     internal companion object {

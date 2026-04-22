@@ -13,8 +13,8 @@ import java.util.concurrent.ConcurrentLinkedQueue
 object HyperEventEmitter {
     private var reactContext: ReactApplicationContext? = null
     private val pendingEvents = ConcurrentLinkedQueue<Pair<String, Map<String, String?>>>()
-    private var eventListener: PaymentEventListener? = null
-    private var subscriptionEvents: PaymentEventSubscription? = null
+    @Volatile private var eventListener: PaymentEventListener? = null
+    @Volatile private var subscriptionEvents: PaymentEventSubscription? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
     fun initialize(context: ReactApplicationContext) {
@@ -25,6 +25,8 @@ object HyperEventEmitter {
     fun deinitialize() {
         reactContext = null
         eventListener = null
+        subscriptionEvents = null
+        mainHandler.removeCallbacksAndMessages(null)
     }
 
     /**

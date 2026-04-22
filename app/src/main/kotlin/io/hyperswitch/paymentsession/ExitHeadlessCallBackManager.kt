@@ -3,18 +3,19 @@ package io.hyperswitch.paymentsession
 import io.hyperswitch.paymentsheet.PaymentResult
 
 import org.json.JSONObject
+import java.util.concurrent.atomic.AtomicReference
 
 typealias ExitCallback = (PaymentResult) -> Unit
 
 object ExitHeadlessCallBackManager {
-    private var callback: ExitCallback? = null
+    private val callbackRef = AtomicReference<ExitCallback?>(null)
 
     fun setCallback(newCallback: (PaymentResult) -> Unit) {
-        callback = newCallback
+        callbackRef.set(newCallback)
     }
 
     fun getCallback(): ExitCallback? {
-        return callback
+        return callbackRef.get()
     }
 
     fun executeCallback(data: String) {
@@ -29,8 +30,7 @@ object ExitHeadlessCallBackManager {
 
             else -> PaymentResult.Completed(status ?: "default")
         }
-        val cb = callback
-        callback = null
+        val cb = callbackRef.getAndSet(null)
         cb?.invoke(result)
 
     }

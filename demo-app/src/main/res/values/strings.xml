@@ -12,6 +12,7 @@
     <string name="section_server">Server</string>
 
     <!-- Widget screen -->
+    <string name="title_widget_demo">Widget Demo</string>
     <string name="btn_update_intent">Update Intent</string>
     <string name="btn_reload_secret">Reload Client Secret</string>
     <string name="btn_confirm_card">Confirm</string>
