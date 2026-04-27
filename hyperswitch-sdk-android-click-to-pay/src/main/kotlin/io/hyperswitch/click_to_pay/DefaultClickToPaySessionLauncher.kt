@@ -700,18 +700,12 @@ class DefaultClickToPaySessionLauncher(
             }
             logger(
                 LogType.DEBUG,
-                EventName.CTP_CORRELATION_VALUE,
-                "correlationIds: [${correlationIds.joinToString(", ")}]",
+                EventName.INIT_CLICK_TO_PAY_SESSION_RETURNED,
+                correlationIds.joinToString(", "),
                 LogCategory.USER_EVENT
             )
             captureCorrelationIds.set(false)
             correlationIds.clear()
-            logger(
-                LogType.DEBUG,
-                EventName.INIT_CLICK_TO_PAY_SESSION_RETURNED,
-                "",
-                LogCategory.USER_EVENT
-            )
         }
     }
 
