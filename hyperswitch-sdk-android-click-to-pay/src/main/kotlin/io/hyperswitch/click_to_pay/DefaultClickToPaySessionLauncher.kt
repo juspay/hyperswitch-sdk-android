@@ -31,7 +31,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.Collections
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
@@ -141,10 +140,10 @@ class DefaultClickToPaySessionLauncher(
 
     // URL Helpers
     private fun getHyperLoaderURL(): String {
-        return if (getEnvironment(publishableKey) == SDKEnvironment.PROD) {
-            "https://checkout.hyperswitch.io/web/2025.11.28.08/v1/HyperLoader.js"
+        return if (getEnvironment(publishableKey) == SDKEnvironment.SANDBOX) {
+            "https://beta.hyperswitch.io/web/2025.11.28.09/v1/HyperLoader.js"
         } else {
-            "https://beta.hyperswitch.io/web/2025.11.28.08/v1/HyperLoader.js"
+            "https://checkout.hyperswitch.io/web/2025.11.28.09/v1/HyperLoader.js"
         }
     }
 
