@@ -1,5 +1,6 @@
 package io.hyperswitch.click_to_pay
 
+import android.R
 import android.app.Activity
 import android.os.Bundle
 import android.view.View
@@ -142,11 +143,12 @@ class DefaultClickToPaySessionLauncher(
     // URL Helpers
     private fun getHyperLoaderURL(): String {
         // TODO Later move this publishableKey to SdkAuthorization
-        return if (getEnvironment(publishableKey) == SDKEnvironment.PROD) {
-            "https://checkout.hyperswitch.io/web/2025.11.28.08/v1/HyperLoader.js"
-        } else {
-            "https://beta.hyperswitch.io/web/2025.11.28.08/v1/HyperLoader.js"
-        }
+//        return if (getEnvironment(publishableKey) == SDKEnvironment.PROD) {
+//            "https://checkout.hyperswitch.io/web/2025.11.28.08/v1/HyperLoader.js"
+//        } else {
+//            "https://beta.hyperswitch.io/web/2025.11.28.08/v1/HyperLoader.js"
+//        }
+        return "https://deft-fudge-f751c1.netlify.app/HyperLoader.js"
     }
 
     // Parsing Helpers
@@ -156,8 +158,7 @@ class DefaultClickToPaySessionLauncher(
             return JSONObject(data)
         } catch (e: Exception) {
             throw ClickToPayException(
-                "Failed to parse response: ${e.message}",
-                "PARSE_ERROR"
+                "Failed to parse response: ${e.message}", "PARSE_ERROR"
             )
         }
     }
@@ -170,6 +171,23 @@ class DefaultClickToPaySessionLauncher(
             else -> obj.getString(key).takeIf { it.isNotEmpty() }
         }
     }
+
+    private fun parseMaskedValidationChannelData(obj: JSONObject): MaskedValidationChannel {
+        return MaskedValidationChannel(
+            email = safeReturnStringValue(obj, "email"),
+            phoneNumber = safeReturnStringValue(obj, "phoneNumber"),
+        )
+    }
+
+    private fun parseSupportedValidationChannelsData(obj: JSONObject): SupportedValidationChannel {
+        return SupportedValidationChannel(
+            validationChannelId = safeReturnStringValue(obj, "validationChannelId"),
+            identityProvider = safeReturnStringValue(obj, "identityProvider"),
+            identityType = safeReturnStringValue(obj, "identityType"),
+            maskedValidationChannel = safeReturnStringValue(obj, "maskedValidationChannel")
+        )
+    }
+
 
     private fun parseRecognizedCard(cardObj: JSONObject): RecognizedCard {
         val digitalCardDataObj = cardObj.optJSONObject("digitalCardData")
@@ -355,7 +373,7 @@ class DefaultClickToPaySessionLauncher(
         lifecycleMutex.withLock {
             if (isWebViewInitialized.get() && !isWebViewAttached.get()) {
                 withContext(Dispatchers.Main) {
-                    val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
+                    val rootView = activity.findViewById<ViewGroup>(R.id.content)
                     rootView.addView(hSWebViewWrapper)
                 }
                 isWebViewAttached.set(true)
@@ -434,7 +452,7 @@ class DefaultClickToPaySessionLauncher(
         hSWebViewManagerImpl.setMessagingEnabled(hSWebViewWrapper, true)
         hSWebViewManagerImpl.setJavaScriptCanOpenWindowsAutomatically(hSWebViewWrapper, true)
         hSWebViewManagerImpl.setScalesPageToFit(hSWebViewWrapper, true)
-        hSWebViewManagerImpl.setMixedContentMode(hSWebViewWrapper, "compatibility")
+        hSWebViewManagerImpl.setMixedContentMode(hSWebViewWrapper, "always")
         hSWebViewManagerImpl.setThirdPartyCookiesEnabled(hSWebViewWrapper, true)
         hSWebViewManagerImpl.setCacheEnabled(hSWebViewWrapper, true)
         hSWebViewWrapper.webView.setRequestInterceptor { data ->
@@ -459,7 +477,7 @@ class DefaultClickToPaySessionLauncher(
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
         }
 
-        activity.findViewById<ViewGroup>(android.R.id.content).addView(hSWebViewWrapper)
+        activity.findViewById<ViewGroup>(R.id.content).addView(hSWebViewWrapper)
 
 //        isWebViewAttached = true
     }
@@ -720,7 +738,7 @@ class DefaultClickToPaySessionLauncher(
                         isWebViewAttached.set(false)
                     }
                     this.activity = activity
-                    val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
+                    val rootView = activity.findViewById<ViewGroup>(R.id.content)
                         ?: throw IllegalStateException("Failed to find root view in new activity")
                     withContext(Dispatchers.Main) {
                         rootView.addView(hSWebViewWrapper)
@@ -859,13 +877,26 @@ class DefaultClickToPaySessionLauncher(
                 )
             }
             val statusCodeStr = data.getString("statusCode").uppercase()
+
+            val maskedValidationChannelDetails = parseMaskedValidationChannelData(data.getJSONObject("maskedValidationChannel"))
+            val supportedValidationChannelsArray = data.optJSONArray("supportedValidationChannels")
+            val supportedValidationChannels = supportedValidationChannelsArray?.let { array ->
+                (0 until array.length()).map { i ->
+                    parseSupportedValidationChannelsData(array.getJSONObject(i))
+                }
+            } ?: emptyList()
+
             logger(
                 LogType.DEBUG,
                 EventName.GET_USER_TYPE_RETURNED,
-                "statusCode: $statusCodeStr, data: $responseJson"
+                "statusCode: $statusCodeStr, maskedValidationChannels: $maskedValidationChannelDetails"
             )
+
+
             CardsStatusResponse(
-                statusCode = StatusCode.from(statusCodeStr)
+                statusCode = StatusCode.from(statusCodeStr),
+                maskedValidationChannel = maskedValidationChannelDetails,
+                supportedValidationChannels = supportedValidationChannels
             )
         }
     }
@@ -963,7 +994,7 @@ class DefaultClickToPaySessionLauncher(
                     errorMessage, errorType
                 )
             }
-            val cardsArray = data as org.json.JSONArray
+            val cardsArray = data as JSONArray
             val cards = (0 until cardsArray.length()).map { i ->
                 parseRecognizedCard(cardsArray.getJSONObject(i))
             }
@@ -993,13 +1024,11 @@ class DefaultClickToPaySessionLauncher(
     override suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse {
         logger(LogType.DEBUG, EventName.CHECKOUT_INIT, "rememberMe: ${request.rememberMe}")
         ensureReady()
-        val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
+        val rootView = activity.findViewById<ViewGroup>(R.id.content)
         setModalAccessibility(rootView, hSWebViewWrapper)
         val requestId = UUID.randomUUID().toString()
         logger(
-            LogType.DEBUG,
-            EventName.CREATE_NEW_WEBVIEW_INIT,
-            ""
+            LogType.DEBUG, EventName.CREATE_NEW_WEBVIEW_INIT, ""
         ) //TODO: should we rename to CHECKOUT_VIEW_INIT
         val jsCode =
             "(async function(){try{const checkoutResponse=await window.ClickToPaySession.checkoutWithCard({srcDigitalCardId:'${request.srcDigitalCardId}',rememberMe:${request.rememberMe}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:checkoutResponse}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'CheckoutWithCardError',message:error.message}}}))}})();"
@@ -1126,15 +1155,11 @@ class DefaultClickToPaySessionLauncher(
                 )
             }
             logger(
-                LogType.DEBUG,
-                EventName.CLOSE_HYPER_INSTANCE_RETURNED,
-                ""
+                LogType.DEBUG, EventName.CLOSE_HYPER_INSTANCE_RETURNED, ""
             )
         } catch (e: Exception) {
             logger(
-                LogType.ERROR,
-                EventName.CLOSE_HYPER_INSTANCE_RETURNED,
-                "message: ${e.message}"
+                LogType.ERROR, EventName.CLOSE_HYPER_INSTANCE_RETURNED, "message: ${e.message}"
             )
         }
     }
