@@ -31,6 +31,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Collections
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
@@ -60,6 +61,7 @@ class DefaultClickToPaySessionLauncher(
 ) : ClickToPaySessionLauncher {
     private lateinit var hSWebViewManagerImpl: HSWebViewManagerImpl
     private lateinit var hSWebViewWrapper: HSWebViewWrapper
+    private val seenCorrelationIds = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
     private val pendingRequests = ConcurrentHashMap<String, CancellableContinuation<String>>()
     private val isWebViewInitialized = AtomicBoolean(false)
     private val isWebViewAttached = AtomicBoolean(false)
@@ -68,7 +70,7 @@ class DefaultClickToPaySessionLauncher(
     private val originalAccessibility = HashMap<View, Int>()
     private var authenticationId: String? = null
     private val deviceUniqueSessionId = getOrCreateUniqueKey(activity, "click_to_pay")
-    private var sessionId = deviceUniqueSessionId
+    private var sessionId = "${deviceUniqueSessionId}_${UUID.randomUUID()}"
     private var originalHandler: Thread.UncaughtExceptionHandler? = null
 
     private fun logger(
@@ -83,6 +85,7 @@ class DefaultClickToPaySessionLauncher(
                 .sessionId(sessionId)
         HyperLogManager.addLog(log.build())
     }
+
     /**
      * Atomically resumes a pending continuation exactly once.
      *
@@ -434,7 +437,20 @@ class DefaultClickToPaySessionLauncher(
         hSWebViewManagerImpl.setMixedContentMode(hSWebViewWrapper, "compatibility")
         hSWebViewManagerImpl.setThirdPartyCookiesEnabled(hSWebViewWrapper, true)
         hSWebViewManagerImpl.setCacheEnabled(hSWebViewWrapper, true)
-
+        hSWebViewWrapper.webView.setRequestInterceptor { data ->
+            try {
+                val headers = data["headers"] as? Map<*, *>
+                val correlationId = headers?.get("X-CORRELATION-ID")?.toString()
+                if (correlationId != null && seenCorrelationIds.add(correlationId)) {
+                    logger(
+                        LogType.INFO,
+                        EventName.CTP_CORRELATION_VALUE,
+                        "correlationId: $correlationId, url: ${data.getOrDefault("url", "")}"
+                    )
+                }
+            } catch (_: Exception) {
+            }
+        }
         hSWebViewWrapper.apply {
             isFocusable = false
             isFocusableInTouchMode = false
@@ -642,7 +658,7 @@ class DefaultClickToPaySessionLauncher(
             LogCategory.USER_EVENT
         )
         this.authenticationId = authenticationId
-        this.sessionId = deviceUniqueSessionId + "_" + UUID.randomUUID().toString()
+        this.sessionId = "${deviceUniqueSessionId}_${UUID.randomUUID()}"
         ensureReady()
         val requestId = UUID.randomUUID().toString()
         val jsCode =
@@ -844,7 +860,9 @@ class DefaultClickToPaySessionLauncher(
             }
             val statusCodeStr = data.getString("statusCode").uppercase()
             logger(
-                LogType.DEBUG, EventName.GET_USER_TYPE_RETURNED, "statusCode: $statusCodeStr, data: $responseJson"
+                LogType.DEBUG,
+                EventName.GET_USER_TYPE_RETURNED,
+                "statusCode: $statusCodeStr, data: $responseJson"
             )
             CardsStatusResponse(
                 statusCode = StatusCode.from(statusCodeStr)
@@ -978,7 +996,11 @@ class DefaultClickToPaySessionLauncher(
         val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
         setModalAccessibility(rootView, hSWebViewWrapper)
         val requestId = UUID.randomUUID().toString()
-        logger(LogType.DEBUG, EventName.CREATE_NEW_WEBVIEW_INIT, "") //TODO: should we rename to CHECKOUT_VIEW_INIT
+        logger(
+            LogType.DEBUG,
+            EventName.CREATE_NEW_WEBVIEW_INIT,
+            ""
+        ) //TODO: should we rename to CHECKOUT_VIEW_INIT
         val jsCode =
             "(async function(){try{const checkoutResponse=await window.ClickToPaySession.checkoutWithCard({srcDigitalCardId:'${request.srcDigitalCardId}',rememberMe:${request.rememberMe}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:checkoutResponse}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'CheckoutWithCardError',message:error.message}}}))}})();"
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
@@ -1082,13 +1104,12 @@ class DefaultClickToPaySessionLauncher(
         }
     }
 
-
-    private suspend fun ensureHyperInstanceClosed() {
+    private suspend fun closeHyperInstance() {
         try {
-            logger(LogType.DEBUG, EventName.CLOSE_HYPER_INSTANCE, "")
             val requestId = UUID.randomUUID().toString()
+            logger(LogType.DEBUG, EventName.CLOSE_HYPER_INSTANCE, "")
             val jsCode =
-                "(async function(){try{const closeHyperInstanceResponse=await window.hyperInstance.deinit(); window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:closeHyperInstanceResponse}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'CloseInstanceFailed',message:error.message}}}))}})();"
+                "(async function(){try{await window.hyperInstance.deinit();window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{code:'success'}}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'CloseInstanceFailed',message:error.message}}}));}})();"
             val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
             val jsonObject = parseJSONObject(responseJson)
             val data = jsonObject.getJSONObject("data")
@@ -1108,7 +1129,12 @@ class DefaultClickToPaySessionLauncher(
                 EventName.CLOSE_HYPER_INSTANCE_RETURNED,
                 ""
             )
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            logger(
+                LogType.ERROR,
+                EventName.CLOSE_HYPER_INSTANCE_RETURNED,
+                "message: ${e.message}"
+            )
         }
     }
 
@@ -1129,7 +1155,7 @@ class DefaultClickToPaySessionLauncher(
     override suspend fun close() {
         try {
             logger(LogType.DEBUG, EventName.CLOSE_INIT, "")
-            ensureHyperInstanceClosed()
+            closeHyperInstance()
             cancelPendingRequests("session is being closed")
             restoreAccessibility()
             lifecycleMutex.withLock {

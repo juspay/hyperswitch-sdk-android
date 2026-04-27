@@ -44,7 +44,8 @@ enum class EventName {
     CLOSE_RETURNED,
     CLOSE_HYPER_INSTANCE,
     CLOSE_HYPER_INSTANCE_RETURNED,
-    WEBVIEW
+    WEBVIEW,
+    CTP_CORRELATION_VALUE
 }
 
 data class HSLog(
