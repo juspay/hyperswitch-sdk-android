@@ -24,6 +24,11 @@
             android:exported="false"
             android:theme="@style/HyperTransparentTheme" />
 
+        <activity
+            android:name="io.hyperswitch.payments.PazeActivity"
+            android:exported="false"
+            android:theme="@style/HyperTransparentTheme" />
+
         <meta-data
             android:name="com.google.android.gms.wallet.api.enabled"
             android:value="true" />
