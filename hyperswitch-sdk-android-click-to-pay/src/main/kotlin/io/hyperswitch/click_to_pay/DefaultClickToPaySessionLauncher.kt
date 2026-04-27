@@ -61,7 +61,7 @@ class DefaultClickToPaySessionLauncher(
 ) : ClickToPaySessionLauncher {
     private lateinit var hSWebViewManagerImpl: HSWebViewManagerImpl
     private lateinit var hSWebViewWrapper: HSWebViewWrapper
-    private val seenCorrelationIds = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
+    private val correlationIds = mutableSetOf<String>()
     private val pendingRequests = ConcurrentHashMap<String, CancellableContinuation<String>>()
     private val isWebViewInitialized = AtomicBoolean(false)
     private val isWebViewAttached = AtomicBoolean(false)
@@ -457,7 +457,7 @@ class DefaultClickToPaySessionLauncher(
                 val headers = data["headers"] as? Map<*, *>
                 val correlationId = headers?.get("X-CORRELATION-ID")?.toString()
                 if (correlationId != null) {
-                    seenCorrelationIds.add(correlationId)
+                    correlationIds.plus(correlationId)
                 }
             } catch (_: Exception) {
             }
@@ -700,10 +700,10 @@ class DefaultClickToPaySessionLauncher(
             logger(
                 LogType.DEBUG,
                 EventName.CTP_CORRELATION_VALUE,
-                "correlationIds: [${seenCorrelationIds.joinToString(", ")}]",
+                "correlationIds: [${correlationIds.joinToString(", ")}]",
                 LogCategory.USER_EVENT
             )
-            seenCorrelationIds.clear()
+            correlationIds.clear()
             logger(
                 LogType.DEBUG,
                 EventName.INIT_CLICK_TO_PAY_SESSION_RETURNED,
