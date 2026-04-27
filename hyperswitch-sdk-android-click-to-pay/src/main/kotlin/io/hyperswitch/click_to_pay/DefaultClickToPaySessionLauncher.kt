@@ -1106,6 +1106,7 @@ class DefaultClickToPaySessionLauncher(
 
     private suspend fun closeHyperInstance() {
         try {
+            ensureReady()
             val requestId = UUID.randomUUID().toString()
             logger(LogType.DEBUG, EventName.CLOSE_HYPER_INSTANCE, "")
             val jsCode =
