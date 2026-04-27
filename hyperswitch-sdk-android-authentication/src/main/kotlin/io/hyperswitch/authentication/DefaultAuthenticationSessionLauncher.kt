@@ -26,7 +26,7 @@ import io.hyperswitch.logs.LogUtils.getOrCreateUniqueKey
  * @property merchantId Stored merchant identifier
  */
 class DefaultAuthenticationSessionLauncher(
-    private val activity: Activity,
+    activity: Activity,
     publishableKey: String,
     customBackendUrl: String? = null,
     customLogUrl: String? = null,
@@ -44,6 +44,8 @@ class DefaultAuthenticationSessionLauncher(
     private var profileId: String? = null
     private var authenticationId: String? = null
     private var merchantId: String? = null
+    private val sessionId = getOrCreateUniqueKey(activity, "click_to_pay")
+
     /**
      * Initializes the Click to Pay SDK.
      *
@@ -61,10 +63,9 @@ class DefaultAuthenticationSessionLauncher(
         type: LogType,
         eventName: EventName,
         value: String,
-        category: LogCategory = LogCategory.USER_EVENT
+        category: LogCategory = LogCategory.USER_EVENT,
+        authenticationId: String? = this.authenticationId
     ) {
-        val sessionId = getOrCreateUniqueKey(activity, "click_to_pay")
-
         val log = HSLog.LogBuilder()
             .logType(type)
             .category(category)
@@ -73,7 +74,6 @@ class DefaultAuthenticationSessionLauncher(
             .version(BuildConfig.VERSION_NAME)
             .authenticationId(authenticationId.orEmpty())
             .sessionId(sessionId)
-
         HyperLogManager.addLog(log.build())
     }
 
