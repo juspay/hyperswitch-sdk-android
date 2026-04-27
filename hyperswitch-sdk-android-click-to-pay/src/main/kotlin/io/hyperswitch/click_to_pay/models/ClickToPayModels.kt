@@ -65,15 +65,15 @@ enum class ClickToPayErrorType {
  */
 class ClickToPayException(
     message: String,
-    val errorType: ClickToPayErrorType
-) : Exception("ClickToPay: $errorType: $message") {
+    errorType: ClickToPayErrorType
+) : Exception(message) {
     constructor(
         message: String,
         errorType: String
     ) : this(message, ClickToPayErrorType.from(errorType))
 
-    val reason = message
     val type = errorType
+    val reason = message
 }
 
 /**

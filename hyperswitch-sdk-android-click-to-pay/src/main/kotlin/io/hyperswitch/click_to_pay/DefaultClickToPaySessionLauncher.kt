@@ -61,6 +61,7 @@ class DefaultClickToPaySessionLauncher(
     private lateinit var hSWebViewManagerImpl: HSWebViewManagerImpl
     private lateinit var hSWebViewWrapper: HSWebViewWrapper
     private val correlationIds = mutableSetOf<String>()
+    private val captureCorrelationIds = AtomicBoolean(true)
     private val pendingRequests = ConcurrentHashMap<String, CancellableContinuation<String>>()
     private val isWebViewInitialized = AtomicBoolean(false)
     private val isWebViewAttached = AtomicBoolean(false)
@@ -455,8 +456,8 @@ class DefaultClickToPaySessionLauncher(
             try {
                 val headers = data["headers"] as? Map<*, *>
                 val correlationId = headers?.get("X-CORRELATION-ID")?.toString()
-                if (correlationId != null) {
-                    correlationIds.plus(correlationId)
+                if (correlationId != null && captureCorrelationIds.get()) {
+                    correlationIds.add(correlationId)
                 }
             } catch (_: Exception) {
             }
@@ -669,6 +670,7 @@ class DefaultClickToPaySessionLauncher(
         )
         this.authenticationId = authenticationId
         this.sessionId = "${deviceUniqueSessionId}_${UUID.randomUUID()}"
+        captureCorrelationIds.set(true)
         ensureReady()
         val requestId = UUID.randomUUID().toString()
         val jsCode =
@@ -702,6 +704,7 @@ class DefaultClickToPaySessionLauncher(
                 "correlationIds: [${correlationIds.joinToString(", ")}]",
                 LogCategory.USER_EVENT
             )
+            captureCorrelationIds.set(false)
             correlationIds.clear()
             logger(
                 LogType.DEBUG,
