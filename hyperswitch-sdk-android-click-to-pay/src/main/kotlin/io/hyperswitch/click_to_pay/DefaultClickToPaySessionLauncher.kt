@@ -150,10 +150,16 @@ class DefaultClickToPaySessionLauncher(
 
     // Parsing Helpers
 
-    private fun parseJSONObject(data: String): JSONObject {
+    private fun parseJSONObject(data: String, eventName: EventName): JSONObject {
         try {
             return JSONObject(data)
         } catch (e: Exception) {
+            logger(
+                LogType.ERROR,
+                eventName,
+                "Type: ERROR, Message: Failed to parse JSONObject",
+                LogCategory.USER_ERROR
+            )
             throw ClickToPayException(
                 "Failed to read response: ${e.message}", "ERROR"
             )
@@ -616,7 +622,7 @@ class DefaultClickToPaySessionLauncher(
         }
 
         withContext(Dispatchers.Default) {
-            val jsonObject = parseJSONObject(responseJson)
+            val jsonObject = parseJSONObject(responseJson, EventName.SCRIPT_LOAD_RETURNED)
             val data = jsonObject.getJSONObject("data")
             val error = data.optJSONObject("error")
             if (error != null) {
@@ -679,7 +685,7 @@ class DefaultClickToPaySessionLauncher(
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
 
         withContext(Dispatchers.Default) {
-            val jsonObject = parseJSONObject(responseJson)
+            val jsonObject = parseJSONObject(responseJson, EventName.INIT_CLICK_TO_PAY_SESSION_RETURNED)
             val data = jsonObject.getJSONObject("data")
             val error = data.optJSONObject("error")
             if (error != null) {
@@ -700,18 +706,12 @@ class DefaultClickToPaySessionLauncher(
             }
             logger(
                 LogType.DEBUG,
-                EventName.CTP_CORRELATION_VALUE,
-                "correlationIds: [${correlationIds.joinToString(", ")}]",
+                EventName.INIT_CLICK_TO_PAY_SESSION_RETURNED,
+                correlationIds.joinToString(", "),
                 LogCategory.USER_EVENT
             )
             captureCorrelationIds.set(false)
             correlationIds.clear()
-            logger(
-                LogType.DEBUG,
-                EventName.INIT_CLICK_TO_PAY_SESSION_RETURNED,
-                "",
-                LogCategory.USER_EVENT
-            )
         }
     }
 
@@ -762,7 +762,7 @@ class DefaultClickToPaySessionLauncher(
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
 
         withContext(Dispatchers.Default) {
-            val jsonObject = parseJSONObject(responseJson)
+            val jsonObject = parseJSONObject(responseJson, EventName.GET_ACTIVE_CLICK_TO_PAY_SESSION_RETURNED)
             val data = jsonObject.getJSONObject("data")
             val error = data.optJSONObject("error")
             if (error != null) {
@@ -809,7 +809,7 @@ class DefaultClickToPaySessionLauncher(
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
 
         return withContext(Dispatchers.Default) {
-            val jsonObject = parseJSONObject(responseJson)
+            val jsonObject = parseJSONObject(responseJson, EventName.IS_CUSTOMER_PRESENT_RETURNED)
             val data = jsonObject.getJSONObject("data")
             val error = data.optJSONObject("error")
             if (error != null) {
@@ -859,7 +859,7 @@ class DefaultClickToPaySessionLauncher(
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
 
         return withContext(Dispatchers.Default) {
-            val jsonObject = parseJSONObject(responseJson)
+            val jsonObject = parseJSONObject(responseJson, EventName.GET_USER_TYPE_RETURNED)
             val data = jsonObject.getJSONObject("data")
             val error = data.optJSONObject("error")
             if (error != null) {
@@ -921,7 +921,7 @@ class DefaultClickToPaySessionLauncher(
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
 
         return withContext(Dispatchers.Default) {
-            val jsonObject = parseJSONObject(responseJson)
+            val jsonObject = parseJSONObject(responseJson, EventName.GET_RECOGNISED_CARDS_RETURNED)
             val data = jsonObject.get("data")
 
             if (data is JSONObject && data.has("error")) {
@@ -975,7 +975,7 @@ class DefaultClickToPaySessionLauncher(
             "(async function(){try{const cards=await window.ClickToPaySession.validateCustomerAuthentication({value:'$otpValue'});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:cards}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:error.type||'ERROR',message:error.message}}}))}})();"
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
         return withContext(Dispatchers.Default) {
-            val jsonObject = parseJSONObject(responseJson)
+            val jsonObject = parseJSONObject(responseJson, EventName.VALIDATE_CUSTOMER_AUTHENTICATION_RETURNED)
             val data = jsonObject.get("data")
 
             if (data is JSONObject && data.has("error")) {
@@ -1036,7 +1036,7 @@ class DefaultClickToPaySessionLauncher(
         logger(LogType.DEBUG, EventName.CREATE_NEW_WEBVIEW_RETURNED, "")
         restoreAccessibility()
         return withContext(Dispatchers.Default) {
-            val jsonObject = parseJSONObject(responseJson)
+            val jsonObject = parseJSONObject(responseJson, EventName.CHECKOUT_RETURNED)
             val data = jsonObject.getJSONObject("data")
             val error = data.optJSONObject("error")
             if (error != null) {
@@ -1141,7 +1141,7 @@ class DefaultClickToPaySessionLauncher(
             val jsCode =
                 "(async function(){try{await window.hyperInstance.deinit();window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{code:'success'}}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'CloseInstanceFailed',message:error.message}}}));}})();"
             val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
-            val jsonObject = parseJSONObject(responseJson)
+            val jsonObject = parseJSONObject(responseJson, EventName.CLOSE_HYPER_INSTANCE_RETURNED)
             val data = jsonObject.getJSONObject("data")
             val error = data.optJSONObject("error")
             if (error != null) {
@@ -1232,7 +1232,7 @@ class DefaultClickToPaySessionLauncher(
 
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
         return withContext(Dispatchers.Default) {
-            val jsonObject = parseJSONObject(responseJson)
+            val jsonObject = parseJSONObject(responseJson, EventName.SIGN_OUT_RETURNED)
             val data = jsonObject.getJSONObject("data")
             val error = data.optJSONObject("error")
             if (error != null) {
