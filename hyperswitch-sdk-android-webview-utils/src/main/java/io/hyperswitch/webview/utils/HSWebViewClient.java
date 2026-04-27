@@ -13,11 +13,16 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.util.Pair;
+
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class HSWebViewClient extends WebViewClient {
@@ -25,6 +30,8 @@ public class HSWebViewClient extends WebViewClient {
     protected static final int SHOULD_OVERRIDE_URL_LOADING_TIMEOUT = 250;
 
     protected boolean mLastLoadFailed = false;
+
+    private Callback requestHeadersCallback = null;
     protected HSWebView.ProgressChangedFilter progressChangedFilter = null;
     protected @Nullable HSBasicAuthCredential basicAuthCredential = null;
 
@@ -39,7 +46,7 @@ public class HSWebViewClient extends WebViewClient {
         if (cookies != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 CookieManager.getInstance().flush();
-            }else {
+            } else {
                 CookieSyncManager.getInstance().sync();
             }
         }
@@ -54,7 +61,7 @@ public class HSWebViewClient extends WebViewClient {
     }
 
     @Override
-    public void doUpdateVisitedHistory (WebView webView, String url, boolean isReload) {
+    public void doUpdateVisitedHistory(WebView webView, String url, boolean isReload) {
         super.doUpdateVisitedHistory(webView, url, isReload);
 
         ((HSWebView) webView).dispatchEvent(createWebViewEvent(webView, url));
@@ -67,6 +74,28 @@ public class HSWebViewClient extends WebViewClient {
 
         HSWebView reactWebView = (HSWebView) webView;
         reactWebView.callInjectedJavaScriptBeforeContentLoaded();
+    }
+
+    public void setRequestInterceptor(Callback callback) {
+        this.requestHeadersCallback = callback;
+    }
+
+    @Nullable
+    @Override
+    public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+        request.getRequestHeaders();
+        try {
+            if (this.requestHeadersCallback != null) {
+                this.requestHeadersCallback.invoke(
+                        new HashMap<>() {{
+                            put("url", request.getUrl().toString());
+                            put("headers", request.getRequestHeaders());
+                        }}
+                );
+            }
+        } catch (Exception ignored) {
+        }
+        return super.shouldInterceptRequest(view, request);
     }
 
     @Override
@@ -178,7 +207,7 @@ public class HSWebViewClient extends WebViewClient {
 
         if (!topWindowUrl.equalsIgnoreCase(failingUrl)) {
             // If error is not due to top-level navigation, then do not call onReceivedError()
-            Log.w(TAG, "Resource blocked from loading due to SSL error. Blocked URL: "+failingUrl);
+            Log.w(TAG, "Resource blocked from loading due to SSL error. Blocked URL: " + failingUrl);
             this.onReceivedSubResourceSslError(
                     webView,
                     code,
@@ -258,17 +287,16 @@ public class HSWebViewClient extends WebViewClient {
         }
         super.onRenderProcessGone(webView, detail);
 
-        if(detail.didCrash()){
+        if (detail.didCrash()) {
             Log.e(TAG, "The WebView rendering process crashed.");
-        }
-        else{
+        } else {
             Log.w(TAG, "The WebView rendering process was killed by the system.");
         }
 
         // if webView is null, we cannot return any event
         // since the view is already dead/disposed
         // still prevent the app crash by returning true.
-        if(webView == null){
+        if (webView == null) {
             return true;
         }
 
