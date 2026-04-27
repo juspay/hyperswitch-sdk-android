@@ -1,6 +1,5 @@
 package io.hyperswitch.click_to_pay
 
-import android.R
 import android.app.Activity
 import android.os.Bundle
 import android.view.View
@@ -114,7 +113,7 @@ class DefaultClickToPaySessionLauncher(
             // Guard against destroyed WebView to prevent "call on destroyed WebView" crash
             if (isDestroyed.get()) {
                 throw ClickToPayException(
-                    "Cannot evaluate JavaScript: ClickToPay session has been destroyed",
+                    "ClickToPay session has been destroyed",
                     "SESSION_DESTROYED"
                 )
             }
@@ -124,7 +123,7 @@ class DefaultClickToPaySessionLauncher(
                     continuation.resumeWith(
                         Result.failure(
                             ClickToPayException(
-                                "Cannot evaluate JavaScript: ClickToPay session has been destroyed",
+                                "ClickToPay session has been destroyed",
                                 "SESSION_DESTROYED"
                             )
                         )
@@ -142,13 +141,11 @@ class DefaultClickToPaySessionLauncher(
 
     // URL Helpers
     private fun getHyperLoaderURL(): String {
-        // TODO Later move this publishableKey to SdkAuthorization
-//        return if (getEnvironment(publishableKey) == SDKEnvironment.PROD) {
-//            "https://checkout.hyperswitch.io/web/2025.11.28.08/v1/HyperLoader.js"
-//        } else {
-//            "https://beta.hyperswitch.io/web/2025.11.28.08/v1/HyperLoader.js"
-//        }
-        return "https://deft-fudge-f751c1.netlify.app/HyperLoader.js"
+        return if (getEnvironment(publishableKey) == SDKEnvironment.PROD) {
+            "https://checkout.hyperswitch.io/web/2025.11.28.08/v1/HyperLoader.js"
+        } else {
+            "https://beta.hyperswitch.io/web/2025.11.28.08/v1/HyperLoader.js"
+        }
     }
 
     // Parsing Helpers
@@ -158,7 +155,7 @@ class DefaultClickToPaySessionLauncher(
             return JSONObject(data)
         } catch (e: Exception) {
             throw ClickToPayException(
-                "Failed to parse response: ${e.message}", "PARSE_ERROR"
+                "Failed to read response: ${e.message}", "ERROR"
             )
         }
     }
@@ -373,7 +370,7 @@ class DefaultClickToPaySessionLauncher(
         lifecycleMutex.withLock {
             if (isWebViewInitialized.get() && !isWebViewAttached.get()) {
                 withContext(Dispatchers.Main) {
-                    val rootView = activity.findViewById<ViewGroup>(R.id.content)
+                    val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
                     rootView.addView(hSWebViewWrapper)
                 }
                 isWebViewAttached.set(true)
@@ -459,12 +456,8 @@ class DefaultClickToPaySessionLauncher(
             try {
                 val headers = data["headers"] as? Map<*, *>
                 val correlationId = headers?.get("X-CORRELATION-ID")?.toString()
-                if (correlationId != null && seenCorrelationIds.add(correlationId)) {
-                    logger(
-                        LogType.INFO,
-                        EventName.CTP_CORRELATION_VALUE,
-                        "correlationId: $correlationId, url: ${data.getOrDefault("url", "")}"
-                    )
+                if (correlationId != null) {
+                    seenCorrelationIds.add(correlationId)
                 }
             } catch (_: Exception) {
             }
@@ -477,7 +470,7 @@ class DefaultClickToPaySessionLauncher(
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
         }
 
-        activity.findViewById<ViewGroup>(R.id.content).addView(hSWebViewWrapper)
+        activity.findViewById<ViewGroup>(android.R.id.content).addView(hSWebViewWrapper)
 
 //        isWebViewAttached = true
     }
@@ -706,6 +699,13 @@ class DefaultClickToPaySessionLauncher(
             }
             logger(
                 LogType.DEBUG,
+                EventName.CTP_CORRELATION_VALUE,
+                "correlationIds: [${seenCorrelationIds.joinToString(", ")}]",
+                LogCategory.USER_EVENT
+            )
+            seenCorrelationIds.clear()
+            logger(
+                LogType.DEBUG,
                 EventName.INIT_CLICK_TO_PAY_SESSION_RETURNED,
                 "",
                 LogCategory.USER_EVENT
@@ -731,19 +731,17 @@ class DefaultClickToPaySessionLauncher(
         try {
             if (this.activity !== activity) {
                 lifecycleMutex.withLock {
-                    if (isWebViewInitialized.get() && isWebViewAttached.get()) {
-                        withContext(Dispatchers.Main) {
+                    withContext(Dispatchers.Main) {
+                        if (isWebViewInitialized.get() && isWebViewAttached.get()) {
                             (hSWebViewWrapper.parent as? ViewGroup)?.removeView(hSWebViewWrapper)
+                            isWebViewAttached.set(false)
                         }
-                        isWebViewAttached.set(false)
+                        val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
+                            ?: throw IllegalStateException("Failed to find root view in new activity")
+                        rootView.addView(hSWebViewWrapper)
+                        isWebViewAttached.set(true)
                     }
                     this.activity = activity
-                    val rootView = activity.findViewById<ViewGroup>(R.id.content)
-                        ?: throw IllegalStateException("Failed to find root view in new activity")
-                    withContext(Dispatchers.Main) {
-                        rootView.addView(hSWebViewWrapper)
-                    }
-                    isWebViewAttached.set(true)
                 }
             }
         } catch (e: Exception) {
@@ -876,9 +874,9 @@ class DefaultClickToPaySessionLauncher(
                     message = "Failed to get user type : $errorMessage", errorType
                 )
             }
-            val statusCodeStr = data.getString("statusCode").uppercase()
-
-            val maskedValidationChannelDetails = parseMaskedValidationChannelData(data.getJSONObject("maskedValidationChannel"))
+            val statusCodeStr = data.optString("statusCode", "NO_CARDS_PRESENT").uppercase()
+            val maskedValidationChannelDetails =
+                parseMaskedValidationChannelData(data.getJSONObject("maskedValidationChannel"))
             val supportedValidationChannelsArray = data.optJSONArray("supportedValidationChannels")
             val supportedValidationChannels = supportedValidationChannelsArray?.let { array ->
                 (0 until array.length()).map { i ->
@@ -1024,7 +1022,7 @@ class DefaultClickToPaySessionLauncher(
     override suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse {
         logger(LogType.DEBUG, EventName.CHECKOUT_INIT, "rememberMe: ${request.rememberMe}")
         ensureReady()
-        val rootView = activity.findViewById<ViewGroup>(R.id.content)
+        val rootView = activity.findViewById<ViewGroup>(android.R.id.content)
         setModalAccessibility(rootView, hSWebViewWrapper)
         val requestId = UUID.randomUUID().toString()
         logger(
