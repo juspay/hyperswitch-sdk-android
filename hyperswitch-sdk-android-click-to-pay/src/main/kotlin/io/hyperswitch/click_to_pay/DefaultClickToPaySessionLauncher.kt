@@ -166,6 +166,14 @@ class DefaultClickToPaySessionLauncher(
         }
     }
 
+    private fun getOptJSONArray(arr: JSONArray, index: Int): JSONObject {
+        return arr.optJSONObject(index) ?: JSONObject()
+    }
+
+    private fun getOptJSONObject(obj: JSONObject, name: String): JSONObject {
+        return obj.optJSONObject(name) ?: JSONObject()
+    }
+
     private fun safeReturnStringValue(
         obj: JSONObject, key: String
     ): String? {
@@ -200,7 +208,7 @@ class DefaultClickToPaySessionLauncher(
         val authMethods = digitalCardDataObj?.optJSONArray("authenticationMethods")?.let { arr ->
             (0 until arr.length()).map { idx ->
                 AuthenticationMethod(
-                    arr.getJSONObject(idx).optString("authenticationMethodType", "")
+                    getOptJSONArray(arr, idx).optString("authenticationMethodType", "")
                 )
             }
         }
@@ -623,7 +631,7 @@ class DefaultClickToPaySessionLauncher(
 
         withContext(Dispatchers.Default) {
             val jsonObject = parseJSONObject(responseJson, EventName.SCRIPT_LOAD_RETURNED)
-            val data = jsonObject.getJSONObject("data")
+            val data = getOptJSONObject(jsonObject, "data")
             val error = data.optJSONObject("error")
             if (error != null) {
                 val errorType = error.optString("type", "Unknown")
@@ -686,7 +694,7 @@ class DefaultClickToPaySessionLauncher(
 
         withContext(Dispatchers.Default) {
             val jsonObject = parseJSONObject(responseJson, EventName.INIT_CLICK_TO_PAY_SESSION_RETURNED)
-            val data = jsonObject.getJSONObject("data")
+            val data = getOptJSONObject(jsonObject, "data")
             val error = data.optJSONObject("error")
             if (error != null) {
                 val errorType = error.optString("type", "Unknown")
@@ -763,7 +771,7 @@ class DefaultClickToPaySessionLauncher(
 
         withContext(Dispatchers.Default) {
             val jsonObject = parseJSONObject(responseJson, EventName.GET_ACTIVE_CLICK_TO_PAY_SESSION_RETURNED)
-            val data = jsonObject.getJSONObject("data")
+            val data = getOptJSONObject(jsonObject, "data")
             val error = data.optJSONObject("error")
             if (error != null) {
                 val errorType = error.optString("type", "Unknown")
@@ -810,7 +818,7 @@ class DefaultClickToPaySessionLauncher(
 
         return withContext(Dispatchers.Default) {
             val jsonObject = parseJSONObject(responseJson, EventName.IS_CUSTOMER_PRESENT_RETURNED)
-            val data = jsonObject.getJSONObject("data")
+            val data = getOptJSONObject(jsonObject, "data")
             val error = data.optJSONObject("error")
             if (error != null) {
                 val errorType = error.optString("type", "ERROR")
@@ -860,7 +868,7 @@ class DefaultClickToPaySessionLauncher(
 
         return withContext(Dispatchers.Default) {
             val jsonObject = parseJSONObject(responseJson, EventName.GET_USER_TYPE_RETURNED)
-            val data = jsonObject.getJSONObject("data")
+            val data = getOptJSONObject(jsonObject, "data")
             val error = data.optJSONObject("error")
             if (error != null) {
                 val errorType = error.optString("type", "ERROR")
@@ -878,11 +886,11 @@ class DefaultClickToPaySessionLauncher(
             }
             val statusCodeStr = data.optString("statusCode", "NO_CARDS_PRESENT").uppercase()
             val maskedValidationChannelDetails =
-                parseMaskedValidationChannelData(data.getJSONObject("maskedValidationChannel"))
+                parseMaskedValidationChannelData(getOptJSONObject(data, "maskedValidationChannel"))
             val supportedValidationChannelsArray = data.optJSONArray("supportedValidationChannels")
             val supportedValidationChannels = supportedValidationChannelsArray?.let { array ->
                 (0 until array.length()).map { i ->
-                    parseSupportedValidationChannelsData(array.getJSONObject(i))
+                    parseSupportedValidationChannelsData(getOptJSONArray(array, i))
                 }
             } ?: emptyList()
 
@@ -925,7 +933,7 @@ class DefaultClickToPaySessionLauncher(
             val data = jsonObject.get("data")
 
             if (data is JSONObject && data.has("error")) {
-                val error = data.getJSONObject("error")
+                val error = getOptJSONObject(data, "error")
                 val errorType = error.optString("type", "ERROR")
                 val errorMessage = error.optString("message", "Unknown error")
                 logger(
@@ -943,7 +951,7 @@ class DefaultClickToPaySessionLauncher(
             }
             val cardsArray = data as JSONArray
             val cards = (0 until cardsArray.length()).map { i ->
-                parseRecognizedCard(cardsArray.getJSONObject(i))
+                parseRecognizedCard(getOptJSONArray(cardsArray, i))
             }
             val visaCount = cards.count { it.paymentCardDescriptor == CardType.VISA }
             val masterCardCount = cards.count { it.paymentCardDescriptor == CardType.MASTERCARD }
@@ -979,7 +987,7 @@ class DefaultClickToPaySessionLauncher(
             val data = jsonObject.get("data")
 
             if (data is JSONObject && data.has("error")) {
-                val error = data.getJSONObject("error")
+                val error = getOptJSONObject(data, "error")
                 val errorType = error.optString("type", "ERROR")
                 val errorMessage = error.optString("message", "Unknown error")
                 logger(
@@ -996,7 +1004,7 @@ class DefaultClickToPaySessionLauncher(
             }
             val cardsArray = data as JSONArray
             val cards = (0 until cardsArray.length()).map { i ->
-                parseRecognizedCard(cardsArray.getJSONObject(i))
+                parseRecognizedCard(getOptJSONArray(cardsArray, i))
             }
             val visaCount = cards.count { it.paymentCardDescriptor == CardType.VISA }
             val masterCardCount = cards.count { it.paymentCardDescriptor == CardType.MASTERCARD }
@@ -1037,7 +1045,7 @@ class DefaultClickToPaySessionLauncher(
         restoreAccessibility()
         return withContext(Dispatchers.Default) {
             val jsonObject = parseJSONObject(responseJson, EventName.CHECKOUT_RETURNED)
-            val data = jsonObject.getJSONObject("data")
+            val data = getOptJSONObject(jsonObject, "data")
             val error = data.optJSONObject("error")
             if (error != null) {
                 val errorType = error.optString("type", "ERROR")
@@ -1142,7 +1150,7 @@ class DefaultClickToPaySessionLauncher(
                 "(async function(){try{await window.hyperInstance.deinit();window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{code:'success'}}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'CloseInstanceFailed',message:error.message}}}));}})();"
             val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
             val jsonObject = parseJSONObject(responseJson, EventName.CLOSE_HYPER_INSTANCE_RETURNED)
-            val data = jsonObject.getJSONObject("data")
+            val data = getOptJSONObject(jsonObject, "data")
             val error = data.optJSONObject("error")
             if (error != null) {
                 val errorType = error.optString("type", "ERROR")
@@ -1233,7 +1241,7 @@ class DefaultClickToPaySessionLauncher(
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
         return withContext(Dispatchers.Default) {
             val jsonObject = parseJSONObject(responseJson, EventName.SIGN_OUT_RETURNED)
-            val data = jsonObject.getJSONObject("data")
+            val data = getOptJSONObject(jsonObject, "data")
             val error = data.optJSONObject("error")
             if (error != null) {
                 val errorMessage = error.optString(
