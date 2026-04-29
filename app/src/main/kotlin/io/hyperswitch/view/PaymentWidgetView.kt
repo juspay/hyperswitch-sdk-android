@@ -217,8 +217,11 @@ class PaymentWidgetView : FrameLayout {
             customLogUrl = PaymentConfiguration.customLogUrl,
             customParams = PaymentConfiguration.customParams as Map<String, Any>?,
             type = widgetType,
-//            widgetId = this.widgetId,
-            sdkAuthorization = this.sdkAuthorization,
+            from = when (widgetConfig) {
+                is PaymentWidgetConfig.Native -> "nativeWidget"
+                is PaymentWidgetConfig.ReactNative -> "rn"
+                null -> "nativeWidget"
+            },            sdkAuthorization = this.sdkAuthorization,
             subscribedEvents = this.subscribedEvents,
         )
 
