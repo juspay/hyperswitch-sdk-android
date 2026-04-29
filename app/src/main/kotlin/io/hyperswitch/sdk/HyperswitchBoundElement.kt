@@ -2,8 +2,7 @@ package io.hyperswitch.sdk
 
 import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.model.ElementUpdateIntentResult
-import io.hyperswitch.paymentsession.Callback
-import io.hyperswitch.paymentsession.PMError
+import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.utils.ConversionUtils
@@ -28,10 +27,6 @@ class HyperswitchBoundElement internal constructor(
     ) : this(paymentSession, element, null, subscribe) {
         element.setConfiguration(ConversionUtils.convertMapToReadableMap(configurationMap))
     }
-    private var lastUsedPaymentToken: String? = null
-    private var lastUsedBilling: String? = null
-    private var defaultPaymentToken: String? = null
-    private var defaultBilling: String? = null
 
     init {
         element.initWidget(paymentSession.getPublishableKey())
@@ -46,24 +41,6 @@ class HyperswitchBoundElement internal constructor(
             element.setOnEventCallback(listener)
         }
         element.setSdkAuthorization(paymentSession.getSdkAuthorization())
-        paymentSession.getCustomerSavedPaymentMethods { savedMethods ->
-            savedMethods.getCustomerLastUsedPaymentMethodData().fold(
-                onSuccess = { data ->
-                    lastUsedPaymentToken = data.paymentToken
-                    lastUsedBilling = data.billing
-                },
-                onFailure = { error ->
-                }
-            )
-            // ── Default Saved ──
-            savedMethods.getCustomerDefaultSavedPaymentMethodData().fold(
-                onSuccess = { data ->
-                    defaultPaymentToken = data.paymentToken
-                    defaultBilling = data.billing
-                },
-                onFailure = { /* no default set — that's fine */ }
-            )
-        }
     }
 
     /** Native path - sets configuration using PaymentSheet.Configuration */
@@ -76,12 +53,6 @@ class HyperswitchBoundElement internal constructor(
         element.setConfiguration(ConversionUtils.convertMapToReadableMap(configurationMap))
     }
 
-//    /** RN bridge path - sets configuration using ReadableMap */
-//    fun setConfiguration(configuration: ReadableMap) {
-//        element.setConfiguration(configuration)
-//    }
-
-    //    /** Registers a PaymentResultListener */
     fun onPaymentResult(listener: PaymentResultListener) {
         element.onPaymentResult(listener)
     }
@@ -103,43 +74,35 @@ class HyperswitchBoundElement internal constructor(
         element.confirmPayment(onResult)
     }
 
-    suspend fun confirmWithLastUsed(): PaymentResult {
-        return if (lastUsedPaymentToken != null) {
-            element.confirmCVCWidget(paymentSession.getSdkAuthorization(), lastUsedPaymentToken ?: "", lastUsedBilling)
-        } else {
-            PaymentResult.Failed(Exception("No last used payment details found"))
-        }
+    fun confirmWithLastUsed(handler: PaymentSessionHandler, callback: (PaymentResult) -> Unit) {
+        handler.getCustomerLastUsedPaymentMethodData().fold(
+            onSuccess = { data ->
+                element.confirmCVCWidget(paymentSession.getSdkAuthorization(), data.paymentToken, data.billing, callback)
+            },
+            onFailure = { callback(PaymentResult.Failed(Exception("No last used payment details found"))) }
+        )
     }
 
-    fun confirmWithLastUsed(callback: (PaymentResult) -> Unit) {
-        if (lastUsedPaymentToken != null) {
-            element.confirmCVCWidget(paymentSession.getSdkAuthorization(), lastUsedPaymentToken ?: "", lastUsedBilling, callback)
-        } else {
-            callback(PaymentResult.Failed(Exception("No last used payment details found")))
-        }
-    }
-
-    suspend fun confirmWithDefaultMethod(): PaymentResult {
+    suspend fun confirmWithLastUsed(handler: PaymentSessionHandler): PaymentResult {
         return suspendCancellableCoroutine { continuation ->
-            val callback = { paymentResult: PaymentResult ->
-                continuation.resume(paymentResult)
-            }
-            if (defaultPaymentToken != null) {
-                element.confirmCVCWidget(paymentSession.getSdkAuthorization(), defaultPaymentToken ?: "", defaultBilling, callback)
-            } else {
-                continuation.resume(PaymentResult.Failed(Exception("No Default method found")))
-            }
+            confirmWithLastUsed(handler) { continuation.resume(it) }
         }
     }
 
-    fun confirmWithDefaultMethod(callback: (PaymentResult) -> Unit) {
-        if (defaultPaymentToken != null) {
-            element.confirmCVCWidget(paymentSession.getSdkAuthorization(), defaultPaymentToken ?: "", defaultBilling, callback)
-        } else {
-            callback(PaymentResult.Failed(Exception("No Default method found")))
-        }
+    fun confirmWithDefaultMethod(handler: PaymentSessionHandler, callback: (PaymentResult) -> Unit) {
+        handler.getCustomerDefaultSavedPaymentMethodData().fold(
+            onSuccess = { data ->
+                element.confirmCVCWidget(paymentSession.getSdkAuthorization(), data.paymentToken, data.billing, callback)
+            },
+            onFailure = { callback(PaymentResult.Failed(Exception("No default payment method found"))) }
+        )
     }
 
+    suspend fun confirmWithDefaultMethod(handler: PaymentSessionHandler): PaymentResult {
+        return suspendCancellableCoroutine { continuation ->
+            confirmWithDefaultMethod(handler) { continuation.resume(it) }
+        }
+    }
 
     fun updateIntentInit(onInitComplete: () -> Unit) {
         element.updateIntentInit { onInitComplete() }

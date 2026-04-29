@@ -20,7 +20,6 @@ import com.proyecto26.inappbrowser.ChromeTabsManagerActivity
 import io.hyperswitch.PaymentEvent
 import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.ElementUpdateIntentResult
-import io.hyperswitch.paymentsession.ExitHeadlessCallBackManager
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.redirect.RedirectEvent
 import io.hyperswitch.utils.ConversionUtils
@@ -277,23 +276,21 @@ class HyperFragment : ReactFragment() {
         billing: String?,
         callback: ((PaymentResult) -> Unit)
     ) {
-        if (ExitHeadlessCallBackManager.getCallback() != null) {
-            val paymentResult = PaymentResult.Failed(
-                Throwable("CVC payment already in progress").apply {
+        if (callbacks.containsKey(CallbackType.CONFIRM_CVC_ACTION)) {
+            callback.invoke(
+                PaymentResult.Failed(Throwable("CVC payment already in progress").apply {
                     initCause(Throwable("ALREADY_IN_PROGRESS"))
-                }
+                })
             )
-            callback.invoke(paymentResult)
             return
         }
         val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
         if (rootTag == -1) {
-            val paymentResult = PaymentResult.Failed(Throwable("cannot find the view"))
-            callback.invoke(paymentResult)
+            callback.invoke(PaymentResult.Failed(Throwable("cannot find the view")))
             return
         }
 
-        ExitHeadlessCallBackManager.setCallback(callback)
+        callbacks[CallbackType.CONFIRM_CVC_ACTION] = HyperCallback.Payment(callback)
 
         val map = Arguments.createMap()
         map.putString("actionType", EventName.CONFIRM_CVC_PAYMENT.name)
