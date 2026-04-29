@@ -221,7 +221,8 @@ class PaymentWidgetView : FrameLayout {
                 is PaymentWidgetConfig.Native -> "nativeWidget"
                 is PaymentWidgetConfig.ReactNative -> "rn"
                 null -> "nativeWidget"
-            },            sdkAuthorization = this.sdkAuthorization,
+            },
+            sdkAuthorization = this.sdkAuthorization,
             subscribedEvents = this.subscribedEvents,
         )
 
@@ -234,7 +235,10 @@ class PaymentWidgetView : FrameLayout {
         this.fragment?.updatePaymentIntentInit(callback)
     }
 
-    fun updatePaymentIntentComplete(sdkAuthorization: String, callback: (ElementUpdateIntentResult) -> Unit) {
+    fun updatePaymentIntentComplete(
+        sdkAuthorization: String,
+        callback: (ElementUpdateIntentResult) -> Unit
+    ) {
         this.fragment?.updatePaymentIntentComplete(sdkAuthorization, callback)
     }
 
