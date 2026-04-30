@@ -23,8 +23,9 @@ import io.hyperswitch.react.HyperEventEmitter
 class PaymentSession internal constructor(
     private val paymentSessionLauncher: PaymentSessionLauncher,
     private val publishableKey: String? = null,
-    private val sessionConfig: PaymentSessionConfiguration? = null
+    sessionConfig: PaymentSessionConfiguration? = null
 ) {
+    private var sessionConfig = sessionConfig
     constructor(activity: Activity, publishableKey: String) : this(
         DefaultPaymentSessionLauncher(activity, publishableKey, null, null, null),
         publishableKey = publishableKey,
@@ -141,6 +142,11 @@ class PaymentSession internal constructor(
         resultCallback: (PaymentResult) -> Unit
     ) {
         paymentSessionLauncher.presentPaymentSheet(configuration, subscribe, resultCallback)
+    }
+
+
+    fun updateSdkAuthorization(sdkAuthorization: String){
+        this.sessionConfig = PaymentSessionConfiguration(sdkAuthorization)
     }
 
     fun presentPaymentSheet(
