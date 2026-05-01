@@ -53,7 +53,7 @@ object HyperNetworking {
                 override fun onResponse(call: Call, response: Response) {
                     response.use {
                         when {
-                            it.isSuccessful -> callback(Result.success(it.body?.string() ?: "success"))
+                            it.isSuccessful -> callback(Result.success(it.body?.string().orEmpty()))
                             it.code == 401 -> callback(Result.failure(Exception("Unauthorized (401) - Check API Key")))
                             it.code == 500 -> callback(Result.failure(Exception("Server Error (500) - Try again later")))
                             else -> callback(Result.failure(Exception("HTTP Error: ${it.code} - ${it.message}")))
@@ -72,6 +72,20 @@ object HyperNetworking {
             method = "POST",
             headers = mapOf("Content-Type" to "application/json"),
             body = postData.toString().takeIf { it != "null" },
+            callback = callback
+        )
+    }
+
+    fun makeGetRequest(
+        urlString: String,
+        headers: Map<String, String> = emptyMap(),
+        callback: (Result<String>) -> Unit
+    ) {
+        makeHttpRequest(
+            urlString = urlString,
+            method = "GET",
+            headers = headers,
+            body = null,
             callback = callback
         )
     }

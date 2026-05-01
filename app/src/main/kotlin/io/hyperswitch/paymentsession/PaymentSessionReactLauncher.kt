@@ -21,6 +21,7 @@ import com.facebook.react.uimanager.PixelUtil
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.react.ReactNativeController
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.sdkAuthorization
+import io.hyperswitch.superposition.SuperpositionManager
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
 import io.hyperswitch.react.HyperFragment
@@ -123,26 +124,31 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
         }
     }
 
+    private fun injectSuperpositionConfig(bundle: Bundle) {
+        SuperpositionManager.getCachedConfig()?.configJson?.let {
+            bundle.getBundle("props")?.getBundle("hyperParams")?.putString("superpositionConfigRaw", it)
+        }
+    }
+
     override fun presentSheet(
         sdkAuthorization: String,
         configuration: PaymentSheet.Configuration?
     ): Boolean {
          val subscribedEvents = getSubscribedEventsSafely()
         val bundle = launchOptions.getBundle(sdkAuthorization, configuration,subscribedEvents)
+        injectSuperpositionConfig(bundle)
         applyFonts(configuration, bundle)
         return presentSheet(bottomInsetToDIPFromPixel(bundle))
     }
 
     override fun presentSheet(configurationMap: Map<String, Any?>): Boolean {
         val subscribedEvents = getSubscribedEventsSafely()
-        return presentSheet(
-            bottomInsetToDIPFromPixel(
-                launchOptions.getBundleWithHyperParams(
-                    configurationMap,
-                    subscribedEvents
-                )
-            )
+        val bundle = launchOptions.getBundleWithHyperParams(
+            configurationMap,
+            subscribedEvents
         )
+        injectSuperpositionConfig(bundle)
+        return presentSheet(bottomInsetToDIPFromPixel(bundle))
     }
 
     private fun presentSheet(bundle: Bundle): Boolean {
