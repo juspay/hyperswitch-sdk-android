@@ -160,7 +160,10 @@ class PaymentWidgetView : FrameLayout {
                 c.configuration.bundle
             }
 
-            is PaymentWidgetConfig.ReactNative -> this.launchOptions.toBundle(c.configuration as Map<*, *>)
+            is PaymentWidgetConfig.ReactNative -> {
+                val configMap = io.hyperswitch.utils.ConversionUtils.readableMapToMap(c.configuration as com.facebook.react.bridge.ReadableMap)
+                this.launchOptions.toBundle(configMap)
+            }
             null -> null
         }
     }
