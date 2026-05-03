@@ -22,7 +22,7 @@ class HyperswitchInstance internal constructor(
         } else {
             initDeferred.await()
         }
-        val ps = PaymentSession(activity, hsConfig?.publishableKey, sessionConfig = config)
+        val ps = PaymentSession(activity, hsConfig, sessionConfig = config)
         ps.initPaymentSession(config.sdkAuthorization)
         return ps
     }
@@ -35,7 +35,7 @@ class HyperswitchInstance internal constructor(
             } else {
                 initDeferred.await()
             }
-            val ps = PaymentSession(activity, hsConfig?.publishableKey, sessionConfig = config)
+            val ps = PaymentSession(activity, hsConfig, sessionConfig = config)
             ps.initPaymentSession(config.sdkAuthorization)
             withContext(Dispatchers.Main) { onResult(ps) }
         }

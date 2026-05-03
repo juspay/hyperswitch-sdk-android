@@ -6,6 +6,7 @@ import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
 import io.hyperswitch.logs.LogUtils.getLoggingUrl
+import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.react.HyperEventEmitter
@@ -14,27 +15,20 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 
 class DefaultPaymentSessionLauncher(
     activity: Activity,
-    publishableKey: String?,
-    customBackendUrl: String?,
-    customLogUrl: String?,
+    config: HyperswitchBaseConfiguration?,
     customParams: Bundle?,
-    private var paymentSessionReactLauncher: SDKInterface = PaymentSessionReactLauncher(activity)
+    private var paymentSessionReactLauncher: SDKInterface = PaymentSessionReactLauncher(activity, config)
 ) : BasePaymentSessionLauncher(
     activity,
-    publishableKey,
-    customBackendUrl,
-    customLogUrl,
+    config,
     customParams
 ) {
 
     init {
-        // TODO: Remove the publishable KEY
+        val publishableKey = config?.publishableKey
         if (publishableKey != null) {
-            val loggingEndPoint = if (customLogUrl != "" && customLogUrl != null) {
-                customLogUrl
-            } else {
-                getLoggingUrl(publishableKey)
-            }
+            val loggingEndPoint = config.customConfig?.overrideCustomLoggingEndpoint?.takeIf { it.isNotEmpty() }
+                ?: getLoggingUrl(publishableKey)
             HyperLogManager.initialise(publishableKey, loggingEndPoint)
             HyperLogManager.sendLogsFromFile(LogFileManager(activity))
         }

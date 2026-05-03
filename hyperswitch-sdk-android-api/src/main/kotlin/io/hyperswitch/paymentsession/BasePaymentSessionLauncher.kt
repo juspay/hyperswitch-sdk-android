@@ -4,14 +4,13 @@ import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.PaymentEventSubscriptionBuilder
+import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 
 abstract class BasePaymentSessionLauncher(
     protected val activity: Activity,
-    publishableKey: String?,
-    customBackendUrl: String?,
-    customLogUrl: String?,
+    config: HyperswitchBaseConfiguration?,
     customParams: Bundle?
 ) : PaymentSessionLauncher {
 
@@ -20,10 +19,10 @@ abstract class BasePaymentSessionLauncher(
     init {
         PaymentConfiguration.init(
             activity.applicationContext,
-            publishableKey,
+            config?.publishableKey,
             "",
-            customBackendUrl,
-            customLogUrl,
+            config?.customConfig?.overrideCustomBackendEndpoint,
+            config?.customConfig?.overrideCustomLoggingEndpoint,
             customParams
         )
     }

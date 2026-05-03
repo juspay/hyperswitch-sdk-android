@@ -19,6 +19,7 @@ import io.hyperswitch.BuildConfig
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.ElementUpdateIntentResult
+import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
@@ -56,6 +57,7 @@ class PaymentWidgetView : FrameLayout {
     private lateinit var launchOptions: LaunchOptions
     private var fragment: HyperFragment? = null
     private lateinit var mContext: Context
+    private var config: HyperswitchBaseConfiguration? = null
     private var publishableKey: String? = null
     private var profileId: String? = null
     private var sdkAuthorization: String = ""
@@ -94,6 +96,11 @@ class PaymentWidgetView : FrameLayout {
         this.mContext = context
         launchOptions = LaunchOptions(context.applicationContext, BuildConfig.VERSION_NAME)
         this.publishableKey = PaymentConfiguration.publishableKey()
+    }
+
+    fun setConfiguration(config: HyperswitchBaseConfiguration) {
+        this.config = config
+        this.publishableKey = config.publishableKey
     }
 
     fun setFragment(fragment: HyperFragment) {
@@ -212,12 +219,10 @@ class PaymentWidgetView : FrameLayout {
         this.subscribedEvents = events
     }
 
-    fun getLaunchOptions(): Bundle =
-        this.launchOptions.getBundle(
-            publishableKey = this.publishableKey,
+    fun getLaunchOptions(): Bundle {
+        return this.launchOptions.getBundle(
+            config = config,
             configuration = resolveConfiguration(),
-            customBackendUrl = PaymentConfiguration.customBackendUrl,
-            customLogUrl = PaymentConfiguration.customLogUrl,
             customParams = PaymentConfiguration.customParams as Map<String, Any>?,
             type = widgetType,
             from = when (widgetConfig) {
@@ -228,6 +233,7 @@ class PaymentWidgetView : FrameLayout {
             sdkAuthorization = this.sdkAuthorization,
             subscribedEvents = this.subscribedEvents,
         )
+    }
 
     fun confirmPayment(callback: (PaymentResult) -> Unit) {
         this.fragment?.confirmPayment(callback)
