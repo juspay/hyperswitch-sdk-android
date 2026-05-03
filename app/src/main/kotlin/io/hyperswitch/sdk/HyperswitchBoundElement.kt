@@ -35,6 +35,9 @@ class HyperswitchBoundElement internal constructor(
 
     init {
         element.initWidget(paymentSession.getPublishableKey())
+        paymentSession.getConfiguration()?.let { config ->
+            element.setBaseConfiguration(config)
+        }
         if (configuration != null) {
             element.setConfiguration(configuration)
         }

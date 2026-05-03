@@ -10,6 +10,7 @@ import android.view.WindowInsets
 import android.webkit.WebSettings
 import androidx.annotation.RequiresApi
 import io.hyperswitch.PaymentConfiguration
+import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import org.json.JSONObject
 
@@ -70,25 +71,31 @@ class LaunchOptions(
         sdkAuthorization: String,
         configuration: PaymentSheet.Configuration? = null,
         subscribedEvents: List<String> = emptyList()
-    ): Bundle = Bundle().apply {
-        putBundle("props", Bundle().apply {
-            putString("type", "payment")
-            putString(
-                "publishableKey",
-                PaymentConfiguration.getInstance(context).publishableKey
-            )
-            putString("sdkAuthorization", sdkAuthorization)
-            putString(
-                "customBackendUrl",
-                PaymentConfiguration.getInstance(context).customBackendUrl
-            )
-            putString("customLogUrl", PaymentConfiguration.getInstance(context).customLogUrl)
-            putString("theme", configuration?.appearance?.theme?.name)
-            putBundle("customParams", PaymentConfiguration.getInstance(context).customParams)
-            putBundle("configuration", configuration?.bundle)
-            putBundle("hyperParams", getHyperParams())
-            putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
-        })
+    ): Bundle {
+        val pubKey = PaymentConfiguration.getInstance(context).publishableKey
+        val backendUrl = PaymentConfiguration.getInstance(context).customBackendUrl
+        val logUrl = PaymentConfiguration.getInstance(context).customLogUrl
+        val customParams = PaymentConfiguration.getInstance(context).customParams?.let {
+            fromBundle(it) as Map<String, Any>
+        }
+        val theme = configuration?.appearance?.theme?.name
+
+        return buildBundle(
+            publishableKey = pubKey,
+            sdkAuthorization = sdkAuthorization,
+            configuration = configuration?.bundle,
+            customBackendUrl = backendUrl,
+            customLogUrl = logUrl,
+            customParams = customParams,
+            theme = theme,
+            subscribedEvents = subscribedEvents,
+            type = "payment",
+            baseConfigurationBuilder = {
+                putString("publishableKey", pubKey)
+                backendUrl?.let { putString("overrideCustomBackendEndpoint", it) }
+                logUrl?.let { putString("overrideCustomLoggingEndpoint", it) }
+            }
+        )
     }
 
     fun getBundle(
@@ -101,21 +108,65 @@ class LaunchOptions(
         from: String? = "nativeWidget",
         sdkAuthorization : String? = null,
         subscribedEvents: List<String> = emptyList(),
+    ): Bundle = buildBundle(
+        publishableKey = publishableKey,
+        sdkAuthorization = sdkAuthorization ?: "",
+        configuration = configuration,
+        customBackendUrl = customBackendUrl,
+        customLogUrl = customLogUrl,
+        customParams = customParams,
+        theme = null,
+        subscribedEvents = subscribedEvents,
+        type = type,
+        from = from,
+        baseConfigurationBuilder = {
+            putString("publishableKey", publishableKey ?: "")
+            customBackendUrl?.let { putString("overrideCustomBackendEndpoint", it) }
+            customLogUrl?.let { putString("overrideCustomLoggingEndpoint", it) }
+        }
+    )
+
+    fun getBundleWithHyperParams(readableMap: Map<*, *>, subscribedEvents: List<String> = emptyList()): Bundle = Bundle().apply {
+        putBundle("props", toBundle(readableMap).apply {
+            putBundle("hyperParams", getHyperParams())
+            putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
+        })
+    }
+
+    /**
+     * Common builder function for constructing the Bundle. All getBundle() variants delegate to this.
+     */
+    private fun buildBundle(
+        publishableKey: String?,
+        sdkAuthorization: String,
+        configuration: Bundle?,
+        customBackendUrl: String?,
+        customLogUrl: String?,
+        customParams: Map<String, Any>?,
+        theme: String?,
+        subscribedEvents: List<String>,
+        type: String? = "payment",
+        from: String? = null,
+        baseConfigurationBuilder: (Bundle.() -> Unit)? = null
     ): Bundle = Bundle().apply {
         putBundle("props", Bundle().apply {
             putString("type", type)
-            putString("from", from)
+            from?.let { putString("from", it) }
             putString("publishableKey", publishableKey ?: "")
-            putString("sdkAuthorization", sdkAuthorization?:"")
-            val configCopy =  configuration?.let { Bundle(it) }
+            putString("sdkAuthorization", sdkAuthorization)
+
+            val configCopy = configuration?.let { Bundle(it) }
             if (configCopy?.containsKey("hideConfirmButton") == false) {
                 configCopy.putBoolean("hideConfirmButton", true)
             }
             putBundle("configuration", configCopy)
-            val theme = configCopy?.getBundle("appearance")?.getString("theme")
-            putString("theme", theme)
-            customBackendUrl?.let { url -> putString("customBackendUrl", url) }
-            customLogUrl?.let { url -> putString("customLogUrl", url) }
+
+            val themeFromConfig = configCopy?.getBundle("appearance")?.getString("theme")
+            putString("theme", themeFromConfig ?: theme)
+
+            customBackendUrl?.let { putString("customBackendUrl", it) }
+            customLogUrl?.let { putString("customLogUrl", it) }
+
             if (subscribedEvents.isNotEmpty()) {
                 putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
             } else if (configCopy?.containsKey("subscribedEvents") == true) {
@@ -124,19 +175,92 @@ class LaunchOptions(
                     putSerializable("subscribedEvents", ArrayList(subscribedEventsArray))
                 }
             }
-            customParams?.let { params ->
-                putBundle(
-                    "customParams", toBundle(params)
-                )
-            }
+
+            customParams?.let { putBundle("customParams", toBundle(it)) }
             putBundle("hyperParams", getHyperParams())
+            putBundle("baseConfiguration", Bundle().apply {
+                baseConfigurationBuilder?.invoke(this)
+            })
         })
     }
 
-    fun getBundleWithHyperParams(readableMap: Map<*, *>, subscribedEvents: List<String> = emptyList()): Bundle = Bundle().apply {
-        putBundle("props", toBundle(readableMap).apply {
-            putBundle("hyperParams", getHyperParams())
-            putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
+    /**
+     * Creates a baseConfiguration bundle from HyperswitchBaseConfiguration containing all endpoint overrides.
+     */
+    private fun getBaseConfigurationBundle(config: HyperswitchBaseConfiguration?): Bundle = Bundle().apply {
+        config?.customConfig?.let { customConfig ->
+            customConfig.customEndpoint?.let { putString("customEndpoint", it) }
+            customConfig.overrideCustomBackendEndpoint?.let { putString("overrideCustomBackendEndpoint", it) }
+            customConfig.overrideCustomAssetsEndpoint?.let { putString("overrideCustomAssetsEndpoint", it) }
+            customConfig.overrideCustomSDKConfigEndpoint?.let { putString("overrideCustomSDKConfigEndpoint", it) }
+            customConfig.overrideCustomConfirmEndpoint?.let { putString("overrideCustomConfirmEndpoint", it) }
+            customConfig.overrideCustomAirborneEndpoint?.let { putString("overrideCustomAirborneEndpoint", it) }
+            customConfig.overrideCustomLoggingEndpoint?.let { putString("overrideCustomLoggingEndpoint", it) }
+        }
+        config?.publishableKey?.let { putString("publishableKey", it) }
+        config?.profileId?.let { putString("profileId", it) }
+        config?.environment?.let { putString("environment", it.name) }
+    }
+
+    /**
+     * Common function to build the base props bundle from HyperswitchBaseConfiguration.
+     * Delegates to buildBundle() to avoid duplication.
+     * Returns the inner props bundle directly (not wrapped in another Bundle).
+     */
+    private fun buildBasePropsBundle(
+        config: HyperswitchBaseConfiguration?,
+        configurationBundle: Bundle?,
+        sdkAuthorization: String?,
+        subscribedEvents: List<String>,
+        customParams: Map<String, Any>? = null
+    ): Bundle = requireNotNull(
+        buildBundle(
+            publishableKey = config?.publishableKey,
+            sdkAuthorization = sdkAuthorization ?: "",
+            configuration = configurationBundle,
+            customBackendUrl = config?.customConfig?.overrideCustomBackendEndpoint,
+            customLogUrl = config?.customConfig?.overrideCustomLoggingEndpoint,
+            customParams = customParams,
+            theme = configurationBundle?.getString("theme"),
+            subscribedEvents = subscribedEvents,
+            type = null,
+            from = null,
+            baseConfigurationBuilder = {
+                putAll(getBaseConfigurationBundle(config))
+            }
+        ).getBundle("props")
+    )
+
+    /**
+     * Creates a Bundle with all endpoint configuration passed through baseConfiguration.
+     * For presentPaymentSheet flow.
+     */
+    fun getBundle(
+        config: HyperswitchBaseConfiguration?,
+        sdkAuthorization: String,
+        configuration: PaymentSheet.Configuration? = null,
+        subscribedEvents: List<String> = emptyList()
+    ): Bundle = Bundle().apply {
+        putBundle("props", buildBasePropsBundle(config, configuration?.bundle, sdkAuthorization, subscribedEvents).apply {
+            putString("type", "payment")
+        })
+    }
+
+    /**
+     * Creates a Bundle for widget usage with all endpoint configuration passed through baseConfiguration.
+     */
+    fun getBundle(
+        config: HyperswitchBaseConfiguration?,
+        configuration: Bundle? = null,
+        customParams: Map<String, Any>? = null,
+        type: String? = "payment",
+        from: String? = "nativeWidget",
+        sdkAuthorization: String? = null,
+        subscribedEvents: List<String> = emptyList(),
+    ): Bundle = Bundle().apply {
+        putBundle("props", buildBasePropsBundle(config, configuration, sdkAuthorization, subscribedEvents, customParams).apply {
+            putString("type", type)
+            putString("from", from)
         })
     }
 
