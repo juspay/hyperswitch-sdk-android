@@ -219,6 +219,8 @@ class ClickToPayExample : AppCompatActivity() {
 //                }
                 startActivity(Intent(this@ClickToPayExample, ClickToPayExample2::class.java))
             } catch(e: Exception){
+                showError("${e.message}")
+                btnStart.isEnabled = true
                 e.printStackTrace()
             }
         }

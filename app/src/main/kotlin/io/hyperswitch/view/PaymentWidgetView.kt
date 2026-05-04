@@ -160,7 +160,10 @@ class PaymentWidgetView : FrameLayout {
                 c.configuration.bundle
             }
 
-            is PaymentWidgetConfig.ReactNative -> this.launchOptions.toBundle(c.configuration as Map<*, *>)
+            is PaymentWidgetConfig.ReactNative -> {
+                val configMap = io.hyperswitch.utils.ConversionUtils.readableMapToMap(c.configuration as com.facebook.react.bridge.ReadableMap)
+                this.launchOptions.toBundle(configMap)
+            }
             null -> null
         }
     }
@@ -217,7 +220,11 @@ class PaymentWidgetView : FrameLayout {
             customLogUrl = PaymentConfiguration.customLogUrl,
             customParams = PaymentConfiguration.customParams as Map<String, Any>?,
             type = widgetType,
-//            widgetId = this.widgetId,
+            from = when (widgetConfig) {
+                is PaymentWidgetConfig.Native -> "nativeWidget"
+                is PaymentWidgetConfig.ReactNative -> "rn"
+                null -> "nativeWidget"
+            },
             sdkAuthorization = this.sdkAuthorization,
             subscribedEvents = this.subscribedEvents,
         )
@@ -231,7 +238,10 @@ class PaymentWidgetView : FrameLayout {
         this.fragment?.updatePaymentIntentInit(callback)
     }
 
-    fun updatePaymentIntentComplete(sdkAuthorization: String, callback: (ElementUpdateIntentResult) -> Unit) {
+    fun updatePaymentIntentComplete(
+        sdkAuthorization: String,
+        callback: (ElementUpdateIntentResult) -> Unit
+    ) {
         this.fragment?.updatePaymentIntentComplete(sdkAuthorization, callback)
     }
 

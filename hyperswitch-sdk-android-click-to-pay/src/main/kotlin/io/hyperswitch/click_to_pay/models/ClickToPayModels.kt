@@ -53,7 +53,7 @@ enum class ClickToPayErrorType {
         fun from(value: String?): ClickToPayErrorType {
             return try {
                 ClickToPayErrorType.valueOf(value?.uppercase() ?: "ERROR")
-            } catch (_ : IllegalArgumentException) {
+            } catch (_: IllegalArgumentException) {
                 ERROR
             }
         }
@@ -65,14 +65,15 @@ enum class ClickToPayErrorType {
  */
 class ClickToPayException(
     message: String,
-    val errorType: ClickToPayErrorType
-) : Exception("ClickToPay: $errorType: $message"){
+    errorType: ClickToPayErrorType
+) : Exception(message) {
     constructor(
         message: String,
         errorType: String
     ) : this(message, ClickToPayErrorType.from(errorType))
-    val reason = message
+
     val type = errorType
+    val reason = message
 }
 
 /**
@@ -110,18 +111,32 @@ enum class StatusCode {
         fun from(value: String?): StatusCode {
             return try {
                 StatusCode.valueOf(value?.uppercase() ?: "NO_CARDS_PRESENT")
-            } catch (_ : IllegalArgumentException) {
+            } catch (_: IllegalArgumentException) {
                 NO_CARDS_PRESENT
             }
         }
     }
 }
 
+data class MaskedValidationChannel(
+    val email: String?,
+    val phoneNumber: String?
+)
+
+data class SupportedValidationChannel(
+    val validationChannelId: String? = null,
+    val identityProvider: String? = null,
+    val identityType: String? = null,
+    val maskedValidationChannel: String? = null
+)
+
 /**
  * Response containing the status of card retrieval
  */
 data class CardsStatusResponse(
-    val statusCode: StatusCode
+    val statusCode: StatusCode,
+    val maskedValidationChannel: MaskedValidationChannel? = null,
+    val supportedValidationChannels: List<SupportedValidationChannel>? = null
 )
 
 /**

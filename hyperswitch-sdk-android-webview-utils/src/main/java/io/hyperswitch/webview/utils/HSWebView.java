@@ -78,6 +78,10 @@ public class HSWebView extends WebView {
         mHSWebViewClient.setBasicAuthCredential(credential);
     }
 
+    public void setRequestInterceptor(Callback callback){
+        mHSWebViewClient.setRequestInterceptor(callback);
+    }
+
     public void setSendContentSizeChangeEvents(boolean sendContentSizeChangeEvents) {
         this.sendContentSizeChangeEvents = sendContentSizeChangeEvents;
     }

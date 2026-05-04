@@ -126,6 +126,9 @@ class Elements internal constructor(
                 .forEach { (e, r) -> put(e, r.exceptionOrNull() ?: IllegalStateException("Complete failed")) }
         }
 
+        if(sdkAuthorization.isNotEmpty()) {
+            paymentSession.updateSdkAuthorization(sdkAuthorization)
+        }
         return when {
             failed.isEmpty() -> ElementsUpdateResult.Success
             succeeded.isEmpty() -> ElementsUpdateResult.TotalFailure(

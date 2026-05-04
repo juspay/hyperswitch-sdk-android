@@ -5,6 +5,7 @@ import android.os.Bundle
 import io.hyperswitch.click_to_pay.ClickToPaySession
 import io.hyperswitch.click_to_pay.models.ClickToPayException
 import io.hyperswitch.logs.EventName
+import io.hyperswitch.logs.LogCategory
 import io.hyperswitch.logs.LogType
 
 /**
@@ -121,27 +122,27 @@ class AuthenticationSession(
         merchantId: String,
     ) {
         authenticationSessionLauncher.logger(
-            LogType.INFO,
-            EventName.AUTHENTICATION_SESSION,
-            "Authentication init"
-        )
-        authenticationSessionLauncher.logger(
             LogType.DEBUG,
             EventName.AUTHENTICATION_SESSION_INIT,
-            "webview init"
+            "",
+            LogCategory.USER_EVENT,
+            authenticationId
         )
         authenticationSessionLauncher.initialize()
-        authenticationSessionLauncher.logger(
-            LogType.DEBUG,
-            EventName.AUTHENTICATION_SESSION_RETURNED,
-            "webview init success"
-        )
-        return authenticationSessionLauncher.initAuthenticationSession(
+        val authSession =  authenticationSessionLauncher.initAuthenticationSession(
             clientSecret,
             profileId,
             authenticationId,
             merchantId
         )
+        authenticationSessionLauncher.logger(
+            LogType.DEBUG,
+            EventName.AUTHENTICATION_SESSION_RETURNED,
+            "",
+            LogCategory.USER_EVENT,
+            authenticationId
+        )
+        return authSession
     }
 
     /**

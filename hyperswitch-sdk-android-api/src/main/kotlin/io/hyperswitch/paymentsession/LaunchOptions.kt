@@ -98,24 +98,24 @@ class LaunchOptions(
         customLogUrl: String? = null,
         customParams: Map<String, Any>? = null,
         type: String? = "payment",
-        widgetId: String? = null,
+        from: String? = "nativeWidget",
         sdkAuthorization : String? = null,
         subscribedEvents: List<String> = emptyList(),
     ): Bundle = Bundle().apply {
         putBundle("props", Bundle().apply {
             putString("type", type)
-            putString("from", "rn")
+            putString("from", from)
             putString("publishableKey", publishableKey ?: "")
             putString("sdkAuthorization", sdkAuthorization?:"")
-            // Work on a copy so we don't mutate the caller's Bundle
-            val configCopy = configuration?.let { Bundle(it) }
+            val configCopy =  configuration?.let { Bundle(it) }
             if (configCopy?.containsKey("hideConfirmButton") == false) {
                 configCopy.putBoolean("hideConfirmButton", true)
             }
             putBundle("configuration", configCopy)
+            val theme = configCopy?.getBundle("appearance")?.getString("theme")
+            putString("theme", theme)
             customBackendUrl?.let { url -> putString("customBackendUrl", url) }
             customLogUrl?.let { url -> putString("customLogUrl", url) }
-
             if (subscribedEvents.isNotEmpty()) {
                 putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
             } else if (configCopy?.containsKey("subscribedEvents") == true) {
@@ -130,11 +130,8 @@ class LaunchOptions(
                 )
             }
             putBundle("hyperParams", getHyperParams())
-            putString("widgetId", widgetId)
         })
     }
-
-
 
     fun getBundleWithHyperParams(readableMap: Map<*, *>, subscribedEvents: List<String> = emptyList()): Bundle = Bundle().apply {
         putBundle("props", toBundle(readableMap).apply {
