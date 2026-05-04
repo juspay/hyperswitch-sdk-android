@@ -152,17 +152,6 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     }
 
     @ReactMethod
-    fun notifyCvcPaymentResult(rootTag: Double, result: String) {
-        findFragmentWithRootTag(rootTag.toInt(), { fragment ->
-            if (fragment == null) {
-                Log.w("HyperModule", "notifyCvcPaymentResult: no fragment found for rootTag=$rootTag")
-            } else {
-                fragment.notifyResult(CallbackType.CONFIRM_CVC_ACTION, result)
-            }
-        })
-    }
-
-    @ReactMethod
     fun onUpdateIntentEvent(rootTag: Double, type: String, result: String) {
         findFragmentWithRootTag(rootTag.toInt(), { fragment ->
             if (fragment == null) {
