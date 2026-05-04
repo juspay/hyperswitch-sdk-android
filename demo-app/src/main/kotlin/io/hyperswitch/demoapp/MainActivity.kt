@@ -88,7 +88,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
 
                         val publishableKey  = json.getString("publishableKey")
                         val sdkAuthorization = json.getString("sdkAuthorization")
-                        val profileId       = json.optString("profileId")
+                        val profileId       = json.optString("profileId").takeIf { it.isNotEmpty() }
 
                         hyperswitchInstance = Hyperswitch.init(
                             activity = this@MainActivity,

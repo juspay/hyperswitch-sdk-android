@@ -12,19 +12,21 @@ abstract class BasePaymentSessionLauncher(
     publishableKey: String?,
     customBackendUrl: String?,
     customLogUrl: String?,
-    customParams: Bundle?
+    customParams: Bundle?,
+    profileId: String? = null,
 ) : PaymentSessionLauncher {
 
     protected var sdkAuthorization: String? = null
 
     init {
         PaymentConfiguration.init(
-            activity.applicationContext,
-            publishableKey,
-            "",
-            customBackendUrl,
-            customLogUrl,
-            customParams
+            context = activity.applicationContext,
+            publishableKey = publishableKey,
+            stripeAccountId = "",
+            customBackendUrl = customBackendUrl,
+            customLogUrl = customLogUrl,
+            customParams = customParams,
+            profileId = profileId,
         )
     }
 

@@ -15,29 +15,14 @@ import io.hyperswitch.paymentsheet.PaymentResult
  * and retrieving customer saved payment methods.
  */
 class PaymentSession internal constructor(private val paymentSessionLauncher: PaymentSessionLauncher) {
-    constructor(activity: Activity, publishableKey: String) : this(
-        DefaultPaymentSessionLauncherLite(activity, publishableKey, null, null, null)
+    constructor(activity: Activity, publishableKey: String, profileId: String? = null) : this(
+        DefaultPaymentSessionLauncherLite(activity, publishableKey, null, null, null, profileId)
     )
 
     constructor(
-        activity: Activity, publishableKey: String, customBackendUrl: String
+        activity: Activity, publishableKey: String, customBackendUrl: String, profileId: String? = null
     ) : this(
-        DefaultPaymentSessionLauncherLite(activity, publishableKey, customBackendUrl, null, null)
-    )
-
-    constructor(
-        activity: Activity,
-        publishableKey: String,
-        customBackendUrl: String,
-        customLogUrl: String
-    ) : this(
-        DefaultPaymentSessionLauncherLite(
-            activity, publishableKey, customBackendUrl, customLogUrl, null
-        )
-    )
-
-    constructor(activity: Activity, publishableKey: String, customParams: Bundle) : this(
-        DefaultPaymentSessionLauncherLite(activity, publishableKey, null, null, customParams)
+        DefaultPaymentSessionLauncherLite(activity, publishableKey, customBackendUrl, null, null, profileId)
     )
 
     constructor(
@@ -45,10 +30,27 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
         publishableKey: String,
         customBackendUrl: String,
         customLogUrl: String,
-        customParams: Bundle
+        profileId: String? = null,
     ) : this(
         DefaultPaymentSessionLauncherLite(
-            activity, publishableKey, customBackendUrl, customLogUrl, customParams
+            activity, publishableKey, customBackendUrl, customLogUrl, null, profileId
+        )
+    )
+
+    constructor(activity: Activity, publishableKey: String, customParams: Bundle, profileId: String? = null) : this(
+        DefaultPaymentSessionLauncherLite(activity, publishableKey, null, null, customParams, profileId)
+    )
+
+    constructor(
+        activity: Activity,
+        publishableKey: String,
+        customBackendUrl: String,
+        customLogUrl: String,
+        customParams: Bundle,
+        profileId: String? = null,
+    ) : this(
+        DefaultPaymentSessionLauncherLite(
+            activity, publishableKey, customBackendUrl, customLogUrl, customParams, profileId
         )
     )
 
@@ -61,14 +63,16 @@ class PaymentSession internal constructor(private val paymentSessionLauncher: Pa
         private var customBackendUrl: String? = null
         private var customLogUrl: String? = null
         private var customParams: Bundle? = null
+        private var profileId: String? = null
 
         fun customBackendUrl(url: String) = apply { this.customBackendUrl = url }
         fun customLogUrl(url: String) = apply { this.customLogUrl = url }
         fun customParams(params: Bundle) = apply { this.customParams = params }
+        fun profileId(profileId: String?) = apply { this.profileId = profileId }
 
         fun build(): PaymentSession {
             val launcher = DefaultPaymentSessionLauncherLite(
-                activity, publishableKey, customBackendUrl, customLogUrl, customParams
+                activity, publishableKey, customBackendUrl, customLogUrl, customParams, profileId
             )
             return PaymentSession(launcher)
         }

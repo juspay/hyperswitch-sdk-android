@@ -18,13 +18,15 @@ class DefaultPaymentSessionLauncher(
     customBackendUrl: String?,
     customLogUrl: String?,
     customParams: Bundle?,
+    profileId: String? = null,
     private var paymentSessionReactLauncher: SDKInterface = PaymentSessionReactLauncher(activity)
 ) : BasePaymentSessionLauncher(
     activity,
     publishableKey,
     customBackendUrl,
     customLogUrl,
-    customParams
+    customParams,
+    profileId,
 ) {
 
     init {

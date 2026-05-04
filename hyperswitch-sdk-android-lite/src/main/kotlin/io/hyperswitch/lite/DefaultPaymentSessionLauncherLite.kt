@@ -16,13 +16,15 @@ open class DefaultPaymentSessionLauncherLite(
     customBackendUrl: String?,
     customLogUrl: String?,
     customParams: Bundle?,
+    profileId: String? = null,
     private val webViewUtils: SDKInterface = WebViewUtils(activity)
 ) : BasePaymentSessionLauncher(
     activity,
     publishableKey,
     customBackendUrl,
     customLogUrl,
-    customParams
+    customParams,
+    profileId,
 ) {
 
     override fun presentPaymentSheet(
