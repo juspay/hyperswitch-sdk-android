@@ -40,7 +40,6 @@ enum class EventName {
 enum class CallbackType {
     PAYMENT_RESULT,
     CONFIRM_ACTION,
-    CONFIRM_CVC_ACTION,
     UPDATE_INTENT_INIT,
     UPDATE_INTENT_COMPLETE
 }
@@ -168,19 +167,11 @@ class HyperFragment : ReactFragment() {
                 CallbackType.PAYMENT_RESULT -> {
                     val confirmCallback =
                         callbacks.remove(CallbackType.CONFIRM_ACTION) as? HyperCallback.Payment
-                    val confirmCvcCallback =
-                        callbacks.remove(CallbackType.CONFIRM_CVC_ACTION) as? HyperCallback.Payment
 
                     when {
                         confirmCallback != null -> {
                             val parsed = parseResult(result)
                             confirmCallback.fn.invoke(parsed)
-                            onExit?.invoke()
-                        }
-
-                        confirmCvcCallback != null -> {
-                            val parsed = parseResult(result)
-                            confirmCvcCallback.fn.invoke(parsed)
                             onExit?.invoke()
                         }
 
@@ -203,13 +194,6 @@ class HyperFragment : ReactFragment() {
                 CallbackType.CONFIRM_ACTION -> {
                     val parsed = parseResult(result)
                     (callbacks.remove(CallbackType.CONFIRM_ACTION) as? HyperCallback.Payment)?.fn?.invoke(
-                        parsed
-                    )
-                }
-
-                CallbackType.CONFIRM_CVC_ACTION -> {
-                    val parsed = parseResult(result)
-                    (callbacks.remove(CallbackType.CONFIRM_CVC_ACTION) as? HyperCallback.Payment)?.fn?.invoke(
                         parsed
                     )
                 }
@@ -278,18 +262,16 @@ class HyperFragment : ReactFragment() {
         callback: ((PaymentResult) -> Unit)
     ) {
         if (ExitHeadlessCallBackManager.getCallback() != null) {
-            val paymentResult = PaymentResult.Failed(
-                Throwable("CVC payment already in progress").apply {
+            callback.invoke(
+                PaymentResult.Failed(Throwable("CVC payment already in progress").apply {
                     initCause(Throwable("ALREADY_IN_PROGRESS"))
-                }
+                })
             )
-            callback.invoke(paymentResult)
             return
         }
         val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
         if (rootTag == -1) {
-            val paymentResult = PaymentResult.Failed(Throwable("cannot find the view"))
-            callback.invoke(paymentResult)
+            callback.invoke(PaymentResult.Failed(Throwable("cannot find the view")))
             return
         }
 
