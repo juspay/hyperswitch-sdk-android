@@ -65,7 +65,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                     try {
                         val json = JSONObject(value ?: return)
                         val publishableKey  = json.getString("publishableKey")
-                        val profileId       = json.optString("profileId")
+                        val profileId       = json.optString("profileId").takeIf { it.isNotEmpty() }
                         sdkAuthorization    = json.getString("sdkAuthorization")
                         paymentId           = json.optString("paymentId")
 
@@ -108,7 +108,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
 
     // ── Initialisation ─────────────────────────────────────────────────────────────────────────
 
-    private fun initialiseWidgets(publishableKey: String, profileId: String) {
+    private fun initialiseWidgets(publishableKey: String, profileId: String?) {
         hyperswitchInstance = Hyperswitch.init(
             activity = this,
             config = HyperswitchConfiguration(

@@ -107,11 +107,11 @@ class PaymentWidgetView : FrameLayout {
     private var widgetType: String? = null
 
     fun initWidget(publishableKey: String) {
-        initWidget(publishableKey, this.profileId ?: "")
+        initWidget(publishableKey, this.profileId)
     }
 
     fun initWidget(
-        publishableKey: String, profileId: String
+        publishableKey: String, profileId: String?
     ) {
         initWidget(
             mContext.applicationContext as Application,
@@ -125,7 +125,7 @@ class PaymentWidgetView : FrameLayout {
         application: Application,
         type: String,
         publishableKey: String,
-        profileId: String,
+        profileId: String?,
     ) {
         this.widgetType = type
         this.publishableKey = publishableKey
