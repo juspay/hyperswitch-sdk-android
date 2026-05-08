@@ -24,27 +24,20 @@ import io.hyperswitch.paymentsession.ExitHeadlessCallBackManager
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.redirect.RedirectEvent
 import io.hyperswitch.utils.ConversionUtils
-import org.greenrobot.eventbus.EventBus
-import org.greenrobot.eventbus.Subscribe
-import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
 import kotlin.text.ifEmpty
-
+import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
+import org.json.JSONObject
 
 enum class EventName {
-    CONFIRM_PAYMENT_ACTION,
-    CONFIRM_CVC_PAYMENT
+    CONFIRM_PAYMENT_ACTION, CONFIRM_CVC_PAYMENT
 }
 
 enum class CallbackType {
-    PAYMENT_RESULT,
-    CONFIRM_ACTION,
-    CONFIRM_CVC_ACTION,
-    UPDATE_INTENT_INIT,
-    UPDATE_INTENT_COMPLETE
+    PAYMENT_RESULT, CONFIRM_ACTION, CONFIRM_CVC_ACTION, UPDATE_INTENT_INIT, UPDATE_INTENT_COMPLETE
 }
-
 
 sealed class HyperCallback {
     class Payment(val fn: ((PaymentResult) -> Unit)) : HyperCallback()
@@ -55,8 +48,8 @@ sealed class HyperCallback {
 class HyperFragment : ReactFragment() {
 
     /**
-     * Instance-level registry. No companion object, no static map.
-     * Keyed by [CallbackType] so each slot is independently replaceable.
+     * Instance-level registry. No companion object, no static map. Keyed by [CallbackType] so each
+     * slot is independently replaceable.
      */
     private val callbacks = ConcurrentHashMap<CallbackType, HyperCallback>()
 
@@ -84,25 +77,22 @@ class HyperFragment : ReactFragment() {
             return
         }
         callbacks[CallbackType.UPDATE_INTENT_INIT] = HyperCallback.UpdateIntentInit(callback)
-        reactNativeHost.reactInstanceManager.currentReactContext
-            ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            ?.emit("updateIntentInit", Arguments.createMap().apply {
-                putInt("rootTag", rootTag)
-            })
+        reactNativeHost.reactInstanceManager.currentReactContext?.getJSModule(
+            DeviceEventManagerModule.RCTDeviceEventEmitter::class.java
+        )?.emit(
+            "updateIntentInit", Arguments.createMap().apply { putInt("rootTag", rootTag) })
     }
 
     fun updatePaymentIntentComplete(
-        sdkAuthorization: String,
-        callback: ((ElementUpdateIntentResult) -> Unit)
+        sdkAuthorization: String, callback: ((ElementUpdateIntentResult) -> Unit)
     ) {
         val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
         if (rootTag == -1) {
             callback.invoke(
                 ElementUpdateIntentResult.Failure(
-                    Throwable("React context not ready").apply {
-                        initCause(Throwable("REACT_CONTEXT_NOT_READY"))
-                    }
-                )
+                    Throwable("Sdk is not ready").apply {
+                        initCause(Throwable("SDK_NOT_READY"))
+                    })
             )
             return
         }
@@ -111,16 +101,16 @@ class HyperFragment : ReactFragment() {
                 ElementUpdateIntentResult.Failure(
                     Throwable("Update intent complete already in progress").apply {
                         initCause(Throwable("ALREADY_IN_PROGRESS"))
-                    }
-                )
+                    })
             )
             return
         }
         callbacks[CallbackType.UPDATE_INTENT_COMPLETE] =
             HyperCallback.UpdateIntentComplete(callback)
-        reactNativeHost.reactInstanceManager.currentReactContext
-            ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            ?.emit("updateIntentComplete", Arguments.createMap().apply {
+        reactNativeHost.reactInstanceManager.currentReactContext?.getJSModule(
+            DeviceEventManagerModule.RCTDeviceEventEmitter::class.java
+        )?.emit(
+            "updateIntentComplete", Arguments.createMap().apply {
                 putString("sdkAuthorization", sdkAuthorization)
                 putInt("rootTag", rootTag)
             })
@@ -128,39 +118,34 @@ class HyperFragment : ReactFragment() {
 
     fun confirmPayment(callback: ((PaymentResult) -> Unit)) {
         if (callbacks.containsKey(CallbackType.CONFIRM_ACTION)) {
-            callback.invoke(
-                PaymentResult.Failed(Throwable("Payment already in progress"))
-            )
+            callback.invoke(PaymentResult.Failed(Throwable("Payment already in progress")))
             return
         }
         val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
         if (rootTag == -1) {
-            callback.invoke(
-                PaymentResult.Failed(Throwable("React Context not ready"))
-            )
+            callback.invoke(PaymentResult.Failed(Throwable("Sdk is not ready")))
             return
         }
         if (callbacks[CallbackType.UPDATE_INTENT_COMPLETE] != null) {
-            callback.invoke(
-                PaymentResult.Failed(Throwable("Payment Intent update is in progress"))
-            )
+            callback.invoke(PaymentResult.Failed(Throwable("Payment Intent update is in progress")))
             return
         }
         callbacks[CallbackType.CONFIRM_ACTION] = HyperCallback.Payment(callback)
-        reactNativeHost.reactInstanceManager.currentReactContext
-            ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            ?.emit("triggerWidgetAction", Arguments.createMap().apply {
+        reactNativeHost.reactInstanceManager.currentReactContext?.getJSModule(
+            DeviceEventManagerModule.RCTDeviceEventEmitter::class.java
+        )?.emit(
+            "triggerWidgetAction", Arguments.createMap().apply {
                 putString("actionType", EventName.CONFIRM_PAYMENT_ACTION.name)
                 putInt("rootTag", rootTag)
             })
     }
 
     /**
-     * Called directly on this instance by the native module after finding the
-     * fragment via [UIManagerModule] + [androidx.fragment.app.FragmentManager.findFragment].
+     * Called directly on this instance by the native module after finding the fragment via
+     * [UIManagerModule] + [androidx.fragment.app.FragmentManager.findFragment].
      *
-     * PAYMENT_RESULT  → fires CONFIRM_ACTION if present, otherwise PAYMENT_RESULT.
-     * CONFIRM_ACTION  → fires and removes CONFIRM_ACTION (one-shot resolve).
+     * PAYMENT_RESULT → fires CONFIRM_ACTION if present, otherwise PAYMENT_RESULT. CONFIRM_ACTION →
+     * fires and removes CONFIRM_ACTION (one-shot resolve).
      */
     fun notifyResult(type: CallbackType, result: String) {
         try {
@@ -186,19 +171,19 @@ class HyperFragment : ReactFragment() {
 
                         else -> {
                             val parsed = parseResult(result)
-                            (callbacks.remove(CallbackType.PAYMENT_RESULT) as? HyperCallback.Payment)
-                                ?.fn?.invoke(parsed)
+                            (callbacks.remove(CallbackType.PAYMENT_RESULT) as? HyperCallback.Payment)?.fn?.invoke(
+                                parsed
+                            )
                             onExit?.invoke()
                         }
                     }
                 }
 
-                CallbackType.UPDATE_INTENT_INIT ->
-                    (callbacks.remove(CallbackType.UPDATE_INTENT_INIT) as? HyperCallback.UpdateIntentInit)?.fn?.invoke()
-                CallbackType.UPDATE_INTENT_COMPLETE ->
-                    (callbacks.remove(CallbackType.UPDATE_INTENT_COMPLETE) as? HyperCallback.UpdateIntentComplete)?.fn?.invoke(
-                        parseElementUpdateResult(result)
-                    )
+                CallbackType.UPDATE_INTENT_INIT -> (callbacks.remove(CallbackType.UPDATE_INTENT_INIT) as? HyperCallback.UpdateIntentInit)?.fn?.invoke()
+
+                CallbackType.UPDATE_INTENT_COMPLETE -> (callbacks.remove(CallbackType.UPDATE_INTENT_COMPLETE) as? HyperCallback.UpdateIntentComplete)?.fn?.invoke(
+                    parseElementUpdateResult(result)
+                )
 
                 CallbackType.CONFIRM_ACTION -> {
                     val parsed = parseResult(result)
@@ -217,7 +202,7 @@ class HyperFragment : ReactFragment() {
                 else -> Log.i("HyperFragment", "notifyResult: unhandled type $type")
             }
         } catch (e: Exception) {
-            Log.e("HyperFragment", "Error in notifyResult", e)
+            Log.e("HyperFragment", "Error in notifyResult ${e.message}")
         }
     }
 
@@ -236,7 +221,6 @@ class HyperFragment : ReactFragment() {
         }
     }
 
-
     private fun parseResult(data: String): PaymentResult {
         val jsonObject = JSONObject(data)
         val result = when (val status = jsonObject.getString("status")) {
@@ -247,14 +231,13 @@ class HyperFragment : ReactFragment() {
                 throwable.initCause(Throwable(jsonObject.getString("code")))
                 PaymentResult.Failed(throwable)
             }
+
             else -> PaymentResult.Completed(status)
         }
         return result
     }
 
-    /**
-     * Called directly on this instance for streaming widget lifecycle events.
-     */
+    /** Called directly on this instance for streaming widget lifecycle events. */
     fun notifyEvent(eventType: String, result: ReadableMap) {
         try {
             val payload = ConversionUtils.readableMapToMap(result)
@@ -266,10 +249,9 @@ class HyperFragment : ReactFragment() {
                 HyperEventEmitter.emitPaymentEvent(eventType, payload)
             }
         } catch (e: Exception) {
-            Log.e("HyperFragment", "Error in notifyEvent", e)
+            Log.e("HyperFragment", "Error in notifyEvent ${e.message}")
         }
     }
-
 
     fun confirmCvcPayment(
         sdkAuthorization: String,
@@ -281,8 +263,7 @@ class HyperFragment : ReactFragment() {
             val paymentResult = PaymentResult.Failed(
                 Throwable("CVC payment already in progress").apply {
                     initCause(Throwable("ALREADY_IN_PROGRESS"))
-                }
-            )
+                })
             callback.invoke(paymentResult)
             return
         }
@@ -301,19 +282,15 @@ class HyperFragment : ReactFragment() {
         map.putString("sdkAuthorization", sdkAuthorization)
         map.putString("paymentToken", paymentToken)
         billing?.let { map.putString("billing", it) }
-        reactNativeHost.reactInstanceManager.currentReactContext
-            ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            ?.emit("triggerWidgetAction", map)
+        reactNativeHost.reactInstanceManager.currentReactContext?.getJSModule(
+            DeviceEventManagerModule.RCTDeviceEventEmitter::class.java
+        )?.emit("triggerWidgetAction", map)
     }
-
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun createPaymentResult(
-        status: String,
-        message: String,
-        error: String? = null,
-        type: String? = null
+        status: String, message: String, error: String? = null, type: String? = null
     ): ReadableMap = Arguments.createMap().apply {
         putString("status", status)
         putString("message", message)
@@ -350,9 +327,19 @@ class HyperFragment : ReactFragment() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        try {
+            super.onDestroy()
+        } catch (_: Exception) {
+        }
         unRegisterEventBus()
         callbacks.clear()
+    }
+
+    override fun onPause() {
+        try {
+            super.onPause()
+        } catch (_: Exception) {
+        }
     }
 
     // ── Scroll fix ────────────────────────────────────────────────────────────
@@ -364,11 +351,13 @@ class HyperFragment : ReactFragment() {
             scrollView.isNestedScrollingEnabled = true
             scrollView.setOnTouchListener { v, event ->
                 when (event.action) {
-                    MotionEvent.ACTION_DOWN,
-                    MotionEvent.ACTION_MOVE -> v.parent?.requestDisallowInterceptTouchEvent(true)
+                    MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> v.parent?.requestDisallowInterceptTouchEvent(
+                        true
+                    )
 
-                    MotionEvent.ACTION_UP,
-                    MotionEvent.ACTION_CANCEL -> v.parent?.requestDisallowInterceptTouchEvent(false)
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> v.parent?.requestDisallowInterceptTouchEvent(
+                        false
+                    )
                 }
                 false
             }
@@ -394,7 +383,6 @@ class HyperFragment : ReactFragment() {
     private fun unRegisterEventBus() {
         if (EventBus.getDefault().isRegistered(this)) EventBus.getDefault().unregister(this)
     }
-
 
     @Subscribe
     fun onEvent(event: RedirectEvent) {

@@ -20,6 +20,7 @@ import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogCategory
 import io.hyperswitch.logs.LogUtils
 import io.hyperswitch.logs.SDKEnvironment
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * ReactNativeController
@@ -35,10 +36,12 @@ import io.hyperswitch.logs.SDKEnvironment
  */
 object ReactNativeController {
 
+    @Volatile
     private var reactNativeHost: ReactNativeHost? = null
+    @Volatile
     private var reactHost: ReactHost? = null
     @Volatile
-    private var isInitialized = false
+    private var isInitialized = AtomicBoolean(false)
 
     /**
      * Resolves the JavaScript bundle path using Hyper Airborne OTA if available.
@@ -124,7 +127,7 @@ object ReactNativeController {
      * @return true if initialized, false otherwise
      */
     fun getIsInitialized(): Boolean {
-        return isInitialized
+        return isInitialized.get()
     }
 
     /**
@@ -165,7 +168,7 @@ object ReactNativeController {
     fun initialize(application: Application) {
         try {
             synchronized(this) {
-                if (isInitialized) return
+                if (isInitialized.get()) return
 
                 Thread.setDefaultUncaughtExceptionHandler(
                     CrashHandler(application, BuildConfig.VERSION_NAME)
@@ -185,7 +188,7 @@ object ReactNativeController {
                     reactNativeHost!!
                 )
 
-                isInitialized = true
+                isInitialized.set(true)
             }
         } catch (e: Exception) {
             HyperLogManager.addLog(

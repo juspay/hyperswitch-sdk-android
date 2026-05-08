@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.Context
 import android.os.Bundle
 import android.util.AttributeSet
-import android.util.Log
 import android.view.Choreographer
 import android.view.MotionEvent
 import android.view.View
@@ -45,12 +44,6 @@ sealed interface PaymentWidgetConfig {
 fun interface PaymentResultListener {
     fun onPaymentResult(result: PaymentResult)
 }
-
-/**
- * Extension function to convert PaymentSheet.Configuration to Map<String, Any>.
- * TODO: Fill in the actual mapping implementation.
- */
-fun PaymentSheet.Configuration.toMap(): Map<String, Any> = emptyMap()
 
 class PaymentWidgetView : FrameLayout {
     private var widgetConfig: PaymentWidgetConfig? = null
@@ -168,9 +161,11 @@ class PaymentWidgetView : FrameLayout {
             }
 
             is PaymentWidgetConfig.ReactNative -> {
-                val configMap = io.hyperswitch.utils.ConversionUtils.readableMapToMap(c.configuration as com.facebook.react.bridge.ReadableMap)
+                val configMap =
+                    io.hyperswitch.utils.ConversionUtils.readableMapToMap(c.configuration as com.facebook.react.bridge.ReadableMap)
                 this.launchOptions.toBundle(configMap)
             }
+
             null -> null
         }
     }
@@ -241,14 +236,24 @@ class PaymentWidgetView : FrameLayout {
 
 
     fun updatePaymentIntentInit(callback: () -> Unit) {
-        this.fragment?.updatePaymentIntentInit(callback)
+        if (isEligibleForUpdateIntent()) {
+            this.fragment?.updatePaymentIntentInit(callback)
+        } else {
+            callback()
+        }
     }
+
+
 
     fun updatePaymentIntentComplete(
         sdkAuthorization: String,
         callback: (ElementUpdateIntentResult) -> Unit
     ) {
-        this.fragment?.updatePaymentIntentComplete(sdkAuthorization, callback)
+        if (isEligibleForUpdateIntent()) {
+            this.fragment?.updatePaymentIntentComplete(sdkAuthorization, callback)
+        } else {
+            callback(ElementUpdateIntentResult.Success)
+        }
     }
 
     fun confirmCvcPayment(
@@ -262,9 +267,6 @@ class PaymentWidgetView : FrameLayout {
 
     fun setSdkAuthorization(sdkAuthorization: String) {
         this.sdkAuthorization = sdkAuthorization
-        // Auto-show widget if already attached to window.
-        // Use post() to guarantee execution on the main thread — callers may
-        // invoke this from a background thread (e.g. Java integration).
         if (isAttachedToWindow && !isSdkAuthorizationEmpty()) {
             post { showWidgetInternal() }
         }
@@ -400,5 +402,25 @@ class PaymentWidgetView : FrameLayout {
             }
         }
         return super.dispatchTouchEvent(ev)
+    }
+    private fun isEligibleForUpdateIntent(): Boolean {
+        when (widgetType) {
+            "payment",
+            "tabSheet",
+            "buttonSheet",
+            "widgetPaymentSheet",
+            "widgetTabSheet",
+            "widgetButtonSheet",
+            "hostedCheckout",
+            "google_pay",
+            "paypal",
+            "card",
+            "paymentMethodsManagement",
+            "headless",
+            "expressCheckout" -> return true
+
+            "cvcWidget" -> return false
+            else -> return false
+        }
     }
 }

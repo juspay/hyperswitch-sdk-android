@@ -204,7 +204,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                     ?: return@launch
                 when (result) {
                     is ElementsUpdateResult.Success ->
-                        Log.i(TAG, "Intent updated — all elements ready")
+                        setStatus("Update Success")
 
                     is ElementsUpdateResult.TotalFailure ->
                         setStatus("Update failed: ${result.cause.message}")
