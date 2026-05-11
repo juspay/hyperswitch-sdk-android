@@ -21,8 +21,6 @@ abstract class BasePaymentSessionLauncher(
             activity.applicationContext,
             config?.publishableKey,
             "",
-            config?.customConfig?.overrideCustomBackendEndpoint,
-            config?.customConfig?.overrideCustomLoggingEndpoint,
             customParams
         )
     }

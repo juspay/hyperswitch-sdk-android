@@ -4,129 +4,57 @@ import android.app.Activity
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.view.WindowInsets
 import android.webkit.WebSettings
 import androidx.annotation.RequiresApi
-import io.hyperswitch.PaymentConfiguration
+import io.hyperswitch.model.CustomEndpointConfiguration
 import io.hyperswitch.model.HyperswitchBaseConfiguration
+import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import org.json.JSONObject
 
 class LaunchOptions(
-    private val context: Context? = null,
-    private val sdkVersion: String
+    private val context: Context? = null, private val sdkVersion: String
 ) {
-
-    private fun getHyperParams(): Bundle =
-        Bundle().apply {
-            putString("appId", context?.packageName)
-            putString("country", context?.resources?.configuration?.locales?.get(0)?.country)
-            putString("user-agent", getUserAgent(context))
-            putDouble("launchTime", getCurrentTime())
-            putString("sdkVersion", sdkVersion)
-            putString("device_model", Build.MODEL)
-            putString("os_type", "android")
-            putString("os_version", Build.VERSION.RELEASE)
-            putString("deviceBrand", Build.BRAND)
-            val edgeInsets = getBottomInset(context)
-            if(edgeInsets!=null) {
-                putFloat("topInset", edgeInsets.top)
-                putFloat("leftInset", edgeInsets.left)
-                putFloat("rightInset", edgeInsets.right)
-                putFloat("bottomInset", edgeInsets.bottom)
-            }
+    private fun buildHyperParamsMap(): Map<String, Any?> = buildMap {
+        put("appId", context?.packageName)
+        put("country", context?.resources?.configuration?.locales?.get(0)?.country)
+        put("user-agent", getUserAgent(context))
+        put("launchTime", getCurrentTime())
+        put("sdkVersion", sdkVersion)
+        put("device_model", Build.MODEL)
+        put("os_type", "android")
+        put("os_version", Build.VERSION.RELEASE)
+        put("deviceBrand", Build.BRAND)
+        getBottomInset(context)?.let {
+            put("topInset", it.top)
+            put("leftInset", it.left)
+            put("rightInset", it.right)
+            put("bottomInset", it.bottom)
         }
-
-    private fun getHyperParamsMap(map: Map<*, *>): Map<*, *> =
-        (map["hyperParams"] as? Map<*, *> ?: mutableMapOf<String, Any?>()).apply {
-            plus(Pair("appId", context?.packageName))
-            plus(Pair("country", context?.resources?.configuration?.locales?.get(0)?.country))
-            plus(Pair("user-agent", getUserAgent(context)))
-            plus(Pair("launchTime", getCurrentTime()))
-            plus(Pair("sdkVersion", sdkVersion))
-            plus(Pair("device_model", Build.MODEL))
-            plus(Pair("os_type", "android"))
-            plus(Pair("os_version", Build.VERSION.RELEASE))
-            plus(Pair("deviceBrand",Build.BRAND))
-            val edgeInsets = getBottomInset(context)
-            if(edgeInsets!=null) {
-                plus(Pair("topInset", edgeInsets.top))
-                plus(Pair("leftInset", edgeInsets.left))
-                plus(Pair("rightInset", edgeInsets.right))
-                plus(Pair("bottomInset", edgeInsets.bottom))
-            }
-        }
-
-    fun getBundle(
-        sdkAuthorization: String,
-        configuration: PaymentSheet.Configuration? = null,
-        subscribedEvents: List<String> = emptyList()
-    ): Bundle =
-        context?.let { getBundle(it, sdkAuthorization, configuration, subscribedEvents) } ?: Bundle()
-
-    fun getBundle(
-        context: Context,
-        sdkAuthorization: String,
-        configuration: PaymentSheet.Configuration? = null,
-        subscribedEvents: List<String> = emptyList()
-    ): Bundle {
-        val pubKey = PaymentConfiguration.getInstance(context).publishableKey
-        val backendUrl = PaymentConfiguration.getInstance(context).customBackendUrl
-        val logUrl = PaymentConfiguration.getInstance(context).customLogUrl
-        val customParams = PaymentConfiguration.getInstance(context).customParams?.let {
-            fromBundle(it) as Map<String, Any>
-        }
-        val theme = configuration?.appearance?.theme?.name
-
-        return buildBundle(
-            publishableKey = pubKey,
-            sdkAuthorization = sdkAuthorization,
-            configuration = configuration?.bundle,
-            customBackendUrl = backendUrl,
-            customLogUrl = logUrl,
-            customParams = customParams,
-            theme = theme,
-            subscribedEvents = subscribedEvents,
-            type = "payment",
-            baseConfigurationBuilder = {
-                putString("publishableKey", pubKey)
-                backendUrl?.let { putString("overrideCustomBackendEndpoint", it) }
-                logUrl?.let { putString("overrideCustomLoggingEndpoint", it) }
-            }
-        )
     }
 
-    fun getBundle(
-        publishableKey: String? = null,
-        configuration: Bundle? = null,
-        customBackendUrl: String? = null,
-        customLogUrl: String? = null,
-        customParams: Map<String, Any>? = null,
-        type: String? = "payment",
-        from: String? = "nativeWidget",
-        sdkAuthorization : String? = null,
-        subscribedEvents: List<String> = emptyList(),
-    ): Bundle = buildBundle(
-        publishableKey = publishableKey,
-        sdkAuthorization = sdkAuthorization ?: "",
-        configuration = configuration,
-        customBackendUrl = customBackendUrl,
-        customLogUrl = customLogUrl,
-        customParams = customParams,
-        theme = null,
-        subscribedEvents = subscribedEvents,
-        type = type,
-        from = from,
-        baseConfigurationBuilder = {
-            putString("publishableKey", publishableKey ?: "")
-            customBackendUrl?.let { putString("overrideCustomBackendEndpoint", it) }
-            customLogUrl?.let { putString("overrideCustomLoggingEndpoint", it) }
+    private fun getHyperParams(): Bundle = Bundle().apply {
+        buildHyperParamsMap().forEach { (key, value) ->
+            when (value) {
+                is String -> putString(key, value)
+                is Double -> putDouble(key, value)
+                is Float -> putFloat(key, value)
+            }
         }
-    )
+    }
 
-    fun getBundleWithHyperParams(readableMap: Map<*, *>, subscribedEvents: List<String> = emptyList()): Bundle = Bundle().apply {
+    private fun getHyperParamsMap(map: Map<*, *>): Map<String, Any?> {
+        val base =
+            (map["hyperParams"] as? Map<*, *>)?.entries?.associate { it.key.toString() to it.value }
+                ?: emptyMap()
+        return base + buildHyperParamsMap()
+    }
+
+    fun getBundleWithHyperParams(
+        readableMap: Map<*, *>, subscribedEvents: List<String> = emptyList()
+    ): Bundle = Bundle().apply {
         putBundle("props", toBundle(readableMap).apply {
             putBundle("hyperParams", getHyperParams())
             putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
@@ -140,10 +68,7 @@ class LaunchOptions(
         publishableKey: String?,
         sdkAuthorization: String,
         configuration: Bundle?,
-        customBackendUrl: String?,
-        customLogUrl: String?,
         customParams: Map<String, Any>?,
-        theme: String?,
         subscribedEvents: List<String>,
         type: String? = "payment",
         from: String? = null,
@@ -162,11 +87,6 @@ class LaunchOptions(
             putBundle("configuration", configCopy)
 
             val themeFromConfig = configCopy?.getBundle("appearance")?.getString("theme")
-            putString("theme", themeFromConfig ?: theme)
-
-            customBackendUrl?.let { putString("customBackendUrl", it) }
-            customLogUrl?.let { putString("customLogUrl", it) }
-
             if (subscribedEvents.isNotEmpty()) {
                 putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
             } else if (configCopy?.containsKey("subscribedEvents") == true) {
@@ -187,20 +107,54 @@ class LaunchOptions(
     /**
      * Creates a baseConfiguration bundle from HyperswitchBaseConfiguration containing all endpoint overrides.
      */
-    private fun getBaseConfigurationBundle(config: HyperswitchBaseConfiguration?): Bundle = Bundle().apply {
-        config?.customConfig?.let { customConfig ->
-            customConfig.customEndpoint?.let { putString("customEndpoint", it) }
-            customConfig.overrideCustomBackendEndpoint?.let { putString("overrideCustomBackendEndpoint", it) }
-            customConfig.overrideCustomAssetsEndpoint?.let { putString("overrideCustomAssetsEndpoint", it) }
-            customConfig.overrideCustomSDKConfigEndpoint?.let { putString("overrideCustomSDKConfigEndpoint", it) }
-            customConfig.overrideCustomConfirmEndpoint?.let { putString("overrideCustomConfirmEndpoint", it) }
-            customConfig.overrideCustomAirborneEndpoint?.let { putString("overrideCustomAirborneEndpoint", it) }
-            customConfig.overrideCustomLoggingEndpoint?.let { putString("overrideCustomLoggingEndpoint", it) }
+    private fun getBaseConfigurationBundle(config: HyperswitchBaseConfiguration?): Bundle =
+        Bundle().apply {
+            config?.publishableKey?.let { putString("publishableKey", it) }
+            config?.profileId?.let { putString("profileId", it) }
+            config?.environment?.let { putString("environment", it.name) }
+            config?.customConfig?.let { customConfig ->
+                when (customConfig) {
+                    is CustomEndpointConfiguration.CustomEndpoint -> putString(
+                        "customEndpoint", customConfig.url
+                    )
+
+                    is CustomEndpointConfiguration.OverrideEndpoints -> {
+                        putBundle("overrideEndpoints", Bundle().apply {
+                            customConfig.backendEndpoint?.let {
+                                putString(
+                                    "backendEndpoint", it
+                                )
+                            }
+                            customConfig.assetsEndpoint?.let {
+                                putString(
+                                    "assetsEndpoint", it
+                                )
+                            }
+                            customConfig.sdkConfigEndpoint?.let {
+                                putString(
+                                    "sdkConfigEndpoint", it
+                                )
+                            }
+                            customConfig.confirmEndpoint?.let {
+                                putString(
+                                    "confirmEndpoint", it
+                                )
+                            }
+                            customConfig.airborneEndpoint?.let {
+                                putString(
+                                    "airborneEndpoint", it
+                                )
+                            }
+                            customConfig.loggingEndpoint?.let {
+                                putString(
+                                    "loggingEndpoint", it
+                                )
+                            }
+                        })
+                    }
+                }
+            }
         }
-        config?.publishableKey?.let { putString("publishableKey", it) }
-        config?.profileId?.let { putString("profileId", it) }
-        config?.environment?.let { putString("environment", it.name) }
-    }
 
     /**
      * Common function to build the base props bundle from HyperswitchBaseConfiguration.
@@ -218,17 +172,13 @@ class LaunchOptions(
             publishableKey = config?.publishableKey,
             sdkAuthorization = sdkAuthorization ?: "",
             configuration = configurationBundle,
-            customBackendUrl = config?.customConfig?.overrideCustomBackendEndpoint,
-            customLogUrl = config?.customConfig?.overrideCustomLoggingEndpoint,
             customParams = customParams,
-            theme = configurationBundle?.getString("theme"),
             subscribedEvents = subscribedEvents,
             type = null,
             from = null,
             baseConfigurationBuilder = {
                 putAll(getBaseConfigurationBundle(config))
-            }
-        ).getBundle("props")
+            }).getBundle("props")
     )
 
     /**
@@ -241,9 +191,12 @@ class LaunchOptions(
         configuration: PaymentSheet.Configuration? = null,
         subscribedEvents: List<String> = emptyList()
     ): Bundle = Bundle().apply {
-        putBundle("props", buildBasePropsBundle(config, configuration?.bundle, sdkAuthorization, subscribedEvents).apply {
-            putString("type", "payment")
-        })
+        putBundle(
+            "props", buildBasePropsBundle(
+                config, configuration?.bundle, sdkAuthorization, subscribedEvents
+            ).apply {
+                putString("type", "payment")
+            })
     }
 
     /**
@@ -254,20 +207,22 @@ class LaunchOptions(
         configuration: Bundle? = null,
         customParams: Map<String, Any>? = null,
         type: String? = "payment",
-        from: String? = "nativeWidget",
         sdkAuthorization: String? = null,
         subscribedEvents: List<String> = emptyList(),
     ): Bundle = Bundle().apply {
-        putBundle("props", buildBasePropsBundle(config, configuration, sdkAuthorization, subscribedEvents, customParams).apply {
-            putString("type", type)
-            putString("from", from)
-        })
+        putBundle(
+            "props", buildBasePropsBundle(
+                config, configuration, sdkAuthorization, subscribedEvents, customParams
+            ).apply {
+                putString("type", type)
+            })
     }
 
     fun getJson(
-        paymentIntentClientSecret: String,
+        config: HyperswitchConfiguration?,
+        sdkAuthorization: String,
         configuration: PaymentSheet.Configuration?
-    ): JSONObject = toJson(getBundle(paymentIntentClientSecret, configuration))
+    ): JSONObject = toJson(getBundle(config, sdkAuthorization, configuration))
 
     fun getJson(configurationMap: Map<*, *>): JSONObject =
         toJson(getMapWithHyperParams(configurationMap))
@@ -275,35 +230,28 @@ class LaunchOptions(
     private fun getMapWithHyperParams(map: Map<*, *>): Map<*, *> = mapOf(
         "props" to map.apply {
             plus(Pair("hyperParams", getHyperParamsMap(map)))
-        }
-    )
+        })
 
     // Get user agent
-    private fun getUserAgent(context: Context?): String? =
-        try {
-            if (context == null)
-                System.getProperty("http.agent")
-            else
-                WebSettings.getDefaultUserAgent(context)
-        } catch (_: RuntimeException) {
-            System.getProperty("http.agent")
-        }
+    private fun getUserAgent(context: Context?): String? = try {
+        if (context == null) System.getProperty("http.agent")
+        else WebSettings.getDefaultUserAgent(context)
+    } catch (_: RuntimeException) {
+        System.getProperty("http.agent")
+    }
 
 
     @RequiresApi(Build.VERSION_CODES.R)
     private fun getRootWindowInsetsCompatR(rootView: View): EdgeInsets? {
-        val insets =
-            rootView.rootWindowInsets?.getInsets(
-                WindowInsets.Type.statusBars() or
-                        WindowInsets.Type.displayCutout() or
-                        WindowInsets.Type.navigationBars() or
-                        WindowInsets.Type.captionBar())
-                ?: return null
+        val insets = rootView.rootWindowInsets?.getInsets(
+            WindowInsets.Type.statusBars() or WindowInsets.Type.displayCutout() or WindowInsets.Type.navigationBars() or WindowInsets.Type.captionBar()
+        ) ?: return null
         return EdgeInsets(
             top = insets.top.toFloat(),
             right = insets.right.toFloat(),
             bottom = insets.bottom.toFloat(),
-            left = insets.left.toFloat())
+            left = insets.left.toFloat()
+        )
     }
 
     private fun getRootWindowInsetsCompatBase(rootView: View): EdgeInsets? {
@@ -313,17 +261,19 @@ class LaunchOptions(
             top = visibleRect.top.toFloat(),
             right = (rootView.width - visibleRect.right).toFloat(),
             bottom = (rootView.height - visibleRect.bottom).toFloat(),
-            left = visibleRect.left.toFloat())
+            left = visibleRect.left.toFloat()
+        )
     }
 
     private fun getBottomInset(context: Context?): EdgeInsets? {
         val activity = context as? Activity
-        if(activity != null) {
+        if (activity != null) {
             val rootView = context.window.decorView
             return when {
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> getRootWindowInsetsCompatR(
                     rootView
                 )
+
                 else -> getRootWindowInsetsCompatBase(rootView)
             }
         } else {

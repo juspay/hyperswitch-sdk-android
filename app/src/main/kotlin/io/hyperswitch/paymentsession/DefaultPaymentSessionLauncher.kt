@@ -6,7 +6,9 @@ import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
 import io.hyperswitch.logs.LogUtils.getLoggingUrl
+import io.hyperswitch.model.CustomEndpointConfiguration
 import io.hyperswitch.model.HyperswitchBaseConfiguration
+import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.react.HyperEventEmitter
@@ -17,7 +19,10 @@ class DefaultPaymentSessionLauncher(
     activity: Activity,
     config: HyperswitchBaseConfiguration?,
     customParams: Bundle?,
-    private var paymentSessionReactLauncher: SDKInterface = PaymentSessionReactLauncher(activity, config)
+    private var paymentSessionReactLauncher: SDKInterface = PaymentSessionReactLauncher(
+        activity,
+        config
+    )
 ) : BasePaymentSessionLauncher(
     activity,
     config,
@@ -27,9 +32,12 @@ class DefaultPaymentSessionLauncher(
     init {
         val publishableKey = config?.publishableKey
         if (publishableKey != null) {
-            val loggingEndPoint = config.customConfig?.overrideCustomLoggingEndpoint?.takeIf { it.isNotEmpty() }
-                ?: getLoggingUrl(publishableKey)
-            HyperLogManager.initialise(publishableKey, loggingEndPoint)
+            val loggingEndPoint = when (val custom = config.customConfig) {
+                is CustomEndpointConfiguration.CustomEndpoint -> custom.url
+                is CustomEndpointConfiguration.OverrideEndpoints -> custom.loggingEndpoint
+                else -> getLoggingUrl(publishableKey)
+            }
+            HyperLogManager.initialise(publishableKey, loggingEndPoint ?: getLoggingUrl(publishableKey))
             HyperLogManager.sendLogsFromFile(LogFileManager(activity))
         }
         paymentSessionReactLauncher.initializeReactNativeInstance()
@@ -53,7 +61,10 @@ class DefaultPaymentSessionLauncher(
             HyperEventEmitter.setEventListener(listener, subscription)
         }
         val isFragment =
-            paymentSessionReactLauncher.presentSheet(Companion.sdkAuthorization ?: "", configuration)
+            paymentSessionReactLauncher.presentSheet(
+                sdkAuthorization ?: "",
+                configuration
+            )
         PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
     }
 

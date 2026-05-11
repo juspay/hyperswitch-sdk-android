@@ -11,11 +11,11 @@ import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
-import androidx.core.graphics.toColorInt
 import androidx.lifecycle.lifecycleScope
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
+import io.hyperswitch.model.CustomEndpointConfiguration
 import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsession.PMError
@@ -49,8 +49,16 @@ class MainActivity : AppCompatActivity(), HyperInterface {
         findViewById<EditText>(R.id.ipAddressInput).apply {
             setText(serverUrl)
             addTextChangedListener(object : TextWatcher {
-                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int
+                ) = Unit
+
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) =
+                    Unit
+
                 override fun afterTextChanged(s: Editable?) {
                     val url = s?.toString().orEmpty()
                     if (url.isNotEmpty()) updateServerUrl(url)
@@ -86,15 +94,16 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                         val json = value?.let { JSONObject(it) } ?: return
                         Log.d(TAG, "Backend response: $value")
 
-                        val publishableKey  = json.getString("publishableKey")
+                        val publishableKey = json.getString("publishableKey")
                         val sdkAuthorization = json.getString("sdkAuthorization")
-                        val profileId       = json.optString("profileId")
+                        val profileId = json.optString("profileId")
 
                         hyperswitchInstance = Hyperswitch.init(
                             activity = this@MainActivity,
                             config = HyperswitchConfiguration(
                                 publishableKey = publishableKey,
                                 profileId = profileId,
+                                customConfig = CustomEndpointConfiguration.CustomEndpoint("manideep.com")
                             )
                         )
 
@@ -123,8 +132,12 @@ class MainActivity : AppCompatActivity(), HyperInterface {
         reset().get("$serverUrl/netcetera-sdk-api-key")
             .responseString(object : Handler<String?> {
                 override fun success(value: String?) {
-                    runCatching { netceteraApiKey = value?.let { JSONObject(it) }?.getString("netceteraApiKey") }
+                    runCatching {
+                        netceteraApiKey =
+                            value?.let { JSONObject(it) }?.getString("netceteraApiKey")
+                    }
                 }
+
                 override fun failure(error: FuelError) = Unit
             })
     }
@@ -195,8 +208,8 @@ class MainActivity : AppCompatActivity(), HyperInterface {
     private fun handleResult(result: PaymentResult) {
         when (result) {
             is PaymentResult.Completed -> setStatus("Completed: ${result.data}")
-            is PaymentResult.Canceled  -> setStatus("Cancelled: ${result.data}")
-            is PaymentResult.Failed    -> setStatus("Failed: ${result.throwable.message.orEmpty()}")
+            is PaymentResult.Canceled -> setStatus("Cancelled: ${result.data}")
+            is PaymentResult.Failed -> setStatus("Failed: ${result.throwable.message.orEmpty()}")
         }
     }
 
@@ -205,7 +218,12 @@ class MainActivity : AppCompatActivity(), HyperInterface {
     private fun updateServerUrl(newUrl: String) {
         if (Patterns.WEB_URL.matcher(newUrl).matches()) {
             serverUrl = newUrl
-            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit { putString(KEY_SERVER_URL, newUrl) }
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit {
+                putString(
+                    KEY_SERVER_URL,
+                    newUrl
+                )
+            }
             setStatus("Reload to apply new server URL")
         } else {
             setStatus("Invalid URL format")

@@ -1,16 +1,18 @@
 package io.hyperswitch.model
 
-data class CustomEndpointConfiguration(
-    val customEndpoint: String? = null,
-    val overrideCustomBackendEndpoint: String? = null,
-    val overrideCustomAssetsEndpoint: String? = null,
-    val overrideCustomSDKConfigEndpoint: String? = null,
-    val overrideCustomConfirmEndpoint: String? = null,
-    val overrideCustomAirborneEndpoint: String? = null,
-    val overrideCustomLoggingEndpoint: String? = null,
-)
+sealed class CustomEndpointConfiguration {
+    data class CustomEndpoint(val url: String) : CustomEndpointConfiguration()
+    data class OverrideEndpoints(
+        val backendEndpoint: String? = null,
+        val assetsEndpoint: String? = null,
+        val sdkConfigEndpoint: String? = null,
+        val confirmEndpoint: String? = null,
+        val airborneEndpoint: String? = null,
+        val loggingEndpoint: String? = null,
+    ) : CustomEndpointConfiguration()
+}
 
-enum class HyperswitchEnvironment{
+enum class HyperswitchEnvironment {
     PROD,
     SANDBOX,
     INTEG
@@ -20,8 +22,7 @@ sealed interface HyperswitchBaseConfiguration {
     val publishableKey: String?
     val profileId: String?
     val customConfig: CustomEndpointConfiguration?
-
-    val environment : HyperswitchEnvironment?
+    val environment: HyperswitchEnvironment?
 }
 
 data class HyperswitchConfiguration(

@@ -2,6 +2,8 @@ package io.hyperswitch.lite
 
 import android.app.Activity
 import androidx.core.view.WindowCompat
+import io.hyperswitch.model.HyperswitchBaseConfiguration
+import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.SDKInterface
 import io.hyperswitch.paymentsheet.PaymentSheet
@@ -14,6 +16,7 @@ import io.hyperswitch.paymentsheet.PaymentSheet
  */
 class WebViewUtils(
     private val activity: Activity,
+    private val config: HyperswitchConfiguration? = null
 ) : SDKInterface {
     /**
      * The WebViewFragment used for displaying payment sheets.
@@ -42,11 +45,11 @@ class WebViewUtils(
     /**
      * Presents a payment sheet with the given payment intent client secret and configuration.
      *
-     * @param paymentIntentClientSecret The client secret of the payment intent.
+     * @param sdkAuthorization The client secret of the payment intent.
      * @param configuration The configuration for the payment sheet.
      */
     override fun presentSheet(
-        paymentIntentClientSecret: String,
+        sdkAuthorization: String,
         configuration: PaymentSheet.Configuration?,
     ): Boolean {
         WindowCompat.setDecorFitsSystemWindows(activity.window, false)
@@ -55,7 +58,8 @@ class WebViewUtils(
         webFragment.setRequestBody(
             launchOptions
                 .getJson(
-                    paymentIntentClientSecret,
+                    config,
+                    sdkAuthorization,
                     configuration,
                 ).toString(),
         )

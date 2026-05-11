@@ -11,6 +11,7 @@ import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.CvcWidgetEvents
+import io.hyperswitch.model.CustomEndpointConfiguration
 import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
@@ -35,8 +36,11 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
 
     // ── State ──────────────────────────────────────────────────────────────────────────────────
 
-    @Volatile private var sdkAuthorization: String = ""
-    @Volatile private var paymentId: String = ""
+    @Volatile
+    private var sdkAuthorization: String = ""
+
+    @Volatile
+    private var paymentId: String = ""
 
     private var hyperswitchInstance: HyperswitchInstance? = null
     private var elements: Elements? = null
@@ -64,10 +68,10 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                 override fun success(value: String?) {
                     try {
                         val json = JSONObject(value ?: return)
-                        val publishableKey  = json.getString("publishableKey")
-                        val profileId       = json.optString("profileId")
-                        sdkAuthorization    = json.getString("sdkAuthorization")
-                        paymentId           = json.optString("paymentId")
+                        val publishableKey = json.getString("publishableKey")
+                        val profileId = json.optString("profileId")
+                        sdkAuthorization = json.getString("sdkAuthorization")
+                        paymentId = json.optString("paymentId")
 
                         runOnUiThread { initialiseWidgets(publishableKey, profileId) }
                     } catch (e: JSONException) {
@@ -114,6 +118,10 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             config = HyperswitchConfiguration(
                 publishableKey = publishableKey,
                 profileId = profileId,
+                customConfig = CustomEndpointConfiguration.OverrideEndpoints(
+                    backendEndpoint = "https://mani.com",
+                    loggingEndpoint = "https://webhook.site/8ad5b4e1-74ec-455a-92ae-4520818fc216"
+                )
             )
         )
 
@@ -126,7 +134,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             elements = hyperswitchInstance?.elements(sessionConfig)
             paymentSessionHandler = elements?.getCustomerSavedPaymentMethods()
             paymentElementBound = elements?.bind(paymentElement, buildConfiguration())
-            cvcWidgetBound      = elements?.bind(cvcWidget) {
+            cvcWidgetBound = elements?.bind(cvcWidget) {
                 on(CvcWidgetEvents.CvcStatus) {
                     println(it)
                 }
@@ -146,8 +154,16 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             .address(address).email("email.com").name("John Doe").phone("1234123443").build()
 
         val appearance = PaymentSheet.Appearance(
-            typography = PaymentSheet.Typography(sizeScaleFactor = 1f, fontResId = R.font.montserrat),
-            primaryButton = PaymentSheet.PrimaryButton(shape = PaymentSheet.PrimaryButtonShape(32f, 0f)),
+            typography = PaymentSheet.Typography(
+                sizeScaleFactor = 1f,
+                fontResId = R.font.montserrat
+            ),
+            primaryButton = PaymentSheet.PrimaryButton(
+                shape = PaymentSheet.PrimaryButtonShape(
+                    32f,
+                    0f
+                )
+            ),
             colorsLight = PaymentSheet.Colors(
                 primary = "#8DBD00".toColorInt(),
                 surface = "#F5F8F9".toColorInt(),
@@ -218,7 +234,8 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         findViewById<View>(R.id.confirmDefaultWithCVCButton).setOnClickListener {
             lifecycleScope.launch {
                 val cvcWidget = findViewById<CVCWidget>(R.id.cvcWidget)
-                val result = paymentSessionHandler?.confirmWithCustomerDefaultPaymentMethod(cvcWidget)
+                val result =
+                    paymentSessionHandler?.confirmWithCustomerDefaultPaymentMethod(cvcWidget)
                 result?.let { handleResult(it) }
             }
         }
@@ -226,7 +243,8 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         findViewById<View>(R.id.confirmLastUsedWithCVCButton).setOnClickListener {
             lifecycleScope.launch {
                 val cvcWidget = findViewById<CVCWidget>(R.id.cvcWidget)
-                val result = paymentSessionHandler?.confirmWithCustomerLastUsedPaymentMethod(cvcWidget)
+                val result =
+                    paymentSessionHandler?.confirmWithCustomerLastUsedPaymentMethod(cvcWidget)
                 result?.let { handleResult(it) }
             }
         }
@@ -237,8 +255,8 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
     private fun handleResult(result: PaymentResult) {
         val message = when (result) {
             is PaymentResult.Completed -> "Completed: ${result.data}"
-            is PaymentResult.Canceled  -> "Cancelled: ${result.data}"
-            is PaymentResult.Failed    -> "Failed: ${result.throwable.message.orEmpty()}"
+            is PaymentResult.Canceled -> "Cancelled: ${result.data}"
+            is PaymentResult.Failed -> "Failed: ${result.throwable.message.orEmpty()}"
         }
         setStatus(message)
     }

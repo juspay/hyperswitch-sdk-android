@@ -29,13 +29,21 @@ class PaymentSession internal constructor(
     private val publishableKey = config?.publishableKey
     private var sessionConfig = sessionConfig
 
-    constructor(activity: Activity, config: HyperswitchBaseConfiguration?, sessionConfig: PaymentSessionConfiguration): this(
+    constructor(
+        activity: Activity,
+        config: HyperswitchBaseConfiguration?,
+        sessionConfig: PaymentSessionConfiguration
+    ) : this(
         DefaultPaymentSessionLauncher(activity, config, null),
         config,
         sessionConfig
     )
 
-    constructor(activity: Activity, publishableKey: String?, sessionConfig: PaymentSessionConfiguration) : this(
+    constructor(
+        activity: Activity,
+        publishableKey: String?,
+        sessionConfig: PaymentSessionConfiguration
+    ) : this(
         DefaultPaymentSessionLauncher(
             activity,
             HyperswitchConfiguration(publishableKey = publishableKey),
@@ -55,18 +63,18 @@ class PaymentSession internal constructor(
             activity,
             HyperswitchConfiguration(
                 publishableKey = publishableKey,
-                customConfig = CustomEndpointConfiguration(
-                    overrideCustomBackendEndpoint = customBackendUrl,
-                    overrideCustomLoggingEndpoint = customLogUrl
+                customConfig = CustomEndpointConfiguration.OverrideEndpoints(
+                    backendEndpoint = customBackendUrl,
+                    loggingEndpoint = customLogUrl
                 )
             ),
             null
         ),
         HyperswitchConfiguration(
             publishableKey = publishableKey,
-            customConfig = CustomEndpointConfiguration(
-                overrideCustomBackendEndpoint = customBackendUrl,
-                overrideCustomLoggingEndpoint = customLogUrl
+            customConfig = CustomEndpointConfiguration.OverrideEndpoints(
+                backendEndpoint = customBackendUrl,
+                loggingEndpoint = customLogUrl
             )
         ),
         null
@@ -93,18 +101,20 @@ class PaymentSession internal constructor(
             activity,
             HyperswitchConfiguration(
                 publishableKey = publishableKey,
-                customConfig = CustomEndpointConfiguration(
-                    overrideCustomBackendEndpoint = customBackendUrl,
-                    overrideCustomLoggingEndpoint = customLogUrl
+                customConfig = CustomEndpointConfiguration.OverrideEndpoints(
+                    backendEndpoint = customBackendUrl,
+                    loggingEndpoint = customLogUrl
+
                 )
             ),
             customParams
         ),
         HyperswitchConfiguration(
             publishableKey = publishableKey,
-            customConfig = CustomEndpointConfiguration(
-                overrideCustomBackendEndpoint = customBackendUrl,
-                overrideCustomLoggingEndpoint = customLogUrl
+            customConfig = CustomEndpointConfiguration.OverrideEndpoints(
+                backendEndpoint = customBackendUrl,
+                loggingEndpoint = customLogUrl
+
             )
         ),
         null
@@ -117,36 +127,19 @@ class PaymentSession internal constructor(
      * @param publishableKey The publishable key for your Hyperswitch account.
      */
     class Builder(private val activity: Activity, private val publishableKey: String) {
-        private var customBackendUrl: String? = null
-        private var customLogEndpoint: String? = null
-        private var customParams: Bundle? = null
-        private var customEndpoint: String? = null
-        private var customAssetsEndpoint: String? = null
-        private var customSDKConfigEndpoint: String? = null
-        private var customConfirmEndpoint: String? = null
-        private var customAirborneEndpoint: String? = null
 
-        fun customBackendUrl(url: String) = apply { this.customBackendUrl = url }
-        fun customLogEndpoint(url: String) = apply { this.customLogEndpoint = url }
+        private var customParams: Bundle? = null
+        private var customConfig: CustomEndpointConfiguration? = null
+
         fun customParams(params: Bundle) = apply { this.customParams = params }
-        fun customEndpoint(url: String) = apply { this.customEndpoint = url }
-        fun customAssetsEndpoint(url: String) = apply { this.customAssetsEndpoint = url }
-        fun customSDKConfigEndpoint(url: String) = apply { this.customSDKConfigEndpoint = url }
-        fun customConfirmEndpoint(url: String) = apply { this.customConfirmEndpoint = url }
-        fun customAirborneEndpoint(url: String) = apply { this.customAirborneEndpoint = url }
+
+        fun customEndpointConfiguration(customConfig: CustomEndpointConfiguration) =
+            apply { this.customConfig = customConfig }
 
         fun build(): PaymentSession {
             val config = HyperswitchConfiguration(
                 publishableKey = publishableKey,
-                customConfig = CustomEndpointConfiguration(
-                    customEndpoint = customEndpoint,
-                    overrideCustomBackendEndpoint = customBackendUrl,
-                    overrideCustomAssetsEndpoint = customAssetsEndpoint,
-                    overrideCustomSDKConfigEndpoint = customSDKConfigEndpoint,
-                    overrideCustomConfirmEndpoint = customConfirmEndpoint,
-                    overrideCustomAirborneEndpoint = customAirborneEndpoint,
-                    overrideCustomLoggingEndpoint = customLogEndpoint
-                )
+                customConfig = customConfig
             )
             val launcher = DefaultPaymentSessionLauncher(activity, config, customParams)
             return PaymentSession(launcher, config, null)
@@ -173,7 +166,10 @@ class PaymentSession internal constructor(
         }
     }
 
-    fun presentPaymentSheet(subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null, resultCallback: (PaymentResult) -> Unit) {
+    fun presentPaymentSheet(
+        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null,
+        resultCallback: (PaymentResult) -> Unit
+    ) {
         paymentSessionLauncher.presentPaymentSheet(configuration = null, subscribe, resultCallback)
     }
 

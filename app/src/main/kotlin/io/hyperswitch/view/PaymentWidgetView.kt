@@ -218,13 +218,7 @@ class PaymentWidgetView : FrameLayout {
         return this.launchOptions.getBundle(
             config = config,
             configuration = resolveConfiguration(),
-            customParams = PaymentConfiguration.customParams as Map<String, Any>?,
             type = widgetType,
-            from = when (widgetConfig) {
-                is PaymentWidgetConfig.Native -> "nativeWidget"
-                is PaymentWidgetConfig.ReactNative -> "rn"
-                null -> "nativeWidget"
-            },
             sdkAuthorization = this.sdkAuthorization,
             subscribedEvents = this.subscribedEvents,
         )

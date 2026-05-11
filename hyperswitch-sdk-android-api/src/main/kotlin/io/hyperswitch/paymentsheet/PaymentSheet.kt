@@ -397,8 +397,10 @@ class PaymentSheet internal constructor(
         val bundle: Bundle
             get() {
                 return Bundle().apply {
-                    putBundle("colorsLight", colorsLight?.bundle)
-                    putBundle("colorsDark", colorsDark?.bundle)
+                    putBundle("colors", Bundle().apply {
+                        putBundle("light", colorsLight?.bundle)
+                        putBundle("dark", colorsDark?.bundle)
+                    })
                     putBundle("shapes", shapes?.bundle)
                     putBundle("typography", typography?.bundle)
                     putBundle("primaryButton", primaryButton?.bundle)
@@ -692,8 +694,10 @@ class PaymentSheet internal constructor(
         val bundle: Bundle
             get() {
                 return Bundle().apply {
-                    putBundle("colorsLight", colorsLight?.bundle)
-                    putBundle("colorsDark", colorsDark?.bundle)
+                    putBundle("colors", Bundle().apply {
+                        putBundle("light", colorsLight?.bundle)
+                        putBundle("dark", colorsDark?.bundle)
+                    })
                     putBundle("shape", shape?.bundle)
                     putBundle("typography", typography?.bundle)
                 }

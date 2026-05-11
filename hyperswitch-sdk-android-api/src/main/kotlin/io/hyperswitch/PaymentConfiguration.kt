@@ -13,8 +13,6 @@ data class PaymentConfiguration
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) constructor(
     val publishableKey: String? = null,
     val stripeAccountId: String? = null,
-    val customBackendUrl: String? = null,
-    val customLogUrl: String? = null,
     val customParams: Bundle? = null,
 ) : Parcelable {
 
@@ -29,14 +27,10 @@ data class PaymentConfiguration
         fun save(
             publishableKey: String?,
             stripeAccountId: String?,
-            customBackendUrl: String?,
-            customLogUrl: String?,
         ) {
             prefs.edit {
                 putString(KEY_PUBLISHABLE_KEY, publishableKey)
                     .putString(KEY_ACCOUNT_ID, stripeAccountId)
-                    .putString(KEY_CUSTOM_BACKEND_URL, customBackendUrl)
-                    .putString(KEY_CUSTOM_LOG_URL, customLogUrl)
             }
         }
 
@@ -46,8 +40,6 @@ data class PaymentConfiguration
                 PaymentConfiguration(
                     publishableKey = publishableKey,
                     stripeAccountId = prefs.getString(KEY_ACCOUNT_ID, null),
-                    customBackendUrl = prefs.getString(KEY_CUSTOM_BACKEND_URL, null),
-                    customLogUrl = prefs.getString(KEY_CUSTOM_LOG_URL, null),
                 )
             }
         }
@@ -57,8 +49,6 @@ data class PaymentConfiguration
 
             private const val KEY_PUBLISHABLE_KEY = "key_publishable_key"
             private const val KEY_ACCOUNT_ID = "key_account_id"
-            private const val KEY_CUSTOM_BACKEND_URL = "key_custom_backend_url"
-            private const val KEY_CUSTOM_LOG_URL = "key_custom_log_url"
         }
     }
 
@@ -95,9 +85,6 @@ data class PaymentConfiguration
             return instance?.publishableKey ?: ""
         }
 
-        val customBackendUrl: String? = instance?.customBackendUrl
-        val customLogUrl: String? = instance?.customLogUrl
-        val customParams: Bundle? = instance?.customParams
 
         /**
          * A publishable key from the Dashboard's [API keys](https://app.hyperswitch.io/apikeys) page.
@@ -108,22 +95,16 @@ data class PaymentConfiguration
             context: Context,
             publishableKey: String? = null,
             stripeAccountId: String? = null,
-            customBackendUrl: String? = null,
-            customLogUrl: String? = null,
             customParams: Bundle? = null
         ) {
             instance = PaymentConfiguration(
                 publishableKey = publishableKey,
                 stripeAccountId = stripeAccountId,
-                customBackendUrl = customBackendUrl,
-                customLogUrl = customLogUrl,
                 customParams = customParams
             )
             Store(context).save(
                 publishableKey = publishableKey,
-                stripeAccountId = stripeAccountId,
-                customBackendUrl = customBackendUrl,
-                customLogUrl = customLogUrl
+                stripeAccountId = stripeAccountId
             )
         }
 
