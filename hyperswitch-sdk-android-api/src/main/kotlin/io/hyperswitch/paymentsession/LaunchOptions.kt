@@ -107,7 +107,7 @@ class LaunchOptions(
     /**
      * Creates a baseConfiguration bundle from HyperswitchBaseConfiguration containing all endpoint overrides.
      */
-    private fun getBaseConfigurationBundle(config: HyperswitchBaseConfiguration?): Bundle =
+    fun getBaseConfigurationBundle(config: HyperswitchBaseConfiguration?): Bundle =
         Bundle().apply {
             config?.publishableKey?.let { putString("publishableKey", it) }
             config?.profileId?.let { putString("profileId", it) }
@@ -313,6 +313,7 @@ class LaunchOptions(
                 is String -> bundle.putString(keyString, value)
                 is Map<*, *> -> bundle.putBundle(keyString, toBundle(value))
                 is Array<*> -> bundle.putSerializable(keyString, value)
+                is Bundle -> bundle.putBundle(keyString, value)
                 else -> throw IllegalArgumentException("Could not convert object with key: $keyString.")
             }
         }
