@@ -277,15 +277,6 @@ class HyperFragment : ReactFragment() {
         billing: String?,
         callback: ((PaymentResult) -> Unit)
     ) {
-        if (ExitHeadlessCallBackManager.getCallback() != null) {
-            val paymentResult = PaymentResult.Failed(
-                Throwable("CVC payment already in progress").apply {
-                    initCause(Throwable("ALREADY_IN_PROGRESS"))
-                }
-            )
-            callback.invoke(paymentResult)
-            return
-        }
         val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
         if (rootTag == -1) {
             val paymentResult = PaymentResult.Failed(Throwable("cannot find the view"))
@@ -293,7 +284,17 @@ class HyperFragment : ReactFragment() {
             return
         }
 
-        ExitHeadlessCallBackManager.setCallback(callback)
+        // Try to register callback for this specific widget - fails if already in progress
+        val registered = ExitHeadlessCallBackManager.tryRegisterCallback(rootTag, callback)
+        if (!registered) {
+            val paymentResult = PaymentResult.Failed(
+                Throwable("CVC payment already in progress for this widget").apply {
+                    initCause(Throwable("ALREADY_IN_PROGRESS"))
+                }
+            )
+            callback.invoke(paymentResult)
+            return
+        }
 
         val map = Arguments.createMap()
         map.putString("actionType", EventName.CONFIRM_CVC_PAYMENT.name)

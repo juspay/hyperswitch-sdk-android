@@ -99,6 +99,7 @@ class DefaultPaymentSessionLauncher(
             paymentSessionReactLauncher.recreateReactContext()
         }
 
+
     companion object {
         var isPresented: Boolean = false
         var sdkAuthorization: String? = null

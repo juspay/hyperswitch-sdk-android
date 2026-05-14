@@ -235,16 +235,51 @@ class PaymentWidgetView : FrameLayout {
 
 
     fun updatePaymentIntentInit(callback: () -> Unit) {
-        this.fragment?.updatePaymentIntentInit(callback)
+        if (isEligibleForUpdateIntent()) {
+            this.fragment?.updatePaymentIntentInit(callback)
+        } else {
+            callback()
+        }
     }
 
     fun updatePaymentIntentComplete(
         sdkAuthorization: String,
         callback: (ElementUpdateIntentResult) -> Unit
     ) {
-        this.fragment?.updatePaymentIntentComplete(sdkAuthorization, callback)
+        if (isEligibleForUpdateIntent()) {
+            sdkAuthorization?.takeIf { it.isNotEmpty() }?.let {
+                this.sdkAuthorization = it
+            }
+            this.fragment?.updatePaymentIntentComplete(sdkAuthorization, callback)
+                ?: callback(ElementUpdateIntentResult.Failure(
+                    Throwable("Fragment not attached").apply {
+                        initCause(Throwable("FRAGMENT_NOT_ATTACHED"))
+                    }
+                ))
+        } else {
+            callback(ElementUpdateIntentResult.Success)
+        }
     }
 
+    private fun isEligibleForUpdateIntent(): Boolean {
+        when (widgetType) {
+            "payment",
+            "tabSheet",
+            "buttonSheet",
+            "widgetPaymentSheet",
+            "widgetTabSheet",
+            "widgetButtonSheet",
+            "hostedCheckout",
+            "google_pay",
+            "paypal",
+            "card",
+            "paymentMethodsManagement",
+            "headless",
+            "expressCheckout" -> return true
+            "cvcWidget" -> return false
+            else -> return false
+        }
+    }
     fun confirmCvcPayment(
         sdkAuthorization: String,
         paymentToken: String,
