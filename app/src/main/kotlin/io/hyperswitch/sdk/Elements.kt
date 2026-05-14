@@ -3,6 +3,7 @@ package io.hyperswitch.sdk
 import android.app.Activity
 import io.hyperswitch.PaymentEventSubscriptionBuilder
 import android.util.Log
+import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
@@ -17,6 +18,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.concurrent.CancellationException
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.coroutines.resume
 
@@ -100,30 +102,42 @@ class Elements internal constructor(
             )
         }
 
-        // Phase 2: single token fetch — if this throws, propagate as TotalFailure.
-        val sdkAuthorization = runCatching { completion() }
-            .getOrElse { tokenError ->
-                return ElementsUpdateResult.TotalFailure(cause = tokenError)
-            }.sdkAuthorization
-
-        // Phase 3: fan-out completes only for init-succeeded elements.
-        val completeResults: List<Pair<HyperswitchBoundElement, Result<Unit>>> = coroutineScope {
-            initSucceeded.map { hsElement ->
-                async {
-                    hsElement to runCatching<Unit> {
-                        hsElement.updateIntentComplete(sdkAuthorization)
-                    }
-                }
-            }.awaitAll()
+        val sdkAuthorization = try {
+            completion().sdkAuthorization
+        } catch (_: Exception) {
+            ""
         }
 
-        val succeeded = completeResults.filter { (_, r) -> r.isSuccess }.map { (e, _) -> e }
+        val completeResults: List<Pair<HyperswitchBoundElement, ElementUpdateIntentResult>> =
+            coroutineScope {
+                initSucceeded.map { hsElement ->
+                    async {
+                        hsElement to hsElement.updateIntentComplete(sdkAuthorization)
+                    }
+                }.awaitAll()
+            }
+
+
+        val succeeded = completeResults
+            .filter { (_, result) ->
+                result is ElementUpdateIntentResult.Success
+            }
+            .map { (element, _) -> element }
 
         val failed: Map<HyperswitchBoundElement, Throwable> = buildMap {
             putAll(initFailed)
-            completeResults
-                .filter { (_, r) -> r.isFailure }
-                .forEach { (e, r) -> put(e, r.exceptionOrNull() ?: IllegalStateException("Complete failed")) }
+
+            completeResults.forEach { (element, result) ->
+                when (result) {
+                    is ElementUpdateIntentResult.Failure -> {
+                        put(element, result.cause)
+                    }
+                    ElementUpdateIntentResult.Cancelled -> {
+                        put(element, CancellationException("Update cancelled"))
+                    }
+                    else -> Unit
+                }
+            }
         }
 
         if(sdkAuthorization.isNotEmpty()) {
@@ -137,9 +151,13 @@ class Elements internal constructor(
             else -> ElementsUpdateResult.PartialFailure(succeeded = succeeded, failed = failed)
         }
     }
+    
+    fun getPaymentSession(): PaymentSession = this.paymentSession
 
     fun getCustomerSavedPaymentMethods(savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)) {
-        paymentSession.getCustomerSavedPaymentMethods(savedPaymentMethodCallback)
+        paymentSession.getCustomerSavedPaymentMethods { handler ->
+            savedPaymentMethodCallback(handler)
+        }
     }
 
     suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler {

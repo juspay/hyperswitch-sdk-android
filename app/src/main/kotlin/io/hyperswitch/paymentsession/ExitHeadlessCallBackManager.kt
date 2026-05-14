@@ -3,24 +3,32 @@ package io.hyperswitch.paymentsession
 import io.hyperswitch.paymentsheet.PaymentResult
 
 import org.json.JSONObject
-import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.ConcurrentHashMap
 
 typealias ExitCallback = (PaymentResult) -> Unit
 
 object ExitHeadlessCallBackManager {
-    private val callbackRef = AtomicReference<ExitCallback?>(null)
+    private val callbacks = ConcurrentHashMap<Int, ExitCallback>()
 
-    fun setCallback(newCallback: (PaymentResult) -> Unit) {
-        callbackRef.set(newCallback)
+    fun tryRegisterCallback(rootTag: Int, callback: ExitCallback): Boolean {
+        return callbacks.putIfAbsent(rootTag, callback) == null
     }
 
-    fun getCallback(): ExitCallback? {
-        return callbackRef.get()
+    fun executeCallback(rootTag: Int, data: String): Boolean {
+        val cb = callbacks.remove(rootTag) ?: callbacks.remove(-1)
+
+        val result = parseResult(data)
+        cb?.invoke(result)
+        return true
     }
 
-    fun executeCallback(data: String) {
+    fun clearCallback(rootTag: Int) {
+        callbacks.remove(rootTag)
+    }
+
+    private fun parseResult(data: String): PaymentResult {
         val message = JSONObject(data)
-        val result = when (val status = message.getString("status")) {
+        return when (val status = message.getString("status")) {
             "cancelled" -> PaymentResult.Canceled(status)
             "failed", "requires_payment_method" -> {
                 val throwable = Throwable(message.getString("message"))
@@ -30,8 +38,5 @@ object ExitHeadlessCallBackManager {
 
             else -> PaymentResult.Completed(status ?: "default")
         }
-        val cb = callbackRef.getAndSet(null)
-        cb?.invoke(result)
-
     }
 }
