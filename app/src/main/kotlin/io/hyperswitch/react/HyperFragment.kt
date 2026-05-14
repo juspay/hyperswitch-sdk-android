@@ -347,13 +347,23 @@ class HyperFragment : ReactFragment() {
     }
 
     override fun onDestroyView() {
-        super.onDestroyView()
+        try {
+            super.onDestroyView()
+        }catch(_: Exception){}
     }
 
     override fun onDestroy() {
-        super.onDestroy()
-        unRegisterEventBus()
-        callbacks.clear()
+        try {
+            super.onDestroy()
+            unRegisterEventBus()
+            callbacks.clear()
+        }catch(_ : Exception){}
+    }
+
+    override fun onPause() {
+        try {
+            super.onPause()
+        }catch(_: Exception){}
     }
 
     // ── Scroll fix ────────────────────────────────────────────────────────────
