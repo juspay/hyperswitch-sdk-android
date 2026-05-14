@@ -11,7 +11,12 @@ object ExitHeadlessCallBackManager {
     private val callbacks = ConcurrentHashMap<Int, ExitCallback>()
 
     fun tryRegisterCallback(rootTag: Int, callback: ExitCallback): Boolean {
-        return callbacks.putIfAbsent(rootTag, callback) == null
+        return if (rootTag == -1) {
+            callbacks[-1] = callback
+            true
+        } else {
+            callbacks.putIfAbsent(rootTag, callback) == null
+        }
     }
 
     fun executeCallback(rootTag: Int, data: String): Boolean {
