@@ -171,6 +171,7 @@ class PaymentSheet internal constructor(
         val displayDefaultSavedPaymentIcon: Boolean? = null,
         val displaySavedPaymentMethodsCheckbox: Boolean? = null,
         val displaySavedPaymentMethods: Boolean? = null,
+        val alwaysSendCustomerAcceptance: Boolean? = null,
         val placeHolder: PlaceHolder? = null,
         val hideConfirmButton: Boolean? = null,
         /**
@@ -215,6 +216,9 @@ class PaymentSheet internal constructor(
                     if (displaySavedPaymentMethods != null) {
                         putBoolean("displaySavedPaymentMethods", displaySavedPaymentMethods)
                     }
+                    if (alwaysSendCustomerAcceptance != null) {
+                        putBoolean("alwaysSendCustomerAcceptance", alwaysSendCustomerAcceptance)
+                    }
                     putBundle("placeHolder", placeHolder?.bundle)
                     if (hideConfirmButton != null){
                         putBoolean("hideConfirmButton", hideConfirmButton)
@@ -247,6 +251,7 @@ class PaymentSheet internal constructor(
             private var appearance: Appearance? = null
             private var displaySavedPaymentMethodsCheckbox: Boolean = true
             private var displaySavedPaymentMethods: Boolean = true
+            private var alwaysSendCustomerAcceptance: Boolean? = null
             private var placeHolder: PlaceHolder? = null
             private var hideConfirmButton : Boolean? = null
             private var primaryButtonLabel: String? = null
@@ -304,6 +309,9 @@ class PaymentSheet internal constructor(
             fun displaySavedPaymentMethods(displaySavedPaymentMethods: Boolean) =
                 apply { this.displaySavedPaymentMethods = displaySavedPaymentMethods }
 
+            fun alwaysSendCustomerAcceptance(alwaysSendCustomerAcceptance: Boolean) =
+                apply { this.alwaysSendCustomerAcceptance = alwaysSendCustomerAcceptance }
+
             fun placeHolder(placeHolder: PlaceHolder?) =
                 apply { this.placeHolder = placeHolder }
 
@@ -352,6 +360,7 @@ class PaymentSheet internal constructor(
                 displayDefaultSavedPaymentIcon,
                 displaySavedPaymentMethodsCheckbox,
                 displaySavedPaymentMethods,
+                alwaysSendCustomerAcceptance,
                 placeHolder,
                 hideConfirmButton,
                 netceteraSDKApiKey,
