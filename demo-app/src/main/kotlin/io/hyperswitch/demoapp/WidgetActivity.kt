@@ -68,7 +68,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                         val profileId       = json.optString("profileId")
                         sdkAuthorization    = json.getString("sdkAuthorization")
                         paymentId           = json.optString("paymentId")
-
+                        setStatus("Payment intent fetched")
                         runOnUiThread { initialiseWidgets(publishableKey, profileId) }
                     } catch (e: JSONException) {
                         Log.e(TAG, "Failed to parse server response", e)
@@ -124,9 +124,9 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         lifecycleScope.launch {
             // All bindings share one Elements session — initialise once, bind sequentially.
             elements = hyperswitchInstance?.elements(sessionConfig)
-            paymentSessionHandler = elements?.getCustomerSavedPaymentMethods()
-            paymentElementBound = elements?.bind(paymentElement, buildConfiguration())
-            cvcWidgetBound      = elements?.bind(cvcWidget) {
+            paymentSessionHandler = elements?.getPaymentSession()?.getCustomerSavedPaymentMethods()
+             paymentElementBound = elements?.bind(paymentElement, buildConfiguration())
+            cvcWidgetBound = elements?.bind(cvcWidget) {
                 on(CvcWidgetEvents.CvcStatus) {
                     println(it)
                 }
@@ -204,7 +204,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                     ?: return@launch
                 when (result) {
                     is ElementsUpdateResult.Success ->
-                        Log.i(TAG, "Intent updated — all elements ready")
+                        setStatus("Intent updated — all elements ready")
 
                     is ElementsUpdateResult.TotalFailure ->
                         setStatus("Update failed: ${result.cause.message}")

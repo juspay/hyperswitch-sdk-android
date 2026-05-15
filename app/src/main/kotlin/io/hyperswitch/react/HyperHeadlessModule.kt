@@ -34,6 +34,6 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
 
     @ReactMethod
     fun exitHeadless(rootTag: Int, status: String) {
-        ExitHeadlessCallBackManager.executeCallback(status)
+        ExitHeadlessCallBackManager.executeCallback(rootTag, status)
     }
 }

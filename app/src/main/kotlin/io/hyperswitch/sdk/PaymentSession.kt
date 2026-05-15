@@ -90,28 +90,7 @@ class PaymentSession internal constructor(
         sessionConfig = null
     )
 
-    /*** A builder class for creating instances of [PaymentSession].
-     *
-     * @param activity The activity that will host the payment sheet.
-     * @param publishableKey The publishable key for your Stripe account.
-     */
-    class Builder(private val activity: Activity, private val publishableKey: String) {
-        private var customBackendUrl: String? = null
-        private var customLogUrl: String? = null
-        private var customParams: Bundle? = null
-
-        fun customBackendUrl(url: String) = apply { this.customBackendUrl = url }
-        fun customLogUrl(url: String) = apply { this.customLogUrl = url }
-        fun customParams(params: Bundle) = apply { this.customParams = params }
-
-        fun build(): PaymentSession {
-            val launcher = DefaultPaymentSessionLauncher(
-                activity, publishableKey, customBackendUrl, customLogUrl, customParams
-            )
-            return PaymentSession(launcher, publishableKey, null)
-        }
-    }
-
+    private var paymentSessionHandler : PaymentSessionHandler? = null
     /**
      * Initializes the payment session with the given payment intent client secret.
      *
@@ -147,6 +126,7 @@ class PaymentSession internal constructor(
 
     fun updateSdkAuthorization(sdkAuthorization: String){
         this.sessionConfig = PaymentSessionConfiguration(sdkAuthorization)
+        paymentSessionHandler?.updateSdkAuthorization(sdkAuthorization)
     }
 
     fun presentPaymentSheet(
@@ -158,7 +138,9 @@ class PaymentSession internal constructor(
     }
 
     suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler {
-        return paymentSessionLauncher.getCustomerSavedPaymentMethods()
+        return paymentSessionLauncher.getCustomerSavedPaymentMethods().also {
+            paymentSessionHandler = it
+        }
     }
 
     /**
@@ -167,7 +149,10 @@ class PaymentSession internal constructor(
      * @param savedPaymentMethodCallback A callback that will be invoked with the customer's saved payment methods.
      */
     fun getCustomerSavedPaymentMethods(savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)) {
-        paymentSessionLauncher.getCustomerSavedPaymentMethods(savedPaymentMethodCallback)
+        paymentSessionLauncher.getCustomerSavedPaymentMethods {
+            paymentSessionHandler = it
+            savedPaymentMethodCallback(it)
+        }
     }
 
     fun getPublishableKey(): String {
@@ -176,5 +161,27 @@ class PaymentSession internal constructor(
 
     fun getSdkAuthorization(): String {
         return sessionConfig?.sdkAuthorization ?: ""
+    }
+
+    /*** A builder class for creating instances of [PaymentSession].
+     *
+     * @param activity The activity that will host the payment sheet.
+     * @param publishableKey The publishable key for your Stripe account.
+     */
+    class Builder(private val activity: Activity, private val publishableKey: String) {
+        private var customBackendUrl: String? = null
+        private var customLogUrl: String? = null
+        private var customParams: Bundle? = null
+
+        fun customBackendUrl(url: String) = apply { this.customBackendUrl = url }
+        fun customLogUrl(url: String) = apply { this.customLogUrl = url }
+        fun customParams(params: Bundle) = apply { this.customParams = params }
+
+        fun build(): PaymentSession {
+            val launcher = DefaultPaymentSessionLauncher(
+                activity, publishableKey, customBackendUrl, customLogUrl, customParams
+            )
+            return PaymentSession(launcher, publishableKey, null)
+        }
     }
 }

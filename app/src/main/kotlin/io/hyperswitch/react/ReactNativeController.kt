@@ -12,14 +12,13 @@ import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
 import io.hyperswitch.BuildConfig
-import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.R
 import io.hyperswitch.logs.CrashHandler
 import io.hyperswitch.logs.HSLog
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogCategory
-import io.hyperswitch.logs.LogUtils
-import io.hyperswitch.logs.SDKEnvironment
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * ReactNativeController
@@ -35,10 +34,14 @@ import io.hyperswitch.logs.SDKEnvironment
  */
 object ReactNativeController {
 
-    private var reactNativeHost: ReactNativeHost? = null
-    private var reactHost: ReactHost? = null
     @Volatile
-    private var isInitialized = false
+    private var reactNativeHost = AtomicReference<ReactNativeHost?>(null)
+
+    @Volatile
+    private var reactHost = AtomicReference<ReactHost?>(null)
+
+    @Volatile
+    private var isInitialized = AtomicBoolean(false)
 
     /**
      * Resolves the JavaScript bundle path using Hyper Airborne OTA if available.
@@ -124,7 +127,7 @@ object ReactNativeController {
      * @return true if initialized, false otherwise
      */
     fun getIsInitialized(): Boolean {
-        return isInitialized
+        return isInitialized.get()
     }
 
     /**
@@ -134,7 +137,7 @@ object ReactNativeController {
      * @return ReactNativeHost
      */
     fun getReactNativeHost(): ReactNativeHost {
-        return checkNotNull(reactNativeHost) {
+        return checkNotNull(reactNativeHost.get()) {
             "ReactNative not initialized. Call ReactNativeController.initialize()"
         }
     }
@@ -146,7 +149,7 @@ object ReactNativeController {
      * @return ReactHost
      */
     fun getReactHost(): ReactHost {
-        return checkNotNull(reactHost) {
+        return checkNotNull(reactHost.get()) {
             "ReactNative not initialized. Call ReactNativeController.initialize()"
         }
     }
@@ -165,7 +168,7 @@ object ReactNativeController {
     fun initialize(application: Application) {
         try {
             synchronized(this) {
-                if (isInitialized) return
+                if (isInitialized.get()) return
 
                 Thread.setDefaultUncaughtExceptionHandler(
                     CrashHandler(application, BuildConfig.VERSION_NAME)
@@ -177,15 +180,16 @@ object ReactNativeController {
                     DefaultNewArchitectureEntryPoint.load()
                 }
 
-                reactNativeHost =
-                    createReactNativeHost(application)
+                reactNativeHost.set(createReactNativeHost(application))
 
-                reactHost = DefaultReactHost.getDefaultReactHost(
-                    application.applicationContext,
-                    reactNativeHost!!
+                reactHost.set(
+                    DefaultReactHost.getDefaultReactHost(
+                        application.applicationContext,
+                        reactNativeHost.get()!!,
+                    )
                 )
 
-                isInitialized = true
+                isInitialized.set(true)
             }
         } catch (e: Exception) {
             HyperLogManager.addLog(
