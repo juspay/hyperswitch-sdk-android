@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 
 class Elements internal constructor(
@@ -59,15 +60,33 @@ class Elements internal constructor(
         return hsElement
     }
 
-    suspend fun updateIntent(completion: suspend () -> PaymentSessionConfiguration): ElementsUpdateResult =
-        computeUpdateIntent(hsElements.toList(), completion)
+    fun unbind(boundElement: HyperswitchBoundElement) {
+        hsElements.remove(boundElement)
+    }
+
+    private val updateIntentInProgress = AtomicBoolean(false)
+
+    suspend fun updateIntent(completion: suspend () -> PaymentSessionConfiguration): ElementsUpdateResult {
+        if (!updateIntentInProgress.compareAndSet(false, true)) {
+            return ElementsUpdateResult.TotalFailure(
+                IllegalStateException("updateIntent already in progress").apply {
+                    initCause(Throwable("ALREADY_IN_PROGRESS"))
+                }
+            )
+        }
+        try {
+            return computeUpdateIntent(hsElements.toList(), completion)
+        } finally {
+            updateIntentInProgress.set(false)
+        }
+    }
 
     fun updateIntent(
         completion: suspend () -> PaymentSessionConfiguration,
         onResult: (ElementsUpdateResult) -> Unit
     ) {
         scope.launch {
-            onResult(computeUpdateIntent(hsElements.toList(), completion))
+            onResult(updateIntent(completion))
         }
     }
 
@@ -76,7 +95,6 @@ class Elements internal constructor(
         completion: suspend () -> PaymentSessionConfiguration
     ): ElementsUpdateResult {
         if (targets.isEmpty()) return ElementsUpdateResult.Success
-
         val initResults: List<Pair<HyperswitchBoundElement, Result<Unit>>> = coroutineScope {
             targets.map { hsElement ->
                 async {

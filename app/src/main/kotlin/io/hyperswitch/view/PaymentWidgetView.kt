@@ -86,11 +86,14 @@ class PaymentWidgetView : FrameLayout {
 //        initWidget( ?: "")
         // Auto-show widget if SDK authorization is already set
         if (!isSdkAuthorizationEmpty()) {
-            showWidgetInternal()
+            post { showWidgetInternal() }
         }
     }
 
     private fun init(context: Context) {
+        if (id == NO_ID) {
+            id = generateViewId()
+        }
         this.mContext = context
         launchOptions = LaunchOptions(context.applicationContext, BuildConfig.VERSION_NAME)
         this.publishableKey = PaymentConfiguration.publishableKey()
@@ -376,7 +379,9 @@ class PaymentWidgetView : FrameLayout {
             val activity = context as? FragmentActivity ?: return
             val tag = "HyperPaymentSheet_${this.id}"
             HyperFragmentManager.remove(activity, tag)
-            removeAllViews()
+            post {
+                removeAllViews()
+            }
             widgetShown = false
         } catch (_: Exception) {
             // Handle the errors

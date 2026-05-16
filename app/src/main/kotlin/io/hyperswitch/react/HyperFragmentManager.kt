@@ -75,13 +75,21 @@ object HyperFragmentManager {
         tag: String,
         addToBackStack: Boolean
     ) {
-        val fm: FragmentManager = activity.supportFragmentManager
+        try {
+            if (activity.isFinishing || activity.isDestroyed) return
+            if (container.parent == null || !container.isAttachedToWindow) return
+            if (fragment.isAdded) return
+
+            val fm: FragmentManager = activity.supportFragmentManager
 
         // Remove existing fragment with the same tag if present, including its back-stack entry
         // so that onDestroy is called and the React tree is fully released.
         val existing = fm.findFragmentByTag(tag)
         if (existing != null) {
             fm.popBackStackImmediate(tag, FragmentManager.POP_BACK_STACK_INCLUSIVE)
+            if (existing.isAdded) {
+                fm.beginTransaction().remove(existing).commitNowAllowingStateLoss()
+            }
             fragmentRegistry.remove(tag)
         }
 
@@ -91,9 +99,12 @@ object HyperFragmentManager {
 
         val tx = fm.beginTransaction().add(container.id, fragment, tag)
         if (addToBackStack) tx.addToBackStack(tag)
-        tx.commitAllowingStateLoss()
+        tx.commitNowAllowingStateLoss()
 
-        fragmentRegistry[tag] = fragment
+            fragmentRegistry[tag] = fragment
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     /**
@@ -115,7 +126,7 @@ object HyperFragmentManager {
             fm.popBackStackImmediate(tag, FragmentManager.POP_BACK_STACK_INCLUSIVE)
             // If still attached (was never on the back stack), remove it directly.
             if (fragment.isAdded) {
-                fm.beginTransaction().remove(fragment).commitAllowingStateLoss()
+                fm.beginTransaction().remove(fragment).commitNowAllowingStateLoss()
             }
         }
         fragmentRegistry.remove(tag)
