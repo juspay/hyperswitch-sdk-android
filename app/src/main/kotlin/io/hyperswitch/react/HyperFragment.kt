@@ -42,7 +42,8 @@ enum class CallbackType {
     CONFIRM_ACTION,
     CONFIRM_CVC_ACTION,
     UPDATE_INTENT_INIT,
-    UPDATE_INTENT_COMPLETE
+    UPDATE_INTENT_COMPLETE,
+    PAYMENT_CONFIRM_BUTTON_CLICK
 }
 
 
@@ -50,6 +51,9 @@ sealed class HyperCallback {
     class Payment(val fn: ((PaymentResult) -> Unit)) : HyperCallback()
     class UpdateIntentInit(val fn: (() -> Unit)?) : HyperCallback()
     class UpdateIntentComplete(val fn: ((ElementUpdateIntentResult) -> Unit)) : HyperCallback()
+    class ConfirmButtonTriggered(
+        val callback: (data: String, onPaymentResultCallback: (Boolean) -> Unit) -> Unit,
+    ) : HyperCallback()
 }
 
 class HyperFragment : ReactFragment() {
@@ -71,6 +75,12 @@ class HyperFragment : ReactFragment() {
 
     fun setOnPaymentResult(callback: ((PaymentResult) -> Unit)) {
         callbacks[CallbackType.PAYMENT_RESULT] = HyperCallback.Payment(callback)
+    }
+
+    fun setOnPaymentConfirmButtonClick(callback: (data: String, onPaymentResultCallback: ((Boolean) -> Unit)) -> Unit) {
+        callbacks[CallbackType.PAYMENT_CONFIRM_BUTTON_CLICK] = HyperCallback.ConfirmButtonTriggered(
+            callback
+        )
     }
 
     fun setOnEventCallback(listener: PaymentEventListener) {
@@ -199,6 +209,7 @@ class HyperFragment : ReactFragment() {
 
                 CallbackType.UPDATE_INTENT_INIT ->
                     (callbacks.remove(CallbackType.UPDATE_INTENT_INIT) as? HyperCallback.UpdateIntentInit)?.fn?.invoke()
+
                 CallbackType.UPDATE_INTENT_COMPLETE ->
                     (callbacks.remove(CallbackType.UPDATE_INTENT_COMPLETE) as? HyperCallback.UpdateIntentComplete)?.fn?.invoke(
                         parseElementUpdateResult(result)
@@ -223,6 +234,17 @@ class HyperFragment : ReactFragment() {
         } catch (e: Exception) {
             Log.e("HyperFragment", "Error in notifyResult", e)
         }
+    }
+
+    fun notifyConfirmButtonClicked(payload: String, callback: (Boolean) -> Unit) {
+        val confirmTriggeredCallback =
+            callbacks[CallbackType.PAYMENT_CONFIRM_BUTTON_CLICK] as HyperCallback.ConfirmButtonTriggered?
+        if(confirmTriggeredCallback == null){
+            callback.invoke(true)
+        }else {
+            confirmTriggeredCallback.callback.invoke(payload, callback)
+        }
+        callbacks.remove(CallbackType.CONFIRM_ACTION)
     }
 
     private fun parseElementUpdateResult(data: String): ElementUpdateIntentResult {
@@ -251,6 +273,7 @@ class HyperFragment : ReactFragment() {
                 throwable.initCause(Throwable(jsonObject.getString("code")))
                 PaymentResult.Failed(throwable)
             }
+
             else -> PaymentResult.Completed(status)
         }
         return result
@@ -356,7 +379,8 @@ class HyperFragment : ReactFragment() {
             callbacks.clear()
             onExit = null
             paymentEventListener = null
-        }catch(_: Exception){}
+        } catch (_: Exception) {
+        }
     }
 
     override fun onDestroy() {
@@ -366,13 +390,15 @@ class HyperFragment : ReactFragment() {
             callbacks.clear()
             onExit = null
             paymentEventListener = null
-        }catch(_ : Exception){}
+        } catch (_: Exception) {
+        }
     }
 
     override fun onPause() {
         try {
             super.onPause()
-        }catch(_: Exception){}
+        } catch (_: Exception) {
+        }
     }
 
     // ── Scroll fix ────────────────────────────────────────────────────────────

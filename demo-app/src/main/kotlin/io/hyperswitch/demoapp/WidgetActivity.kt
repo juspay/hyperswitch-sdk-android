@@ -125,7 +125,15 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             // All bindings share one Elements session — initialise once, bind sequentially.
             elements = hyperswitchInstance?.elements(sessionConfig)
             paymentSessionHandler = elements?.getPaymentSession()?.getCustomerSavedPaymentMethods()
-             paymentElementBound = elements?.bind(paymentElement, buildConfiguration())
+            paymentElementBound = elements?.bind(paymentElement, buildConfiguration())
+            paymentElementBound?.onPaymentResult(::handleResult)
+            paymentElementBound?.onPaymentConfirmButtonClick { data, onConfirmPaymentCallback ->
+                if (data != null && data.paymentMethodType == "google_pay"){
+                    onConfirmPaymentCallback(true)
+                    return@onPaymentConfirmButtonClick
+                }
+                throw Exception("Failed to work out payment method type")
+            }
             cvcWidgetBound = elements?.bind(cvcWidget) {
                 on(CvcWidgetEvents.CvcStatus) {
                     println(it)

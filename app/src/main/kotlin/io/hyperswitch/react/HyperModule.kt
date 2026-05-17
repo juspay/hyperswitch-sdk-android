@@ -58,6 +58,27 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
         // Express checkout widget height adjustment is not yet implemented.
     }
 
+    /**
+     * Called from JS when a wallet confirm button is tapped.
+     * Stores the callback; native later calls [resolveConfirmCallback] to proceed/abort.
+     */
+    @ReactMethod
+    fun onPaymentConfirmButtonClick(rootTag: Double, payload: String, callback: Callback) {
+        findViewWithRootTag(rootTag.toInt()) {
+            try {
+                if(it == null){
+                    callback.invoke(true)
+                }else {
+                    it.notifyConfirmButtonClicked(payload, { it: Boolean ->
+                        callback.invoke(it)
+                    })
+                }
+            } catch (_: Exception) {
+                callback.invoke(false)
+            }
+        }
+    }
+
     @ReactMethod
     fun sendMessageToNative(rnMessage: String) {
         val jsonObject = JSONObject(rnMessage)
@@ -135,16 +156,19 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     // Method to exit widget payment sheet
     @ReactMethod
     fun exitWidgetPaymentsheet(rootTag: Double, paymentResult: String, reset: Boolean) {
-        findFragmentWithRootTag(rootTag.toInt(), {
+        findViewWithRootTag(rootTag.toInt(), {
             it?.notifyResult(CallbackType.PAYMENT_RESULT, paymentResult)
         })
     }
 
     @ReactMethod
     fun notifyWidgetPaymentResult(rootTag: Double, result: String) {
-        findFragmentWithRootTag(rootTag.toInt(), { fragment ->
+        findViewWithRootTag(rootTag.toInt(), { fragment ->
             if (fragment == null) {
-                Log.w("HyperModule", "notifyWidgetPaymentResult: no fragment found for rootTag=$rootTag")
+                Log.w(
+                    "HyperModule",
+                    "notifyWidgetPaymentResult: no fragment found for rootTag=$rootTag"
+                )
             } else {
                 fragment.notifyResult(CallbackType.CONFIRM_ACTION, result)
             }
@@ -153,10 +177,10 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
 
     @ReactMethod
     fun onUpdateIntentEvent(rootTag: Double, type: String, result: String) {
-        findFragmentWithRootTag(rootTag.toInt(), { fragment ->
+        findViewWithRootTag(rootTag.toInt(), { fragment ->
             if (fragment == null) {
                 Log.w("HyperModule", "onUpdateIntentEvent: no fragment found for rootTag=$rootTag")
-                return@findFragmentWithRootTag
+                return@findViewWithRootTag
             }
             if (type == "UPDATE_INTENT_INIT_RETURNED") {
                 fragment.notifyResult(CallbackType.UPDATE_INTENT_INIT, result)
@@ -165,6 +189,7 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
             }
         })
     }
+
     // Variable to keep track of event listener count
     private val listenerCount = AtomicInteger(0)
 
@@ -177,7 +202,7 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
         }
     }
 
-// Method to remove event listeners
+    // Method to remove event listeners
     @ReactMethod
     fun removeListeners(count: Int) {
         listenerCount.addAndGet(-count)
@@ -185,7 +210,7 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
 
     @ReactMethod
     fun emitPaymentEvent(rootTag: Double, eventType: String, payload: ReadableMap) {
-        findFragmentWithRootTag(rootTag.toInt(), { fragment ->
+        findViewWithRootTag(rootTag.toInt(), { fragment ->
             if (fragment == null) {
                 Log.w("HyperModule", "emitPaymentEvent: no fragment found for rootTag=$rootTag")
             } else {
@@ -194,7 +219,7 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
         })
     }
 
-    private fun findFragmentWithRootTag(rootTag: Int, onFound: (HyperFragment?) -> Unit) {
+    private fun findViewWithRootTag(rootTag: Int, onFound: (HyperFragment?) -> Unit) {
         val uiManagerModule =
             reactApplicationContext.getNativeModule<UIManagerModule?>(UIManagerModule::class.java)
 
