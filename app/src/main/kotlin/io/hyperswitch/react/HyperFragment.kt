@@ -83,6 +83,10 @@ class HyperFragment : ReactFragment() {
             callback?.invoke()
             return
         }
+        if (callbacks[CallbackType.UPDATE_INTENT_INIT] != null) {
+            callback?.invoke()
+            return
+        }
         callbacks[CallbackType.UPDATE_INTENT_INIT] = HyperCallback.UpdateIntentInit(callback)
         reactNativeHost.reactInstanceManager.currentReactContext
             ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
@@ -349,6 +353,9 @@ class HyperFragment : ReactFragment() {
     override fun onDestroyView() {
         try {
             super.onDestroyView()
+            callbacks.clear()
+            onExit = null
+            paymentEventListener = null
         }catch(_: Exception){}
     }
 
@@ -357,6 +364,8 @@ class HyperFragment : ReactFragment() {
             super.onDestroy()
             unRegisterEventBus()
             callbacks.clear()
+            onExit = null
+            paymentEventListener = null
         }catch(_ : Exception){}
     }
 

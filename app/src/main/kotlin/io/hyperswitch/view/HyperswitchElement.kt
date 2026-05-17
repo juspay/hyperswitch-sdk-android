@@ -158,4 +158,8 @@ open class HyperswitchElement @JvmOverloads constructor(
             }
         }
     }
+
+    fun destroy() {
+        internalView.removeWidget()
+    }
 }

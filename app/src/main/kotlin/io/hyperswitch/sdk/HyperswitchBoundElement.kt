@@ -75,4 +75,8 @@ class HyperswitchBoundElement internal constructor(
     suspend fun updateIntentComplete(sdkAuthorization: String): ElementUpdateIntentResult {
         return element.updateIntentComplete(sdkAuthorization)
     }
+
+    fun destroy() {
+        element.onPaymentResult(PaymentResultListener { /* disposed - no-op */ })
+    }
 }
