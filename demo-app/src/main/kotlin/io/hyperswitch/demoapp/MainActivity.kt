@@ -11,7 +11,6 @@ import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
-import androidx.core.graphics.toColorInt
 import androidx.lifecycle.lifecycleScope
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
@@ -19,7 +18,6 @@ import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsession.PMError
-import io.hyperswitch.paymentsheet.AddressDetails
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.sdk.HyperInterface
@@ -155,40 +153,8 @@ class MainActivity : AppCompatActivity(), HyperInterface {
 
     // ── Configuration ──────────────────────────────────────────────────────────────────────────
 
-    private fun buildConfiguration(): PaymentSheet.Configuration {
-        val address = PaymentSheet.Address.Builder()
-            .city("city").country("US").line1("US").line2("line2")
-            .postalCode("560060").state("California").build()
-
-        val billingDetails = PaymentSheet.BillingDetails.Builder()
-            .address(address).email("email.com").name("John Doe").phone("1234123443").build()
-
-        val shippingDetails = AddressDetails("Shipping Inc.", address, "6205007614", true)
-
-        val appearance = PaymentSheet.Appearance(theme = PaymentSheet.Theme.Light)
-
-        val wallets = PaymentSheet.WalletConfiguration(
-            googlePay = PaymentSheet.WalletShowType.Auto,
-            style = PaymentSheet.WalletStyle(theme = PaymentSheet.WalletTheme.Dark, height = 52),
-        )
-
-        return PaymentSheet.Configuration.Builder("Example, Inc.")
-            .appearance(appearance)
-            .wallets(wallets)
-            .defaultBillingDetails(billingDetails)
-            .primaryButtonLabel("Purchase ($2.00)")
-            .paymentSheetHeaderLabel("Select payment method")
-            .savedPaymentSheetHeaderLabel("Payment methods")
-            .shippingDetails(shippingDetails)
-            .allowsPaymentMethodsRequiringShippingAddress(false)
-            .allowsDelayedPaymentMethods(true)
-            .displaySavedPaymentMethodsCheckbox(true)
-            .displaySavedPaymentMethods(true)
-            .disableBranding(true)
-            .showVersionInfo(true)
-            .also { builder -> netceteraApiKey?.let { builder.netceteraSDKApiKey(it) } }
-            .build()
-    }
+    private fun buildConfiguration(): PaymentSheet.Configuration =
+        buildDemoConfiguration(netceteraApiKey)
 
     // ── Result handling ────────────────────────────────────────────────────────────────────────
 

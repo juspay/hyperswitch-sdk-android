@@ -185,10 +185,10 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
                 it
             )
             bundle.getBundle("props")?.getBundle("configuration")?.getBundle("appearance")
-                ?.getBundle("typography")?.let { typography ->
-                    typography.remove("fontResId")
-                    typography.putString(
-                        "fontResId",
+                ?.getBundle("font")?.let { font ->
+                    font.remove("fontResId")
+                    font.putString(
+                        "family",
                         activity.resources.getResourceName(it).toString().split("/")[1]
                     )
                 }
@@ -200,11 +200,11 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
                 activity.resources.getResourceName(it).toString().split("/")[1],
                 it
             )
-            bundle.getBundle("configuration")?.getBundle("appearance")?.getBundle("primaryButton")
-                ?.getBundle("typography")?.let { typography ->
+            bundle.getBundle("props")?.getBundle("configuration")?.getBundle("appearance")
+                ?.getBundle("primaryButton")?.getBundle("typography")?.let { typography ->
                     typography.remove("fontResId")
                     typography.putString(
-                        "fontResId",
+                        "family",
                         activity.resources.getResourceName(it).toString().split("/")[1]
                     )
                 }
@@ -213,18 +213,18 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
 
     private fun bottomInsetToDIPFromPixel(bundle: Bundle): Bundle {
         val propsBundle = bundle.getBundle("props")
-        val hyperParamsBundle = propsBundle?.getBundle("hyperParams")
-        hyperParamsBundle?.getFloat("topInset")?.let { dipValue ->
-            hyperParamsBundle.putFloat("topInset", PixelUtil.toDIPFromPixel(dipValue))
+        val sdkParamsBundle = propsBundle?.getBundle("sdkParams")
+        sdkParamsBundle?.getFloat("topInset")?.let { dipValue ->
+            sdkParamsBundle.putFloat("topInset", PixelUtil.toDIPFromPixel(dipValue))
         }
-        hyperParamsBundle?.getFloat("leftInset")?.let { dipValue ->
-            hyperParamsBundle.putFloat("leftInset", PixelUtil.toDIPFromPixel(dipValue))
+        sdkParamsBundle?.getFloat("leftInset")?.let { dipValue ->
+            sdkParamsBundle.putFloat("leftInset", PixelUtil.toDIPFromPixel(dipValue))
         }
-        hyperParamsBundle?.getFloat("rightInset")?.let { dipValue ->
-            hyperParamsBundle.putFloat("rightInset", PixelUtil.toDIPFromPixel(dipValue))
+        sdkParamsBundle?.getFloat("rightInset")?.let { dipValue ->
+            sdkParamsBundle.putFloat("rightInset", PixelUtil.toDIPFromPixel(dipValue))
         }
-        hyperParamsBundle?.getFloat("bottomInset")?.let { dipValue ->
-            hyperParamsBundle.putFloat("bottomInset", PixelUtil.toDIPFromPixel(dipValue))
+        sdkParamsBundle?.getFloat("bottomInset")?.let { dipValue ->
+            sdkParamsBundle.putFloat("bottomInset", PixelUtil.toDIPFromPixel(dipValue))
         }
         return bundle
     }

@@ -5,7 +5,6 @@ import android.util.Log
 import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.graphics.toColorInt
 import androidx.lifecycle.lifecycleScope
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
@@ -145,42 +144,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
 
     // ── Configuration ──────────────────────────────────────────────────────────────────────────
 
-    private fun buildConfiguration(): PaymentSheet.Configuration {
-        val address = PaymentSheet.Address.Builder()
-            .city("city").country("US").line1("US").line2("line2")
-            .postalCode("560060").state("California").build()
-
-        val billingDetails = PaymentSheet.BillingDetails.Builder()
-            .address(address).email("email.com").name("John Doe").phone("1234123443").build()
-
-        val appearance = PaymentSheet.Appearance(
-            typography = PaymentSheet.Typography(sizeScaleFactor = 1f, fontResId = R.font.montserrat),
-            primaryButton = PaymentSheet.PrimaryButton(shape = PaymentSheet.PrimaryButtonShape(32f, 0f)),
-            colorsLight = PaymentSheet.Colors(
-                primary = "#8DBD00".toColorInt(),
-                surface = "#F5F8F9".toColorInt(),
-            ),
-            colorsDark = PaymentSheet.Colors(
-                primary = "#8DBD00".toColorInt(),
-                surface = "#F5F8F9".toColorInt(),
-            ),
-            theme = PaymentSheet.Theme.Light,
-        )
-
-        return PaymentSheet.Configuration.Builder("Example, Inc.")
-            .appearance(appearance)
-            .defaultBillingDetails(billingDetails)
-            .primaryButtonLabel("Purchase ($2.00)")
-            .paymentSheetHeaderLabel("Select payment method")
-            .savedPaymentSheetHeaderLabel("Payment methods")
-            .allowsPaymentMethodsRequiringShippingAddress(false)
-            .allowsDelayedPaymentMethods(true)
-            .displaySavedPaymentMethodsCheckbox(true)
-            .displaySavedPaymentMethods(true)
-            .disableBranding(true)
-            .showVersionInfo(true)
-            .build()
-    }
+    private fun buildConfiguration(): PaymentSheet.Configuration = buildDemoConfiguration()
 
     // ── Button wiring ──────────────────────────────────────────────────────────────────────────
 

@@ -7,8 +7,6 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.JavascriptInterface
-import android.webkit.WebView
 import io.hyperswitch.payments.GooglePayCallbackManager
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
 import io.hyperswitch.webview.utils.Arguments
@@ -17,6 +15,136 @@ import io.hyperswitch.webview.utils.HSWebViewManagerImpl
 import io.hyperswitch.webview.utils.HSWebViewWrapper
 import io.hyperswitch.webview.utils.ReadableArray
 import org.json.JSONObject
+
+open class WebViewFragment : Fragment() {
+
+    private lateinit var hSWebViewManagerImpl: HSWebViewManagerImpl
+    private lateinit var hSWebViewWrapper: HSWebViewWrapper
+
+    // URL
+    private lateinit var bundleUrl: String
+
+    private var requestBody: ReadableArray? = null
+    private var sdkLoaded: Boolean = false
+
+    @Deprecated("Deprecated in Java")
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        bundleUrl = getString(R.string.webViewUrl)
+
+        hSWebViewManagerImpl = HSWebViewManagerImpl(activity, onMessage)
+        hSWebViewWrapper = hSWebViewManagerImpl.createViewInstance()
+
+        hSWebViewManagerImpl.setJavaScriptEnabled(hSWebViewWrapper, true)
+        hSWebViewManagerImpl.setMessagingEnabled(hSWebViewWrapper, true)
+        hSWebViewManagerImpl.setScalesPageToFit(hSWebViewWrapper, true)
+
+        loadUrl()
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View = hSWebViewWrapper
+
+    private fun loadUrl() {
+        val map = Arguments.createMap()
+        map.putString("uri", bundleUrl)
+        hSWebViewManagerImpl.loadSource(hSWebViewWrapper, map)
+    }
+
+    fun exitPaymentSheet(data: JSONObject) {
+        PaymentSheetCallbackManager.executeCallback(data.toString())
+        loadUrl()
+        activity.fragmentManager
+            .beginTransaction()
+            .detach(this@WebViewFragment)
+            .commit()
+    }
+
+    fun launchGPay(data: JSONObject) {
+        GooglePayCallbackManager.setCallback(
+            context,
+            data.toString(),
+            ::sendResultToWebView,
+        )
+    }
+
+    fun sdkInitialised(data: JSONObject) {
+        sdkLoaded = data.getBoolean("sdkLoaded")
+        requestBody?.let {
+            hSWebViewManagerImpl.receiveCommand(hSWebViewWrapper, "injectJavaScript", it)
+        }
+    }
+
+    fun launchScanCard(@Suppress("UNUSED_PARAMETER") data: JSONObject) {
+        // Scan card is handled via optional dependency injection at the app level.
+    }
+
+    val onMessage = object : Callback {
+        override fun invoke(args: Map<String, Any?>) {
+            println(args)
+            (args["data"] as? String)?.let {
+                val jsonObject = JSONObject(it)
+
+                if (jsonObject.has("sdkInitialised")) {
+                    sdkInitialised(jsonObject.getJSONObject("sdkInitialised"))
+                }
+
+                if (jsonObject.has("exitPaymentSheet")) {
+                    exitPaymentSheet(jsonObject.getJSONObject("exitPaymentSheet"))
+                }
+
+                if (jsonObject.has("launchGPay")) {
+                    launchGPay(jsonObject.getJSONObject("launchGPay"))
+                }
+
+                if (jsonObject.has("launchScanCard")) {
+                    launchScanCard(jsonObject.getJSONObject("launchScanCard"))
+                }
+            }
+        }
+    }
+
+    /**
+     * Sends a result to the WebView using JavaScript.
+     *
+     * @param result The result to send.
+     */
+    private fun sendResultToWebView(result: Map<String, Any?>) {
+        try {
+            val javascriptFunction =
+                """window.postMessage(JSON.stringify({"googlePayData": ${JSONObject(result)}}), '*');""".trimIndent()
+
+            val args = Arguments.createArray()
+            args.pushString(javascriptFunction)
+            hSWebViewManagerImpl.receiveCommand(hSWebViewWrapper, "injectJavaScript", args)
+        } catch (e: Exception) {
+            Log.e("WebViewFragment", "Error sending result to WebView", e)
+        }
+    }
+
+    /**
+     * Sends a request body to the WebView using JavaScript.
+     *
+     * @param requestBody The request body to send.
+     */
+    fun setRequestBody(requestBody: String) {
+        val jsCode =
+            """window.postMessage('{"initialProps":$requestBody}', '*');""".trimIndent()
+
+        val args = Arguments.createArray()
+        args.pushString(jsCode)
+        this.requestBody = args
+
+        if (sdkLoaded) {
+            hSWebViewManagerImpl.receiveCommand(hSWebViewWrapper, "injectJavaScript", args)
+        }
+    }
+}
+
 
 open class WebViewFragment : Fragment() {
     private fun isScanCardAvailable(): Boolean =
