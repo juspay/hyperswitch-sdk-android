@@ -63,10 +63,10 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
      * Stores the callback; native later calls [resolveConfirmCallback] to proceed/abort.
      */
     @ReactMethod
-    fun onPaymentConfirmButtonCallback(rootTag: Double, payload: String, callback: Callback) {
+    fun onPaymentConfirmButtonClick(rootTag: Double, payload: String, callback: Callback) {
         findViewWithRootTag(rootTag.toInt()) {
             try {
-                it?.notifyConfirmButtonTriggered(payload, { it: Boolean ->
+                it?.notifyConfirmButtonClicked(payload, { it: Boolean ->
                     callback.invoke(it)
                 })
             } catch (_: Exception) {

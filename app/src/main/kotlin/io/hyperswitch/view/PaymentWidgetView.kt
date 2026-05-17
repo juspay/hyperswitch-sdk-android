@@ -46,7 +46,7 @@ fun interface PaymentResultListener {
     fun onPaymentResult(result: PaymentResult)
 }
 
-fun interface ConfirmPaymentCallbackListener {
+fun interface ConfirmPaymentClickListener {
     fun onConfirmPaymentCallback(data: String, onPaymentResultCallback: (Boolean) -> Unit)
 }
 
@@ -67,7 +67,7 @@ class PaymentWidgetView : FrameLayout {
 
     private var resultListener: PaymentResultListener? = null
 
-    private var confirmPaymentListener: ConfirmPaymentCallbackListener? = null
+    private var confirmPaymentClickListener: ConfirmPaymentClickListener? = null
     private var subscribedEvents: List<String> = emptyList()
 
     private var onEventCallback: PaymentEventListener? = null
@@ -215,37 +215,37 @@ class PaymentWidgetView : FrameLayout {
         resultListener?.onPaymentResult(result)
     }
 
-    fun onPaymentConfirmButtonCallback(
+    fun onPaymentConfirmButtonClick(
         callback: (
             data: PaymentRequestData?,
             onPaymentResultCallback: (Boolean) -> Unit
         ) -> Unit
     ) {
-        confirmPaymentListener = ConfirmPaymentCallbackListener { data, onPaymentResultCallback ->
+        confirmPaymentClickListener = ConfirmPaymentClickListener { data, onPaymentResultCallback ->
             callback(PaymentRequestData.parse(data), onPaymentResultCallback)
         }
     }
 
-    fun onPaymentConfirmButtonCallbackWithMap(
+    fun onPaymentConfirmButtonClickWithMap(
         callback: (
             data: Map<String, Any?>,
             onPaymentResultCallback: (Boolean) -> Unit
         ) -> Unit
     ) {
-        confirmPaymentListener = ConfirmPaymentCallbackListener { data, onPaymentResultCallback ->
+        confirmPaymentClickListener = ConfirmPaymentClickListener { data, onPaymentResultCallback ->
             callback(PaymentRequestData.toMap(data), onPaymentResultCallback)
         }
     }
 
-    fun onPaymentConfirmButtonCallback(listener: ConfirmPaymentCallbackListener) {
-        confirmPaymentListener = listener
+    fun onPaymentConfirmButtonClick(listener: ConfirmPaymentClickListener) {
+        confirmPaymentClickListener = listener
     }
 
     private fun dispatchConfirmTriggered(
         data: String,
         onPaymentResultCallback: (Boolean) -> Unit
     ) {
-        confirmPaymentListener?.onConfirmPaymentCallback(data, onPaymentResultCallback)
+        confirmPaymentClickListener?.onConfirmPaymentCallback(data, onPaymentResultCallback)
     }
 
     fun onEvent(listener: PaymentEventListener) {
@@ -384,7 +384,7 @@ class PaymentWidgetView : FrameLayout {
             frameLayout.post { this.getFragment()?.view?.requestLayout() }
         }
         this.fragment?.setOnPaymentResult(::dispatchResult)
-        this.fragment?.setOnPaymentConfirmButtonCallback(::dispatchConfirmTriggered)
+        this.fragment?.setOnPaymentConfirmButtonClick(::dispatchConfirmTriggered)
         onEventCallback?.let { this.fragment?.setOnEventCallback(it) }
         this.fragment?.setOnExit {
             removeWidget()
