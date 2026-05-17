@@ -20,6 +20,7 @@ import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.paymentsession.LaunchOptions
+import io.hyperswitch.paymentsheet.PaymentRequestData
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperFragment
@@ -45,11 +46,15 @@ fun interface PaymentResultListener {
     fun onPaymentResult(result: PaymentResult)
 }
 
+fun interface ConfirmPaymentCallbackListener {
+    fun onConfirmPaymentCallback(data: String, onPaymentResultCallback: (Boolean) -> Unit)
+}
+
+
 /**
  * Extension function to convert PaymentSheet.Configuration to Map<String, Any>.
  * TODO: Fill in the actual mapping implementation.
  */
-fun PaymentSheet.Configuration.toMap(): Map<String, Any> = emptyMap()
 
 class PaymentWidgetView : FrameLayout {
     private var widgetConfig: PaymentWidgetConfig? = null
@@ -61,6 +66,8 @@ class PaymentWidgetView : FrameLayout {
     private var sdkAuthorization: String = ""
 
     private var resultListener: PaymentResultListener? = null
+
+    private var confirmPaymentListener: ConfirmPaymentCallbackListener? = null
     private var subscribedEvents: List<String> = emptyList()
 
     private var onEventCallback: PaymentEventListener? = null
@@ -164,9 +171,11 @@ class PaymentWidgetView : FrameLayout {
             }
 
             is PaymentWidgetConfig.ReactNative -> {
-                val configMap = io.hyperswitch.utils.ConversionUtils.readableMapToMap(c.configuration as com.facebook.react.bridge.ReadableMap)
+                val configMap =
+                    io.hyperswitch.utils.ConversionUtils.readableMapToMap(c.configuration as com.facebook.react.bridge.ReadableMap)
                 this.launchOptions.toBundle(configMap)
             }
+
             null -> null
         }
     }
@@ -204,6 +213,39 @@ class PaymentWidgetView : FrameLayout {
     /** Dispatches the result to the registered listener */
     private fun dispatchResult(result: PaymentResult) {
         resultListener?.onPaymentResult(result)
+    }
+
+    fun onPaymentConfirmButtonCallback(
+        callback: (
+            data: PaymentRequestData?,
+            onPaymentResultCallback: (Boolean) -> Unit
+        ) -> Unit
+    ) {
+        confirmPaymentListener = ConfirmPaymentCallbackListener { data, onPaymentResultCallback ->
+            callback(PaymentRequestData.parse(data), onPaymentResultCallback)
+        }
+    }
+
+    fun onPaymentConfirmButtonCallbackWithMap(
+        callback: (
+            data: Map<String, Any?>,
+            onPaymentResultCallback: (Boolean) -> Unit
+        ) -> Unit
+    ) {
+        confirmPaymentListener = ConfirmPaymentCallbackListener { data, onPaymentResultCallback ->
+            callback(PaymentRequestData.toMap(data), onPaymentResultCallback)
+        }
+    }
+
+    fun onPaymentConfirmButtonCallback(listener: ConfirmPaymentCallbackListener) {
+        confirmPaymentListener = listener
+    }
+
+    private fun dispatchConfirmTriggered(
+        data: String,
+        onPaymentResultCallback: (Boolean) -> Unit
+    ) {
+        confirmPaymentListener?.onConfirmPaymentCallback(data, onPaymentResultCallback)
     }
 
     fun onEvent(listener: PaymentEventListener) {
@@ -254,11 +296,12 @@ class PaymentWidgetView : FrameLayout {
                 this.sdkAuthorization = it
             }
             this.fragment?.updatePaymentIntentComplete(sdkAuthorization, callback)
-                ?: callback(ElementUpdateIntentResult.Failure(
-                    Throwable("Fragment not attached").apply {
-                        initCause(Throwable("FRAGMENT_NOT_ATTACHED"))
-                    }
-                ))
+                ?: callback(
+                    ElementUpdateIntentResult.Failure(
+                        Throwable("Fragment not attached").apply {
+                            initCause(Throwable("FRAGMENT_NOT_ATTACHED"))
+                        }
+                    ))
         } else {
             callback(ElementUpdateIntentResult.Success)
         }
@@ -279,10 +322,12 @@ class PaymentWidgetView : FrameLayout {
             "paymentMethodsManagement",
             "headless",
             "expressCheckout" -> return true
+
             "cvcWidget" -> return false
             else -> return false
         }
     }
+
     fun confirmCvcPayment(
         sdkAuthorization: String,
         paymentToken: String,
@@ -338,7 +383,8 @@ class PaymentWidgetView : FrameLayout {
 
             frameLayout.post { this.getFragment()?.view?.requestLayout() }
         }
-        this.fragment?.setOnPaymentResult { result -> dispatchResult(result) }
+        this.fragment?.setOnPaymentResult(::dispatchResult)
+        this.fragment?.setOnPaymentConfirmButtonCallback(::dispatchConfirmTriggered)
         onEventCallback?.let { this.fragment?.setOnEventCallback(it) }
         this.fragment?.setOnExit {
             removeWidget()

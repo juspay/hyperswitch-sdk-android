@@ -2,6 +2,7 @@ package io.hyperswitch.sdk
 
 import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.model.ElementUpdateIntentResult
+import io.hyperswitch.paymentsheet.PaymentRequestData
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.utils.ConversionUtils
@@ -56,6 +57,14 @@ class HyperswitchBoundElement internal constructor(
 
     fun onPaymentResult(onResult: (PaymentResult) -> Unit) {
         element.onPaymentResult(onResult)
+    }
+
+    fun onPaymentConfirmButton(
+        onConfirmButtonClick:
+            (data: PaymentRequestData?,
+             onPaymentResultCallback: (Boolean) -> Unit)
+        -> Unit){
+        element.onPaymentConfirmButtonCallback(onConfirmButtonClick)
     }
 
     suspend fun confirmPayment(): PaymentResult {

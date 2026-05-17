@@ -6,6 +6,7 @@ import android.widget.FrameLayout
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.ElementUpdateIntentResult
+import io.hyperswitch.paymentsheet.PaymentRequestData
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 import kotlinx.coroutines.CoroutineScope
@@ -76,6 +77,11 @@ open class HyperswitchElement @JvmOverloads constructor(
      */
     fun confirmPayment(callback: (PaymentResult) -> Unit) {
         internalView.confirmPayment(callback)
+    }
+
+
+    fun onPaymentConfirmButtonCallback(callback: (data: PaymentRequestData?, onPaymentResultCallback: (Boolean) -> Unit) -> Unit){
+        internalView.onPaymentConfirmButtonCallback(callback)
     }
 
     /**

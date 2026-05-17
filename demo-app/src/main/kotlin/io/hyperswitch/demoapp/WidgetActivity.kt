@@ -126,6 +126,14 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             elements = hyperswitchInstance?.elements(sessionConfig)
             paymentSessionHandler = elements?.getPaymentSession()?.getCustomerSavedPaymentMethods()
              paymentElementBound = elements?.bind(paymentElement, buildConfiguration())
+            paymentElementBound?.onPaymentResult(::handleResult)
+//            paymentElementBound?.onPaymentConfirmButton { data, onPaymentResultCallback ->
+//                if (data != null && data.paymentMethodType == "google_pay"){
+//                    onPaymentResultCallback(true)
+//                    return@onPaymentConfirmButton
+//                }
+//                throw Exception("Failed to work out payment method type")
+//            }
             cvcWidgetBound = elements?.bind(cvcWidget) {
                 on(CvcWidgetEvents.CvcStatus) {
                     println(it)
