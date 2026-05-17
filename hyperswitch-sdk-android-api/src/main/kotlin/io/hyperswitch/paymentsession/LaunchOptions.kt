@@ -18,7 +18,7 @@ class LaunchOptions(
     private val sdkVersion: String
 ) {
 
-    private fun getHyperParams(): Bundle =
+    private fun getSdkParams(): Bundle =
         Bundle().apply {
             putString("appId", context?.packageName)
             putString("country", context?.resources?.configuration?.locales?.get(0)?.country)
@@ -29,6 +29,8 @@ class LaunchOptions(
             putString("os_type", "android")
             putString("os_version", Build.VERSION.RELEASE)
             putString("deviceBrand", Build.BRAND)
+            putString("sessionId", "")
+            putBoolean("confirm", false)
             val edgeInsets = getBottomInset(context)
             if(edgeInsets!=null) {
                 putFloat("topInset", edgeInsets.top)
@@ -38,8 +40,8 @@ class LaunchOptions(
             }
         }
 
-    private fun getHyperParamsMap(map: Map<*, *>): Map<*, *> =
-        (map["hyperParams"] as? Map<*, *> ?: mutableMapOf<String, Any?>()).apply {
+    private fun getSdkParamsMap(map: Map<*, *>): Map<*, *> =
+        (map["sdkParams"] as? Map<*, *> ?: mutableMapOf<String, Any?>()).apply {
             plus(Pair("appId", context?.packageName))
             plus(Pair("country", context?.resources?.configuration?.locales?.get(0)?.country))
             plus(Pair("user-agent", getUserAgent(context)))
@@ -49,6 +51,8 @@ class LaunchOptions(
             plus(Pair("os_type", "android"))
             plus(Pair("os_version", Build.VERSION.RELEASE))
             plus(Pair("deviceBrand",Build.BRAND))
+            plus(Pair("sessionId", ""))
+            plus(Pair("confirm", false))
             val edgeInsets = getBottomInset(context)
             if(edgeInsets!=null) {
                 plus(Pair("topInset", edgeInsets.top))
@@ -73,21 +77,24 @@ class LaunchOptions(
     ): Bundle = Bundle().apply {
         putBundle("props", Bundle().apply {
             putString("type", "payment")
-            putString(
-                "publishableKey",
-                PaymentConfiguration.getInstance(context).publishableKey
-            )
-            putString("sdkAuthorization", sdkAuthorization)
-            putString(
-                "customBackendUrl",
-                PaymentConfiguration.getInstance(context).customBackendUrl
-            )
+            putBundle("hyperswitchConfig", Bundle().apply {
+                putString("publishableKey", PaymentConfiguration.getInstance(context).publishableKey)
+                putString("profileId", null)
+            })
+            putBundle("paymentSessionConfig", Bundle().apply {
+                putString("sdkAuthorization", sdkAuthorization)
+            })
+            putString("customBackendUrl", PaymentConfiguration.getInstance(context).customBackendUrl)
             putString("customLogUrl", PaymentConfiguration.getInstance(context).customLogUrl)
             putString("theme", configuration?.appearance?.theme?.name)
             putBundle("customParams", PaymentConfiguration.getInstance(context).customParams)
-            putBundle("configuration", configuration?.bundle)
-            putBundle("hyperParams", getHyperParams())
-            putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
+            // Inject subscribedEvents into the configuration bundle
+            val configBundle = configuration?.bundle ?: Bundle()
+            if (subscribedEvents.isNotEmpty()) {
+                configBundle.putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
+            }
+            putBundle("configuration", configBundle)
+            putBundle("sdkParams", getSdkParams())
         })
     }
 
@@ -105,37 +112,36 @@ class LaunchOptions(
         putBundle("props", Bundle().apply {
             putString("type", type)
             putString("from", from)
-            putString("publishableKey", publishableKey ?: "")
-            putString("sdkAuthorization", sdkAuthorization?:"")
-            val configCopy =  configuration?.let { Bundle(it) }
+            putBundle("hyperswitchConfig", Bundle().apply {
+                putString("publishableKey", publishableKey ?: "")
+            })
+            putBundle("paymentSessionConfig", Bundle().apply {
+                putString("sdkAuthorization", sdkAuthorization ?: "")
+            })
+            val configCopy = configuration?.let { Bundle(it) }
             if (configCopy?.containsKey("hideConfirmButton") == false) {
                 configCopy.putBoolean("hideConfirmButton", true)
+            }
+            if (subscribedEvents.isNotEmpty()) {
+                configCopy?.putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
+            } else if (configCopy?.containsKey("subscribedEvents") == true) {
+                // already in configCopy — leave it there
             }
             putBundle("configuration", configCopy)
             val theme = configCopy?.getBundle("appearance")?.getString("theme")
             putString("theme", theme)
             customBackendUrl?.let { url -> putString("customBackendUrl", url) }
             customLogUrl?.let { url -> putString("customLogUrl", url) }
-            if (subscribedEvents.isNotEmpty()) {
-                putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
-            } else if (configCopy?.containsKey("subscribedEvents") == true) {
-                val subscribedEventsArray = configCopy["subscribedEvents"] as? List<*>
-                if (subscribedEventsArray != null) {
-                    putSerializable("subscribedEvents", ArrayList(subscribedEventsArray))
-                }
-            }
             customParams?.let { params ->
-                putBundle(
-                    "customParams", toBundle(params)
-                )
+                putBundle("customParams", toBundle(params))
             }
-            putBundle("hyperParams", getHyperParams())
+            putBundle("sdkParams", getSdkParams())
         })
     }
 
     fun getBundleWithHyperParams(readableMap: Map<*, *>, subscribedEvents: List<String> = emptyList()): Bundle = Bundle().apply {
         putBundle("props", toBundle(readableMap).apply {
-            putBundle("hyperParams", getHyperParams())
+            putBundle("sdkParams", getSdkParams())
             putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
         })
     }
@@ -150,7 +156,7 @@ class LaunchOptions(
 
     private fun getMapWithHyperParams(map: Map<*, *>): Map<*, *> = mapOf(
         "props" to map.apply {
-            plus(Pair("hyperParams", getHyperParamsMap(map)))
+            plus(Pair("sdkParams", getSdkParamsMap(map)))
         }
     )
 

@@ -3,7 +3,7 @@ package io.hyperswitch.lite
 import android.app.Activity
 import androidx.core.view.WindowCompat
 import io.hyperswitch.paymentsession.LaunchOptions
-import io.hyperswitch.paymentsession.SDKInterface
+import io.hyperswitch.paymentsession.PresentationInterface
 import io.hyperswitch.paymentsheet.PaymentSheet
 
 /**
@@ -14,7 +14,7 @@ import io.hyperswitch.paymentsheet.PaymentSheet
  */
 class WebViewUtils(
     private val activity: Activity,
-) : SDKInterface {
+) : PresentationInterface {
     /**
      * The WebViewFragment used for displaying payment sheets.
      *
@@ -34,10 +34,6 @@ class WebViewUtils(
      * The LaunchOptions used for configuring the payment sheet.
      */
     private val launchOptions = LaunchOptions(activity, BuildConfig.VERSION_NAME)
-
-    override fun initializeReactNativeInstance() {}
-
-    override fun recreateReactContext() {}
 
     /**
      * Presents a payment sheet with the given payment intent client secret and configuration.

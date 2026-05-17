@@ -43,7 +43,17 @@ class DefaultPaymentSessionLauncher(
 
     override fun initPaymentSession(sdkAuthorization: String) {
         super.initPaymentSession(sdkAuthorization)
+        // Keep companion copy for PaymentSessionReactLauncher.invokeStartTask which
+        // needs static access from a listener lambda.
         Companion.sdkAuthorization = sdkAuthorization
+    }
+
+    private fun applySubscription(subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?) {
+        subscribe ?: return
+        val builder = PaymentEventSubscriptionBuilder()
+        builder.subscribe()
+        val (subscription, listener) = builder.build()
+        HyperEventEmitter.setEventListener(listener, subscription)
     }
 
     override fun presentPaymentSheet(
@@ -52,14 +62,9 @@ class DefaultPaymentSessionLauncher(
         resultCallback: (PaymentResult) -> Unit
     ) {
         isPresented = true
-        if (subscribe != null) {
-            val builder = PaymentEventSubscriptionBuilder()
-            builder.subscribe()
-            val (subscription, listener) = builder.build()
-            HyperEventEmitter.setEventListener(listener, subscription)
-        }
+        applySubscription(subscribe)
         val isFragment =
-            paymentSessionReactLauncher.presentSheet(Companion.sdkAuthorization ?: "", configuration)
+            paymentSessionReactLauncher.presentSheet(sdkAuthorization ?: "", configuration)
         PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
     }
 
@@ -69,12 +74,7 @@ class DefaultPaymentSessionLauncher(
         resultCallback: (PaymentResult) -> Unit
     ) {
         isPresented = true
-        if (subscribe != null) {
-            val builder = PaymentEventSubscriptionBuilder()
-            builder.subscribe()
-            val (subscription, listener) = builder.build()
-            HyperEventEmitter.setEventListener(listener, subscription)
-        }
+        applySubscription(subscribe)
         val isFragment = paymentSessionReactLauncher.presentSheet(configurationMap)
         PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
     }

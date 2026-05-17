@@ -3,10 +3,11 @@ package io.hyperswitch.lite
 import android.app.Activity
 import android.os.Bundle
 import io.hyperswitch.PaymentEventSubscriptionBuilder
+import android.util.Log
 import io.hyperswitch.paymentsession.BasePaymentSessionLauncher
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
-import io.hyperswitch.paymentsession.SDKInterface
+import io.hyperswitch.paymentsession.PresentationInterface
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
 
@@ -16,7 +17,7 @@ open class DefaultPaymentSessionLauncherLite(
     customBackendUrl: String?,
     customLogUrl: String?,
     customParams: Bundle?,
-    private val webViewUtils: SDKInterface = WebViewUtils(activity)
+    private val webViewUtils: PresentationInterface = WebViewUtils(activity)
 ) : BasePaymentSessionLauncher(
     activity,
     publishableKey,
@@ -46,9 +47,15 @@ open class DefaultPaymentSessionLauncherLite(
     override fun getCustomerSavedPaymentMethods(
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)
     ) {
+        Log.w(TAG, "getCustomerSavedPaymentMethods is not supported in the lite SDK")
     }
 
-    override suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler {
-        TODO("Not yet implemented")
+    override suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler =
+        throw UnsupportedOperationException(
+            "getCustomerSavedPaymentMethods is not supported in the lite SDK"
+        )
+
+    companion object {
+        private const val TAG = "PaymentSessionLauncherLite"
     }
 }
