@@ -66,9 +66,13 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     fun onPaymentConfirmButtonClick(rootTag: Double, payload: String, callback: Callback) {
         findViewWithRootTag(rootTag.toInt()) {
             try {
-                it?.notifyConfirmButtonClicked(payload, { it: Boolean ->
-                    callback.invoke(it)
-                })
+                if(it == null){
+                    callback.invoke(true)
+                }else {
+                    it.notifyConfirmButtonClicked(payload, { it: Boolean ->
+                        callback.invoke(it)
+                    })
+                }
             } catch (_: Exception) {
                 callback.invoke(false)
             }

@@ -245,7 +245,11 @@ class PaymentWidgetView : FrameLayout {
         data: String,
         onConfirmPaymentCallback: (Boolean) -> Unit
     ) {
-        confirmPaymentClickListener?.onConfirmPaymentCallback(data, onConfirmPaymentCallback)
+        if(confirmPaymentClickListener == null){
+            onConfirmPaymentCallback(true)
+        }else {
+            confirmPaymentClickListener?.onConfirmPaymentCallback(data, onConfirmPaymentCallback)
+        }
     }
 
     fun onEvent(listener: PaymentEventListener) {

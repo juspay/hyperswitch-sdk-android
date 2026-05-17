@@ -43,7 +43,7 @@ enum class CallbackType {
     CONFIRM_CVC_ACTION,
     UPDATE_INTENT_INIT,
     UPDATE_INTENT_COMPLETE,
-    CONFIRM_BUTTON_CLICK
+    PAYMENT_CONFIRM_BUTTON_CLICK
 }
 
 
@@ -78,7 +78,7 @@ class HyperFragment : ReactFragment() {
     }
 
     fun setOnPaymentConfirmButtonClick(callback: (data: String, onPaymentResultCallback: ((Boolean) -> Unit)) -> Unit) {
-        callbacks[CallbackType.CONFIRM_BUTTON_CLICK] = HyperCallback.ConfirmButtonTriggered(
+        callbacks[CallbackType.PAYMENT_CONFIRM_BUTTON_CLICK] = HyperCallback.ConfirmButtonTriggered(
             callback
         )
     }
@@ -238,8 +238,12 @@ class HyperFragment : ReactFragment() {
 
     fun notifyConfirmButtonClicked(payload: String, callback: (Boolean) -> Unit) {
         val confirmTriggeredCallback =
-            callbacks[CallbackType.CONFIRM_BUTTON_CLICK] as HyperCallback.ConfirmButtonTriggered?
-        confirmTriggeredCallback?.callback?.invoke(payload, callback)
+            callbacks[CallbackType.PAYMENT_CONFIRM_BUTTON_CLICK] as HyperCallback.ConfirmButtonTriggered?
+        if(confirmTriggeredCallback == null){
+            callback.invoke(true)
+        }else {
+            confirmTriggeredCallback.callback.invoke(payload, callback)
+        }
         callbacks.remove(CallbackType.CONFIRM_ACTION)
     }
 
