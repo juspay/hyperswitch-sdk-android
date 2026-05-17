@@ -80,8 +80,8 @@ open class HyperswitchElement @JvmOverloads constructor(
     }
 
 
-    fun onPaymentConfirmButtonCallback(callback: (data: PaymentRequestData?, onPaymentResultCallback: (Boolean) -> Unit) -> Unit){
-        internalView.onPaymentConfirmButtonCallback(callback)
+    fun onPaymentConfirmButtonClick(callback: (data: PaymentRequestData?, onConfirmPaymentCallback: (Boolean) -> Unit) -> Unit){
+        internalView.onPaymentConfirmButtonClick(callback)
     }
 
     /**

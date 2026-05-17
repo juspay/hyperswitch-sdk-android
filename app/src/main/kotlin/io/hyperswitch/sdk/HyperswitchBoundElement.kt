@@ -59,12 +59,12 @@ class HyperswitchBoundElement internal constructor(
         element.onPaymentResult(onResult)
     }
 
-    fun onPaymentConfirmButton(
+    fun onPaymentConfirmButtonClick(
         onConfirmButtonClick:
             (data: PaymentRequestData?,
-             onPaymentResultCallback: (Boolean) -> Unit)
+             onConfirmPaymentCallback: (Boolean) -> Unit)
         -> Unit){
-        element.onPaymentConfirmButtonCallback(onConfirmButtonClick)
+        element.onPaymentConfirmButtonClick(onConfirmButtonClick)
     }
 
     suspend fun confirmPayment(): PaymentResult {

@@ -47,7 +47,7 @@ fun interface PaymentResultListener {
 }
 
 fun interface ConfirmPaymentClickListener {
-    fun onConfirmPaymentCallback(data: String, onPaymentResultCallback: (Boolean) -> Unit)
+    fun onConfirmPaymentCallback(data: String, onConfirmPaymentCallback: (Boolean) -> Unit)
 }
 
 
@@ -218,22 +218,22 @@ class PaymentWidgetView : FrameLayout {
     fun onPaymentConfirmButtonClick(
         callback: (
             data: PaymentRequestData?,
-            onPaymentResultCallback: (Boolean) -> Unit
+            onConfirmPaymentCallback: (Boolean) -> Unit
         ) -> Unit
     ) {
-        confirmPaymentClickListener = ConfirmPaymentClickListener { data, onPaymentResultCallback ->
-            callback(PaymentRequestData.parse(data), onPaymentResultCallback)
+        confirmPaymentClickListener = ConfirmPaymentClickListener { data, onConfirmPaymentCallback ->
+            callback(PaymentRequestData.parse(data), onConfirmPaymentCallback)
         }
     }
 
     fun onPaymentConfirmButtonClickWithMap(
         callback: (
             data: Map<String, Any?>,
-            onPaymentResultCallback: (Boolean) -> Unit
+            onConfirmPaymentCallback: (Boolean) -> Unit
         ) -> Unit
     ) {
-        confirmPaymentClickListener = ConfirmPaymentClickListener { data, onPaymentResultCallback ->
-            callback(PaymentRequestData.toMap(data), onPaymentResultCallback)
+        confirmPaymentClickListener = ConfirmPaymentClickListener { data, onConfirmPaymentCallback ->
+            callback(PaymentRequestData.toMap(data), onConfirmPaymentCallback)
         }
     }
 
@@ -243,9 +243,9 @@ class PaymentWidgetView : FrameLayout {
 
     private fun dispatchConfirmTriggered(
         data: String,
-        onPaymentResultCallback: (Boolean) -> Unit
+        onConfirmPaymentCallback: (Boolean) -> Unit
     ) {
-        confirmPaymentClickListener?.onConfirmPaymentCallback(data, onPaymentResultCallback)
+        confirmPaymentClickListener?.onConfirmPaymentCallback(data, onConfirmPaymentCallback)
     }
 
     fun onEvent(listener: PaymentEventListener) {
