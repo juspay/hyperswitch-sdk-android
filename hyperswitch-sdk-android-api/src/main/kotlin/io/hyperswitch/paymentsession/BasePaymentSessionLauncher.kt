@@ -12,6 +12,7 @@ abstract class BasePaymentSessionLauncher(
     publishableKey: String?,
     customBackendUrl: String?,
     customLogUrl: String?,
+    commonEndpoint: String?,
     customParams: Bundle?
 ) : PaymentSessionLauncher {
 
@@ -24,6 +25,7 @@ abstract class BasePaymentSessionLauncher(
             "",
             customBackendUrl,
             customLogUrl,
+            commonEndpoint,
             customParams
         )
     }

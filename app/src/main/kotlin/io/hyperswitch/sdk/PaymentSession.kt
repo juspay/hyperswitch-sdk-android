@@ -27,7 +27,7 @@ class PaymentSession internal constructor(
 ) {
     private var sessionConfig = sessionConfig
     constructor(activity: Activity, publishableKey: String) : this(
-        DefaultPaymentSessionLauncher(activity, publishableKey, null, null, null),
+        DefaultPaymentSessionLauncher(activity, publishableKey, null, null, null, null),
         publishableKey = publishableKey,
         sessionConfig = null
     )
@@ -35,7 +35,7 @@ class PaymentSession internal constructor(
     constructor(
         activity: Activity, publishableKey: String, customBackendUrl: String
     ) : this(
-        DefaultPaymentSessionLauncher(activity, publishableKey, customBackendUrl, null, null),
+        DefaultPaymentSessionLauncher(activity, publishableKey, customBackendUrl, null, null, null),
         publishableKey = publishableKey,
         sessionConfig = null
     )
@@ -45,13 +45,14 @@ class PaymentSession internal constructor(
             config?.publishableKey,
             config?.customConfig?.overrideCustomBackendEndpoint,
             config?.customConfig?.overrideCustomLoggingEndpoint,
-            null),
+            config?.customConfig?.commonEndpoint,
+            null,),
         publishableKey = config?.publishableKey,
         sessionConfig = sessionConfig
     )
 
     constructor(activity: Activity, publishableKey: String?, sessionConfig: PaymentSessionConfiguration) : this(
-        DefaultPaymentSessionLauncher(activity, publishableKey, null, null, null),
+        DefaultPaymentSessionLauncher(activity, publishableKey, null, null, null, null),
         publishableKey = publishableKey,
         sessionConfig = sessionConfig
     )
@@ -61,17 +62,18 @@ class PaymentSession internal constructor(
         activity: Activity,
         publishableKey: String,
         customBackendUrl: String,
+        commonEndpoint: String,
         customLogUrl: String
     ) : this(
         DefaultPaymentSessionLauncher(
-            activity, publishableKey, customBackendUrl, customLogUrl, null
+            activity, publishableKey, customBackendUrl, customLogUrl, commonEndpoint,null
         ),
         publishableKey = publishableKey,
         sessionConfig = null
     )
 
     constructor(activity: Activity, publishableKey: String, customParams: Bundle) : this(
-        DefaultPaymentSessionLauncher(activity, publishableKey, null, null, customParams),
+        DefaultPaymentSessionLauncher(activity, publishableKey, null, null, null, customParams),
         publishableKey = publishableKey,
         sessionConfig = null
     )
@@ -81,10 +83,11 @@ class PaymentSession internal constructor(
         publishableKey: String,
         customBackendUrl: String,
         customLogUrl: String,
+        commonEndpoint: String,
         customParams: Bundle
     ) : this(
         DefaultPaymentSessionLauncher(
-            activity, publishableKey, customBackendUrl, customLogUrl, customParams
+            activity, publishableKey, customBackendUrl, customLogUrl, commonEndpoint, customParams
         ),
         publishableKey = publishableKey,
         sessionConfig = null
@@ -172,6 +175,7 @@ class PaymentSession internal constructor(
         private var customBackendUrl: String? = null
         private var customLogUrl: String? = null
         private var customParams: Bundle? = null
+        private var commonEndpoint: String?= null
 
         fun customBackendUrl(url: String) = apply { this.customBackendUrl = url }
         fun customLogUrl(url: String) = apply { this.customLogUrl = url }
@@ -179,7 +183,7 @@ class PaymentSession internal constructor(
 
         fun build(): PaymentSession {
             val launcher = DefaultPaymentSessionLauncher(
-                activity, publishableKey, customBackendUrl, customLogUrl, customParams
+                activity, publishableKey, customBackendUrl, customLogUrl, commonEndpoint, customParams
             )
             return PaymentSession(launcher, publishableKey, null)
         }
