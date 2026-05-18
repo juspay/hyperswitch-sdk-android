@@ -261,13 +261,15 @@ class PaymentWidgetView : FrameLayout {
         this.subscribedEvents = events
     }
 
-    fun getLaunchOptions(): Bundle =
-        this.launchOptions.getBundle(
+    fun getLaunchOptions(): Bundle {
+        val paymentConfig = PaymentConfiguration.getInstance(mContext)
+        return this.launchOptions.getBundle(
             publishableKey = this.publishableKey,
             configuration = resolveConfiguration(),
-            customBackendUrl = PaymentConfiguration.customBackendUrl,
-            customLogUrl = PaymentConfiguration.customLogUrl,
-            customParams = PaymentConfiguration.customParams as Map<String, Any>?,
+            customBackendUrl = paymentConfig.customBackendUrl,
+            customLogUrl = paymentConfig.customLogUrl,
+            customParams = paymentConfig.customParams?.let { launchOptions.fromBundle(it) }
+                as Map<String, Any>?,
             type = widgetType,
             from = when (widgetConfig) {
                 is PaymentWidgetConfig.Native -> "nativeWidget"
@@ -277,6 +279,7 @@ class PaymentWidgetView : FrameLayout {
             sdkAuthorization = this.sdkAuthorization,
             subscribedEvents = this.subscribedEvents,
         )
+    }
 
     fun confirmPayment(callback: (PaymentResult) -> Unit) {
         this.fragment?.confirmPayment(callback)

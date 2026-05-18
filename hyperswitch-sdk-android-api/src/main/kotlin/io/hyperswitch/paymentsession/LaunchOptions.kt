@@ -75,17 +75,29 @@ class LaunchOptions(
         configuration: PaymentSheet.Configuration? = null,
         subscribedEvents: List<String> = emptyList()
     ): Bundle = Bundle().apply {
+        val customBackendEndpoint = PaymentConfiguration.getInstance(context).customBackendUrl
+        val customLoggingEndpoint = PaymentConfiguration.getInstance(context).customLogUrl
         putBundle("props", Bundle().apply {
             putString("type", "payment")
             putBundle("hyperswitchConfig", Bundle().apply {
                 putString("publishableKey", PaymentConfiguration.getInstance(context).publishableKey)
                 putString("profileId", null)
+                if (!customBackendEndpoint.isNullOrEmpty() || !customLoggingEndpoint.isNullOrEmpty()) {
+                    putBundle("customEndpoints", Bundle().apply {
+                        putBundle("overrideEndpoints", Bundle().apply {
+                            customBackendEndpoint?.takeIf { it.isNotEmpty() }
+                                ?.let { putString("customBackendEndpoint", it) }
+                            customLoggingEndpoint?.takeIf { it.isNotEmpty() }
+                                ?.let { putString("customLoggingEndpoint", it) }
+                        })
+                    })
+                }
             })
             putBundle("paymentSessionConfig", Bundle().apply {
                 putString("sdkAuthorization", sdkAuthorization)
             })
-            putString("customBackendUrl", PaymentConfiguration.getInstance(context).customBackendUrl)
-            putString("customLogUrl", PaymentConfiguration.getInstance(context).customLogUrl)
+            putString("customBackendUrl", customBackendEndpoint)
+            putString("customLogUrl", customLoggingEndpoint)
             putString("theme", configuration?.appearance?.theme?.name)
             putBundle("customParams", PaymentConfiguration.getInstance(context).customParams)
             // Inject subscribedEvents into the configuration bundle
@@ -114,6 +126,16 @@ class LaunchOptions(
             putString("from", from)
             putBundle("hyperswitchConfig", Bundle().apply {
                 putString("publishableKey", publishableKey ?: "")
+                if (!customBackendUrl.isNullOrEmpty() || !customLogUrl.isNullOrEmpty()) {
+                    putBundle("customEndpoints", Bundle().apply {
+                        putBundle("overrideEndpoints", Bundle().apply {
+                            customBackendUrl?.takeIf { it.isNotEmpty() }
+                                ?.let { putString("customBackendEndpoint", it) }
+                            customLogUrl?.takeIf { it.isNotEmpty() }
+                                ?.let { putString("customLoggingEndpoint", it) }
+                        })
+                    })
+                }
             })
             putBundle("paymentSessionConfig", Bundle().apply {
                 putString("sdkAuthorization", sdkAuthorization ?: "")
