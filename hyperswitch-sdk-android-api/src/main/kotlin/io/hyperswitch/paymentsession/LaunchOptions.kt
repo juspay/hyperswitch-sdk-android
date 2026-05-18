@@ -77,21 +77,27 @@ class LaunchOptions(
     ): Bundle = Bundle().apply {
         val customBackendEndpoint = PaymentConfiguration.getInstance(context).customBackendUrl
         val customLoggingEndpoint = PaymentConfiguration.getInstance(context).customLogUrl
+        val commonEndpoint = PaymentConfiguration.getInstance(context).commonEndpoint
         putBundle("props", Bundle().apply {
             putString("type", "payment")
             putBundle("hyperswitchConfig", Bundle().apply {
                 putString("publishableKey", PaymentConfiguration.getInstance(context).publishableKey)
                 putString("profileId", null)
-                if (!customBackendEndpoint.isNullOrEmpty() || !customLoggingEndpoint.isNullOrEmpty()) {
+
                     putBundle("customEndpoints", Bundle().apply {
-                        putBundle("overrideEndpoints", Bundle().apply {
-                            customBackendEndpoint?.takeIf { it.isNotEmpty() }
-                                ?.let { putString("customBackendEndpoint", it) }
-                            customLoggingEndpoint?.takeIf { it.isNotEmpty() }
-                                ?.let { putString("customLoggingEndpoint", it) }
-                        })
+                        if (!customBackendEndpoint.isNullOrEmpty() || !customLoggingEndpoint.isNullOrEmpty()) {
+                            putBundle("overrideEndpoints", Bundle().apply {
+                                customBackendEndpoint?.takeIf { it.isNotEmpty() }
+                                    ?.let { putString("customBackendEndpoint", it) }
+                                customLoggingEndpoint?.takeIf { it.isNotEmpty() }
+                                    ?.let { putString("customLoggingEndpoint", it) }
+                            })
+                        }
+                        if(!commonEndpoint.isNullOrEmpty()) {
+                            putString("commonEndpoint", commonEndpoint)
+                        }
                     })
-                }
+
             })
             putBundle("paymentSessionConfig", Bundle().apply {
                 putString("sdkAuthorization", sdkAuthorization)
@@ -116,26 +122,31 @@ class LaunchOptions(
         customBackendUrl: String? = null,
         customLogUrl: String? = null,
         customParams: Map<String, Any>? = null,
+        commonEndpoint: String? = null,
         type: String? = "payment",
         from: String? = "nativeWidget",
         sdkAuthorization : String? = null,
         subscribedEvents: List<String> = emptyList(),
     ): Bundle = Bundle().apply {
+
         putBundle("props", Bundle().apply {
             putString("type", type)
             putString("from", from)
             putBundle("hyperswitchConfig", Bundle().apply {
                 putString("publishableKey", publishableKey ?: "")
-                if (!customBackendUrl.isNullOrEmpty() || !customLogUrl.isNullOrEmpty()) {
-                    putBundle("customEndpoints", Bundle().apply {
+                putBundle("customEndpoints", Bundle().apply {
+                    if (!customBackendUrl.isNullOrEmpty() || !customLogUrl.isNullOrEmpty()) {
                         putBundle("overrideEndpoints", Bundle().apply {
                             customBackendUrl?.takeIf { it.isNotEmpty() }
                                 ?.let { putString("customBackendEndpoint", it) }
                             customLogUrl?.takeIf { it.isNotEmpty() }
                                 ?.let { putString("customLoggingEndpoint", it) }
                         })
-                    })
-                }
+                    }
+                    if(!commonEndpoint.isNullOrEmpty()) {
+                        putString("commonEndpoint", commonEndpoint)
+                    }
+                })
             })
             putBundle("paymentSessionConfig", Bundle().apply {
                 putString("sdkAuthorization", sdkAuthorization ?: "")

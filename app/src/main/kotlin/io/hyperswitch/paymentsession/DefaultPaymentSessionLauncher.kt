@@ -17,6 +17,7 @@ class DefaultPaymentSessionLauncher(
     publishableKey: String?,
     customBackendUrl: String?,
     customLogUrl: String?,
+    commonEndpoint: String?,
     customParams: Bundle?,
     private var paymentSessionReactLauncher: SDKInterface = PaymentSessionReactLauncher(activity)
 ) : BasePaymentSessionLauncher(
@@ -24,6 +25,7 @@ class DefaultPaymentSessionLauncher(
     publishableKey,
     customBackendUrl,
     customLogUrl,
+    commonEndpoint,
     customParams
 ) {
 

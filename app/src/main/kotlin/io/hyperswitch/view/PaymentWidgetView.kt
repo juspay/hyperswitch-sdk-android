@@ -270,6 +270,7 @@ class PaymentWidgetView : FrameLayout {
             customLogUrl = paymentConfig.customLogUrl,
             customParams = paymentConfig.customParams?.let { launchOptions.fromBundle(it) }
                 as Map<String, Any>?,
+            commonEndpoint = paymentConfig.commonEndpoint,
             type = widgetType,
             from = when (widgetConfig) {
                 is PaymentWidgetConfig.Native -> "nativeWidget"

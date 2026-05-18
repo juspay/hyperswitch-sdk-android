@@ -1,7 +1,7 @@
 package io.hyperswitch.model
 
 data class CustomEndpointConfiguration(
-    val customEndpoint: String? = null,
+    val commonEndpoint: String? = null,
     val overrideCustomBackendEndpoint: String? = null,
     val overrideCustomAssetsEndpoint: String? = null,
     val overrideCustomSDKConfigEndpoint: String? = null,
