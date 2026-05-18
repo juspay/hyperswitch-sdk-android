@@ -26,4 +26,5 @@ android {
 dependencies {
     api libs.playServicesWallet
     api libs.eventBus
+    implementation libs.okhttp
 }
