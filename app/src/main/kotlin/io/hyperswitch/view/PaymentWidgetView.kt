@@ -373,13 +373,15 @@ class PaymentWidgetView : FrameLayout {
             layoutParams = LayoutParams(MATCH_PARENT, MATCH_PARENT)
         }
         this.addView(frameLayout, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        val containerWidth = this.width
+        val containerHeight = this.height
         frameLayout.post {
             frameLayout.measure(
-                View.MeasureSpec.makeMeasureSpec(this.width, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(this.height, View.MeasureSpec.EXACTLY)
+                View.MeasureSpec.makeMeasureSpec(containerWidth, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(containerHeight, View.MeasureSpec.EXACTLY)
             )
             frameLayout.layout(0, 0, frameLayout.measuredWidth, frameLayout.measuredHeight)
-            setupLayout(frameLayout)
+            setupLayout(frameLayout, containerWidth, containerHeight)
             HyperFragmentManager.addOrReplace(
                 activity = activity,
                 container = frameLayout,
@@ -398,12 +400,12 @@ class PaymentWidgetView : FrameLayout {
         }
     }
 
-    private fun setupLayout(view: View) {
+    private fun setupLayout(view: View, width: Int, height: Int) {
         val callback = object : Choreographer.FrameCallback {
             override fun doFrame(frameTimeNanos: Long) {
                 try {
                     if (view.isAttachedToWindow) {
-                        manuallyLayoutChildren(view)
+                        manuallyLayoutChildren(view, width, height)
                         view.viewTreeObserver.dispatchOnGlobalLayout()
                         Choreographer.getInstance().postFrameCallback(this)
                     } else {
@@ -441,12 +443,12 @@ class PaymentWidgetView : FrameLayout {
         }
     }
 
-    private fun manuallyLayoutChildren(view: View) {
+    private fun manuallyLayoutChildren(view: View, width: Int, height: Int) {
         view.measure(
-            View.MeasureSpec.makeMeasureSpec(view.width, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(view.height, View.MeasureSpec.EXACTLY)
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
         )
-        view.layout(0, 0, view.width, view.height)
+        view.layout(0, 0, width, height)
     }
 
     private var startY = 0f
@@ -471,8 +473,10 @@ class PaymentWidgetView : FrameLayout {
             MotionEvent.ACTION_DOWN -> {
                 startY = ev.y
                 startX = ev.x
-                // Tell parent RN ScrollView to back off - let fragment handle it initially
-                parent?.requestDisallowInterceptTouchEvent(true)
+                // Do not disallow parent interception on DOWN — this was originally written
+                // for a parent RN ScrollView, but in native embedding (e.g. WidgetActivity)
+                // it prevents the outer Android ScrollView from ever scrolling.
+                // Direction-based gating on MOVE below is sufficient.
             }
 
             MotionEvent.ACTION_MOVE -> {
