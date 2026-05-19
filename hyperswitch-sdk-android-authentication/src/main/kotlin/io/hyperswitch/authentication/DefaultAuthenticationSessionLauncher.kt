@@ -1,7 +1,6 @@
 package io.hyperswitch.authentication
 
 import android.app.Activity
-import android.os.Bundle
 import io.hyperswitch.click_to_pay.BuildConfig
 import io.hyperswitch.click_to_pay.ClickToPaySession
 import io.hyperswitch.click_to_pay.models.ClickToPayErrorType
@@ -30,7 +29,6 @@ class DefaultAuthenticationSessionLauncher(
     publishableKey: String,
     customBackendUrl: String? = null,
     customLogUrl: String? = null,
-    customParams: Bundle? = null,
 ): AuthenticationSessionLauncher {
 
     private val clickToPaySession: ClickToPaySession = ClickToPaySession(
@@ -38,7 +36,6 @@ class DefaultAuthenticationSessionLauncher(
         publishableKey,
         customBackendUrl,
         customLogUrl,
-        customParams
     )
     private var clientSecret: String? = null
     private var profileId: String? = null

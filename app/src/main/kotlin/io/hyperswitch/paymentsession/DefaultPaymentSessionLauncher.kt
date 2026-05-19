@@ -1,11 +1,12 @@
 package io.hyperswitch.paymentsession
 
 import android.app.Activity
-import android.os.Bundle
 import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
 import io.hyperswitch.logs.LogUtils.getLoggingUrl
+import io.hyperswitch.model.HyperswitchBaseConfiguration
+import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.react.HyperEventEmitter
@@ -14,38 +15,28 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 
 class DefaultPaymentSessionLauncher(
     activity: Activity,
-    publishableKey: String?,
-    customBackendUrl: String?,
-    customLogUrl: String?,
-    customParams: Bundle?,
-    private var paymentSessionReactLauncher: SDKInterface = PaymentSessionReactLauncher(activity)
-) : BasePaymentSessionLauncher(
-    activity,
-    publishableKey,
-    customBackendUrl,
-    customLogUrl,
-    customParams
-) {
+    hsConfig: HyperswitchBaseConfiguration?,
+    private var paymentSessionReactLauncher: SDKInterface = PaymentSessionReactLauncher(activity, hsConfig)
+) : BasePaymentSessionLauncher(activity, hsConfig) {
 
     init {
-        // TODO: Remove the publishable KEY
+        val publishableKey = hsConfig?.publishableKey
         if (publishableKey != null) {
-            val loggingEndPoint = if (customLogUrl != "" && customLogUrl != null) {
-                customLogUrl
-            } else {
-                getLoggingUrl(publishableKey)
-            }
+            val loggingEndPoint =
+                hsConfig.customConfig?.overrideEndpoints?.customLoggingEndpoint
+                    ?.takeIf { it.isNotEmpty() }
+                    ?: getLoggingUrl(publishableKey)
             HyperLogManager.initialise(publishableKey, loggingEndPoint)
             HyperLogManager.sendLogsFromFile(LogFileManager(activity))
         }
         paymentSessionReactLauncher.initializeReactNativeInstance()
     }
 
-    override fun initPaymentSession(sdkAuthorization: String) {
-        super.initPaymentSession(sdkAuthorization)
+    override fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
+        super.initPaymentSession(sessionConfig)
         // Keep companion copy for PaymentSessionReactLauncher.invokeStartTask which
         // needs static access from a listener lambda.
-        Companion.sdkAuthorization = sdkAuthorization
+        Companion.sessionConfig = sessionConfig
     }
 
     private fun applySubscription(subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?) {
@@ -64,7 +55,7 @@ class DefaultPaymentSessionLauncher(
         isPresented = true
         applySubscription(subscribe)
         val isFragment =
-            paymentSessionReactLauncher.presentSheet(sdkAuthorization ?: "", configuration)
+            paymentSessionReactLauncher.presentSheet(sessionConfig, configuration)
         PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
     }
 
@@ -83,18 +74,18 @@ class DefaultPaymentSessionLauncher(
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)
     ) {
         isPresented = false
-        GetPaymentSessionCallBackManager.setCallback(sdkAuthorization, savedPaymentMethodCallback)
+        GetPaymentSessionCallBackManager.setCallback(sessionConfig?.sdkAuthorization, savedPaymentMethodCallback)
         paymentSessionReactLauncher.recreateReactContext()
     }
 
     override suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler =
         suspendCancellableCoroutine { continuation ->
             isPresented = false
-            GetPaymentSessionCallBackManager.setCallback(sdkAuthorization) { handler ->
+            GetPaymentSessionCallBackManager.setCallback(sessionConfig?.sdkAuthorization) { handler ->
                 if (continuation.isActive) continuation.resume(handler)
             }
             continuation.invokeOnCancellation {
-                GetPaymentSessionCallBackManager.setCallback(sdkAuthorization, null)
+                GetPaymentSessionCallBackManager.setCallback(sessionConfig?.sdkAuthorization, null)
             }
             paymentSessionReactLauncher.recreateReactContext()
         }
@@ -102,6 +93,6 @@ class DefaultPaymentSessionLauncher(
 
     companion object {
         var isPresented: Boolean = false
-        var sdkAuthorization: String? = null
+        var sessionConfig: PaymentSessionConfiguration? = null
     }
 }

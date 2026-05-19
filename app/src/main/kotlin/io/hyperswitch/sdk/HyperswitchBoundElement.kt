@@ -29,7 +29,10 @@ class HyperswitchBoundElement internal constructor(
     }
 
     init {
-        element.initWidget(paymentSession.getPublishableKey())
+        val config = paymentSession.getHsConfig()
+        if (config != null) {
+            element.initWidget(config)
+        }
         if (configuration != null) {
             element.setConfiguration(configuration)
         }
@@ -67,6 +70,7 @@ class HyperswitchBoundElement internal constructor(
         element.onPaymentConfirmButtonClick(onConfirmButtonClick)
     }
 
+    @JvmSynthetic
     suspend fun confirmPayment(): PaymentResult {
         return suspendCancellableCoroutine { continuation ->
             element.confirmPayment({it -> continuation.resume(it)})
@@ -81,6 +85,7 @@ class HyperswitchBoundElement internal constructor(
         element.updateIntentInit { onInitComplete() }
     }
 
+    @JvmSynthetic
     suspend fun updateIntentComplete(sdkAuthorization: String): ElementUpdateIntentResult {
         return element.updateIntentComplete(sdkAuthorization)
     }

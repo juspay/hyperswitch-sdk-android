@@ -1,7 +1,6 @@
 package io.hyperswitch.sdk
 
 import android.app.Activity
-import android.os.Bundle
 import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
@@ -26,80 +25,26 @@ class PaymentSession internal constructor(
     sessionConfig: PaymentSessionConfiguration? = null
 ) {
     private var sessionConfig = sessionConfig
-    constructor(activity: Activity, publishableKey: String) : this(
-        DefaultPaymentSessionLauncher(activity, publishableKey, null, null, null),
-        publishableKey = publishableKey,
-        sessionConfig = null
-    )
 
-    constructor(
-        activity: Activity, publishableKey: String, customBackendUrl: String
-    ) : this(
-        DefaultPaymentSessionLauncher(activity, publishableKey, customBackendUrl, null, null),
-        publishableKey = publishableKey,
-        sessionConfig = null
-    )
-
-    constructor(activity: Activity, config: HyperswitchBaseConfiguration?, sessionConfig: PaymentSessionConfiguration): this(
-        DefaultPaymentSessionLauncher(activity,
-            config?.publishableKey,
-            config?.customConfig?.overrideCustomBackendEndpoint,
-            config?.customConfig?.overrideCustomLoggingEndpoint,
-            null),
+    constructor(activity: Activity, config: HyperswitchBaseConfiguration?, sessionConfig: PaymentSessionConfiguration) : this(
+        DefaultPaymentSessionLauncher(activity, config),
         publishableKey = config?.publishableKey,
         sessionConfig = sessionConfig
     )
 
-    constructor(activity: Activity, publishableKey: String?, sessionConfig: PaymentSessionConfiguration) : this(
-        DefaultPaymentSessionLauncher(activity, publishableKey, null, null, null),
-        publishableKey = publishableKey,
-        sessionConfig = sessionConfig
-    )
+    private var paymentSessionHandler: PaymentSessionHandler? = null
 
-
-    constructor(
-        activity: Activity,
-        publishableKey: String,
-        customBackendUrl: String,
-        customLogUrl: String
-    ) : this(
-        DefaultPaymentSessionLauncher(
-            activity, publishableKey, customBackendUrl, customLogUrl, null
-        ),
-        publishableKey = publishableKey,
-        sessionConfig = null
-    )
-
-    constructor(activity: Activity, publishableKey: String, customParams: Bundle) : this(
-        DefaultPaymentSessionLauncher(activity, publishableKey, null, null, customParams),
-        publishableKey = publishableKey,
-        sessionConfig = null
-    )
-
-    constructor(
-        activity: Activity,
-        publishableKey: String,
-        customBackendUrl: String,
-        customLogUrl: String,
-        customParams: Bundle
-    ) : this(
-        DefaultPaymentSessionLauncher(
-            activity, publishableKey, customBackendUrl, customLogUrl, customParams
-        ),
-        publishableKey = publishableKey,
-        sessionConfig = null
-    )
-
-    private var paymentSessionHandler : PaymentSessionHandler? = null
     /**
      * Initializes the payment session with the given payment intent client secret.
      *
      * @param sdkAuthorization The client secret of the payment intent.
      */
-    fun initPaymentSession(sdkAuthorization: String) {
-        paymentSessionLauncher.initPaymentSession(sdkAuthorization)
+    fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
+        this.sessionConfig = sessionConfig
+        paymentSessionLauncher.initPaymentSession(sessionConfig)
     }
 
+    @JvmSynthetic
     suspend fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration,
         subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null
@@ -123,8 +68,7 @@ class PaymentSession internal constructor(
         paymentSessionLauncher.presentPaymentSheet(configuration, subscribe, resultCallback)
     }
 
-
-    fun updateSdkAuthorization(sdkAuthorization: String){
+    fun updateSdkAuthorization(sdkAuthorization: String) {
         this.sessionConfig = PaymentSessionConfiguration(sdkAuthorization)
         paymentSessionHandler?.updateSdkAuthorization(sdkAuthorization)
     }
@@ -137,6 +81,7 @@ class PaymentSession internal constructor(
         paymentSessionLauncher.presentPaymentSheet(configurationMap, subscribe, resultCallback)
     }
 
+    @JvmSynthetic
     suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler {
         return paymentSessionLauncher.getCustomerSavedPaymentMethods().also {
             paymentSessionHandler = it
@@ -159,29 +104,11 @@ class PaymentSession internal constructor(
         return publishableKey ?: ""
     }
 
-    fun getSdkAuthorization(): String {
-        return sessionConfig?.sdkAuthorization ?: ""
+    fun getHsConfig(): HyperswitchBaseConfiguration? {
+        return (paymentSessionLauncher as? io.hyperswitch.paymentsession.BasePaymentSessionLauncher)?.getHsConfig()
     }
 
-    /*** A builder class for creating instances of [PaymentSession].
-     *
-     * @param activity The activity that will host the payment sheet.
-     * @param publishableKey The publishable key for your Stripe account.
-     */
-    class Builder(private val activity: Activity, private val publishableKey: String) {
-        private var customBackendUrl: String? = null
-        private var customLogUrl: String? = null
-        private var customParams: Bundle? = null
-
-        fun customBackendUrl(url: String) = apply { this.customBackendUrl = url }
-        fun customLogUrl(url: String) = apply { this.customLogUrl = url }
-        fun customParams(params: Bundle) = apply { this.customParams = params }
-
-        fun build(): PaymentSession {
-            val launcher = DefaultPaymentSessionLauncher(
-                activity, publishableKey, customBackendUrl, customLogUrl, customParams
-            )
-            return PaymentSession(launcher, publishableKey, null)
-        }
+    fun getSdkAuthorization(): String {
+        return sessionConfig?.sdkAuthorization ?: ""
     }
 }

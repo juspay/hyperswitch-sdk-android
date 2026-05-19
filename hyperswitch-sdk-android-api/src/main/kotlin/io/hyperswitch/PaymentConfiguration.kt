@@ -2,7 +2,6 @@ package io.hyperswitch
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.os.Bundle
 import android.os.Parcelable
 import androidx.annotation.RestrictTo
 import kotlinx.parcelize.Parcelize
@@ -12,10 +11,7 @@ import androidx.core.content.edit
 data class PaymentConfiguration
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) constructor(
     val publishableKey: String? = null,
-    val stripeAccountId: String? = null,
-    val customBackendUrl: String? = null,
-    val customLogUrl: String? = null,
-    val customParams: Bundle? = null,
+    val profileId: String? = null,
 ) : Parcelable {
 
     /**
@@ -28,15 +24,11 @@ data class PaymentConfiguration
         @JvmSynthetic
         fun save(
             publishableKey: String?,
-            stripeAccountId: String?,
-            customBackendUrl: String?,
-            customLogUrl: String?,
+            profileId: String?,
         ) {
             prefs.edit {
                 putString(KEY_PUBLISHABLE_KEY, publishableKey)
-                    .putString(KEY_ACCOUNT_ID, stripeAccountId)
-                    .putString(KEY_CUSTOM_BACKEND_URL, customBackendUrl)
-                    .putString(KEY_CUSTOM_LOG_URL, customLogUrl)
+                    .putString(KEY_ACCOUNT_ID, profileId)
             }
         }
 
@@ -45,9 +37,7 @@ data class PaymentConfiguration
             return prefs.getString(KEY_PUBLISHABLE_KEY, null)?.let { publishableKey ->
                 PaymentConfiguration(
                     publishableKey = publishableKey,
-                    stripeAccountId = prefs.getString(KEY_ACCOUNT_ID, null),
-                    customBackendUrl = prefs.getString(KEY_CUSTOM_BACKEND_URL, null),
-                    customLogUrl = prefs.getString(KEY_CUSTOM_LOG_URL, null),
+                    profileId = prefs.getString(KEY_ACCOUNT_ID, null),
                 )
             }
         }
@@ -57,8 +47,6 @@ data class PaymentConfiguration
 
             private const val KEY_PUBLISHABLE_KEY = "key_publishable_key"
             private const val KEY_ACCOUNT_ID = "key_account_id"
-            private const val KEY_CUSTOM_BACKEND_URL = "key_custom_backend_url"
-            private const val KEY_CUSTOM_LOG_URL = "key_custom_log_url"
         }
     }
 
@@ -86,20 +74,6 @@ data class PaymentConfiguration
             )
         }
         /**
-         * Returns the publishable key for the current [PaymentConfiguration] instance.
-         *
-         * @return the publishable key
-         * @throws IllegalStateException if the [PaymentConfiguration] instance is not initialized
-         */
-        fun publishableKey(): String {
-            return instance?.publishableKey ?: ""
-        }
-
-        val customBackendUrl: String? = instance?.customBackendUrl
-        val customLogUrl: String? = instance?.customLogUrl
-        val customParams: Bundle? = instance?.customParams
-
-        /**
          * A publishable key from the Dashboard's [API keys](https://app.hyperswitch.io/apikeys) page.
          */
         @JvmStatic
@@ -107,23 +81,15 @@ data class PaymentConfiguration
         fun init(
             context: Context,
             publishableKey: String? = null,
-            stripeAccountId: String? = null,
-            customBackendUrl: String? = null,
-            customLogUrl: String? = null,
-            customParams: Bundle? = null
+            profileId: String? = null,
         ) {
             instance = PaymentConfiguration(
                 publishableKey = publishableKey,
-                stripeAccountId = stripeAccountId,
-                customBackendUrl = customBackendUrl,
-                customLogUrl = customLogUrl,
-                customParams = customParams
+                profileId = profileId,
             )
             Store(context).save(
                 publishableKey = publishableKey,
-                stripeAccountId = stripeAccountId,
-                customBackendUrl = customBackendUrl,
-                customLogUrl = customLogUrl
+                profileId = profileId,
             )
         }
 

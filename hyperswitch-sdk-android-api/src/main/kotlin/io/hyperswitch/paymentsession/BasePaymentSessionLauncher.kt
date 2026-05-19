@@ -1,36 +1,34 @@
 package io.hyperswitch.paymentsession
 
 import android.app.Activity
-import android.os.Bundle
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.PaymentEventSubscriptionBuilder
+import io.hyperswitch.model.HyperswitchBaseConfiguration
+import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 
 abstract class BasePaymentSessionLauncher(
     protected val activity: Activity,
-    publishableKey: String?,
-    customBackendUrl: String?,
-    customLogUrl: String?,
-    customParams: Bundle?
+    @get:JvmName("hsConfigInternal")
+    protected val hsConfig: HyperswitchBaseConfiguration?,
 ) : PaymentSessionLauncher {
 
-    protected var sdkAuthorization: String? = null
+    protected var sessionConfig: PaymentSessionConfiguration? = null
 
     init {
         PaymentConfiguration.init(
             activity.applicationContext,
-            publishableKey,
-            "",
-            customBackendUrl,
-            customLogUrl,
-            customParams
+            hsConfig?.publishableKey,
+            hsConfig?.profileId,
         )
     }
 
-    override fun initPaymentSession(sdkAuthorization: String) {
-        this.sdkAuthorization = sdkAuthorization
+    override fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
+        this.sessionConfig = sessionConfig
     }
+
+    fun getHsConfig(): HyperswitchBaseConfiguration? = hsConfig
 
     abstract override fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration?,

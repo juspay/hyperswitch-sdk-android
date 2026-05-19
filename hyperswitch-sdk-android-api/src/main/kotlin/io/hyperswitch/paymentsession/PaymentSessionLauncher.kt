@@ -1,11 +1,12 @@
 package io.hyperswitch.paymentsession
 
 import io.hyperswitch.PaymentEventSubscriptionBuilder
+import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
 
 interface PaymentSessionLauncher {
-    fun initPaymentSession(sdkAuthorization: String)
+    fun initPaymentSession(sessionConfig: PaymentSessionConfiguration)
     fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration?, subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?, resultCallback: (PaymentResult) -> Unit
     )

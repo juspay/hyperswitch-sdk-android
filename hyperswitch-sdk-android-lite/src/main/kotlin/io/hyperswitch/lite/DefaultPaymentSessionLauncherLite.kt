@@ -1,9 +1,9 @@
 package io.hyperswitch.lite
 
 import android.app.Activity
-import android.os.Bundle
-import io.hyperswitch.PaymentEventSubscriptionBuilder
 import android.util.Log
+import io.hyperswitch.PaymentEventSubscriptionBuilder
+import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.paymentsession.BasePaymentSessionLauncher
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
@@ -13,18 +13,9 @@ import io.hyperswitch.paymentsheet.PaymentResult
 
 open class DefaultPaymentSessionLauncherLite(
     activity: Activity,
-    publishableKey: String?,
-    customBackendUrl: String?,
-    customLogUrl: String?,
-    customParams: Bundle?,
+    hsConfig: HyperswitchBaseConfiguration?,
     private val webViewUtils: PresentationInterface = WebViewUtils(activity)
-) : BasePaymentSessionLauncher(
-    activity,
-    publishableKey,
-    customBackendUrl,
-    customLogUrl,
-    customParams
-) {
+) : BasePaymentSessionLauncher(activity, hsConfig) {
 
     override fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration?,
@@ -32,7 +23,7 @@ open class DefaultPaymentSessionLauncherLite(
         resultCallback: (PaymentResult) -> Unit
     ) {
         PaymentSheetCallbackManager.setCallback(resultCallback)
-        webViewUtils.presentSheet(sdkAuthorization ?: "", configuration)
+        webViewUtils.presentSheet(sessionConfig, configuration)
     }
 
     override fun presentPaymentSheet(

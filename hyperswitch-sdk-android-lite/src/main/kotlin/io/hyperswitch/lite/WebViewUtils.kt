@@ -4,6 +4,7 @@ import android.app.Activity
 import androidx.core.view.WindowCompat
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PresentationInterface
+import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 
 /**
@@ -42,7 +43,7 @@ class WebViewUtils(
      * @param configuration The configuration for the payment sheet.
      */
     override fun presentSheet(
-        paymentIntentClientSecret: String,
+        sessionConfig: PaymentSessionConfiguration?,
         configuration: PaymentSheet.Configuration?,
     ): Boolean {
         WindowCompat.setDecorFitsSystemWindows(activity.window, false)
@@ -51,7 +52,7 @@ class WebViewUtils(
         webFragment.setRequestBody(
             launchOptions
                 .getJson(
-                    paymentIntentClientSecret,
+                    sessionConfig,
                     configuration,
                 ).toString(),
         )

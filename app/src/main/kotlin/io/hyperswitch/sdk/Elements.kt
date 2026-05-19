@@ -38,7 +38,7 @@ class Elements internal constructor(
         activity,
         config = config,
         sessionConfig = sessionConfiguration
-    ).also { it.initPaymentSession(sessionConfiguration.sdkAuthorization) }
+    ).also { it.initPaymentSession(sessionConfiguration) }
 
     fun bind(
         element: HyperswitchElement,
@@ -66,6 +66,7 @@ class Elements internal constructor(
 
     private val updateIntentInProgress = AtomicBoolean(false)
 
+    @JvmSynthetic
     suspend fun updateIntent(completion: suspend () -> PaymentSessionConfiguration): ElementsUpdateResult {
         if (!updateIntentInProgress.compareAndSet(false, true)) {
             return ElementsUpdateResult.TotalFailure(
@@ -178,6 +179,7 @@ class Elements internal constructor(
         }
     }
 
+    @JvmSynthetic
     suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler {
         return paymentSession.getCustomerSavedPaymentMethods()
     }

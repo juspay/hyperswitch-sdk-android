@@ -6,6 +6,7 @@ import android.widget.FrameLayout
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.ElementUpdateIntentResult
+import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.paymentsheet.PaymentRequestData
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
@@ -35,11 +36,11 @@ open class HyperswitchElement @JvmOverloads constructor(
     }
 
     /**
-     * Initializes the widget with the given publishable key.
+     * Initializes the widget with a full [HyperswitchBaseConfiguration].
      * Registers an internal result handler that cleans up on completion.
      */
-    fun initWidget(publishableKey: String) {
-        internalView.initWidget(publishableKey)
+    fun initWidget(config: HyperswitchBaseConfiguration) {
+        internalView.initWidget(config)
         type?.let { internalView.setWidgetType(it) }
         internalView.onPaymentResult(PaymentResultListener { result ->
             if (result is PaymentResult.Completed) {
@@ -62,6 +63,7 @@ open class HyperswitchElement @JvmOverloads constructor(
     /**
      * Suspending variant — resumes with the result and cleans up on completion.
      */
+    @JvmSynthetic
     suspend fun confirmPayment(): PaymentResult =
         suspendCancellableCoroutine { continuation ->
             internalView.confirmPayment { result ->
@@ -106,6 +108,7 @@ open class HyperswitchElement @JvmOverloads constructor(
     /**
      * Suspending CVC confirmation.
      */
+    @JvmSynthetic
     suspend fun confirmCVCWidget(
         sdkAuthorization: String,
         paymentToken: String,
@@ -153,6 +156,7 @@ open class HyperswitchElement @JvmOverloads constructor(
         )
     }
 
+    @JvmSynthetic
     suspend fun updateIntentComplete(
         sdkAuthorization: String
     ): ElementUpdateIntentResult {

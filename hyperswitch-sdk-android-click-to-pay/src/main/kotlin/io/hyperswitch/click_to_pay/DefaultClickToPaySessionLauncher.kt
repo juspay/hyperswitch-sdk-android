@@ -1,7 +1,6 @@
 package io.hyperswitch.click_to_pay
 
 import android.app.Activity
-import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout.LayoutParams
@@ -46,7 +45,6 @@ import kotlin.coroutines.resume
  * @property publishableKey The publishable API key for authentication
  * @property customBackendUrl Optional custom backend URL for API calls
  * @property customLogUrl Optional custom URL for logging
- * @property customParams Optional additional parameters
  * @property hSWebViewManagerImpl WebView manager for JavaScript execution
  * @property hSWebViewWrapper Wrapper for the WebView instance
  * @property pendingRequests Map of pending async requests awaiting responses
@@ -56,7 +54,6 @@ class DefaultClickToPaySessionLauncher(
     private val publishableKey: String,
     private val customBackendUrl: String? = null,
     private val customLogUrl: String? = null,
-    private val customParams: Bundle? = null,
 ) : ClickToPaySessionLauncher {
     private lateinit var hSWebViewManagerImpl: HSWebViewManagerImpl
     private lateinit var hSWebViewWrapper: HSWebViewWrapper

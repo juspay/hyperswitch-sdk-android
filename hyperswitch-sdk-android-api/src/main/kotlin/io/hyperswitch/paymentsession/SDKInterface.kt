@@ -1,11 +1,12 @@
 package io.hyperswitch.paymentsession
 
+import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 
 /** Rendering-layer contract shared by both WebView and React Native backends. */
 interface PresentationInterface {
     fun presentSheet(
-        sdkAuthorization: String,
+        sessionConfig: PaymentSessionConfiguration?,
         configuration: PaymentSheet.Configuration?
     ): Boolean
 

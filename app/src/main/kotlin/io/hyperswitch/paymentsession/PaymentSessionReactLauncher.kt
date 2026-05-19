@@ -19,20 +19,25 @@ import com.facebook.react.jstasks.HeadlessJsTaskContext
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.facebook.react.uimanager.PixelUtil
 import io.hyperswitch.BuildConfig
+import io.hyperswitch.model.HyperswitchBaseConfiguration
+import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.react.ReactNativeController
-import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.sdkAuthorization
+import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.sessionConfig
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
 import io.hyperswitch.react.HyperFragment
 import io.hyperswitch.react.HyperEventEmitter
 
-class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface {
+class PaymentSessionReactLauncher(
+    private val activity: Activity,
+    hsConfig: HyperswitchBaseConfiguration? = null,
+) : SDKInterface {
 
     private var reactHost: ReactHost? = null
     private var reactNativeHost: ReactNativeHost? = null
     private var reactContext: ReactContext? = null
     private var headlessTaskId: Int? = null
-    private val launchOptions = LaunchOptions(activity, BuildConfig.VERSION_NAME)
+    private val launchOptions = LaunchOptions(activity, BuildConfig.VERSION_NAME, hsConfig)
 
     @SuppressLint("VisibleForTests")
     override fun initializeReactNativeInstance() {
@@ -107,7 +112,7 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
             "HyperHeadless", Arguments.fromBundle(
                 launchOptions.getBundle(
                     reactContext,
-                    sdkAuthorization ?: "",
+                    sessionConfig,
                     null,
                     subscribedEvents
                 )
@@ -124,11 +129,11 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
     }
 
     override fun presentSheet(
-        sdkAuthorization: String,
+        sessionConfig: PaymentSessionConfiguration?,
         configuration: PaymentSheet.Configuration?
     ): Boolean {
-         val subscribedEvents = getSubscribedEventsSafely()
-        val bundle = launchOptions.getBundle(sdkAuthorization, configuration,subscribedEvents)
+        val subscribedEvents = getSubscribedEventsSafely()
+        val bundle = launchOptions.getBundle(sessionConfig, configuration, subscribedEvents)
         applyFonts(configuration, bundle)
         return presentSheet(bottomInsetToDIPFromPixel(bundle))
     }

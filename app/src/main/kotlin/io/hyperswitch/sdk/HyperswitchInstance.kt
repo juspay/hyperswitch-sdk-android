@@ -16,6 +16,7 @@ class HyperswitchInstance internal constructor(
     private val initDeferred: Deferred<HyperswitchBaseConfiguration?>,
 ) {
     @OptIn(ExperimentalCoroutinesApi::class)
+    @JvmSynthetic
     suspend fun initPaymentSession(config: PaymentSessionConfiguration): PaymentSession {
         val hsConfig = if (initDeferred.isCompleted) {
             initDeferred.getCompleted()
@@ -23,7 +24,7 @@ class HyperswitchInstance internal constructor(
             initDeferred.await()
         }
         val ps = PaymentSession(activity, hsConfig, config)
-        ps.initPaymentSession(config.sdkAuthorization)
+        ps.initPaymentSession(config)
         return ps
     }
 
@@ -36,12 +37,13 @@ class HyperswitchInstance internal constructor(
                 initDeferred.await()
             }
             val ps = PaymentSession(activity, hsConfig, config)
-            ps.initPaymentSession(config.sdkAuthorization)
+            ps.initPaymentSession(config)
             withContext(Dispatchers.Main) { onResult(ps) }
         }
 
     }
 
+    @JvmSynthetic
     suspend fun elements(config: PaymentSessionConfiguration): Elements {
         val hsConfig = initDeferred.await()
         return Elements(activity, hsConfig, config)

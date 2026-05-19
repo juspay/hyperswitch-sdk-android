@@ -9,13 +9,15 @@ import android.view.View
 import android.view.WindowInsets
 import android.webkit.WebSettings
 import androidx.annotation.RequiresApi
-import io.hyperswitch.PaymentConfiguration
+import io.hyperswitch.model.HyperswitchBaseConfiguration
+import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import org.json.JSONObject
 
 class LaunchOptions(
     private val context: Context? = null,
-    private val sdkVersion: String
+    private val sdkVersion: String,
+    private val hsConfig: HyperswitchBaseConfiguration? = null,
 ) {
 
     private fun getSdkParams(): Bundle =
@@ -63,44 +65,23 @@ class LaunchOptions(
         }
 
     fun getBundle(
-        sdkAuthorization: String,
+        sessionConfig: PaymentSessionConfiguration? = null,
         configuration: PaymentSheet.Configuration? = null,
         subscribedEvents: List<String> = emptyList()
     ): Bundle =
-        context?.let { getBundle(it, sdkAuthorization, configuration, subscribedEvents) } ?: Bundle()
+        context?.let { getBundle(it, sessionConfig, configuration, subscribedEvents) } ?: Bundle()
 
     fun getBundle(
         context: Context,
-        sdkAuthorization: String,
+        sessionConfig: PaymentSessionConfiguration? = null,
         configuration: PaymentSheet.Configuration? = null,
         subscribedEvents: List<String> = emptyList()
     ): Bundle = Bundle().apply {
-        val customBackendEndpoint = PaymentConfiguration.getInstance(context).customBackendUrl
-        val customLoggingEndpoint = PaymentConfiguration.getInstance(context).customLogUrl
         putBundle("props", Bundle().apply {
             putString("type", "payment")
-            putBundle("hyperswitchConfig", Bundle().apply {
-                putString("publishableKey", PaymentConfiguration.getInstance(context).publishableKey)
-                putString("profileId", null)
-                if (!customBackendEndpoint.isNullOrEmpty() || !customLoggingEndpoint.isNullOrEmpty()) {
-                    putBundle("customEndpoints", Bundle().apply {
-                        putBundle("overrideEndpoints", Bundle().apply {
-                            customBackendEndpoint?.takeIf { it.isNotEmpty() }
-                                ?.let { putString("customBackendEndpoint", it) }
-                            customLoggingEndpoint?.takeIf { it.isNotEmpty() }
-                                ?.let { putString("customLoggingEndpoint", it) }
-                        })
-                    })
-                }
-            })
-            putBundle("paymentSessionConfig", Bundle().apply {
-                putString("sdkAuthorization", sdkAuthorization)
-            })
-            putString("customBackendUrl", customBackendEndpoint)
-            putString("customLogUrl", customLoggingEndpoint)
+            hsConfig?.let { putBundle("hyperswitchConfig", it.toBundle()) }
+            sessionConfig?.let { putBundle("paymentSessionConfig", it.toBundle()) }
             putString("theme", configuration?.appearance?.theme?.name)
-            putBundle("customParams", PaymentConfiguration.getInstance(context).customParams)
-            // Inject subscribedEvents into the configuration bundle
             val configBundle = configuration?.bundle ?: Bundle()
             if (subscribedEvents.isNotEmpty()) {
                 configBundle.putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
@@ -111,35 +92,17 @@ class LaunchOptions(
     }
 
     fun getBundle(
-        publishableKey: String? = null,
         configuration: Bundle? = null,
-        customBackendUrl: String? = null,
-        customLogUrl: String? = null,
-        customParams: Map<String, Any>? = null,
         type: String? = "payment",
         from: String? = "nativeWidget",
-        sdkAuthorization : String? = null,
+        sessionConfig: PaymentSessionConfiguration? = null,
         subscribedEvents: List<String> = emptyList(),
     ): Bundle = Bundle().apply {
         putBundle("props", Bundle().apply {
             putString("type", type)
             putString("from", from)
-            putBundle("hyperswitchConfig", Bundle().apply {
-                putString("publishableKey", publishableKey ?: "")
-                if (!customBackendUrl.isNullOrEmpty() || !customLogUrl.isNullOrEmpty()) {
-                    putBundle("customEndpoints", Bundle().apply {
-                        putBundle("overrideEndpoints", Bundle().apply {
-                            customBackendUrl?.takeIf { it.isNotEmpty() }
-                                ?.let { putString("customBackendEndpoint", it) }
-                            customLogUrl?.takeIf { it.isNotEmpty() }
-                                ?.let { putString("customLoggingEndpoint", it) }
-                        })
-                    })
-                }
-            })
-            putBundle("paymentSessionConfig", Bundle().apply {
-                putString("sdkAuthorization", sdkAuthorization ?: "")
-            })
+            hsConfig?.let { putBundle("hyperswitchConfig", it.toBundle()) }
+            sessionConfig?.let { putBundle("paymentSessionConfig", it.toBundle()) }
             val configCopy = configuration?.let { Bundle(it) }
             if (configCopy?.containsKey("hideConfirmButton") == false) {
                 configCopy.putBoolean("hideConfirmButton", true)
@@ -152,11 +115,10 @@ class LaunchOptions(
             putBundle("configuration", configCopy)
             val theme = configCopy?.getBundle("appearance")?.getString("theme")
             putString("theme", theme)
-            customBackendUrl?.let { url -> putString("customBackendUrl", url) }
-            customLogUrl?.let { url -> putString("customLogUrl", url) }
-            customParams?.let { params ->
-                putBundle("customParams", toBundle(params))
-            }
+            val backendUrl = hsConfig?.customConfig?.overrideEndpoints?.customBackendEndpoint
+            val logUrl = hsConfig?.customConfig?.overrideEndpoints?.customLoggingEndpoint
+            backendUrl?.let { putString("customBackendUrl", it) }
+            logUrl?.let { putString("customLogUrl", it) }
             putBundle("sdkParams", getSdkParams())
         })
     }
@@ -169,9 +131,9 @@ class LaunchOptions(
     }
 
     fun getJson(
-        paymentIntentClientSecret: String,
+        sessionConfig: PaymentSessionConfiguration? = null,
         configuration: PaymentSheet.Configuration?
-    ): JSONObject = toJson(getBundle(paymentIntentClientSecret, configuration))
+    ): JSONObject = toJson(getBundle(sessionConfig, configuration))
 
     fun getJson(configurationMap: Map<*, *>): JSONObject =
         toJson(getMapWithHyperParams(configurationMap))

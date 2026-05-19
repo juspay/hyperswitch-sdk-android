@@ -1,7 +1,6 @@
 package io.hyperswitch.click_to_pay
 
 import android.app.Activity
-import android.os.Bundle
 import io.hyperswitch.click_to_pay.models.*
 
 class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySessionLauncher) {
@@ -42,26 +41,13 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
         )
     )
 
-    constructor(
-        activity: Activity,
-        publishableKey: String,
-        customBackendUrl: String? = null,
-        customLogUrl: String? = null,
-        customParams: Bundle? = null,
-    ) : this(
-        DefaultClickToPaySessionLauncher(
-            activity,
-            publishableKey,
-            customBackendUrl,
-            customLogUrl,
-            customParams,
-        )
-    )
     @Throws(ClickToPayException::class)
+    @JvmSynthetic
     suspend fun initialise() {
         clickToPaySessionLauncher.initialize()
     }
 
+    @JvmSynthetic
     suspend fun initClickToPaySession(
         clientSecret: String,
         profileId: String,
@@ -78,6 +64,7 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
         )
     }
 
+    @JvmSynthetic
     suspend fun getActiveClickToPaySession(
         clientSecret: String,
         profileId: String,
@@ -95,30 +82,37 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
         return this
     }
 
+    @JvmSynthetic
     suspend fun isCustomerPresent(request: CustomerPresenceRequest): CustomerPresenceResponse {
         return clickToPaySessionLauncher.isCustomerPresent(request)
     }
 
+    @JvmSynthetic
     suspend fun getUserType(): CardsStatusResponse {
         return clickToPaySessionLauncher.getUserType()
     }
 
+    @JvmSynthetic
     suspend fun getRecognizedCards(): List<RecognizedCard> {
         return clickToPaySessionLauncher.getRecognizedCards()
     }
 
+    @JvmSynthetic
     suspend fun validateCustomerAuthentication(otpValue: String): List<RecognizedCard> {
         return clickToPaySessionLauncher.validateCustomerAuthentication(otpValue)
     }
 
+    @JvmSynthetic
     suspend fun checkoutWithCard(request: CheckoutRequest): CheckoutResponse {
         return clickToPaySessionLauncher.checkoutWithCard(request)
     }
 
+    @JvmSynthetic
     suspend fun signOut(): SignOutResponse {
         return clickToPaySessionLauncher.signOut()
     }
 
+    @JvmSynthetic
     suspend fun close() {
         clickToPaySessionLauncher.close()
     }

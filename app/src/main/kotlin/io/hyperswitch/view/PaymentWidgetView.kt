@@ -5,7 +5,6 @@ import android.content.Context
 import android.os.Bundle
 import android.util.AttributeSet
 import android.util.Log
-import android.view.Choreographer
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -16,9 +15,10 @@ import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.BuildConfig
-import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.ElementUpdateIntentResult
+import io.hyperswitch.model.HyperswitchBaseConfiguration
+import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsheet.PaymentRequestData
 import io.hyperswitch.paymentsheet.PaymentResult
@@ -61,9 +61,8 @@ class PaymentWidgetView : FrameLayout {
     private lateinit var launchOptions: LaunchOptions
     private var fragment: HyperFragment? = null
     private lateinit var mContext: Context
-    private var publishableKey: String? = null
-    private var profileId: String? = null
     private var sdkAuthorization: String = ""
+    private var hsConfig: HyperswitchBaseConfiguration? = null
 
     private var resultListener: PaymentResultListener? = null
 
@@ -71,7 +70,7 @@ class PaymentWidgetView : FrameLayout {
     private var subscribedEvents: List<String> = emptyList()
 
     private var onEventCallback: PaymentEventListener? = null
-    private var activeChoreographerCallback: Choreographer.FrameCallback? = null
+    private var activeLayoutChangeListener: View.OnLayoutChangeListener? = null
     private var widgetShown = false
 
     constructor(context: Context) : super(context) {
@@ -102,8 +101,7 @@ class PaymentWidgetView : FrameLayout {
             id = generateViewId()
         }
         this.mContext = context
-        launchOptions = LaunchOptions(context.applicationContext, BuildConfig.VERSION_NAME)
-        this.publishableKey = PaymentConfiguration.publishableKey()
+        launchOptions = LaunchOptions(context.applicationContext, BuildConfig.VERSION_NAME, hsConfig)
     }
 
     fun setFragment(fragment: HyperFragment) {
@@ -116,33 +114,12 @@ class PaymentWidgetView : FrameLayout {
 
     private var widgetType: String? = null
 
-    fun initWidget(publishableKey: String) {
-        initWidget(publishableKey, this.profileId ?: "")
+    fun initWidget(config: HyperswitchBaseConfiguration) {
+        this.hsConfig = config
+        this.widgetType = this.widgetType ?: "widgetPaymentSheet"
+        launchOptions = LaunchOptions(mContext.applicationContext, BuildConfig.VERSION_NAME, config)
+        ReactNativeController.initialize(mContext.applicationContext as Application)
     }
-
-    fun initWidget(
-        publishableKey: String, profileId: String
-    ) {
-        initWidget(
-            mContext.applicationContext as Application,
-            this.widgetType ?: "widgetPaymentSheet",
-            publishableKey,
-            profileId
-        )
-    }
-
-    fun initWidget(
-        application: Application,
-        type: String,
-        publishableKey: String,
-        profileId: String,
-    ) {
-        this.widgetType = type
-        this.publishableKey = publishableKey
-        this.profileId = profileId
-        ReactNativeController.initialize(application)
-    }
-
 
     fun isSdkAuthorizationEmpty(): Boolean {
         return this.sdkAuthorization.isEmpty()
@@ -262,21 +239,15 @@ class PaymentWidgetView : FrameLayout {
     }
 
     fun getLaunchOptions(): Bundle {
-        val paymentConfig = PaymentConfiguration.getInstance(mContext)
         return this.launchOptions.getBundle(
-            publishableKey = this.publishableKey,
             configuration = resolveConfiguration(),
-            customBackendUrl = paymentConfig.customBackendUrl,
-            customLogUrl = paymentConfig.customLogUrl,
-            customParams = paymentConfig.customParams?.let { launchOptions.fromBundle(it) }
-                as Map<String, Any>?,
             type = widgetType,
             from = when (widgetConfig) {
                 is PaymentWidgetConfig.Native -> "nativeWidget"
                 is PaymentWidgetConfig.ReactNative -> "rn"
                 null -> "nativeWidget"
             },
-            sdkAuthorization = this.sdkAuthorization,
+            sessionConfig = if (this.sdkAuthorization.isNotEmpty()) PaymentSessionConfiguration(this.sdkAuthorization) else null,
             subscribedEvents = this.subscribedEvents,
         )
     }
@@ -401,29 +372,31 @@ class PaymentWidgetView : FrameLayout {
     }
 
     private fun setupLayout(view: View, width: Int, height: Int) {
-        val callback = object : Choreographer.FrameCallback {
-            override fun doFrame(frameTimeNanos: Long) {
-                try {
-                    if (view.isAttachedToWindow) {
-                        manuallyLayoutChildren(view, width, height)
-                        view.viewTreeObserver.dispatchOnGlobalLayout()
-                        Choreographer.getInstance().postFrameCallback(this)
-                    } else {
-                        activeChoreographerCallback = null
-                    }
-                } catch (_: Exception) {
+        // Do an initial one-shot layout pass.
+        manuallyLayoutChildren(view, width, height)
 
-                }
+        // Re-layout only when the view's dimensions actually change, not every frame.
+        // This prevents the continuous forced layout() calls that destabilise focus
+        // in the embedded React Native TextInput (e.g. CVCWidget).
+        val listener = View.OnLayoutChangeListener { v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+            val newW = right - left
+            val newH = bottom - top
+            val oldW = oldRight - oldLeft
+            val oldH = oldBottom - oldTop
+            if (newW != oldW || newH != oldH) {
+                manuallyLayoutChildren(v, newW, newH)
             }
         }
-        activeChoreographerCallback = callback
-        Choreographer.getInstance().postFrameCallback(callback)
+        view.addOnLayoutChangeListener(listener)
+        activeLayoutChangeListener = listener
     }
 
     fun stopLayout() {
-        activeChoreographerCallback?.let {
-            Choreographer.getInstance().removeFrameCallback(it)
-            activeChoreographerCallback = null
+        activeLayoutChangeListener?.let { listener ->
+            // We don't hold a reference to the view here, so we rely on removeWidget()
+            // calling removeAllViews() which detaches the listener automatically.
+            // Nulling the reference is sufficient to prevent leaks.
+            activeLayoutChangeListener = null
         }
     }
 
