@@ -170,6 +170,7 @@ class PaymentSheet internal constructor(
         val savedPaymentSheetHeaderLabel: String? = null,
         val displayDefaultSavedPaymentIcon: Boolean? = null,
         val displaySavedPaymentMethodsCheckbox: Boolean? = null,
+        val savedPaymentMethodsCheckboxCheckedByDefault: Boolean? = null,
         val displaySavedPaymentMethods: Boolean? = null,
         val placeHolder: PlaceHolder? = null,
         val hideConfirmButton: Boolean? = null,
@@ -239,6 +240,12 @@ class PaymentSheet internal constructor(
                             displaySavedPaymentMethodsCheckbox
                         )
                     }
+                    if (savedPaymentMethodsCheckboxCheckedByDefault != null) {
+                        putBoolean(
+                            "savedPaymentMethodsCheckboxCheckedByDefault",
+                            savedPaymentMethodsCheckboxCheckedByDefault
+                        )
+                    }
                     if (displaySavedPaymentMethods != null) {
                         putBoolean("displaySavedPaymentMethods", displaySavedPaymentMethods)
                     }
@@ -286,6 +293,7 @@ class PaymentSheet internal constructor(
             private var allowsPaymentMethodsRequiringShippingAddress: Boolean = false
             private var appearance: Appearance? = null
             private var displaySavedPaymentMethodsCheckbox: Boolean = true
+            private var savedPaymentMethodsCheckboxCheckedByDefault: Boolean = false
             private var displaySavedPaymentMethods: Boolean = true
             private var placeHolder: PlaceHolder? = null
             private var hideConfirmButton : Boolean? = null
@@ -348,6 +356,11 @@ class PaymentSheet internal constructor(
             fun displaySavedPaymentMethodsCheckbox(displaySavedPaymentMethodsCheckbox: Boolean) =
                 apply {
                     this.displaySavedPaymentMethodsCheckbox = displaySavedPaymentMethodsCheckbox
+                }
+
+            fun savedPaymentMethodsCheckboxCheckedByDefault(savedPaymentMethodsCheckboxCheckedByDefault: Boolean) =
+                apply {
+                    this.savedPaymentMethodsCheckboxCheckedByDefault = savedPaymentMethodsCheckboxCheckedByDefault
                 }
 
             fun displaySavedPaymentMethods(displaySavedPaymentMethods: Boolean) =
@@ -427,6 +440,7 @@ class PaymentSheet internal constructor(
                 savedPaymentSheetHeaderLabel,
                 displayDefaultSavedPaymentIcon,
                 displaySavedPaymentMethodsCheckbox,
+                savedPaymentMethodsCheckboxCheckedByDefault,
                 displaySavedPaymentMethods,
                 placeHolder,
                 hideConfirmButton,
