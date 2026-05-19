@@ -10,6 +10,7 @@ import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.CvcWidgetEvents
+import io.hyperswitch.model.CustomEndpointConfiguration
 import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration

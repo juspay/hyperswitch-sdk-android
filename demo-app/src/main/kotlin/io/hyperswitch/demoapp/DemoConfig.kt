@@ -87,7 +87,7 @@ fun buildAppearance(): PaymentSheet.Appearance = PaymentSheet.Appearance(
 
 fun buildWallets(): PaymentSheet.WalletConfiguration = PaymentSheet.WalletConfiguration(
     googlePay = PaymentSheet.GooglePayWalletConfig(
-        visibility       = PaymentSheet.WalletShowType.Auto,
+        visibility       = PaymentSheet.Visibility.Auto,
         buttonType       = PaymentSheet.GooglePayButtonType.BUY,
         buttonStyleLight = PaymentSheet.GooglePayButtonStyle.Dark,
         buttonStyleDark  = PaymentSheet.GooglePayButtonStyle.Dark,
@@ -148,7 +148,7 @@ fun buildPaymentMethodLayout(): PaymentSheet.PaymentMethodLayout = PaymentSheet.
         defaultCollapsed = false,
         hideCardExpiry   = true,
         hideCVCError     = false,
-        cvcIcon          = PaymentSheet.WalletShowType.Auto,
+        cvcIcon          = PaymentSheet.Visibility.Auto,
         groupingBehavior = PaymentSheet.GroupingBehavior(
             displayInSeparateScreen = true,
             groupByPaymentMethods   = false,
@@ -182,7 +182,7 @@ fun buildDemoConfiguration(netceteraApiKey: String? = null): PaymentSheet.Config
         .displayDefaultSavedPaymentIcon(true)
         .disableBranding(true)
         .stickyPayButton(true)
-        .redirectionInfo(PaymentSheet.WalletShowType.Auto)
+        .redirectionInfo(PaymentSheet.Visibility.Auto)
         .paymentMethodOrder(
             listOf("apple_pay", "google_pay", "paypal", "samsung_pay", "credit", "klarna")
         )
