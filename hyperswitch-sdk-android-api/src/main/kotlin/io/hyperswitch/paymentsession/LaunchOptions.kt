@@ -229,6 +229,7 @@ class LaunchOptions(
                 is String -> bundle.putString(keyString, value)
                 is Map<*, *> -> bundle.putBundle(keyString, toBundle(value))
                 is Array<*> -> bundle.putSerializable(keyString, value)
+                is ArrayList<*> -> bundle.putSerializable(keyString, value.toArray())
                 else -> throw IllegalArgumentException("Could not convert object with key: $keyString.")
             }
         }
