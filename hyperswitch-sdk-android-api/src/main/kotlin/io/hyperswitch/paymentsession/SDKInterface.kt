@@ -16,7 +16,7 @@ interface PresentationInterface {
 /** React Native lifecycle operations — only meaningful in the full SDK. */
 interface ReactNativeLifecycle {
     fun initializeReactNativeInstance()
-    fun recreateReactContext()
+    fun recreateReactContext(configuration: SavedPaymentMethodsConfiguration? = null)
 }
 
 /** Combined interface implemented by the full SDK's React Native backend. */

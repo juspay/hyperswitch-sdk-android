@@ -43,8 +43,11 @@ abstract class BasePaymentSessionLauncher(
     )
 
     abstract override fun getCustomerSavedPaymentMethods(
-        savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)
+        configuration: SavedPaymentMethodsConfiguration?,
+        savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
     )
 
-    abstract override suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler
+    abstract override suspend fun getCustomerSavedPaymentMethods(
+        configuration: SavedPaymentMethodsConfiguration?,
+    ): PaymentSessionHandler
 }

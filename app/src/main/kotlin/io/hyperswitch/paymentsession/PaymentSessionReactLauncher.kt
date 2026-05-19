@@ -70,7 +70,7 @@ class PaymentSessionReactLauncher(
         }
     }
 
-    override fun recreateReactContext() {
+    override fun recreateReactContext(configuration: SavedPaymentMethodsConfiguration?) {
         activity.runOnUiThread {
             val context = reactContext
             if (context == null) {
@@ -79,7 +79,7 @@ class PaymentSessionReactLauncher(
                     reactHost.addReactInstanceEventListener(
                         object : ReactInstanceEventListener {
                             override fun onReactContextInitialized(context: ReactContext) {
-                                invokeStartTask(context)
+                                invokeStartTask(context, configuration)
                                 reactHost.removeReactInstanceEventListener(this)
                             }
                         }
@@ -90,7 +90,7 @@ class PaymentSessionReactLauncher(
                     reactInstanceManager?.addReactInstanceEventListener(
                         object : ReactInstanceEventListener {
                             override fun onReactContextInitialized(context: ReactContext) {
-                                invokeStartTask(context)
+                                invokeStartTask(context, configuration)
                                 reactInstanceManager.removeReactInstanceEventListener(this)
                             }
                         }
@@ -98,7 +98,7 @@ class PaymentSessionReactLauncher(
                     reactInstanceManager?.createReactContextInBackground()
                 }
             } else {
-                invokeStartTask(context)
+                invokeStartTask(context, configuration)
             }
         }
     }
@@ -106,17 +106,19 @@ class PaymentSessionReactLauncher(
     private fun getSubscribedEventsSafely(): List<String> =
         try { HyperEventEmitter.getSubscribedEvents() } catch (_: Exception) { emptyList() }
 
-    private fun invokeStartTask(reactContext: ReactContext) {
+    private fun invokeStartTask(reactContext: ReactContext, configuration: SavedPaymentMethodsConfiguration? = null) {
         val subscribedEvents = getSubscribedEventsSafely()
+        val bundle = launchOptions.getBundle(
+            reactContext,
+            sessionConfig,
+            null,
+            subscribedEvents,
+        )
+        configuration?.let { config ->
+            bundle.getBundle("props")?.putBundle("configuration", config.bundle)
+        }
         val taskConfig = HeadlessJsTaskConfig(
-            "HyperHeadless", Arguments.fromBundle(
-                launchOptions.getBundle(
-                    reactContext,
-                    sessionConfig,
-                    null,
-                    subscribedEvents
-                )
-            ), 5000, true, null
+            "HyperHeadless", Arguments.fromBundle(bundle), 5000, true, null
         )
 
         val headlessJsTaskContext = HeadlessJsTaskContext.getInstance(reactContext)

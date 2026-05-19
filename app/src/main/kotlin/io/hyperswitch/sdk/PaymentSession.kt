@@ -7,6 +7,7 @@ import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSessionLauncher
+import io.hyperswitch.paymentsession.SavedPaymentMethodsConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
 import kotlin.coroutines.resume
@@ -82,8 +83,10 @@ class PaymentSession internal constructor(
     }
 
     @JvmSynthetic
-    suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler {
-        return paymentSessionLauncher.getCustomerSavedPaymentMethods().also {
+    suspend fun getCustomerSavedPaymentMethods(
+        configuration: SavedPaymentMethodsConfiguration? = null,
+    ): PaymentSessionHandler {
+        return paymentSessionLauncher.getCustomerSavedPaymentMethods(configuration).also {
             paymentSessionHandler = it
         }
     }
@@ -91,10 +94,14 @@ class PaymentSession internal constructor(
     /**
      * Retrieves the customer's saved payment methods.
      *
+     * @param configuration Optional configuration to filter saved payment methods.
      * @param savedPaymentMethodCallback A callback that will be invoked with the customer's saved payment methods.
      */
-    fun getCustomerSavedPaymentMethods(savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)) {
-        paymentSessionLauncher.getCustomerSavedPaymentMethods {
+    fun getCustomerSavedPaymentMethods(
+        configuration: SavedPaymentMethodsConfiguration? = null,
+        savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
+    ) {
+        paymentSessionLauncher.getCustomerSavedPaymentMethods(configuration) {
             paymentSessionHandler = it
             savedPaymentMethodCallback(it)
         }

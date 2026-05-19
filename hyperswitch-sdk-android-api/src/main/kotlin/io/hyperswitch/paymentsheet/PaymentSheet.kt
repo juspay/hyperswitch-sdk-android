@@ -809,7 +809,11 @@ class PaymentSheet internal constructor(
         /**
          * Describes the typography of the primary button.
          */
-        val typography: PrimaryButtonTypography? = null
+        val typography: PrimaryButtonTypography? = null,
+        /**
+         * The height of the primary button in dp.
+         */
+        val heightDp: Float? = null
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -820,6 +824,7 @@ class PaymentSheet internal constructor(
                     })
                     putBundle("shapes", shape?.bundle)
                     putBundle("typography", typography?.bundle)
+                    if (heightDp != null) putFloat("height", heightDp)
                 }
             }
     }
@@ -1388,7 +1393,8 @@ class PaymentSheet internal constructor(
         val hideCardExpiry: Boolean? = null,
         val hideCVCError: Boolean? = null,
         val cvcIcon: Visibility? = null,
-        val groupingBehavior: GroupingBehavior? = null
+        val groupingBehavior: GroupingBehavior? = null,
+        val hiddenPaymentMethods: List<String>? = null,
     ) : Parcelable {
         val bundle: Bundle
             get() = Bundle().apply {
@@ -1397,6 +1403,9 @@ class PaymentSheet internal constructor(
                 if (hideCVCError != null) putBoolean("hideCVCError", hideCVCError)
                 putString("cvcIcon", cvcIcon?.value)
                 putBundle("groupingBehavior", groupingBehavior?.bundle)
+                hiddenPaymentMethods?.let {
+                    putStringArrayList("hiddenPaymentMethods", ArrayList(it))
+                }
             }
     }
 

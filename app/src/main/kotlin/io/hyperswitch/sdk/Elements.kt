@@ -8,6 +8,7 @@ import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsession.PaymentSessionHandler
+import io.hyperswitch.paymentsession.SavedPaymentMethodsConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.view.HyperswitchElement
 import kotlinx.coroutines.CoroutineScope
@@ -173,14 +174,19 @@ class Elements internal constructor(
     
     fun getPaymentSession(): PaymentSession = this.paymentSession
 
-    fun getCustomerSavedPaymentMethods(savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)) {
-        paymentSession.getCustomerSavedPaymentMethods { handler ->
+    fun getCustomerSavedPaymentMethods(
+        configuration: SavedPaymentMethodsConfiguration? = null,
+        savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
+    ) {
+        paymentSession.getCustomerSavedPaymentMethods(configuration) { handler ->
             savedPaymentMethodCallback(handler)
         }
     }
 
     @JvmSynthetic
-    suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler {
-        return paymentSession.getCustomerSavedPaymentMethods()
+    suspend fun getCustomerSavedPaymentMethods(
+        configuration: SavedPaymentMethodsConfiguration? = null,
+    ): PaymentSessionHandler {
+        return paymentSession.getCustomerSavedPaymentMethods(configuration)
     }
 }

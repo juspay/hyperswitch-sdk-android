@@ -15,7 +15,19 @@ interface PaymentSessionLauncher {
         configurationMap: Map<String, Any?>, subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?, resultCallback: (PaymentResult) -> Unit
     )
 
-    suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler
+    suspend fun getCustomerSavedPaymentMethods(
+        configuration: SavedPaymentMethodsConfiguration? = null,
+    ): PaymentSessionHandler
 
-    fun getCustomerSavedPaymentMethods(savedPaymentMethodCallback: (PaymentSessionHandler) -> Unit)
+    fun getCustomerSavedPaymentMethods(
+        configuration: SavedPaymentMethodsConfiguration? = null,
+        savedPaymentMethodCallback: (PaymentSessionHandler) -> Unit,
+    )
+
+    suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler =
+        getCustomerSavedPaymentMethods(null)
+
+    fun getCustomerSavedPaymentMethods(
+        savedPaymentMethodCallback: (PaymentSessionHandler) -> Unit,
+    ) = getCustomerSavedPaymentMethods(null, savedPaymentMethodCallback)
 }

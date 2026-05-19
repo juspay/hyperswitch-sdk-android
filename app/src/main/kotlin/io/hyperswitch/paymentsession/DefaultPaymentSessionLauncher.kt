@@ -71,14 +71,23 @@ class DefaultPaymentSessionLauncher(
     }
 
     override fun getCustomerSavedPaymentMethods(
-        savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)
+        configuration: SavedPaymentMethodsConfiguration?,
+        savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
     ) {
         isPresented = false
         GetPaymentSessionCallBackManager.setCallback(sessionConfig?.sdkAuthorization, savedPaymentMethodCallback)
-        paymentSessionReactLauncher.recreateReactContext()
+        paymentSessionReactLauncher.recreateReactContext(configuration)
     }
 
-    override suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler =
+    override fun getCustomerSavedPaymentMethods(
+        savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
+    ) {
+        getCustomerSavedPaymentMethods(null, savedPaymentMethodCallback)
+    }
+
+    override suspend fun getCustomerSavedPaymentMethods(
+        configuration: SavedPaymentMethodsConfiguration?,
+    ): PaymentSessionHandler =
         suspendCancellableCoroutine { continuation ->
             isPresented = false
             GetPaymentSessionCallBackManager.setCallback(sessionConfig?.sdkAuthorization) { handler ->
@@ -87,7 +96,7 @@ class DefaultPaymentSessionLauncher(
             continuation.invokeOnCancellation {
                 GetPaymentSessionCallBackManager.setCallback(sessionConfig?.sdkAuthorization, null)
             }
-            paymentSessionReactLauncher.recreateReactContext()
+            paymentSessionReactLauncher.recreateReactContext(configuration)
         }
 
 

@@ -8,6 +8,7 @@ import io.hyperswitch.paymentsession.BasePaymentSessionLauncher
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
 import io.hyperswitch.paymentsession.PresentationInterface
+import io.hyperswitch.paymentsession.SavedPaymentMethodsConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
 
@@ -36,12 +37,15 @@ open class DefaultPaymentSessionLauncherLite(
     }
 
     override fun getCustomerSavedPaymentMethods(
-        savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)
+        configuration: SavedPaymentMethodsConfiguration?,
+        savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
     ) {
         Log.w(TAG, "getCustomerSavedPaymentMethods is not supported in the lite SDK")
     }
 
-    override suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler =
+    override suspend fun getCustomerSavedPaymentMethods(
+        configuration: SavedPaymentMethodsConfiguration?,
+    ): PaymentSessionHandler =
         throw UnsupportedOperationException(
             "getCustomerSavedPaymentMethods is not supported in the lite SDK"
         )
