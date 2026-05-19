@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import io.hyperswitch.payments.GooglePayCallbackManager
+import io.hyperswitch.payments.PazeCallbackManager
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
 import io.hyperswitch.webview.utils.Arguments
 import io.hyperswitch.webview.utils.Callback
@@ -85,6 +86,14 @@ open class WebViewFragment : Fragment() {
             context,
             data.toString(),
             ::sendResultToWebView,
+        )
+    }
+
+    fun launchPaze(data: JSONObject) {
+        PazeCallbackManager.setCallback(
+            context,
+            data.toString(),
+            ::sendPazeResultToWebView,
         )
     }
 
@@ -168,6 +177,10 @@ open class WebViewFragment : Fragment() {
 
                 if (jsonObject.has("launchGPay")) {
                     launchGPay(jsonObject.getJSONObject("launchGPay"))
+                }
+
+                if (jsonObject.has("launchPaze")) {
+                    launchPaze(jsonObject.getJSONObject("launchPaze"))
                 }
 
                 if (jsonObject.has("launchScanCard")) {
@@ -474,6 +487,19 @@ open class WebViewFragment : Fragment() {
         }
     }
 
+    private fun sendPazeResultToWebView(result: Map<String, Any?>) {
+        try {
+            val javascriptFunction =
+                """window.postMessage(JSON.stringify({"pazeData":  ${JSONObject(result)}}), '*');""".trimIndent()
+
+            val args = Arguments.createArray()
+            args.pushString(javascriptFunction)
+            hSWebViewManagerImpl.receiveCommand(hSWebViewWrapper, "injectJavaScript", args)
+        } catch (e: Exception) {
+            Log.e("sendPazeResultToWebView", "Error sending Paze result to WebView", e)
+        }
+    }
+
     /**
      * Inner class to define a JavaScript interface for the WebView.
      *
@@ -509,6 +535,15 @@ open class WebViewFragment : Fragment() {
             )
         }
 
+        @JavascriptInterface
+        fun launchPaze(data: String) {
+            PazeCallbackManager.setCallback(
+                context,
+                data,
+                ::sendPazeResultToWebView,
+            )
+        }
+
         private fun sendResultToWebView(result: Map<String, Any?>) {
             try {
                 val javascriptFunction =
@@ -518,6 +553,18 @@ open class WebViewFragment : Fragment() {
                 }
             } catch (e: Exception) {
                 Log.e("sendResultToWebView", "Error sending result to WebView", e)
+            }
+        }
+
+        private fun sendPazeResultToWebView(result: Map<String, Any?>) {
+            try {
+                val javascriptFunction =
+                    """window.postMessage(JSON.stringify({"pazeData":  ${JSONObject(result)}}), '*');""".trimIndent()
+                context.runOnUiThread {
+                    webView.evaluateJavascript(javascriptFunction, null)
+                }
+            } catch (e: Exception) {
+                Log.e("sendPazeResultToWebView", "Error sending Paze result to WebView", e)
             }
         }
 
