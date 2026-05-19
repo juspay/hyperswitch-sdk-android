@@ -14,6 +14,7 @@ import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.PaymentSession
+import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsheet.AddressDetails
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
@@ -21,11 +22,11 @@ import org.json.JSONException
 import org.json.JSONObject
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
+import io.hyperswitch.model.HyperswitchConfiguration
+import io.hyperswitch.paymentsheet.PaymentSheet.Visibility
 
 class MainActivity : Activity() {
     lateinit var ctx: Activity
-    private var publishableKey: String = ""
-    private var sdkAuthorization: String = ""
     private var netceteraApiKey: String? = null
     private val prefsName = "HyperswitchPrefs"
     private val keyServerUrl = "server_url"
@@ -177,7 +178,7 @@ class MainActivity : Activity() {
 
         val wallets = PaymentSheet.WalletConfiguration(
             googlePay = PaymentSheet.GooglePayWalletConfig(
-                visibility       = PaymentSheet.WalletShowType.Auto,
+                visibility       = PaymentSheet.Visibility.Auto,
                 buttonType       = PaymentSheet.GooglePayButtonType.BUY,
                 buttonStyleLight = PaymentSheet.GooglePayButtonStyle.Dark,
                 buttonStyleDark  = PaymentSheet.GooglePayButtonStyle.Dark,
@@ -212,7 +213,7 @@ class MainActivity : Activity() {
             .displayDefaultSavedPaymentIcon(true)
             .disableBranding(true)
             .stickyPayButton(true)
-            .redirectionInfo("hidden")
+            .redirectionInfo(Visibility.Auto)
             .paymentMethodOrder(
                 listOf("apple_pay", "google_pay", "paypal", "samsung_pay", "klarna", "credit")
             )
@@ -239,24 +240,18 @@ class MainActivity : Activity() {
 
                         val result = value?.let { JSONObject(it) }
                         if (result != null) {
-                            sdkAuthorization = result.getString("sdkAuthorization")
-                            publishableKey = result.getString("publishableKey")
+                            val publishableKey = result.getString("publishableKey")
+                            val sdkAuthorization = result.getString("sdkAuthorization")
 
-                            /**
-                             *
-                             * Create Payment Session Object
-                             *
-                             * */
+                            val hsConfig = HyperswitchConfiguration(
+                                publishableKey = publishableKey
+                            )
 
-                            paymentSession = PaymentSession(ctx, publishableKey)
-
-                            /**
-                             *
-                             * Initialise Payment Session
-                             *
-                             * */
-
-                            paymentSession.initPaymentSession(sdkAuthorization)
+                            paymentSession = PaymentSession(
+                                ctx,
+                                hsConfig,
+                                PaymentSessionConfiguration(sdkAuthorization)
+                            )
 
                             ctx.runOnUiThread {
                                 ctx.findViewById<View>(R.id.launchButton).isEnabled = true

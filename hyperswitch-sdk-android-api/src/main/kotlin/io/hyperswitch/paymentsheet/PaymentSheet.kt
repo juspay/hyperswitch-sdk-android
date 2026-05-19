@@ -196,7 +196,7 @@ class PaymentSheet internal constructor(
         val preloadCardElement: Boolean? = null,
 
         /** Controls visibility of redirection info. */
-        val redirectionInfo: WalletShowType? = null,
+        val redirectionInfo: Visibility? = null,
 
         /** Always send customer acceptance data when confirming. */
         val alwaysSendCustomerAcceptance: Boolean? = null,
@@ -301,7 +301,7 @@ class PaymentSheet internal constructor(
             private var displayPayButton: Boolean? = null
             private var stickyPayButton: Boolean? = null
             private var preloadCardElement: Boolean? = null
-            private var redirectionInfo: WalletShowType? = null
+            private var redirectionInfo: Visibility? = null
             private var alwaysSendCustomerAcceptance: Boolean? = null
             private var opensCardScannerAutomatically: Boolean? = null
             private var paymentMethodOrder: List<String>? = null
@@ -394,7 +394,7 @@ class PaymentSheet internal constructor(
             fun preloadCardElement(preloadCardElement: Boolean) =
                 apply { this.preloadCardElement = preloadCardElement }
 
-            fun redirectionInfo(redirectionInfo: WalletShowType) =
+            fun redirectionInfo(redirectionInfo: Visibility) =
                 apply { this.redirectionInfo = redirectionInfo }
 
             fun alwaysSendCustomerAcceptance(alwaysSendCustomerAcceptance: Boolean) =
@@ -1132,7 +1132,7 @@ class PaymentSheet internal constructor(
     /**
      * Controls whether a wallet payment method is shown.
      */
-    enum class WalletShowType(val value: String) {
+    enum class Visibility(val value: String) {
         /** Show the wallet when available (default). */
         Auto("shown"),
         /** Never show the wallet. */
@@ -1227,7 +1227,7 @@ class PaymentSheet internal constructor(
     @Deprecated("Apple Pay is not supported on Android")
     @Parcelize
     data class ApplePayWalletConfig @JvmOverloads constructor(
-        val visibility: WalletShowType = WalletShowType.Auto,
+        val visibility: Visibility = Visibility.Auto,
         @Suppress("DEPRECATION") val buttonType: ApplePayButtonType = ApplePayButtonType.Plain,
         @Suppress("DEPRECATION") val buttonStyleLight: ApplePayButtonStyle = ApplePayButtonStyle.Black,
         @Suppress("DEPRECATION") val buttonStyleDark: ApplePayButtonStyle = ApplePayButtonStyle.White,
@@ -1259,7 +1259,7 @@ class PaymentSheet internal constructor(
      */
     @Parcelize
     data class GooglePayWalletConfig @JvmOverloads constructor(
-        val visibility: WalletShowType = WalletShowType.Auto,
+        val visibility: Visibility = Visibility.Auto,
         val buttonType: GooglePayButtonType = GooglePayButtonType.PAY,
         /** Button style used when the system is in light mode. */
         val buttonStyleLight: GooglePayButtonStyle = GooglePayButtonStyle.Dark,
@@ -1282,7 +1282,7 @@ class PaymentSheet internal constructor(
      */
     @Parcelize
     data class PayPalWalletConfig @JvmOverloads constructor(
-        val visibility: WalletShowType = WalletShowType.Auto,
+        val visibility: Visibility = Visibility.Auto,
         val buttonType: PaypalButtonType = PaypalButtonType.Paypal,
         /** Button style used when the system is in light mode. */
         val buttonStyleLight: PayPalButtonStyle = PayPalButtonStyle.Gold,
@@ -1387,7 +1387,7 @@ class PaymentSheet internal constructor(
         val defaultCollapsed: Boolean? = null,
         val hideCardExpiry: Boolean? = null,
         val hideCVCError: Boolean? = null,
-        val cvcIcon: WalletShowType? = null,
+        val cvcIcon: Visibility? = null,
         val groupingBehavior: GroupingBehavior? = null
     ) : Parcelable {
         val bundle: Bundle
