@@ -17,6 +17,7 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
 
     @ReactMethod
     fun getPaymentSession(
+        rootTag: Int,
         getPaymentMethodData: ReadableMap,
         getPaymentMethodData2: ReadableMap,
         getPaymentMethodDataArray: ReadableArray,
