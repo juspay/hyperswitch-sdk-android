@@ -1260,6 +1260,15 @@ class PaymentSheet internal constructor(
     }
 
     /**
+     * PayPal button size.
+     */
+    enum class PayPalButtonSize(val value: String) {
+        Small("small"),
+        Medium("medium"),
+        Large("large")
+    }
+
+    /**
      * Per-wallet configuration for Google Pay.
      */
     @Parcelize
@@ -1293,6 +1302,7 @@ class PaymentSheet internal constructor(
         val buttonStyleLight: PayPalButtonStyle = PayPalButtonStyle.Gold,
         /** Button style used when the system is in dark mode. */
         val buttonStyleDark: PayPalButtonStyle = PayPalButtonStyle.Blue,
+        val buttonSize: PayPalButtonSize = PayPalButtonSize.Medium,
     ) : Parcelable {
         val bundle: Bundle
             get() = Bundle().apply {
@@ -1302,6 +1312,7 @@ class PaymentSheet internal constructor(
                     putString("light", buttonStyleLight.value)
                     putString("dark", buttonStyleDark.value)
                 })
+                putString("buttonSize", buttonSize.value)
             }
     }
 
