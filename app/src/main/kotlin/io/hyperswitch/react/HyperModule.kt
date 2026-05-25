@@ -231,21 +231,18 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     }
 
     @ReactMethod
-    fun openDDCWebView(ddcUrl: String, timeoutMs: Int, callback: Callback) {
-        if (timeoutMs <= 0) {
-            Log.e("HyperDDC", "openDDCWebView: invalid timeoutMs=$timeoutMs, must be > 0")
-            callback.invoke("")
-            return
-        }
-        if (ddcUrl.isBlank()) {
-            Log.e("HyperDDC", "openDDCWebView: empty ddcUrl, aborting")
+   fun openIframeBridge(url: String, timeoutMs: Int, callback: Callback) {
+         if (timeoutMs <= 0) {
+             callback.invoke("")
+             return
+         }
+         if (url.isBlank()) {
             callback.invoke("")
             return
         }
 
         val mainHandler = Handler(Looper.getMainLooper())
         val callbackInvoked = AtomicBoolean(false)
-        val ddcPageLoaded = AtomicBoolean(false)
         var webViewWrapper: HSWebViewWrapper? = null
         var timeoutRunnable: Runnable? = null
 
@@ -270,7 +267,6 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
 
         mainHandler.post {
             val activity = currentActivity ?: run {
-                Log.e("HyperDDC", "openDDCWebView: no current activity, aborting DDC")
                 invokeCallback("")
                 return@post
             }
@@ -283,7 +279,6 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
                 try {
                     wrapper = manager.createViewInstance()
                 } catch (e: Exception) {
-                    Log.e("HyperDDC", "createViewInstance attempt $attempt failed: ${e.message}")
                     if (attempt == 0) Thread.sleep(200)
                 }
             }
@@ -294,29 +289,32 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
 
             manager.setJavaScriptEnabled(resolvedWrapper, true)
 
-            resolvedWrapper.webView.webViewClient = object : WebViewClient() {
-                override fun onPageFinished(view: WebView, url: String) {
-                    super.onPageFinished(view, url)
-                    ddcPageLoaded.set(true)
-                }
-
-                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                    if (request.isForMainFrame && ddcPageLoaded.get()) {
-                        invokeCallback(request.url.toString())
-                        return true
-                    }
-                    return false
-                }
-
-                @Suppress("DEPRECATION")
-                override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-                    if (ddcPageLoaded.get()) {
-                        invokeCallback(url)
-                        return true
-                    }
-                    return false
+            val ddcBridge = object : Any() {
+                @android.webkit.JavascriptInterface
+                fun onMessage(data: String) {
+                    invokeCallback(data)
                 }
             }
+            resolvedWrapper.webView.addJavascriptInterface(ddcBridge, "HyperDDCBridge")
+
+//            resolvedWrapper.webView.webViewClient = object : WebViewClient() {
+//                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+//                    if (request.isForMainFrame) {
+//                        val url = request.url.toString()
+//                        Log.d("HyperDDC", "shouldOverride intercepted: $url")
+//                        invokeCallback("{\"next_action\":{\"type\":\"redirect_to_url\",\"url\":\"$url\"}}")
+//                        return true
+//                    }
+//                    return false
+//                }
+//
+//                @Suppress("DEPRECATION")
+//                override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+//                    Log.d("HyperDDC", "shouldOverride intercepted (legacy): $url")
+//                    invokeCallback("{\"next_action\":{\"type\":\"redirect_to_url\",\"url\":\"$url\"}}")
+//                    return true
+//                }
+//            }
 
             resolvedWrapper.apply {
                 isFocusable = false
@@ -329,7 +327,19 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
 
             activity.findViewById<ViewGroup>(android.R.id.content).addView(resolvedWrapper)
             webViewWrapper = resolvedWrapper
-            resolvedWrapper.webView.loadUrl(ddcUrl)
+
+            val wrapperHtml = """
+                <html><body>
+                <iframe src="$url" style="display:none;width:1px;height:1px;"></iframe>
+                <script>
+                window.addEventListener('message', function(event) {
+                  var str = typeof event.data === 'string' ? event.data : JSON.stringify(event.data);
+                  try { HyperDDCBridge.onMessage(str); } catch(e) {}
+                });
+                </script>
+                </body></html>
+            """.trimIndent()
+            resolvedWrapper.webView.loadDataWithBaseURL(url, wrapperHtml, "text/html", "UTF-8", null)
 
             timeoutRunnable = Runnable { invokeCallback("") }.also {
                 mainHandler.postDelayed(it, timeoutMs.toLong())
