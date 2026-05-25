@@ -1,6 +1,13 @@
 package io.hyperswitch.react
 
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.view.View
+import android.view.ViewGroup
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import com.facebook.react.bridge.Arguments
@@ -15,12 +22,16 @@ import io.hyperswitch.BuildConfig
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.PaymentEventSubscription
 import io.hyperswitch.payments.GooglePayCallbackManager
+import io.hyperswitch.payments.launcher.PaymentMethod
 import io.hyperswitch.payments.view.WidgetLauncher
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
-import io.hyperswitch.payments.launcher.PaymentMethod
-import org.json.JSONObject
+import io.hyperswitch.webview.utils.Callback as HSCallback
+import io.hyperswitch.webview.utils.HSWebViewManagerImpl
+import io.hyperswitch.webview.utils.HSWebViewWrapper
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import org.json.JSONObject
 
 class HyperModule internal constructor(private val rct: ReactApplicationContext) :
     ReactContextBaseJavaModule(rct) {
@@ -217,6 +228,99 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
                 fragment.notifyEvent(eventType, payload)
             }
         })
+    }
+
+    @ReactMethod
+    fun openDDCWebView(ddcUrl: String, timeoutMs: Int, callback: Callback) {
+        if (timeoutMs <= 0) {
+            Log.e("HyperDDC", "openDDCWebView: invalid timeoutMs=$timeoutMs, must be > 0")
+            callback.invoke("")
+            return
+        }
+        if (ddcUrl.isBlank()) {
+            Log.e("HyperDDC", "openDDCWebView: empty ddcUrl, aborting")
+            callback.invoke("")
+            return
+        }
+
+        val mainHandler = Handler(Looper.getMainLooper())
+        val callbackInvoked = AtomicBoolean(false)
+        val ddcPageLoaded = AtomicBoolean(false)
+        var webViewWrapper: HSWebViewWrapper? = null
+        var timeoutRunnable: Runnable? = null
+
+        val invokeCallback = { redirectUrl: String ->
+            if (callbackInvoked.compareAndSet(false, true)) {
+                timeoutRunnable?.let { mainHandler.removeCallbacks(it) }
+                mainHandler.post {
+                    webViewWrapper?.let { wrapper ->
+                        try {
+                            (wrapper.parent as? ViewGroup)?.removeView(wrapper)
+                            wrapper.webView.stopLoading()
+                            wrapper.webView.destroy()
+                        } catch (e: Exception) {
+                            Log.e("HyperDDC", "cleanup error: ${e.message}")
+                        }
+                    }
+                    webViewWrapper = null
+                }
+                callback.invoke(redirectUrl)
+            }
+        }
+
+        mainHandler.post {
+            val activity = currentActivity ?: run {
+                Log.e("HyperDDC", "openDDCWebView: no current activity, aborting DDC")
+                invokeCallback("")
+                return@post
+            }
+
+            val manager = HSWebViewManagerImpl(activity, HSCallback { _ -> })
+            val wrapper = manager.createViewInstance()
+
+            manager.setJavaScriptEnabled(wrapper, true)
+
+            wrapper.webView.webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView, url: String) {
+                    super.onPageFinished(view, url)
+                    ddcPageLoaded.set(true)
+                }
+
+                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                    if (request.isForMainFrame && ddcPageLoaded.get()) {
+                        invokeCallback(request.url.toString())
+                        return true
+                    }
+                    return false
+                }
+
+                @Suppress("DEPRECATION")
+                override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+                    if (ddcPageLoaded.get()) {
+                        invokeCallback(url)
+                        return true
+                    }
+                    return false
+                }
+            }
+
+            wrapper.apply {
+                isFocusable = false
+                isFocusableInTouchMode = false
+                layoutParams = ViewGroup.LayoutParams(1, 1)
+                translationX = -9999f
+                translationY = -9999f
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+            }
+
+            activity.findViewById<ViewGroup>(android.R.id.content).addView(wrapper)
+            webViewWrapper = wrapper
+            wrapper.webView.loadUrl(ddcUrl)
+
+            timeoutRunnable = Runnable { invokeCallback("") }.also {
+                mainHandler.postDelayed(it, timeoutMs.toLong())
+            }
+        }
     }
 
     private fun findViewWithRootTag(rootTag: Int, onFound: (HyperFragment?) -> Unit) {
