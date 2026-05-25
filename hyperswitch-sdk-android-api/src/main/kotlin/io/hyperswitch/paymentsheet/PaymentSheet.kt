@@ -212,6 +212,9 @@ class PaymentSheet internal constructor(
 
         /** Layout configuration for the payment method list. */
         val paymentMethodLayout: PaymentMethodLayout? = null,
+
+        /** Whether to split card number, expiry, and CVC into separate input fields. */
+        val splitCardFields: Boolean? = null,
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -268,6 +271,7 @@ class PaymentSheet internal constructor(
                         putParcelableArrayList("paymentMethodsConfig", arr)
                     }
                     putBundle("paymentMethodLayout", paymentMethodLayout?.bundle)
+                    if (splitCardFields != null) putBoolean("splitCardFields", splitCardFields)
                 }
             }
 
@@ -307,6 +311,7 @@ class PaymentSheet internal constructor(
             private var paymentMethodOrder: List<String>? = null
             private var paymentMethodsConfig: List<PaymentMethodConfig>? = null
             private var paymentMethodLayout: PaymentMethodLayout? = null
+            private var splitCardFields: Boolean? = null
             fun merchantDisplayName(merchantDisplayName: String) =
                 apply { this.merchantDisplayName = merchantDisplayName }
 
@@ -412,6 +417,9 @@ class PaymentSheet internal constructor(
             fun paymentMethodLayout(paymentMethodLayout: PaymentMethodLayout) =
                 apply { this.paymentMethodLayout = paymentMethodLayout }
 
+            fun splitCardFields(splitCardFields: Boolean) =
+                apply { this.splitCardFields = splitCardFields }
+
             fun build() = Configuration(
                 merchantDisplayName,
                 customer,
@@ -444,6 +452,7 @@ class PaymentSheet internal constructor(
                 paymentMethodOrder,
                 paymentMethodsConfig,
                 paymentMethodLayout,
+                splitCardFields,
             )
         }
     }
@@ -623,6 +632,12 @@ class PaymentSheet internal constructor(
          */
         @ColorInt
         val selectedComponentText: Int? = null,
+
+        /**
+         * The color used for the payment sheet overlay/scrim.
+         */
+        @ColorInt
+        val overlay: Int? = null,
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -647,6 +662,7 @@ class PaymentSheet internal constructor(
                     }
                     putString("selectedComponentDivider", toHexColorString(selectedComponentDivider))
                     putString("selectedComponentText", toHexColorString(selectedComponentText))
+                    putString("overlay", toHexColorString(overlay))
                 }
             }
 
@@ -741,7 +757,17 @@ class PaymentSheet internal constructor(
         /**
          * The shadow used for inputs, tabs, and other components in PaymentSheet.
          */
-        val shadow: Shadow?
+        val shadow: Shadow?,
+
+        /**
+         * The height of text input fields (in dp).
+         */
+        val inputHeight: Float? = null,
+
+        /**
+         * The gap/spacing between components (in dp).
+         */
+        val gap: Float? = null,
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -753,6 +779,8 @@ class PaymentSheet internal constructor(
                         putFloat("borderWidth", borderStrokeWidthDp)
                     }
                     putBundle("shadow", shadow?.bundle)
+                    if (inputHeight != null) putFloat("inputHeight", inputHeight)
+                    if (gap != null) putFloat("gap", gap)
                 }
             }
     }
@@ -1145,6 +1173,16 @@ class PaymentSheet internal constructor(
     }
 
     /**
+     * Visibility options for the card brand icon in payment inputs.
+     */
+    enum class CardBrandVisibility(val value: String) {
+        Hidden("hidden"),
+        Animated("animated"),
+        Standard("standard"),
+        HideGeneric("hideGeneric")
+    }
+
+    /**
      * Layout type for the payment method list.
      */
     enum class LayoutType(val value: String) {
@@ -1386,11 +1424,13 @@ class PaymentSheet internal constructor(
     @Parcelize
     data class GroupingBehavior(
         val displayInSeparateScreen: Boolean? = null,
+        val displayInSeparateSection: Boolean? = null,
         val groupByPaymentMethods: Boolean? = null
     ) : Parcelable {
         val bundle: Bundle
             get() = Bundle().apply {
                 if (displayInSeparateScreen != null) putBoolean("displayInSeparateScreen", displayInSeparateScreen)
+                if (displayInSeparateSection != null) putBoolean("displayInSeparateSection", displayInSeparateSection)
                 if (groupByPaymentMethods != null) putBoolean("groupByPaymentMethods", groupByPaymentMethods)
             }
     }
@@ -1434,7 +1474,13 @@ class PaymentSheet internal constructor(
         val showOneClickWalletsOnTop: Boolean? = null,
         /** Arrangement of payment methods in the tabs layout. */
         val paymentMethodsArrangementForTabs: PaymentMethodsArrangement? = null,
-        val savedMethodCustomization: SavedMethodCustomization? = null
+        val savedMethodCustomization: SavedMethodCustomization? = null,
+        /** Controls visibility of the CVC icon in card inputs. */
+        val cvcIcon: Visibility? = null,
+        /** Controls visibility/style of the card brand icon in card inputs. */
+        val cardBrandIcon: CardBrandVisibility? = null,
+        /** Whether to show a checked icon on selected payment methods. */
+        val showCheckedIconForSelection: Boolean? = null,
     ) : Parcelable {
         val bundle: Bundle
             get() = Bundle().apply {
@@ -1446,6 +1492,9 @@ class PaymentSheet internal constructor(
                 if (showOneClickWalletsOnTop != null) putBoolean("showOneClickWalletsOnTop", showOneClickWalletsOnTop)
                 putString("paymentMethodsArrangementForTabs", paymentMethodsArrangementForTabs?.value)
                 putBundle("savedMethodCustomization", savedMethodCustomization?.bundle)
+                putString("cvcIcon", cvcIcon?.value)
+                putString("cardBrandIcon", cardBrandIcon?.value)
+                if (showCheckedIconForSelection != null) putBoolean("showCheckedIconForSelection", showCheckedIconForSelection)
             }
     }
 
