@@ -276,11 +276,25 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
             }
 
             val manager = HSWebViewManagerImpl(activity, HSCallback { _ -> })
-            val wrapper = manager.createViewInstance()
 
-            manager.setJavaScriptEnabled(wrapper, true)
+            var wrapper: HSWebViewWrapper? = null
+            repeat(2) { attempt ->
+                if (wrapper != null) return@repeat
+                try {
+                    wrapper = manager.createViewInstance()
+                } catch (e: Exception) {
+                    Log.e("HyperDDC", "createViewInstance attempt $attempt failed: ${e.message}")
+                    if (attempt == 0) Thread.sleep(200)
+                }
+            }
+            val resolvedWrapper = wrapper ?: run {
+                invokeCallback("")
+                return@post
+            }
 
-            wrapper.webView.webViewClient = object : WebViewClient() {
+            manager.setJavaScriptEnabled(resolvedWrapper, true)
+
+            resolvedWrapper.webView.webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView, url: String) {
                     super.onPageFinished(view, url)
                     ddcPageLoaded.set(true)
@@ -304,7 +318,7 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
                 }
             }
 
-            wrapper.apply {
+            resolvedWrapper.apply {
                 isFocusable = false
                 isFocusableInTouchMode = false
                 layoutParams = ViewGroup.LayoutParams(1, 1)
@@ -313,9 +327,9 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
             }
 
-            activity.findViewById<ViewGroup>(android.R.id.content).addView(wrapper)
-            webViewWrapper = wrapper
-            wrapper.webView.loadUrl(ddcUrl)
+            activity.findViewById<ViewGroup>(android.R.id.content).addView(resolvedWrapper)
+            webViewWrapper = resolvedWrapper
+            resolvedWrapper.webView.loadUrl(ddcUrl)
 
             timeoutRunnable = Runnable { invokeCallback("") }.also {
                 mainHandler.postDelayed(it, timeoutMs.toLong())
