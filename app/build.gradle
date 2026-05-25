@@ -110,4 +110,5 @@ dependencies {
     }
     implementation project(':hyperswitch-sdk-android-logger')
     api project(':hyperswitch-sdk-android-api')
+    implementation project(':hyperswitch-sdk-android-webview-utils')
 }
