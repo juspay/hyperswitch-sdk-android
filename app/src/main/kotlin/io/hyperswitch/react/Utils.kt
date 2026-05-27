@@ -157,10 +157,21 @@ class Utils {
           is LongArray -> bundle.putLongArray(key, value)
           is CharArray -> bundle.putCharArray(key, value)
           is Map<*, *> -> bundle.putBundle(key, @Suppress("UNCHECKED_CAST") convertMapToBundle(value as Map<String, Any?>))
+          is List<*> -> bundle.putSerializable(key, convertListToSerializable(value))
         }
       }
 
       return bundle
+    }
+
+    private fun convertListToSerializable(list: List<*>): ArrayList<Any?> {
+      return ArrayList(list.map { item ->
+        when (item) {
+          is Map<*, *> -> @Suppress("UNCHECKED_CAST") convertMapToBundle(item as Map<String, Any?>)
+          is List<*> -> convertListToSerializable(item)
+          else -> item
+        }
+      })
     }
 
     // Get current time in milliseconds

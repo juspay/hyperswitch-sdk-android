@@ -2,7 +2,6 @@ package io.hyperswitch.sdk
 
 import android.app.Activity
 import io.hyperswitch.PaymentEventSubscriptionBuilder
-import android.util.Log
 import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchBaseConfiguration

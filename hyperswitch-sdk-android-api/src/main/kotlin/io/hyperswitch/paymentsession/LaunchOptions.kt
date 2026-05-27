@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.view.WindowInsets
 import android.webkit.WebSettings
@@ -211,11 +210,31 @@ class LaunchOptions(
                 value is Number -> map[key] = value as? Int ?: value.toDouble()
                 value is Boolean -> map[key] = value
                 value is Bundle -> map[key] = fromBundle(value)
-                value is List<*> -> map[key] = value
+                value is List<*> -> map[key] = fromList(value)
                 else -> throw IllegalArgumentException("Could not convert ${value.javaClass}")
             }
         }
         return map
+    }
+
+    private fun fromList(list: List<*>): List<Any?> {
+        return list.map { item ->
+            when (item) {
+                is Bundle -> fromBundle(item)
+                is List<*> -> fromList(item)
+                else -> item
+            }
+        }
+    }
+
+    private fun toSerializableArrayList(list: List<*>): ArrayList<Any?> {
+        return ArrayList(list.map { item ->
+            when (item) {
+                is Map<*, *> -> toBundle(item)
+                is List<*> -> toSerializableArrayList(item)
+                else -> item
+            }
+        })
     }
 
     fun toBundle(readableMap: Map<*, *>): Bundle {
@@ -229,7 +248,7 @@ class LaunchOptions(
                 is String -> bundle.putString(keyString, value)
                 is Map<*, *> -> bundle.putBundle(keyString, toBundle(value))
                 is Array<*> -> bundle.putSerializable(keyString, value)
-                is List<*> -> bundle.putSerializable(keyString, ArrayList(value))
+                is List<*> -> bundle.putSerializable(keyString, toSerializableArrayList(value))
                 else -> throw IllegalArgumentException("Could not convert object with key: $keyString.")
             }
         }
