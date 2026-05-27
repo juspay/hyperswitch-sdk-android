@@ -1,13 +1,6 @@
 package io.hyperswitch.react
 
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
-import android.view.View
-import android.view.ViewGroup
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import com.facebook.react.bridge.Arguments
@@ -26,10 +19,7 @@ import io.hyperswitch.payments.launcher.PaymentMethod
 import io.hyperswitch.payments.view.WidgetLauncher
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
-import io.hyperswitch.webview.utils.Callback as HSCallback
-import io.hyperswitch.webview.utils.HSWebViewManagerImpl
-import io.hyperswitch.webview.utils.HSWebViewWrapper
-import java.util.concurrent.atomic.AtomicBoolean
+import io.hyperswitch.react.devicedatacollection.DeviceDataCollectionWebView
 import java.util.concurrent.atomic.AtomicInteger
 import org.json.JSONObject
 
@@ -231,120 +221,9 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     }
 
     @ReactMethod
-   fun openIframeBridge(url: String, timeoutMs: Int, callback: Callback) {
-         if (timeoutMs <= 0) {
-             callback.invoke("")
-             return
-         }
-         if (url.isBlank()) {
-            callback.invoke("")
-            return
-        }
-
-        val mainHandler = Handler(Looper.getMainLooper())
-        val callbackInvoked = AtomicBoolean(false)
-        var webViewWrapper: HSWebViewWrapper? = null
-        var timeoutRunnable: Runnable? = null
-
-        val invokeCallback = { redirectUrl: String ->
-            if (callbackInvoked.compareAndSet(false, true)) {
-                timeoutRunnable?.let { mainHandler.removeCallbacks(it) }
-                mainHandler.post {
-                    webViewWrapper?.let { wrapper ->
-                        try {
-                            (wrapper.parent as? ViewGroup)?.removeView(wrapper)
-                            wrapper.webView.stopLoading()
-                            wrapper.webView.destroy()
-                        } catch (e: Exception) {
-                            Log.e("HyperDDC", "cleanup error: ${e.message}")
-                        }
-                    }
-                    webViewWrapper = null
-                }
-                callback.invoke(redirectUrl)
-            }
-        }
-
-        mainHandler.post {
-            val activity = currentActivity ?: run {
-                invokeCallback("")
-                return@post
-            }
-
-            val manager = HSWebViewManagerImpl(activity, HSCallback { _ -> })
-
-            var wrapper: HSWebViewWrapper? = null
-            repeat(2) { attempt ->
-                if (wrapper != null) return@repeat
-                try {
-                    wrapper = manager.createViewInstance()
-                } catch (e: Exception) {
-                    if (attempt == 0) Thread.sleep(200)
-                }
-            }
-            val resolvedWrapper = wrapper ?: run {
-                invokeCallback("")
-                return@post
-            }
-
-            manager.setJavaScriptEnabled(resolvedWrapper, true)
-
-            val ddcBridge = object : Any() {
-                @android.webkit.JavascriptInterface
-                fun onMessage(data: String) {
-                    invokeCallback(data)
-                }
-            }
-            resolvedWrapper.webView.addJavascriptInterface(ddcBridge, "HyperDDCBridge")
-
-//            resolvedWrapper.webView.webViewClient = object : WebViewClient() {
-//                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-//                    if (request.isForMainFrame) {
-//                        val url = request.url.toString()
-//                        Log.d("HyperDDC", "shouldOverride intercepted: $url")
-//                        invokeCallback("{\"next_action\":{\"type\":\"redirect_to_url\",\"url\":\"$url\"}}")
-//                        return true
-//                    }
-//                    return false
-//                }
-//
-//                @Suppress("DEPRECATION")
-//                override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-//                    Log.d("HyperDDC", "shouldOverride intercepted (legacy): $url")
-//                    invokeCallback("{\"next_action\":{\"type\":\"redirect_to_url\",\"url\":\"$url\"}}")
-//                    return true
-//                }
-//            }
-
-            resolvedWrapper.apply {
-                isFocusable = false
-                isFocusableInTouchMode = false
-                layoutParams = ViewGroup.LayoutParams(1, 1)
-                translationX = -9999f
-                translationY = -9999f
-                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
-            }
-
-            activity.findViewById<ViewGroup>(android.R.id.content).addView(resolvedWrapper)
-            webViewWrapper = resolvedWrapper
-
-            val wrapperHtml = """
-                <html><body>
-                <iframe src="$url" style="display:none;width:1px;height:1px;"></iframe>
-                <script>
-                window.addEventListener('message', function(event) {
-                  var str = typeof event.data === 'string' ? event.data : JSON.stringify(event.data);
-                  try { HyperDDCBridge.onMessage(str); } catch(e) {}
-                });
-                </script>
-                </body></html>
-            """.trimIndent()
-            resolvedWrapper.webView.loadDataWithBaseURL(url, wrapperHtml, "text/html", "UTF-8", null)
-
-            timeoutRunnable = Runnable { invokeCallback("") }.also {
-                mainHandler.postDelayed(it, timeoutMs.toLong())
-            }
-        }
+    fun openIframeBridge(url: String, timeoutMs: Int, callback: Callback) {
+        val activity = currentActivity ?: run { callback.invoke(""); return }
+        DeviceDataCollectionWebView(url, timeoutMs, activity, callback).startFlow()
     }
 
     private fun findViewWithRootTag(rootTag: Int, onFound: (HyperFragment?) -> Unit) {
