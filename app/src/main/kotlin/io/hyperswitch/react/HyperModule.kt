@@ -19,7 +19,7 @@ import io.hyperswitch.payments.launcher.PaymentMethod
 import io.hyperswitch.payments.view.WidgetLauncher
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
-import io.hyperswitch.react.devicedatacollection.DeviceDataCollectionWebView
+import io.hyperswitch.devicedatacollection.DeviceDataCollectionWebView
 import java.util.concurrent.atomic.AtomicInteger
 import org.json.JSONObject
 
@@ -223,7 +223,7 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     @ReactMethod
     fun openIframeBridge(url: String, timeoutMs: Int, callback: Callback) {
         val activity = currentActivity ?: run { callback.invoke(""); return }
-        DeviceDataCollectionWebView(url, timeoutMs, activity, callback).startFlow()
+        DeviceDataCollectionWebView(url, timeoutMs, activity) { result -> callback.invoke(result) }.startFlow()
     }
 
     private fun findViewWithRootTag(rootTag: Int, onFound: (HyperFragment?) -> Unit) {
