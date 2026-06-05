@@ -386,7 +386,7 @@ class ClickToPayWebViewManager(
                 "",
                 LogCategory.USER_EVENT
             )
-            ensureNotDestroyed()
+            ensureReady()
             val requestId = UUID.randomUUID().toString()
             val jsCode =
                 "(async function(){try{await Promise.race([window.hyperInstance.deinit(),new Promise(r=>setTimeout(()=>{r.resolve()},5000))]);window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{code:'success'}}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'CloseInstanceFailed',message:error.message}}}));}})();"
