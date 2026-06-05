@@ -390,7 +390,6 @@ class ClickToPayWebViewManager(
                 "",
                 LogCategory.USER_EVENT
             )
-
             ensureNotDestroyed()
             val requestId = UUID.randomUUID().toString()
             val jsCode =
@@ -431,6 +430,12 @@ class ClickToPayWebViewManager(
     @Throws(ClickToPayException::class)
     suspend fun close(closeHyper: Boolean = true) {
         try {
+            logger?.invoke(
+                LogType.DEBUG,
+                EventName.CLOSE_INIT,
+                "",
+                LogCategory.USER_EVENT
+            )
             if (closeHyper) {
                 closeHyperInstance()
             }
@@ -450,6 +455,12 @@ class ClickToPayWebViewManager(
                 isWebViewAttached.set(false)
                 isDestroyed.set(true)
             }
+            logger?.invoke(
+                LogType.DEBUG,
+                EventName.CLOSE_RETURNED,
+                "",
+                LogCategory.USER_EVENT
+            )
         } catch (e: Exception) {
             throw ClickToPayException(
                 "Failed to close Click to Pay session: ${e.message}", "CLOSE_ERROR"
