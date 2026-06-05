@@ -51,9 +51,6 @@ class DCTPWebview(
         customBackendUrl: String?,
         customLogUrl: String?
     ) {
-        ensureReady()
-        val requestId: String = UUID.randomUUID().toString()
-
         val hyperLoaderUrl = HyperLoaderUtils.Companion.getHyperLoaderURL(publishableKey)
         val baseUrl = HyperLoaderUtils.Companion.getBaseUrl(publishableKey)
         logger?.invoke(
@@ -62,6 +59,8 @@ class DCTPWebview(
             "hyperLoaderUrl: $hyperLoaderUrl, baseUrl: $baseUrl",
             LogCategory.USER_EVENT
         )
+        ensureReady()
+        val requestId: String = UUID.randomUUID().toString()
         val mastercardDirectURL = HyperLoaderUtils.Companion.getMasterCardDirectUrl(publishableKey)
         val visaDirectURL = HyperLoaderUtils.Companion.getVisaDirectUrl(publishableKey)
         val baseHtml =
@@ -81,6 +80,8 @@ class DCTPWebview(
                     "Type: $errorType, Message: $errorMessage",
                     LogCategory.USER_ERROR
                 )
+                manager.cancelPendingRequests()
+                manager.detachWebView()
                 throw ClickToPayException(
                     "Failed to load URL - Type: $errorType, Message: $errorMessage",
                     "SCRIPT_LOAD_ERROR"
@@ -113,7 +114,6 @@ class DCTPWebview(
         val requestId = UUID.randomUUID().toString()
         val jsCode =
             "(async function(){try{const authenticationSession=window.hyperInstance.initAuthenticationSession({clientSecret:'$clientSecret',profileId:'$profileId',authenticationId:'$authenticationId',merchantId:'$merchantId'});window.ClickToPaySession=await authenticationSession.initClickToPayDCTPSession({token:$token});const data=window.ClickToPaySession.error?window.ClickToPaySession:{success:true};window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:data}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'InitClickToPayDCTPSessionError',message:error.message}}}))}})();"
-
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
 
         withContext(Dispatchers.Default) {
@@ -130,6 +130,8 @@ class DCTPWebview(
                     "Type: $errorType, Message: $errorMessage",
                     LogCategory.USER_ERROR
                 )
+                manager.cancelPendingRequests()
+                manager.detachWebView()
                 throw ClickToPayException(
                     "Failed to initialize Click to Pay DCTP session - Type: $errorType, Message: $errorMessage",
                     "INIT_CLICK_TO_PAY_DCTP_SESSION_ERROR"
@@ -172,6 +174,8 @@ class DCTPWebview(
                     "Type: $errorType, Message: $errorMessage",
                     LogCategory.USER_ERROR
                 )
+                manager.cancelPendingRequests()
+                manager.detachWebView()
                 throw ClickToPayException(
                     "Failed to get customer present: $errorMessage", errorType
                 )

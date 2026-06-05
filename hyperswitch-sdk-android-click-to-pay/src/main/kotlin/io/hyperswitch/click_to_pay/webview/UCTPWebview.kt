@@ -87,6 +87,8 @@ class UCTPWebview(
                     "Type: $errorType, Message: $errorMessage",
                     LogCategory.USER_ERROR
                 )
+                manager.cancelPendingRequests()
+                manager.detachWebView()
                 throw ClickToPayException(
                     "Failed to load URL - Type: $errorType, Message: $errorMessage",
                     "SCRIPT_LOAD_ERROR"
@@ -132,6 +134,8 @@ class UCTPWebview(
                     "Type: $errorType, Message: $errorMessage",
                     LogCategory.USER_ERROR
                 )
+                manager.cancelPendingRequests()
+                manager.detachWebView()
                 throw ClickToPayException(
                     "Failed to initialize Click to Pay session - Type: $errorType, Message: $errorMessage",
                     "INIT_CLICK_TO_PAY_SESSION_ERROR"
@@ -169,6 +173,8 @@ class UCTPWebview(
                     "Type: $errorType, Message: $errorMessage",
                     LogCategory.USER_ERROR
                 )
+                manager.cancelPendingRequests()
+                manager.detachWebView()
                 throw ClickToPayException(
                     message = "Failed to get user type : $errorMessage", errorType
                 )
@@ -227,6 +233,8 @@ class UCTPWebview(
                     "Type: $errorType, Message: $errorMessage",
                     LogCategory.USER_ERROR
                 )
+                manager.cancelPendingRequests()
+                manager.detachWebView()
                 throw ClickToPayException(
                     "Failed to get recognized cards - Type: $errorType, Message: $errorMessage",
                     errorType
@@ -276,6 +284,8 @@ class UCTPWebview(
                     "Type: $errorType, Message: $errorMessage",
                     LogCategory.USER_ERROR
                 )
+                manager.cancelPendingRequests()
+                manager.detachWebView()
                 throw ClickToPayException(
                     errorMessage, errorType
                 )
@@ -334,6 +344,8 @@ class UCTPWebview(
                     "Type: $errorType, Message: $errorMessage, error: $error",
                     LogCategory.USER_ERROR
                 )
+                manager.cancelPendingRequests()
+                manager.detachWebView()
                 throw ClickToPayException(errorMessage, errorType)
             }
             parseCheckoutResponse(data).also {

@@ -72,19 +72,9 @@ class ClickToPayWebViewManager(
         hSWebViewManagerImpl.setMessagingEnabled(hSWebViewWrapper, true)
         hSWebViewManagerImpl.setJavaScriptCanOpenWindowsAutomatically(hSWebViewWrapper, true)
         hSWebViewManagerImpl.setScalesPageToFit(hSWebViewWrapper, true)
-        hSWebViewManagerImpl.setMixedContentMode(hSWebViewWrapper, "always")
+        hSWebViewManagerImpl.setMixedContentMode(hSWebViewWrapper, "compatibility")
         hSWebViewManagerImpl.setThirdPartyCookiesEnabled(hSWebViewWrapper, true)
         hSWebViewManagerImpl.setCacheEnabled(hSWebViewWrapper, true)
-        hSWebViewWrapper.webView.setRequestInterceptor { data ->
-            try {
-//                val headers = data["headers"] as? Map<*, *>
-//                val correlationId = headers?.get("X-CORRELATION-ID")?.toString()
-//                if (correlationId != null && captureCorrelationIds.get()) {
-//                    correlationIds.add(correlationId)
-//                }
-            } catch (_: Exception) {
-            }
-        }
         hSWebViewWrapper.apply {
             isFocusable = false
             isFocusableInTouchMode = false
@@ -198,7 +188,7 @@ class ClickToPayWebViewManager(
      * This triggers the same lifecycle behavior as backgrounding an app,
      * automatically pausing timers, network requests, and all JavaScript operations.
      */
-    private suspend fun detachWebView() {
+    suspend fun detachWebView() {
         lifecycleMutex.withLock {
             if (isWebViewInitialized.get() && isWebViewAttached.get()) {
                 withContext(Dispatchers.Main) {
@@ -229,6 +219,10 @@ class ClickToPayWebViewManager(
                     rootView.addView(hSWebViewWrapper)
                 }
                 isWebViewAttached.set(true)
+                logger?.invoke(
+                    LogType.DEBUG, EventName.WEBVIEW, "webview reattached  JS execution resumed",
+                    LogCategory.USER_EVENT
+                )
             }
         }
     }
@@ -236,9 +230,10 @@ class ClickToPayWebViewManager(
     /**
      * Cancels all pending requests to prevent stale callbacks from executing.
      */
-    private fun cancelPendingRequests(errorMessage: String = "Operation cancelled due to error") {
+    fun cancelPendingRequests(errorMessage: String = "Operation cancelled due to error") {
         val snapshot = pendingRequests.keys.toList()
         if (snapshot.isEmpty()) return
+        logger?.invoke(LogType.DEBUG, EventName.WEBVIEW, "Cancelling ${snapshot.size} pending requests", LogCategory.USER_EVENT)
         for (key in snapshot) {
             pendingRequests.remove(key)
                 ?.cancel(kotlinx.coroutines.CancellationException(errorMessage))
@@ -250,6 +245,7 @@ class ClickToPayWebViewManager(
      */
     private fun ensureNotDestroyed() {
         if (isDestroyed.get()) {
+            logger?.invoke(LogType.DEBUG, EventName.WEBVIEW, "Webview destroyed", LogCategory.USER_EVENT)
             throw ClickToPayException(
                 "ClickToPaySessionLauncher has been destroyed and cannot be used",
                 ClickToPayErrorType.INSTANCE_DESTROYED
@@ -274,8 +270,20 @@ class ClickToPayWebViewManager(
     ) {
         lifecycleMutex.withLock {
             if (isWebViewInitialized.get() && !allowReinitialize) return@withLock
+            logger?.invoke(
+                LogType.DEBUG,
+                EventName.CREATE_WEBVIEW_INIT,
+                "creating webview",
+                LogCategory.USER_EVENT
+            )
             try {
                 if (!isWebViewAvailable()) {
+                    logger?.invoke(
+                        LogType.ERROR,
+                        EventName.CREATE_WEBVIEW_RETURNED,
+                        "WebView provider unavailable",
+                        LogCategory.USER_ERROR
+                    )
                     throw IllegalStateException("WebView provider unavailable")
                 }
                 // Retry WebView creation once (important for Android 15/16 bug)
@@ -286,49 +294,37 @@ class ClickToPayWebViewManager(
                         }
                         isWebViewInitialized.set(true)
                         isWebViewAttached.set(true)
+                        logger?.invoke(
+                            LogType.DEBUG,
+                            EventName.CREATE_WEBVIEW_RETURNED,
+                            "webview created",
+                            LogCategory.USER_EVENT
+                        )
                         return@withLock
                     } catch (t: Throwable) {
+                        logger?.invoke(
+                            LogType.ERROR,
+                            EventName.CREATE_WEBVIEW_RETURNED,
+                            "Attempted to create = $attempt",
+                            LogCategory.USER_ERROR
+                        )
                         if (attempt == 1) throw t
                         delay(200) // retry delay
                     }
                 }
             } catch (e: Exception) {
+                logger?.invoke(
+                    LogType.ERROR,
+                    EventName.CREATE_WEBVIEW_RETURNED,
+                    "Failed to create webview ${e.message}",
+                    LogCategory.USER_ERROR
+                )
                 throw ClickToPayException(
                     "Unable to initialize ClickToPay: ${e.message}",
                     "WEBVIEW_ERROR",
                 )
             }
         }
-    }
-
-    /**
-     * Executes arbitrary JavaScript in the WebView and returns the response.
-     * Automatically handles request-id generation, wrapping the code with
-     * postMessage, and awaiting the native callback.
-     *
-     * @param jsCode The JavaScript expression to evaluate
-     * @return The JSON response string from the WebView
-     * @throws ClickToPayException if execution fails or the session is destroyed
-     */
-    suspend fun runJavaScript(jsCode: String): String {
-        val requestId = UUID.randomUUID().toString()
-        val wrappedJs = """
-            (async function(){
-                try {
-                    var __result = await (async function() { $jsCode })();
-                    window.HSAndroidInterface.postMessage(JSON.stringify({
-                        requestId: '$requestId',
-                        data: { value: __result }
-                    }));
-                } catch(error) {
-                    window.HSAndroidInterface.postMessage(JSON.stringify({
-                        requestId: '$requestId',
-                        data: { error: { message: error.message } }
-                    }));
-                }
-            })();
-        """.trimIndent()
-        return evaluateJavascriptOnMainThread(requestId, wrappedJs)
     }
 
     /**
