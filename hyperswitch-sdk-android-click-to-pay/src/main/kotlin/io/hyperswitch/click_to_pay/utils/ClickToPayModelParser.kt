@@ -1,6 +1,5 @@
 package io.hyperswitch.click_to_pay.utils
 
-import io.hyperswitch.click_to_pay.BuildConfig
 import io.hyperswitch.click_to_pay.models.AcquirerDetails
 import io.hyperswitch.click_to_pay.models.AuthenticationMethod
 import io.hyperswitch.click_to_pay.models.AuthenticationStatus
@@ -16,8 +15,6 @@ import io.hyperswitch.click_to_pay.models.PaymentData
 import io.hyperswitch.click_to_pay.models.RecognizedCard
 import io.hyperswitch.click_to_pay.models.SupportedValidationChannel
 import io.hyperswitch.logs.EventName
-import io.hyperswitch.logs.HSLog
-import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogCategory
 import io.hyperswitch.logs.LogType
 import org.json.JSONArray

@@ -4,8 +4,6 @@ import android.app.Activity
 import io.hyperswitch.click_to_pay.models.*
 import io.hyperswitch.click_to_pay.utils.ClickToPayModelParser.Companion.getOptJSONObject
 import io.hyperswitch.click_to_pay.utils.ClickToPayModelParser.Companion.parseJSONObject
-import io.hyperswitch.click_to_pay.utils.ClickToPayWebViewManager
-import io.hyperswitch.click_to_pay.utils.HyperLoaderUtils
 import io.hyperswitch.click_to_pay.webview.DCTPWebview
 import io.hyperswitch.click_to_pay.webview.UCTPWebview
 import io.hyperswitch.logs.CrashHandler
@@ -15,10 +13,8 @@ import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogCategory
 import io.hyperswitch.logs.LogFileManager
 import io.hyperswitch.logs.LogType
-import io.hyperswitch.logs.LogUtils.getEnvironment
 import io.hyperswitch.logs.LogUtils.getLoggingUrl
 import io.hyperswitch.logs.LogUtils.getOrCreateUniqueKey
-import io.hyperswitch.logs.SDKEnvironment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.UUID
