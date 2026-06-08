@@ -1189,7 +1189,9 @@ class PaymentSheet internal constructor(
         /** Accordion (expandable list) layout. */
         Accordion("accordion"),
         /** Tabs layout. */
-        Tabs("tabs")
+        Tabs("tabs"),
+        /** Catalog layout — tapping an item navigates to a dedicated screen for that payment method. */
+        Catalog("catalog")
     }
 
     /**
@@ -1490,6 +1492,7 @@ class PaymentSheet internal constructor(
                 if (spacedAccordionItems != null) putBoolean("spacedAccordionItems", spacedAccordionItems)
                 if (defaultCollapsed != null) putBoolean("defaultCollapsed", defaultCollapsed)
                 if (showOneClickWalletsOnTop != null) putBoolean("showOneClickWalletsOnTop", showOneClickWalletsOnTop)
+
                 putString("paymentMethodsArrangementForTabs", paymentMethodsArrangementForTabs?.value)
                 putBundle("savedMethodCustomization", savedMethodCustomization?.bundle)
                 putString("cvcIcon", cvcIcon?.value)

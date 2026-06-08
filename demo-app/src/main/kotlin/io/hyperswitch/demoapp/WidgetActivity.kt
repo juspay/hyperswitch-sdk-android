@@ -42,6 +42,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
     private var elements: Elements? = null
 
     private var paymentSessionHandler: PaymentSessionHandler? = null
+    private var paymentElement: PaymentElement? = null
     private var paymentElementBound: HyperswitchBoundElement? = null
     private var cvcWidgetBound: HyperswitchBoundElement? = null
 
@@ -119,6 +120,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
 
         val sessionConfig = PaymentSessionConfiguration(sdkAuthorization)
         val paymentElement = findViewById<PaymentElement>(R.id.paymentElement)
+        this.paymentElement = paymentElement
         val cvcWidget = findViewById<CVCWidget>(R.id.cvcWidget)
 
         lifecycleScope.launch {
@@ -150,6 +152,10 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
     // ── Button wiring ──────────────────────────────────────────────────────────────────────────
 
     private fun setupButtons() {
+        findViewById<View>(R.id.triggerBackButton).setOnClickListener {
+            paymentElement?.triggerBack()
+        }
+
         findViewById<View>(R.id.reloadButton2).setOnClickListener {
             fetchPaymentIntent()
         }
@@ -192,7 +198,11 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             lifecycleScope.launch {
                 val cvcWidget = findViewById<CVCWidget>(R.id.cvcWidget)
                 val result = paymentSessionHandler?.confirmWithCustomerDefaultPaymentMethod(cvcWidget)
-                result?.let { handleResult(it) }
+                result?.let {
+                    handleResult(it)
+                    // cvcWidget.destroy()
+                    // fetchPaymentIntent()
+                }
             }
         }
 
@@ -200,7 +210,11 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             lifecycleScope.launch {
                 val cvcWidget = findViewById<CVCWidget>(R.id.cvcWidget)
                 val result = paymentSessionHandler?.confirmWithCustomerLastUsedPaymentMethod(cvcWidget)
-                result?.let { handleResult(it) }
+                result?.let {
+                    handleResult(it)
+                    // cvcWidget.destroy()
+                    // fetchPaymentIntent()
+                }
             }
         }
     }
@@ -225,6 +239,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
     private fun setButtonsEnabled(enabled: Boolean) {
         listOf(
             R.id.confirmButton2,
+            R.id.triggerBackButton,
             R.id.getLastUsedButton,
             R.id.getDefaultSavedMethodButton,
             R.id.confirmDefaultWithCVCButton,

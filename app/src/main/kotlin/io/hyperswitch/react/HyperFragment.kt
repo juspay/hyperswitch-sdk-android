@@ -87,6 +87,12 @@ class HyperFragment : ReactFragment() {
         this.paymentEventListener = listener
     }
 
+    fun triggerBack() {
+        reactNativeHost.reactInstanceManager.currentReactContext
+            ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+            ?.emit("navigateBack", Arguments.createMap())
+    }
+
     fun updatePaymentIntentInit(callback: (() -> Unit)?) {
         val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
         if (rootTag == -1) {

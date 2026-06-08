@@ -82,6 +82,13 @@
 
         <Button
             style="@style/HsButtonPrimary"
+            android:id="@+id/triggerBackButton"
+            android:layout_marginTop="8dp"
+            android:enabled="false"
+            android:text="@string/btn_trigger_back" />
+
+        <Button
+            style="@style/HsButtonPrimary"
             android:id="@+id/confirmButton2"
             android:layout_marginTop="8dp"
             android:enabled="false"

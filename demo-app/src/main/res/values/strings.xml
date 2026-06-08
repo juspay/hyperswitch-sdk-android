@@ -20,6 +20,7 @@
     <string name="btn_get_default">Get Default</string>
     <string name="btn_confirm_default_cvc">Confirm Default + CVC</string>
     <string name="btn_confirm_last_used_cvc">Confirm Last Used + CVC</string>
+    <string name="btn_trigger_back">Trigger Back</string>
     <string name="section_payment_element">Payment Element</string>
     <string name="section_cvc_widget">CVC Widget</string>
     <string name="section_saved_methods">Saved Methods</string>
