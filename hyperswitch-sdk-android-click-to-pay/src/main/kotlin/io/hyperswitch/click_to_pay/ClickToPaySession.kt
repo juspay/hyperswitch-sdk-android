@@ -113,7 +113,7 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
     }
 
     @JvmSynthetic
-    suspend fun close(closeHyperInstance : Boolean = true) {
-        clickToPaySessionLauncher.close(closeHyperInstance)
+    suspend fun close() {
+        clickToPaySessionLauncher.close(true)
     }
 }
