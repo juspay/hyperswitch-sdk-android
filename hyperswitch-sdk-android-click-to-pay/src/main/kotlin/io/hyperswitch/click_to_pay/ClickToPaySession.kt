@@ -114,6 +114,6 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
 
     @JvmSynthetic
     suspend fun close() {
-        clickToPaySessionLauncher.close()
+        clickToPaySessionLauncher.close(true)
     }
 }

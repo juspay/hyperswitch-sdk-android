@@ -161,7 +161,7 @@ class DefaultAuthenticationSessionLauncher(
     ): ClickToPaySession {
         if (activeClickToPay != null && activeClickToPay !== clickToPaySession) {
             try {
-                activeClickToPay?.close()
+                activeClickToPay?.close(false)
             }catch(_ : Exception){
             }
         }
