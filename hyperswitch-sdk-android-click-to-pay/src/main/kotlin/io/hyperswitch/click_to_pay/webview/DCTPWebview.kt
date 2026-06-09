@@ -68,7 +68,7 @@ class DCTPWebview(
 
         val responseJson = manager.loadSource(baseHtml, baseUrl, requestId)
         withContext(Dispatchers.Default) {
-            val jsonObject = parseJSONObject(responseJson, EventName.DCTP_SCRIPT_LOAD_RETURNED)
+            val jsonObject = parseJSONObject(responseJson, EventName.DCTP_SCRIPT_LOAD_RETURN)
             val data = getOptJSONObject(jsonObject, "data")
             val error = data.optJSONObject("error")
             if (error != null) {
@@ -76,7 +76,7 @@ class DCTPWebview(
                 val errorMessage = error.optString("message", "Unknown error")
                 logger?.invoke(
                     LogType.ERROR,
-                    EventName.DCTP_SCRIPT_LOAD_RETURNED,
+                    EventName.DCTP_SCRIPT_LOAD_RETURN,
                     "Type: $errorType, Message: $errorMessage",
                     LogCategory.USER_ERROR
                 )
@@ -89,7 +89,7 @@ class DCTPWebview(
             }
             logger?.invoke(
                 LogType.DEBUG,
-                EventName.DCTP_SCRIPT_LOAD_RETURNED,
+                EventName.DCTP_SCRIPT_LOAD_RETURN,
                 "success",
                 LogCategory.USER_EVENT
             )
