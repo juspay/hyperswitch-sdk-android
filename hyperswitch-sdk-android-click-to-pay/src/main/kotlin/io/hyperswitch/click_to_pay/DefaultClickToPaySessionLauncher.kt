@@ -101,20 +101,13 @@ class DefaultClickToPaySessionLauncher(
                 correlationIds.add(it)
             }
         }
-        uctpWebview.initClickToPaySession(
+        val token = uctpWebview.initClickToPaySession(
             clientSecret,
             profileId,
             authenticationId,
             merchantId,
             request3DSAuthentication
-        )
-        val tokenRequestId = UUID.randomUUID().toString()
-        val tokenJs =
-            "(function(){try{var session=window.ClickToPaySession;var token=(session && session.token) || '';window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$tokenRequestId',data:{token:token}}));}catch(e){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$tokenRequestId',data:{token:''}}));}})();"
-        val tokenResponse = uctpWebview.evaluateJavascriptOnMainThread(tokenRequestId, tokenJs)
-        val tokenJson = parseJSONObject(tokenResponse, EventName.INIT_CLICK_TO_PAY_SESSION_RETURNED)
-        val tokenData = getOptJSONObject(tokenJson, "data")
-        val token = tokenData.optString("token", "")
+        ) ?: ""
 
         if (token.isNotEmpty()) {
             dctpWebview.initClickToPayDCTPSession(

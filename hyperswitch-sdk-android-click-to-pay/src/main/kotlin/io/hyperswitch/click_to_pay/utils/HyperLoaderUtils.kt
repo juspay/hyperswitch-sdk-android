@@ -33,9 +33,9 @@ class HyperLoaderUtils {
         // URL Helpers
         fun getHyperLoaderURL(publishableKey: String): String {
             return if (getEnvironment(publishableKey) == SDKEnvironment.SANDBOX) {
-                "https://beta.hyperswitch.io/web/2025.11.28.11/v1/HyperLoader.js"
+                "https://beta.hyperswitch.io/web/2025.11.28.12/v1/HyperLoader.js"
             } else {
-                "https://checkout.hyperswitch.io/web/2025.11.28.11/v1/HyperLoader.js"
+                "https://checkout.hyperswitch.io/web/2025.11.28.12/v1/HyperLoader.js"
             }
         }
     }

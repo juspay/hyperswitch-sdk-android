@@ -107,7 +107,7 @@ class UCTPWebview(
         authenticationId: String,
         merchantId: String,
         request3DSAuthentication: Boolean
-    ) {
+    ) : String? {
         logger?.invoke(
             LogType.DEBUG,
             EventName.INIT_CLICK_TO_PAY_SESSION_INIT,
@@ -116,11 +116,9 @@ class UCTPWebview(
         )
         ensureReady()
         val requestId = UUID.randomUUID().toString()
-        val jsCode =
-            "(async function(){try{const authenticationSession=window.hyperInstance.initAuthenticationSession({clientSecret:'$clientSecret',profileId:'$profileId',authenticationId:'$authenticationId',merchantId:'$merchantId'});window.ClickToPaySession=await authenticationSession.initClickToPaySession({request3DSAuthentication:$request3DSAuthentication});const data=window.ClickToPaySession.error?window.ClickToPaySession:{success:true};window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:data}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'InitClickToPaySessionError',message:error.message}}}))}})();"
+        val jsCode = "(async function(){try{const authenticationSession=window.hyperInstance.initAuthenticationSession({clientSecret:'$clientSecret',profileId:'$profileId',authenticationId:'$authenticationId',merchantId:'$merchantId'});window.ClickToPaySession=await authenticationSession.initClickToPaySession({request3DSAuthentication:$request3DSAuthentication});const data = window.ClickToPaySession.error ? window.ClickToPaySession : { success: true, token: window.ClickToPaySession.token } ; window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:data}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'InitClickToPaySessionError',message:error.message}}}))}})();"
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
-
-        withContext(Dispatchers.Default) {
+        return withContext(Dispatchers.Default) {
             val jsonObject =
                 parseJSONObject(responseJson, EventName.INIT_CLICK_TO_PAY_SESSION_RETURNED)
             val data = getOptJSONObject(jsonObject, "data")
@@ -147,6 +145,7 @@ class UCTPWebview(
                 "",
                 LogCategory.USER_EVENT
             )
+            data.optString("token")
         }
     }
 
