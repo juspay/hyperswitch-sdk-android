@@ -116,4 +116,10 @@ class ClickToPaySession(private val clickToPaySessionLauncher: ClickToPaySession
     suspend fun close() {
         clickToPaySessionLauncher.close(true)
     }
+
+    @JvmSynthetic
+    @Deprecated("this method will be removed")
+    suspend fun closeInternal() {
+        clickToPaySessionLauncher.close(false)
+    }
 }
