@@ -6,12 +6,18 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.modules.core.DeviceEventManagerModule
 import io.hyperswitch.paymentsession.ExitHeadlessCallBackManager
 import io.hyperswitch.paymentsession.GetPaymentSessionCallBackManager
 import io.hyperswitch.paymentsession.PaymentSessionHandlerImpl
+import java.util.concurrent.ConcurrentHashMap
 
 class HyperHeadlessModule internal constructor(private val rct: ReactApplicationContext) :
     ReactContextBaseJavaModule(rct) {
+
+    // Transient routing table: sdkAuthorization → callback that stores data on the launcher instance.
+    // Entries are added before a prefetch task starts and removed immediately after firing.
+    val pendingCallbacks = ConcurrentHashMap<String, (ReadableMap) -> Unit>()
 
     override fun getName(): String = "HyperHeadless"
 
@@ -36,5 +42,15 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
     @ReactMethod
     fun exitHeadless(rootTag: Int, status: String) {
         ExitHeadlessCallBackManager.executeCallback(rootTag, status)
+    }
+
+    @ReactMethod
+    fun storePrefetchedApiData(rootTag: Int, data: ReadableMap) {
+        val sdkAuth = data.getString("sdkAuthorization")
+        if (sdkAuth != null) {
+            pendingCallbacks.remove(sdkAuth)?.invoke(data)
+        }
+        rct.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+            .emit("prefetchApiDataReady", data)
     }
 }

@@ -26,6 +26,7 @@ import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
 import io.hyperswitch.react.HyperFragment
 import io.hyperswitch.react.HyperEventEmitter
+import io.hyperswitch.react.HyperHeadlessModule
 
 class PaymentSessionReactLauncher(
     private val activity: Activity,
@@ -37,6 +38,10 @@ class PaymentSessionReactLauncher(
     private var reactContext: ReactContext? = null
     private var headlessTaskId: Int? = null
     private val launchOptions = LaunchOptions(activity, BuildConfig.VERSION_NAME, hsConfig)
+
+    // Per-instance prefetch state — no global store needed.
+    @Volatile internal var isPrefetchTriggered: Boolean = false
+    @Volatile internal var prefetchedData: ReadableMap? = null
 
     @SuppressLint("VisibleForTests")
     override fun initializeReactNativeInstance() {
@@ -69,7 +74,10 @@ class PaymentSessionReactLauncher(
         }
     }
 
-    override fun recreateReactContext(configuration: SavedPaymentMethodsConfiguration?) {
+    override fun recreateReactContext(
+        configuration: SavedPaymentMethodsConfiguration?,
+        headlessType: String
+    ) {
         activity.runOnUiThread {
             val context = reactContext
             if (context == null) {
@@ -78,7 +86,7 @@ class PaymentSessionReactLauncher(
                     reactHost.addReactInstanceEventListener(
                         object : ReactInstanceEventListener {
                             override fun onReactContextInitialized(context: ReactContext) {
-                                invokeStartTask(context, configuration)
+                                invokeStartTask(context, configuration, headlessType)
                                 reactHost.removeReactInstanceEventListener(this)
                             }
                         }
@@ -89,7 +97,7 @@ class PaymentSessionReactLauncher(
                     reactInstanceManager?.addReactInstanceEventListener(
                         object : ReactInstanceEventListener {
                             override fun onReactContextInitialized(context: ReactContext) {
-                                invokeStartTask(context, configuration)
+                                invokeStartTask(context, configuration, headlessType)
                                 reactInstanceManager.removeReactInstanceEventListener(this)
                             }
                         }
@@ -97,7 +105,7 @@ class PaymentSessionReactLauncher(
                     reactInstanceManager?.createReactContextInBackground()
                 }
             } else {
-                invokeStartTask(context, configuration)
+                invokeStartTask(context, configuration, headlessType)
             }
         }
     }
@@ -105,7 +113,11 @@ class PaymentSessionReactLauncher(
     private fun getSubscribedEventsSafely(): List<String> =
         try { HyperEventEmitter.getSubscribedEvents() } catch (_: Exception) { emptyList() }
 
-    private fun invokeStartTask(reactContext: ReactContext, configuration: SavedPaymentMethodsConfiguration? = null) {
+    private fun invokeStartTask(
+        reactContext: ReactContext,
+        configuration: SavedPaymentMethodsConfiguration? = null,
+        headlessType: String = "savedPM"
+    ) {
         val subscribedEvents = getSubscribedEventsSafely()
         val bundle = launchOptions.getBundle(
             reactContext,
@@ -113,6 +125,27 @@ class PaymentSessionReactLauncher(
             null,
             subscribedEvents,
         )
+        bundle.getBundle("props")?.putString("headlessType", headlessType)
+        if (headlessType == "prefetch") {
+            // Register callback on the module instance so data lands on this launcher.
+            val sdkAuth = sessionConfig?.sdkAuthorization
+            if (sdkAuth != null) {
+                reactContext.getNativeModule(HyperHeadlessModule::class.java)
+                    ?.pendingCallbacks
+                    ?.set(sdkAuth) { data -> prefetchedData = data }
+            }
+        } else if (headlessType == "savedPM") {
+            // Include already-prefetched data so HeadlessTask can skip API calls.
+            val data = prefetchedData
+            if (data != null) {
+                bundle.getBundle("props")?.putBundle(
+                    "prefetchedApiData",
+                    launchOptions.toBundle(data.toHashMap())
+                )
+            } else if (isPrefetchTriggered) {
+                bundle.getBundle("props")?.putBundle("prefetchedApiData", android.os.Bundle())
+            }
+        }
         configuration?.let { config ->
             bundle.getBundle("props")?.putBundle("configuration", config.bundle)
         }
@@ -135,20 +168,30 @@ class PaymentSessionReactLauncher(
     ): Boolean {
         val subscribedEvents = getSubscribedEventsSafely()
         val bundle = launchOptions.getBundle(sessionConfig, configuration, subscribedEvents)
+        addPrefetchedApiDataToBundle(bundle)
         applyFonts(configuration, bundle)
         return presentSheet(bottomInsetToDIPFromPixel(bundle))
     }
 
     override fun presentSheet(configurationMap: Map<String, Any?>): Boolean {
         val subscribedEvents = getSubscribedEventsSafely()
-        return presentSheet(
-            bottomInsetToDIPFromPixel(
-                launchOptions.getBundleWithHyperParams(
-                    configurationMap,
-                    subscribedEvents
+        val bundle = launchOptions.getBundleWithHyperParams(configurationMap, subscribedEvents)
+        addPrefetchedApiDataToBundle(bundle)
+        return presentSheet(bottomInsetToDIPFromPixel(bundle))
+    }
+
+    private fun addPrefetchedApiDataToBundle(bundle: Bundle) {
+        val propsBundle = bundle.getBundle("props") ?: return
+        val data = prefetchedData
+        when {
+            !isPrefetchTriggered -> {}
+            data != null ->
+                propsBundle.putBundle(
+                    "prefetchedApiData",
+                    launchOptions.toBundle(data.toHashMap())
                 )
-            )
-        )
+            else -> propsBundle.putBundle("prefetchedApiData", android.os.Bundle())
+        }
     }
 
     private fun presentSheet(bundle: Bundle): Boolean {
