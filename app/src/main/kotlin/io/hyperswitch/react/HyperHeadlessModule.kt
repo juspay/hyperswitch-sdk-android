@@ -1,5 +1,6 @@
 package io.hyperswitch.react
 
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
@@ -50,7 +51,9 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
         if (sdkAuth != null) {
             pendingCallbacks.remove(sdkAuth)?.invoke(data)
         }
+        val writableData = Arguments.createMap()
+        writableData.merge(data)
         rct.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            .emit("prefetchApiDataReady", data)
+            .emit("prefetchApiDataReady", writableData)
     }
 }

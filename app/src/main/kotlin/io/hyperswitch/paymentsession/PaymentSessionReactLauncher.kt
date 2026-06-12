@@ -11,6 +11,7 @@ import com.facebook.react.ReactInstanceEventListener
 import com.facebook.react.ReactNativeHost
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactContext
+import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.UiThreadUtil
 import com.facebook.react.common.assets.ReactFontManager
 import com.facebook.react.jstasks.HeadlessJsTaskConfig

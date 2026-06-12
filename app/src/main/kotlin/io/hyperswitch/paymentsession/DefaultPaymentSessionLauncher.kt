@@ -38,8 +38,8 @@ class DefaultPaymentSessionLauncher(
         // needs static access from a listener lambda.
         Companion.sessionConfig = sessionConfig
         // Mark prefetch as triggered on the launcher instance and kick off the prefetch HeadlessTask.
-        paymentSessionReactLauncher.isPrefetchTriggered = true
-        paymentSessionReactLauncher.prefetchedData = null
+        (paymentSessionReactLauncher as PaymentSessionReactLauncher).isPrefetchTriggered = true
+        (paymentSessionReactLauncher as PaymentSessionReactLauncher).prefetchedData = null
         paymentSessionReactLauncher.recreateReactContext(null, headlessType = "prefetch")
     }
 
