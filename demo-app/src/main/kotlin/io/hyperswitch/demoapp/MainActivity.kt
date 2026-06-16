@@ -112,12 +112,17 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             primaryButton = primaryButton,
             colorsLight = color1,
             colorsDark = color2,
-            theme = PaymentSheet.Theme.Light
+            theme = PaymentSheet.Theme.Light,
+            locale = "nl-BE"
         )
 
         val configuration =
             PaymentSheet.Configuration.Builder("Example, Inc.")
-                //.appearance(appearance)
+                .appearance(appearance)
+//                .card(PaymentSheet.CardConfiguration(
+//                    showAnimatedCardBrandIcon = false,
+//                    showCardBrandIcon = true
+//                ))
                 .defaultBillingDetails(billingDetails).primaryButtonLabel("Purchase ($2.00)")
                 .paymentSheetHeaderLabel("Select payment method")
                 .savedPaymentSheetHeaderLabel("Payment methods").shippingDetails(shippingDetails)

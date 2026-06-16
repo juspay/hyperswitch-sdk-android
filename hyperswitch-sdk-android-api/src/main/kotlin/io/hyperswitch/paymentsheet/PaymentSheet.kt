@@ -10,6 +10,8 @@ import android.os.Parcelable
 import androidx.annotation.ColorInt
 import androidx.annotation.FontRes
 import androidx.annotation.RequiresApi
+import io.hyperswitch.paymentsheet.PaymentSheet.GooglePayConfiguration
+import io.hyperswitch.paymentsheet.PaymentSheet.GooglePayConfiguration.Environment
 import kotlinx.parcelize.Parcelize
 
 /**
@@ -178,7 +180,8 @@ class PaymentSheet internal constructor(
         val netceteraSDKApiKey: String? = null,
         val disableBranding: Boolean? = null,
         val defaultView: Boolean? = null,
-        val showVersionInfo: Boolean = false
+        val showVersionInfo: Boolean = false,
+        val card: CardConfiguration? = null
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -218,6 +221,9 @@ class PaymentSheet internal constructor(
                         putBoolean("defaultView", defaultView)
                     }
                     putBoolean("showVersionInfo", showVersionInfo)
+                    if(card != null){
+                        putBundle("card", card.bundle)
+                    }
                 }
             }
 
@@ -229,6 +235,8 @@ class PaymentSheet internal constructor(
         ) {
             private var customer: CustomerConfiguration? = null
             private var googlePay: GooglePayConfiguration? = null
+
+            private var card: CardConfiguration? = null
             private var primaryButtonColor: ColorStateList? = null
             private var defaultBillingDetails: BillingDetails? = null
             private var shippingDetails: AddressDetails? = null
@@ -245,7 +253,7 @@ class PaymentSheet internal constructor(
             private var paymentSheetHeaderLabel: String? = null
             private var savedPaymentSheetHeaderLabel: String? = null
             private var netceteraSDKApiKey: String? = null
-            private var showVersionInfo : Boolean = false
+            private var showVersionInfo: Boolean = false
             fun merchantDisplayName(merchantDisplayName: String) =
                 apply { this.merchantDisplayName = merchantDisplayName }
 
@@ -264,6 +272,10 @@ class PaymentSheet internal constructor(
             )
             fun primaryButtonColor(primaryButtonColor: ColorStateList?) =
                 apply { this.primaryButtonColor = primaryButtonColor }
+
+            fun card(card: CardConfiguration) = apply {
+                this.card = card
+            }
 
             fun defaultBillingDetails(defaultBillingDetails: BillingDetails?) =
                 apply { this.defaultBillingDetails = defaultBillingDetails }
@@ -341,7 +353,8 @@ class PaymentSheet internal constructor(
                 netceteraSDKApiKey,
                 disableBranding,
                 defaultView,
-                showVersionInfo
+                showVersionInfo,
+                card
             )
         }
     }
@@ -376,6 +389,8 @@ class PaymentSheet internal constructor(
         val locale: String? = null,
 
         val theme: Theme? = null
+
+
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -966,6 +981,20 @@ class PaymentSheet internal constructor(
             Production,
             Test
         }
+    }
+
+    @Parcelize
+    data class CardConfiguration(
+        val showAnimatedCardBrandIcon: Boolean = false,
+        val showCardBrandIcon: Boolean = true
+    ) : Parcelable {
+        val bundle: Bundle
+            get() {
+                return Bundle().apply {
+                    putBoolean("showAnimatedCardBrandIcon", showAnimatedCardBrandIcon)
+                    putBoolean("showCardBrandIcon", showCardBrandIcon)
+                }
+            }
     }
 
     @Parcelize
