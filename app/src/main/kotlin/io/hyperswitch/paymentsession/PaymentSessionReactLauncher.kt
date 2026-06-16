@@ -6,7 +6,6 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.addCallback
 import androidx.fragment.app.FragmentActivity
-import com.facebook.react.internal.featureflags.ReactNativeFeatureFlags
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactInstanceEventListener
 import com.facebook.react.ReactNativeHost
@@ -44,7 +43,7 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
             reactNativeHost = ReactNativeController.getReactNativeHost()
             reactHost = ReactNativeController.getReactHost()
             
-            if (ReactNativeFeatureFlags.enableBridgelessArchitecture()) {
+            if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
                 val reactHost = checkNotNull(reactHost) { "ReactHost is not initialized in New Architecture" }
                 reactHost.currentReactContext
             } else {
@@ -68,7 +67,7 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
         activity.runOnUiThread {
             val context = reactContext
             if (context == null) {
-                if (ReactNativeFeatureFlags.enableBridgelessArchitecture()) {
+                if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
                     val reactHost = checkNotNull(reactHost)
                     reactHost.addReactInstanceEventListener(
                         object : ReactInstanceEventListener {
