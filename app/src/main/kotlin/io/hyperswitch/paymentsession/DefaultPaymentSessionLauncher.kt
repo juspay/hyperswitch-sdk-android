@@ -34,12 +34,10 @@ class DefaultPaymentSessionLauncher(
 
     override fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
         super.initPaymentSession(sessionConfig)
-        // Keep companion copy for PaymentSessionReactLauncher.invokeStartTask which
-        // needs static access from a listener lambda.
-        Companion.sessionConfig = sessionConfig
-        // Mark prefetch as triggered on the launcher instance and kick off the prefetch HeadlessTask.
-        (paymentSessionReactLauncher as PaymentSessionReactLauncher).isPrefetchTriggered = true
-        (paymentSessionReactLauncher as PaymentSessionReactLauncher).prefetchedData = null
+        val launcher = paymentSessionReactLauncher as PaymentSessionReactLauncher
+        launcher.sessionConfig = sessionConfig
+        launcher.isPrefetchTriggered = true
+        launcher.prefetchedData = null
         paymentSessionReactLauncher.recreateReactContext(null, headlessType = "prefetch")
     }
 
@@ -106,6 +104,5 @@ class DefaultPaymentSessionLauncher(
 
     companion object {
         var isPresented: Boolean = false
-        var sessionConfig: PaymentSessionConfiguration? = null
     }
 }

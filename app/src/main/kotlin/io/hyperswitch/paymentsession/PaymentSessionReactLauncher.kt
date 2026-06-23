@@ -22,7 +22,6 @@ import io.hyperswitch.BuildConfig
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.react.ReactNativeController
-import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.sessionConfig
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
 import io.hyperswitch.react.HyperFragment
@@ -40,9 +39,9 @@ class PaymentSessionReactLauncher(
     private var headlessTaskId: Int? = null
     private val launchOptions = LaunchOptions(activity, BuildConfig.VERSION_NAME, hsConfig)
 
-    // Per-instance prefetch state — no global store needed.
     @Volatile internal var isPrefetchTriggered: Boolean = false
     @Volatile internal var prefetchedData: ReadableMap? = null
+    @Volatile internal var sessionConfig: PaymentSessionConfiguration? = null
 
     @SuppressLint("VisibleForTests")
     override fun initializeReactNativeInstance() {
@@ -128,7 +127,6 @@ class PaymentSessionReactLauncher(
         )
         bundle.getBundle("props")?.putString("headlessType", headlessType)
         if (headlessType == "prefetch") {
-            // Register callback on the module instance so data lands on this launcher.
             val sdkAuth = sessionConfig?.sdkAuthorization
             if (sdkAuth != null) {
                 reactContext.getNativeModule(HyperHeadlessModule::class.java)

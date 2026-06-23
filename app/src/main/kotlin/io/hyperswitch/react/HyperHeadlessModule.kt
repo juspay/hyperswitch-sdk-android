@@ -7,12 +7,14 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.module.annotations.ReactModule
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import io.hyperswitch.paymentsession.ExitHeadlessCallBackManager
 import io.hyperswitch.paymentsession.GetPaymentSessionCallBackManager
 import io.hyperswitch.paymentsession.PaymentSessionHandlerImpl
 import java.util.concurrent.ConcurrentHashMap
 
+@ReactModule(name = "HyperHeadless")
 class HyperHeadlessModule internal constructor(private val rct: ReactApplicationContext) :
     ReactContextBaseJavaModule(rct) {
 
