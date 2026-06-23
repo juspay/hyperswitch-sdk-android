@@ -15,8 +15,6 @@ import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import com.facebook.react.views.scroll.ReactHorizontalScrollView
 import com.facebook.react.views.scroll.ReactScrollView
-import com.proyecto26.inappbrowser.ChromeTabsDismissedEvent
-import com.proyecto26.inappbrowser.ChromeTabsManagerActivity
 import io.hyperswitch.PaymentEvent
 import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.ElementUpdateIntentResult
@@ -35,15 +33,6 @@ import kotlin.text.ifEmpty
 enum class EventName {
     CONFIRM_PAYMENT_ACTION,
     CONFIRM_CVC_PAYMENT
-}
-
-enum class CallbackType {
-    PAYMENT_RESULT,
-    CONFIRM_ACTION,
-    CONFIRM_CVC_ACTION,
-    UPDATE_INTENT_INIT,
-    UPDATE_INTENT_COMPLETE,
-    PAYMENT_CONFIRM_BUTTON_CLICK
 }
 
 
@@ -445,9 +434,10 @@ class HyperFragment : ReactFragment() {
     @Subscribe
     fun onEvent(event: RedirectEvent) {
         unRegisterEventBus()
-        EventBus.getDefault()
-            .post(ChromeTabsDismissedEvent(event.message, event.resultType, event.isError))
-        startActivity(ChromeTabsManagerActivity.createDismissIntent(requireContext()))
+        ChromeTabsHelper.createDismissedEvent(event.message, event.resultType, event.isError)?.let {
+            EventBus.getDefault().post(it)
+        }
+        ChromeTabsHelper.createDismissIntent(requireContext())?.let { startActivity(it) }
     }
 
     override fun getReactNativeHost(): ReactNativeHost = ReactNativeController.getReactNativeHost()

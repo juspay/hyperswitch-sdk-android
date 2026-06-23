@@ -8,7 +8,7 @@ import android.os.Parcelable
 import android.webkit.WebSettings
 import androidx.fragment.app.FragmentActivity
 import com.facebook.react.ReactFragment
-import io.hyperswitch.BuildConfig
+import io.hyperswitch.core.BuildConfig as CoreBuildConfig
 import java.util.Locale
 class Utils {
   companion object {
@@ -38,9 +38,9 @@ class Utils {
             val newReactNativeFragmentSheet = ReactFragment.Builder()
               .setComponentName("hyperSwitch")
               .setLaunchOptions(getLaunchOptions(request, message, context))
-              .setFabricEnabled(BuildConfig.IS_NEW_ARCHITECTURE_ENABLED)
-              .build()
-            transaction.replace(android.R.id.content, newReactNativeFragmentSheet, "paymentSheet").commitAllowingStateLoss()
+            .setFabricEnabled(HyperswitchBuildConfig.isNewArchitectureEnabled)
+            .build()
+          transaction.replace(android.R.id.content, newReactNativeFragmentSheet, "paymentSheet").commitAllowingStateLoss()
           } else {
             transaction.show(reactNativeFragmentSheet).commitAllowingStateLoss()
           }
@@ -48,7 +48,7 @@ class Utils {
           val reactNativeFragmentCard = ReactFragment.Builder()
             .setComponentName("hyperSwitch")
             .setLaunchOptions(getLaunchOptions(request, message, context))
-            .setFabricEnabled(BuildConfig.IS_NEW_ARCHITECTURE_ENABLED)
+            .setFabricEnabled(HyperswitchBuildConfig.isNewArchitectureEnabled)
             .build()
           transaction.add(id ?: android.R.id.content, reactNativeFragmentCard, "cardForm").commitAllowingStateLoss()
         }
@@ -97,7 +97,7 @@ class Utils {
       hyperParams.putString("country", context.resources.configuration.locale.country)
       hyperParams.putString("user-agent", getUserAgent(context))
       hyperParams.putDouble("launchTime", getCurrentTime())
-      hyperParams.putString("sdkVersion", BuildConfig.VERSION_NAME)
+      hyperParams.putString("sdkVersion", CoreBuildConfig.VERSION_NAME)
       hyperParams.putString("device_model", Build.MODEL)
       hyperParams.putString("os_type", "android")
       hyperParams.putString("os_version", Build.VERSION.RELEASE)

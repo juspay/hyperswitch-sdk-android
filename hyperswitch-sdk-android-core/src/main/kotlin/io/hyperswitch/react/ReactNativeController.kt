@@ -2,7 +2,6 @@ package io.hyperswitch.react
 
 import android.app.Application
 import android.content.Context
-import com.facebook.react.PackageList
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeHost
 import com.facebook.react.ReactPackage
@@ -11,8 +10,8 @@ import com.facebook.react.defaults.DefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
-import io.hyperswitch.BuildConfig
-import io.hyperswitch.R
+import io.hyperswitch.core.BuildConfig as CoreBuildConfig
+import io.hyperswitch.core.R
 import io.hyperswitch.logs.CrashHandler
 import io.hyperswitch.logs.HSLog
 import io.hyperswitch.logs.HyperLogManager
@@ -77,7 +76,7 @@ object ReactNativeController {
 
                 val instance = constructor.newInstance(
                     application.applicationContext,
-                    BuildConfig.VERSION_NAME,
+                    CoreBuildConfig.VERSION_NAME,
                     airborneUrl
                 )
 
@@ -87,6 +86,19 @@ object ReactNativeController {
             }
         } catch (_: Exception) {}
         return "assets://hyperswitch.bundle"
+    }
+
+    /**
+     * Attempts to load the host-provided [HyperReactPackageProvider] implementation
+     * via reflection. This lives in :app so it can reference the autolinked PackageList.
+     */
+    private fun loadPackageProvider(): HyperReactPackageProvider? {
+        return try {
+            val clazz = Class.forName("io.hyperswitch.HyperswitchReactPackageProvider")
+            clazz.getDeclaredConstructor().newInstance() as HyperReactPackageProvider
+        } catch (_: Exception) {
+            null
+        }
     }
 
     /**
@@ -105,16 +117,15 @@ object ReactNativeController {
     ): ReactNativeHost {
         return object : DefaultReactNativeHost(application) {
             override fun getPackages(): List<ReactPackage> {
-                return PackageList(this).packages.apply {
-                    add(HyperPackage())
-                }
+                return loadPackageProvider()?.getPackages(this)
+                    ?: listOf(HyperPackage())
             }
             override fun getJSMainModuleName(): String = "index"
-            override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
+            override fun getUseDeveloperSupport(): Boolean = CoreBuildConfig.DEBUG
             override val isNewArchEnabled: Boolean =
-                BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
+                HyperswitchBuildConfig.isNewArchitectureEnabled
             override val isHermesEnabled: Boolean =
-                BuildConfig.IS_HERMES_ENABLED
+                HyperswitchBuildConfig.isHermesEnabled
             override fun getJSBundleFile(): String =
                     getBundleFromAirborne(application)
 
@@ -171,12 +182,12 @@ object ReactNativeController {
                 if (isInitialized.get()) return
 
                 Thread.setDefaultUncaughtExceptionHandler(
-                    CrashHandler(application, BuildConfig.VERSION_NAME)
+                    CrashHandler(application, CoreBuildConfig.VERSION_NAME)
                 )
 
                 SoLoader.init(application, OpenSourceMergedSoMapping)
 
-                if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
+                if (HyperswitchBuildConfig.isNewArchitectureEnabled) {
                     DefaultNewArchitectureEntryPoint.load()
                 }
 

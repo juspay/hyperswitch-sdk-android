@@ -1,0 +1,10 @@
+package io.hyperswitch.react
+
+enum class CallbackType {
+    PAYMENT_RESULT,
+    CONFIRM_ACTION,
+    CONFIRM_CVC_ACTION,
+    UPDATE_INTENT_INIT,
+    UPDATE_INTENT_COMPLETE,
+    PAYMENT_CONFIRM_BUTTON_CLICK
+}

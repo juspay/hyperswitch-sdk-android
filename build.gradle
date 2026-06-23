@@ -88,12 +88,21 @@ gradle.projectsEvaluated {
             configurePomMetadata(root)
 
             def dependencies = root.appendNode('dependencies')
+            def compileOnlyDeps = []
+            try {
+                compileOnlyDeps = configurations.getByName('compileOnly').dependencies.collect { "${it.group}:${it.name}" }
+            } catch (ignored) {
+                // compileOnly configuration may not be available in this module
+            }
             configurations.getByName('releaseCompileClasspath').getResolvedConfiguration().getFirstLevelModuleDependencies().each {
                 if (!runtimeDepsOptional.contains(it.moduleName)) {
                     def dependency = dependencies.appendNode('dependency')
                     dependency.appendNode('groupId', it.moduleGroup)
                     dependency.appendNode('artifactId', it.moduleName)
                     dependency.appendNode('version', runtimeDeps.contains(it.moduleName) ? rnlibVersion : it.moduleVersion)
+                    if (compileOnlyDeps.contains("${it.moduleGroup}:${it.moduleName}")) {
+                        dependency.appendNode('scope', 'provided')
+                    }
                 }
             }
         }
@@ -124,4 +133,25 @@ gradle.projectsEvaluated {
             }
         }
     }
+}
+
+// The publications above are attached to the root project (because maven-publish
+// is only applied there), but the AARs live in each subproject. Wire every root
+// publish task to the matching subproject's bundleReleaseAar task.
+gradle.projectsEvaluated {
+    def wirePublishTasks = { task ->
+        def matcher = task.name =~ /^publish(.+)PublicationToMaven(Local|Repository)$/
+        if (matcher) {
+            def pubName = matcher.group(1).uncapitalize()
+            def targetProj = project.findProject(":$pubName")
+            if (targetProj != null) {
+                def bundleTask = targetProj.tasks.findByName("bundleReleaseAar")
+                if (bundleTask != null) {
+                    task.dependsOn(bundleTask)
+                }
+            }
+        }
+    }
+    tasks.withType(org.gradle.api.publish.maven.tasks.PublishToMavenLocal).configureEach(wirePublishTasks)
+    tasks.withType(org.gradle.api.publish.maven.tasks.PublishToMavenRepository).configureEach(wirePublishTasks)
 }

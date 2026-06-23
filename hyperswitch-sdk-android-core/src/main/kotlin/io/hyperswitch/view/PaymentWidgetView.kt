@@ -13,7 +13,7 @@ import androidx.fragment.app.FragmentActivity
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReadableMap
-import io.hyperswitch.BuildConfig
+import io.hyperswitch.core.BuildConfig as CoreBuildConfig
 import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.model.HyperswitchBaseConfiguration
@@ -25,6 +25,7 @@ import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperFragment
 import io.hyperswitch.react.HyperFragmentManager
 import io.hyperswitch.react.ReactNativeController
+import io.hyperswitch.utils.ConversionUtils
 
 import kotlin.math.abs
 
@@ -100,7 +101,7 @@ class PaymentWidgetView : FrameLayout {
             id = generateViewId()
         }
         this.mContext = context
-        launchOptions = LaunchOptions(context.applicationContext, BuildConfig.VERSION_NAME, hsConfig)
+        launchOptions = LaunchOptions(context.applicationContext, CoreBuildConfig.VERSION_NAME, hsConfig)
     }
 
     fun setFragment(fragment: HyperFragment) {
@@ -116,7 +117,7 @@ class PaymentWidgetView : FrameLayout {
     fun initWidget(config: HyperswitchBaseConfiguration) {
         this.hsConfig = config
         this.widgetType = this.widgetType ?: "widgetPaymentSheet"
-        launchOptions = LaunchOptions(mContext.applicationContext, BuildConfig.VERSION_NAME, config)
+        launchOptions = LaunchOptions(mContext.applicationContext, CoreBuildConfig.VERSION_NAME, config)
         ReactNativeController.initialize(mContext.applicationContext as Application)
     }
 
@@ -148,7 +149,7 @@ class PaymentWidgetView : FrameLayout {
 
             is PaymentWidgetConfig.ReactNative -> {
                 val configMap =
-                    io.hyperswitch.utils.ConversionUtils.readableMapToMap(c.configuration as com.facebook.react.bridge.ReadableMap)
+                    ConversionUtils.readableMapToMap(c.configuration as ReadableMap)
                 this.launchOptions.toBundle(configMap)
             }
 

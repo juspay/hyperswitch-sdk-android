@@ -1,0 +1,41 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+group = "io.hyperswitch"
+version = sdkVersion
+
+android {
+    namespace 'io.hyperswitch.core'
+    compileSdk rootProject.ext.compileSdkVersion
+    ndkVersion rootProject.ext.ndkVersion
+
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+        buildConfigField "String", "VERSION_NAME", "\"${sdkVersion}\""
+        consumerProguardFiles "consumer-rules.pro"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+        }
+        buildTypes.all { buildType ->
+            if (!['debug', 'release'].contains(buildType.name)) {
+                buildType.matchingFallbacks = ['debug', 'release']
+            }
+        }
+    }
+}
+
+dependencies {
+    compileOnly("com.facebook.react:react-android")
+    compileOnly("org.greenrobot:eventbus:3.1.0")
+    api project(':hyperswitch-sdk-android-api')
+    implementation project(':hyperswitch-sdk-android-logger')
+    implementation project(':hyperswitch-sdk-android-webview-utils')
+    implementation libs.androidx.fragment
+    implementation libs.playServicesWallet
+}

@@ -57,6 +57,7 @@ react {
 
     /* Autolinking */
     autolinkLibrariesWithApp()
+    debuggableVariants = ["debug", "release"]
 }
 
 /**
@@ -108,7 +109,7 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-    implementation project(':hyperswitch-sdk-android-logger')
+    api project(':hyperswitch-sdk-android-core')
     api project(':hyperswitch-sdk-android-api')
-    implementation project(':hyperswitch-sdk-android-webview-utils')
+    implementation("org.greenrobot:eventbus:3.1.0")
 }
