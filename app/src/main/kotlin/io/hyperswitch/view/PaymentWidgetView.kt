@@ -62,6 +62,8 @@ class PaymentWidgetView : FrameLayout {
     private lateinit var mContext: Context
     private var sdkAuthorization: String = ""
     private var hsConfig: HyperswitchBaseConfiguration? = null
+    private var prefetchTriggered: Boolean = false
+    private var prefetchedData: ReadableMap? = null
 
     private var resultListener: PaymentResultListener? = null
 
@@ -238,7 +240,7 @@ class PaymentWidgetView : FrameLayout {
     }
 
     fun getLaunchOptions(): Bundle {
-        return this.launchOptions.getBundle(
+        val bundle = this.launchOptions.getBundle(
             configuration = resolveConfiguration(),
             type = widgetType,
             from = when (widgetConfig) {
@@ -249,6 +251,17 @@ class PaymentWidgetView : FrameLayout {
             sessionConfig = if (this.sdkAuthorization.isNotEmpty()) PaymentSessionConfiguration(this.sdkAuthorization) else null,
             subscribedEvents = this.subscribedEvents,
         )
+        val propsBundle = bundle.getBundle("props")
+        if (propsBundle != null) {
+            val data = prefetchedData
+            when {
+                !prefetchTriggered -> {}
+                data != null ->
+                    propsBundle.putBundle("prefetchedApiData", launchOptions.toBundle(data.toHashMap()))
+                else -> propsBundle.putBundle("prefetchedApiData", android.os.Bundle())
+            }
+        }
+        return bundle
     }
 
     fun confirmPayment(callback: (PaymentResult) -> Unit) {
@@ -322,6 +335,11 @@ class PaymentWidgetView : FrameLayout {
         if (isAttachedToWindow && !isSdkAuthorizationEmpty()) {
             post { showWidgetInternal() }
         }
+    }
+
+    fun setPrefetchedApiData(prefetch: Pair<Boolean, ReadableMap?>) {
+        prefetchTriggered = prefetch.first
+        prefetchedData = prefetch.second
     }
 
     fun showWidgetInternal() {

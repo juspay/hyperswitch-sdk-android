@@ -1,6 +1,7 @@
 package io.hyperswitch.paymentsession
 
 import android.app.Activity
+import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
@@ -39,6 +40,11 @@ class DefaultPaymentSessionLauncher(
         launcher.isPrefetchTriggered = true
         launcher.prefetchedData = null
         paymentSessionReactLauncher.recreateReactContext(null, headlessType = "prefetch")
+    }
+
+    fun getPrefetchedApiData(): Pair<Boolean, ReadableMap?> {
+        val launcher = paymentSessionReactLauncher as PaymentSessionReactLauncher
+        return Pair(launcher.isPrefetchTriggered, launcher.prefetchedData)
     }
 
     private fun applySubscription(subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?) {

@@ -10,6 +10,7 @@ import io.hyperswitch.paymentsession.PaymentSessionLauncher
 import io.hyperswitch.paymentsession.SavedPaymentMethodsConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
+import com.facebook.react.bridge.ReadableMap
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
 import io.hyperswitch.react.HyperEventEmitter
@@ -117,5 +118,9 @@ class PaymentSession internal constructor(
 
     fun getSdkAuthorization(): String {
         return sessionConfig?.sdkAuthorization ?: ""
+    }
+
+    fun getPrefetchedApiData(): Pair<Boolean, ReadableMap?> {
+        return (paymentSessionLauncher as? DefaultPaymentSessionLauncher)?.getPrefetchedApiData() ?: Pair(false, null)
     }
 }
