@@ -10,7 +10,8 @@
     <style name="HsSectionLabel">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:layout_marginHorizontal">20dp</item>
+        <item name="android:layout_marginLeft">20dp</item>
+        <item name="android:layout_marginRight">20dp</item>
         <item name="android:layout_marginTop">24dp</item>
         <item name="android:layout_marginBottom">8dp</item>
         <item name="android:textSize">11sp</item>
@@ -23,7 +24,8 @@
     <style name="HsButtonPrimary">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">52dp</item>
-        <item name="android:layout_marginHorizontal">20dp</item>
+        <item name="android:layout_marginLeft">20dp</item>
+        <item name="android:layout_marginRight">20dp</item>
         <item name="android:background">@drawable/rounded_button</item>
         <item name="android:textColor">@color/text_on_brand</item>
         <item name="android:textSize">15sp</item>
@@ -33,7 +35,8 @@
     <style name="HsButtonOutline">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">52dp</item>
-        <item name="android:layout_marginHorizontal">20dp</item>
+        <item name="android:layout_marginLeft">20dp</item>
+        <item name="android:layout_marginRight">20dp</item>
         <item name="android:background">@drawable/rounded_button_outline</item>
         <item name="android:textColor">@color/hs_blue_outline</item>
         <item name="android:textSize">15sp</item>

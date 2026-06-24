@@ -3,7 +3,6 @@ package io.hyperswitch.payments
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import com.google.android.gms.wallet.AutoResolveHelper
 import com.google.android.gms.wallet.PaymentData
 import org.json.JSONException
@@ -19,7 +18,18 @@ class GooglePayActivity : Activity() {
         super.onCreate(savedInstanceState)
         model = GooglePayViewModel(applicationContext)
 
-        val gPayRequest = JSONObject(intent.getStringExtra("googlePayRequest").toString())
+        val gPayRequestString = intent.getStringExtra("googlePayRequest")
+        if (gPayRequestString.isNullOrBlank() || gPayRequestString == "null") {
+            handleError("Failure")
+            return
+        }
+
+        val gPayRequest = try {
+            JSONObject(gPayRequestString)
+        } catch (error: JSONException) {
+            handleError("Failure")
+            return
+        }
         var isReadyToPayJson: JSONObject? = null
         var environment = "TEST" // Default Value is TEST in capitals
         if (gPayRequest.has("paymentDataRequest") && gPayRequest.has("environment")) {
@@ -34,7 +44,7 @@ class GooglePayActivity : Activity() {
         if (gPayRequest.has("paymentDataRequest")) {
             requestPayment(gPayRequest.getJSONObject("paymentDataRequest"))
         } else {
-            Log.e("GooglePay", "GPay PaymentRequest Not available")
+            handleError("Failure")
         }
     }
 
