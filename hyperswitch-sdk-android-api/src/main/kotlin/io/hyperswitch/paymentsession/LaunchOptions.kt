@@ -122,8 +122,18 @@ class LaunchOptions(
         })
     }
 
-    fun getBundleWithHyperParams(readableMap: Map<*, *>, subscribedEvents: List<String> = emptyList()): Bundle = Bundle().apply {
-        putBundle("props", toBundle(readableMap).apply {
+    fun getBundleWithHyperParams(
+        readableMap: Map<*, *>,
+        subscribedEvents: List<String> = emptyList(),
+        sessionConfig: PaymentSessionConfiguration? = null,
+    ): Bundle = Bundle().apply {
+        putBundle("props", Bundle().apply {
+            putString("type", readableMap["type"] as? String ?: "payment")
+            hsConfig?.let { putBundle("hyperswitchConfig", it.toBundle()) }
+            sessionConfig?.let { putBundle("paymentSessionConfig", it.toBundle()) }
+
+            val userConfiguration = readableMap["configuration"] as? Map<*, *> ?: readableMap
+            putBundle("configuration", toBundle(userConfiguration))
             putBundle("sdkParams", getSdkParams())
             putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
         })

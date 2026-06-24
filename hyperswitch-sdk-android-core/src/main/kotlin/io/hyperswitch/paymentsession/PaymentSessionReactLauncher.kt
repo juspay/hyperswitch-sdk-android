@@ -146,7 +146,8 @@ class PaymentSessionReactLauncher(
             bottomInsetToDIPFromPixel(
                 launchOptions.getBundleWithHyperParams(
                     configurationMap,
-                    subscribedEvents
+                    subscribedEvents,
+                    sessionConfig
                 )
             )
         )
