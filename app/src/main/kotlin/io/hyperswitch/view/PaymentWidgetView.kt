@@ -264,6 +264,10 @@ class PaymentWidgetView : FrameLayout {
         }
     }
 
+    fun triggerBack() {
+        this.fragment?.triggerBack()
+    }
+
     fun updatePaymentIntentComplete(
         sdkAuthorization: String,
         callback: (ElementUpdateIntentResult) -> Unit

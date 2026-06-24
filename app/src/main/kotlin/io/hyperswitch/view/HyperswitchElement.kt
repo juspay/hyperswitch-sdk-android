@@ -156,6 +156,10 @@ open class HyperswitchElement @JvmOverloads constructor(
         )
     }
 
+    fun triggerBack() {
+        internalView.triggerBack()
+    }
+
     @JvmSynthetic
     suspend fun updateIntentComplete(
         sdkAuthorization: String
