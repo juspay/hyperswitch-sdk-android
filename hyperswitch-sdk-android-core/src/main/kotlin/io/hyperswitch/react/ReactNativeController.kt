@@ -120,14 +120,16 @@ object ReactNativeController {
                 return loadPackageProvider()?.getPackages(this)
                     ?: listOf(HyperPackage())
             }
+
             override fun getJSMainModuleName(): String = "index"
             override fun getUseDeveloperSupport(): Boolean = CoreBuildConfig.DEBUG
             override val isNewArchEnabled: Boolean =
                 HyperswitchBuildConfig.isNewArchitectureEnabled
             override val isHermesEnabled: Boolean =
                 HyperswitchBuildConfig.isHermesEnabled
+
             override fun getJSBundleFile(): String =
-                    getBundleFromAirborne(application)
+                getBundleFromAirborne(application)
 
         }
     }
@@ -181,16 +183,18 @@ object ReactNativeController {
             synchronized(this) {
                 if (isInitialized.get()) return
 
+                HyperswitchBuildConfig.setApplication(application)
+
                 Thread.setDefaultUncaughtExceptionHandler(
                     CrashHandler(application, CoreBuildConfig.VERSION_NAME)
                 )
+                if (HyperswitchBuildConfig.loadSoFiles) {
+                    SoLoader.init(application, OpenSourceMergedSoMapping)
 
-                SoLoader.init(application, OpenSourceMergedSoMapping)
-
-                if (HyperswitchBuildConfig.isNewArchitectureEnabled) {
-                    DefaultNewArchitectureEntryPoint.load()
+                    if (HyperswitchBuildConfig.isNewArchitectureEnabled) {
+                        DefaultNewArchitectureEntryPoint.load()
+                    }
                 }
-
                 reactNativeHost.set(createReactNativeHost(application))
 
                 reactHost.set(

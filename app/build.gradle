@@ -84,9 +84,13 @@ android {
     ndkVersion rootProject.ext.ndkVersion
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
-        buildConfigField "String", "VERSION_NAME", "\"${sdkVersion}\""
-        consumerProguardFiles "consumer-rules.pro"
-    }
+    buildConfigField "String", "VERSION_NAME", "\"${sdkVersion}\""
+    consumerProguardFiles "consumer-rules.pro"
+    manifestPlaceholders = [
+        hermesEnabled: hermesEnabled.toString(),
+        newArchEnabled: (project.findProperty("newArchEnabled") ?: "false").toString()
+    ]
+}
     buildTypes {
         release {
             minifyEnabled enableProguardInReleaseBuilds

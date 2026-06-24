@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <meta-data
+            android:name="io.hyperswitch.hermes_enabled"
+            android:value="${hermesEnabled}" />
+        <meta-data
+            android:name="io.hyperswitch.new_architecture_enabled"
+            android:value="${newArchEnabled}" />
+    </application>
+</manifest>
