@@ -1,6 +1,7 @@
 package io.hyperswitch.paymentsession
 
 import android.app.Activity
+import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
@@ -34,9 +35,16 @@ class DefaultPaymentSessionLauncher(
 
     override fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
         super.initPaymentSession(sessionConfig)
-        // Keep companion copy for PaymentSessionReactLauncher.invokeStartTask which
-        // needs static access from a listener lambda.
-        Companion.sessionConfig = sessionConfig
+        val launcher = paymentSessionReactLauncher as PaymentSessionReactLauncher
+        launcher.sessionConfig = sessionConfig
+        launcher.isPrefetchTriggered = true
+        launcher.prefetchedData = null
+        paymentSessionReactLauncher.recreateReactContext(null, headlessType = "prefetch")
+    }
+
+    fun getPrefetchedApiData(): Pair<Boolean, ReadableMap?> {
+        val launcher = paymentSessionReactLauncher as PaymentSessionReactLauncher
+        return Pair(launcher.isPrefetchTriggered, launcher.prefetchedData)
     }
 
     private fun applySubscription(subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?) {
@@ -102,6 +110,5 @@ class DefaultPaymentSessionLauncher(
 
     companion object {
         var isPresented: Boolean = false
-        var sessionConfig: PaymentSessionConfiguration? = null
     }
 }

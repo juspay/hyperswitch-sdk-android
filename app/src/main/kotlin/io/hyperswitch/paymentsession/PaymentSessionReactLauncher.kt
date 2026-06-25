@@ -11,6 +11,7 @@ import com.facebook.react.ReactInstanceEventListener
 import com.facebook.react.ReactNativeHost
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactContext
+import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.UiThreadUtil
 import com.facebook.react.common.assets.ReactFontManager
 import com.facebook.react.jstasks.HeadlessJsTaskConfig
@@ -21,11 +22,11 @@ import io.hyperswitch.BuildConfig
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.react.ReactNativeController
-import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.sessionConfig
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
 import io.hyperswitch.react.HyperFragment
 import io.hyperswitch.react.HyperEventEmitter
+import io.hyperswitch.react.HyperHeadlessModule
 
 class PaymentSessionReactLauncher(
     private val activity: Activity,
@@ -37,6 +38,10 @@ class PaymentSessionReactLauncher(
     private var reactContext: ReactContext? = null
     private var headlessTaskId: Int? = null
     private val launchOptions = LaunchOptions(activity, BuildConfig.VERSION_NAME, hsConfig)
+
+    @Volatile internal var isPrefetchTriggered: Boolean = false
+    @Volatile internal var prefetchedData: ReadableMap? = null
+    @Volatile internal var sessionConfig: PaymentSessionConfiguration? = null
 
     @SuppressLint("VisibleForTests")
     override fun initializeReactNativeInstance() {
@@ -69,7 +74,10 @@ class PaymentSessionReactLauncher(
         }
     }
 
-    override fun recreateReactContext(configuration: SavedPaymentMethodsConfiguration?) {
+    override fun recreateReactContext(
+        configuration: SavedPaymentMethodsConfiguration?,
+        headlessType: String
+    ) {
         activity.runOnUiThread {
             val context = reactContext
             if (context == null) {
@@ -78,7 +86,7 @@ class PaymentSessionReactLauncher(
                     reactHost.addReactInstanceEventListener(
                         object : ReactInstanceEventListener {
                             override fun onReactContextInitialized(context: ReactContext) {
-                                invokeStartTask(context, configuration)
+                                invokeStartTask(context, configuration, headlessType)
                                 reactHost.removeReactInstanceEventListener(this)
                             }
                         }
@@ -89,7 +97,7 @@ class PaymentSessionReactLauncher(
                     reactInstanceManager?.addReactInstanceEventListener(
                         object : ReactInstanceEventListener {
                             override fun onReactContextInitialized(context: ReactContext) {
-                                invokeStartTask(context, configuration)
+                                invokeStartTask(context, configuration, headlessType)
                                 reactInstanceManager.removeReactInstanceEventListener(this)
                             }
                         }
@@ -97,7 +105,7 @@ class PaymentSessionReactLauncher(
                     reactInstanceManager?.createReactContextInBackground()
                 }
             } else {
-                invokeStartTask(context, configuration)
+                invokeStartTask(context, configuration, headlessType)
             }
         }
     }
@@ -105,7 +113,11 @@ class PaymentSessionReactLauncher(
     private fun getSubscribedEventsSafely(): List<String> =
         try { HyperEventEmitter.getSubscribedEvents() } catch (_: Exception) { emptyList() }
 
-    private fun invokeStartTask(reactContext: ReactContext, configuration: SavedPaymentMethodsConfiguration? = null) {
+    private fun invokeStartTask(
+        reactContext: ReactContext,
+        configuration: SavedPaymentMethodsConfiguration? = null,
+        headlessType: String = "savedPM"
+    ) {
         val subscribedEvents = getSubscribedEventsSafely()
         val bundle = launchOptions.getBundle(
             reactContext,
@@ -113,6 +125,26 @@ class PaymentSessionReactLauncher(
             null,
             subscribedEvents,
         )
+        bundle.getBundle("props")?.putString("headlessType", headlessType)
+        if (headlessType == "prefetch") {
+            val sdkAuth = sessionConfig?.sdkAuthorization
+            if (sdkAuth != null) {
+                reactContext.getNativeModule(HyperHeadlessModule::class.java)
+                    ?.pendingCallbacks
+                    ?.set(sdkAuth) { data -> prefetchedData = data }
+            }
+        } else if (headlessType == "savedPM") {
+            // Include already-prefetched data so HeadlessTask can skip API calls.
+            val data = prefetchedData
+            if (data != null) {
+                bundle.getBundle("props")?.putBundle(
+                    "prefetchedApiData",
+                    launchOptions.toBundle(data.toHashMap())
+                )
+            } else if (isPrefetchTriggered) {
+                bundle.getBundle("props")?.putBundle("prefetchedApiData", android.os.Bundle())
+            }
+        }
         configuration?.let { config ->
             bundle.getBundle("props")?.putBundle("configuration", config.bundle)
         }
@@ -135,20 +167,30 @@ class PaymentSessionReactLauncher(
     ): Boolean {
         val subscribedEvents = getSubscribedEventsSafely()
         val bundle = launchOptions.getBundle(sessionConfig, configuration, subscribedEvents)
+        addPrefetchedApiDataToBundle(bundle)
         applyFonts(configuration, bundle)
         return presentSheet(bottomInsetToDIPFromPixel(bundle))
     }
 
     override fun presentSheet(configurationMap: Map<String, Any?>): Boolean {
         val subscribedEvents = getSubscribedEventsSafely()
-        return presentSheet(
-            bottomInsetToDIPFromPixel(
-                launchOptions.getBundleWithHyperParams(
-                    configurationMap,
-                    subscribedEvents
+        val bundle = launchOptions.getBundleWithHyperParams(configurationMap, subscribedEvents)
+        addPrefetchedApiDataToBundle(bundle)
+        return presentSheet(bottomInsetToDIPFromPixel(bundle))
+    }
+
+    private fun addPrefetchedApiDataToBundle(bundle: Bundle) {
+        val propsBundle = bundle.getBundle("props") ?: return
+        val data = prefetchedData
+        when {
+            !isPrefetchTriggered -> {}
+            data != null ->
+                propsBundle.putBundle(
+                    "prefetchedApiData",
+                    launchOptions.toBundle(data.toHashMap())
                 )
-            )
-        )
+            else -> propsBundle.putBundle("prefetchedApiData", android.os.Bundle())
+        }
     }
 
     private fun presentSheet(bundle: Bundle): Boolean {

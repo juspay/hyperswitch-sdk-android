@@ -56,6 +56,10 @@ open class HyperswitchElement @JvmOverloads constructor(
         internalView.setSdkAuthorization(sdkAuthorization)
     }
 
+    fun setPrefetchedApiData(prefetch: Pair<Boolean, ReadableMap?>) {
+        internalView.setPrefetchedApiData(prefetch)
+    }
+
     fun showWidget() {
         internalView.showWidgetInternal()
     }

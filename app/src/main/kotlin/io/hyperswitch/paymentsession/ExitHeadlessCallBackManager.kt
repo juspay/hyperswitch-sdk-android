@@ -20,8 +20,10 @@ object ExitHeadlessCallBackManager {
     }
 
     fun executeCallback(rootTag: Int, data: String): Boolean {
+        val message = JSONObject(data)
+        val status = message.optString("status", "")
+        if (status == "prefetch_complete") return true
         val cb = callbacks.remove(rootTag) ?: callbacks.remove(-1)
-
         val result = parseResult(data)
         cb?.invoke(result)
         return true

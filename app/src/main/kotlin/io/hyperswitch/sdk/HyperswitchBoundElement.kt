@@ -44,6 +44,7 @@ class HyperswitchBoundElement internal constructor(
             element.setOnEventCallback(listener)
         }
         element.setSdkAuthorization(paymentSession.getSdkAuthorization())
+        element.setPrefetchedApiData(paymentSession.getPrefetchedApiData())
     }
 
     fun setConfiguration(configuration: PaymentSheet.Configuration) {
