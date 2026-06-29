@@ -122,7 +122,7 @@ object ReactNativeController {
             }
 
             override fun getJSMainModuleName(): String = "index"
-            override fun getUseDeveloperSupport(): Boolean = CoreBuildConfig.DEBUG
+            override fun getUseDeveloperSupport(): Boolean = false
             override val isNewArchEnabled: Boolean =
                 HyperswitchBuildConfig.isNewArchitectureEnabled
             override val isHermesEnabled: Boolean =

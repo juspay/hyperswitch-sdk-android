@@ -113,7 +113,7 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-    api project(':hyperswitch-sdk-android-core')
+    api project(':hyperswitch-sdk-android-react-native')
     api project(':hyperswitch-sdk-android-api')
     implementation("org.greenrobot:eventbus:3.1.0")
 }

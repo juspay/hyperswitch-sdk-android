@@ -109,14 +109,12 @@ class PaymentSessionReactLauncher(
     private fun invokeStartTask(reactContext: ReactContext, configuration: SavedPaymentMethodsConfiguration? = null) {
         val subscribedEvents = getSubscribedEventsSafely()
         val bundle = launchOptions.getBundle(
-            reactContext,
-            sessionConfig,
-            null,
-            subscribedEvents,
+            configuration = configuration?.bundle,
+            type = "headless",
+            from = "headless",
+            sessionConfig = sessionConfig,
+            subscribedEvents = subscribedEvents,
         )
-        configuration?.let { config ->
-            bundle.getBundle("props")?.putBundle("configuration", config.bundle)
-        }
         val taskConfig = HeadlessJsTaskConfig(
             "HyperHeadless", Arguments.fromBundle(bundle), 5000, true, null
         )

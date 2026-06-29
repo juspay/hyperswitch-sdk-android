@@ -123,10 +123,12 @@ internal class PaymentSessionHandlerImpl(
 
     private fun parsePaymentMethod(map: ReadableMap): Result<PaymentMethod> {
         val paymentMethodStr = map.getString("payment_method_str")
-            ?: return Result.failure(PMError(
-                code = map.getString("code") ?: "",
-                message = map.getString("message") ?: ""
-            ))
+            ?: run {
+                return Result.failure(PMError(
+                    code = map.getString("code") ?: "",
+                    message = map.getString("message") ?: ""
+                ))
+            }
 
         val cardMap = map.getMap("card")
         val card = cardMap?.let {

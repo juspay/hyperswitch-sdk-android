@@ -7,7 +7,7 @@ group = "io.hyperswitch"
 version = sdkVersion
 
 android {
-    namespace 'io.hyperswitch.core'
+    namespace 'io.hyperswitch.reactnative'
     compileSdk rootProject.ext.compileSdkVersion
     ndkVersion rootProject.ext.ndkVersion
 

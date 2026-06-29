@@ -1,13 +1,15 @@
 package io.hyperswitch.react
 
+import com.facebook.react.module.annotations.ReactModule
 import com.facebook.react.uimanager.SimpleViewManager
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.annotations.ReactProp
 import com.google.android.gms.wallet.button.ButtonConstants
 import io.hyperswitch.view.GooglePayButtonView
 
+@ReactModule(name = GooglePayButtonManager.NAME)
 class GooglePayButtonManager : SimpleViewManager<GooglePayButtonView>() {
-    override fun getName() = REACT_CLASS
+    override fun getName() = NAME
 
     override fun createViewInstance(context: ThemedReactContext) = GooglePayButtonView(context)
 
@@ -49,6 +51,6 @@ class GooglePayButtonManager : SimpleViewManager<GooglePayButtonView>() {
     }
 
     companion object {
-        const val REACT_CLASS = "GooglePayButton"
+        const val NAME = "GooglePayButton"
     }
 }
