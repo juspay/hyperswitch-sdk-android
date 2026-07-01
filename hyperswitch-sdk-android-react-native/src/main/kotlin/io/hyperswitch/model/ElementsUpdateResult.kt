@@ -25,9 +25,3 @@ sealed class ElementsUpdateResult {
         val canRetry: Boolean get() = failed.isNotEmpty()
     }
 }
-
-sealed class ElementUpdateIntentResult {
-    object Success : ElementUpdateIntentResult()
-    object Cancelled : ElementUpdateIntentResult()
-    data class Failure(val cause: Throwable) : ElementUpdateIntentResult()
-}

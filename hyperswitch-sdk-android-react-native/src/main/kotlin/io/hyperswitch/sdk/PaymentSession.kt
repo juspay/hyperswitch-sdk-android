@@ -12,7 +12,6 @@ import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
-import io.hyperswitch.react.HyperEventEmitter
 
 /**
  * A class that manages payment sessions using a [io.hyperswitch.paymentsession.PaymentSessionLauncher].

@@ -17,15 +17,16 @@ import com.facebook.react.jstasks.HeadlessJsTaskConfig
 import com.facebook.react.jstasks.HeadlessJsTaskContext
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.facebook.react.uimanager.PixelUtil
-import io.hyperswitch.BuildConfig
+import io.hyperswitch.reactnative.BuildConfig as CoreBuildConfig
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
+import io.hyperswitch.react.HyperswitchBuildConfig
 import io.hyperswitch.react.ReactNativeController
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.sessionConfig
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
-import io.hyperswitch.react.HyperFragment
 import io.hyperswitch.react.HyperEventEmitter
+import io.hyperswitch.react.HyperFragment
 
 class PaymentSessionReactLauncher(
     private val activity: Activity,
@@ -36,7 +37,7 @@ class PaymentSessionReactLauncher(
     private var reactNativeHost: ReactNativeHost? = null
     private var reactContext: ReactContext? = null
     private var headlessTaskId: Int? = null
-    private val launchOptions = LaunchOptions(activity, BuildConfig.VERSION_NAME, hsConfig)
+    private val launchOptions = LaunchOptions(activity, CoreBuildConfig.VERSION_NAME, hsConfig)
 
     @SuppressLint("VisibleForTests")
     override fun initializeReactNativeInstance() {
@@ -49,7 +50,7 @@ class PaymentSessionReactLauncher(
             reactNativeHost = ReactNativeController.getReactNativeHost()
             reactHost = ReactNativeController.getReactHost()
 
-            if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
+            if (HyperswitchBuildConfig.isNewArchitectureEnabled) {
                 val reactHost = checkNotNull(reactHost) { "ReactHost is not initialized in New Architecture" }
                 reactHost.currentReactContext
             } else {
@@ -73,9 +74,9 @@ class PaymentSessionReactLauncher(
         activity.runOnUiThread {
             val context = reactContext
             if (context == null) {
-                if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
-                    val reactHost = checkNotNull(reactHost)
-                    reactHost.addReactInstanceEventListener(
+            if (HyperswitchBuildConfig.isNewArchitectureEnabled) {
+                val reactHost = checkNotNull(reactHost)
+                reactHost.addReactInstanceEventListener(
                         object : ReactInstanceEventListener {
                             override fun onReactContextInitialized(context: ReactContext) {
                                 invokeStartTask(context, configuration)
@@ -108,14 +109,12 @@ class PaymentSessionReactLauncher(
     private fun invokeStartTask(reactContext: ReactContext, configuration: SavedPaymentMethodsConfiguration? = null) {
         val subscribedEvents = getSubscribedEventsSafely()
         val bundle = launchOptions.getBundle(
-            reactContext,
-            sessionConfig,
-            null,
-            subscribedEvents,
+            configuration = configuration?.bundle,
+            type = "headless",
+            from = "headless",
+            sessionConfig = sessionConfig,
+            subscribedEvents = subscribedEvents,
         )
-        configuration?.let { config ->
-            bundle.getBundle("props")?.putBundle("configuration", config.bundle)
-        }
         val taskConfig = HeadlessJsTaskConfig(
             "HyperHeadless", Arguments.fromBundle(bundle), 5000, true, null
         )
@@ -145,7 +144,8 @@ class PaymentSessionReactLauncher(
             bottomInsetToDIPFromPixel(
                 launchOptions.getBundleWithHyperParams(
                     configurationMap,
-                    subscribedEvents
+                    subscribedEvents,
+                    sessionConfig
                 )
             )
         )
@@ -155,7 +155,7 @@ class PaymentSessionReactLauncher(
         if (activity is DefaultHardwareBackBtnHandler && activity is FragmentActivity) {
             val newReactNativeFragmentSheet =
                 HyperFragment.Builder().setComponentName("hyperSwitch").setLaunchOptions(bundle)
-                    .setFabricEnabled(BuildConfig.IS_NEW_ARCHITECTURE_ENABLED).build()
+                    .setFabricEnabled(HyperswitchBuildConfig.isNewArchitectureEnabled).build()
 
             val activity2 = activity as FragmentActivity
 

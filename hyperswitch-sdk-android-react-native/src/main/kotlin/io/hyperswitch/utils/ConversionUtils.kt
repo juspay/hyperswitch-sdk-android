@@ -90,7 +90,7 @@ object ConversionUtils {
     /**
      * Recursively convert a [ReadableMap] into a plain [Map]<String, Any>.
      * Nested maps and arrays are converted recursively so that callers never
-     * receive raw [org.json.JSONObject] / [org.json.JSONArray] values.
+     * receive raw [JSONObject] / [JSONArray] values.
      */
     @JvmStatic
     fun readableMapToMap(readableMap: ReadableMap?): Map<String, Any> {

@@ -6,14 +6,16 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.module.annotations.ReactModule
 import io.hyperswitch.paymentsession.ExitHeadlessCallBackManager
 import io.hyperswitch.paymentsession.GetPaymentSessionCallBackManager
 import io.hyperswitch.paymentsession.PaymentSessionHandlerImpl
 
-class HyperHeadlessModule internal constructor(private val rct: ReactApplicationContext) :
-    ReactContextBaseJavaModule(rct) {
+@ReactModule(HyperHeadlessModule.NAME)
+class HyperHeadlessModule(private val reactContext: ReactApplicationContext) :
+    ReactContextBaseJavaModule(reactContext) {
 
-    override fun getName(): String = "HyperHeadless"
+    override fun getName(): String = NAME
 
     @ReactMethod
     fun getPaymentSession(
@@ -36,5 +38,9 @@ class HyperHeadlessModule internal constructor(private val rct: ReactApplication
     @ReactMethod
     fun exitHeadless(rootTag: Int, status: String) {
         ExitHeadlessCallBackManager.executeCallback(rootTag, status)
+    }
+
+    companion object {
+        const val NAME = "HyperHeadless"
     }
 }

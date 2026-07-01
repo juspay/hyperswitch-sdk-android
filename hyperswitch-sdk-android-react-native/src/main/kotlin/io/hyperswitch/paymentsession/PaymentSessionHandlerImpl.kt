@@ -8,11 +8,9 @@ import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.utils.ConversionUtils
 import io.hyperswitch.view.CVCWidget
-import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 
 internal class PaymentSessionHandlerImpl(
     private var sdkAuthorization: String,
@@ -125,10 +123,12 @@ internal class PaymentSessionHandlerImpl(
 
     private fun parsePaymentMethod(map: ReadableMap): Result<PaymentMethod> {
         val paymentMethodStr = map.getString("payment_method_str")
-            ?: return Result.failure(PMError(
-                code = map.getString("code") ?: "",
-                message = map.getString("message") ?: ""
-            ))
+            ?: run {
+                return Result.failure(PMError(
+                    code = map.getString("code") ?: "",
+                    message = map.getString("message") ?: ""
+                ))
+            }
 
         val cardMap = map.getMap("card")
         val card = cardMap?.let {

@@ -57,6 +57,7 @@ react {
 
     /* Autolinking */
     autolinkLibrariesWithApp()
+    debuggableVariants = ["debug", "release"]
 }
 
 /**
@@ -83,9 +84,13 @@ android {
     ndkVersion rootProject.ext.ndkVersion
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
-        buildConfigField "String", "VERSION_NAME", "\"${sdkVersion}\""
-        consumerProguardFiles "consumer-rules.pro"
-    }
+    buildConfigField "String", "VERSION_NAME", "\"${sdkVersion}\""
+    consumerProguardFiles "consumer-rules.pro"
+    manifestPlaceholders = [
+        hermesEnabled: hermesEnabled.toString(),
+        newArchEnabled: (project.findProperty("newArchEnabled") ?: "false").toString()
+    ]
+}
     buildTypes {
         release {
             minifyEnabled enableProguardInReleaseBuilds
@@ -108,7 +113,7 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-    implementation project(':hyperswitch-sdk-android-logger')
+    api project(':hyperswitch-sdk-android-react-native')
     api project(':hyperswitch-sdk-android-api')
-    implementation project(':hyperswitch-sdk-android-webview-utils')
+    implementation("org.greenrobot:eventbus:3.1.0")
 }

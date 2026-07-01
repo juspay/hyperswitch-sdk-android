@@ -5,9 +5,6 @@ import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import com.facebook.react.bridge.Arguments
@@ -18,9 +15,7 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.uimanager.IllegalViewOperationException
 import com.facebook.react.uimanager.UIManagerModule
-import io.hyperswitch.BuildConfig
-import io.hyperswitch.PaymentConfiguration
-import io.hyperswitch.PaymentEventSubscription
+import io.hyperswitch.reactnative.BuildConfig as CoreBuildConfig
 import io.hyperswitch.payments.GooglePayCallbackManager
 import io.hyperswitch.payments.launcher.PaymentMethod
 import io.hyperswitch.payments.view.WidgetLauncher
@@ -33,9 +28,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import org.json.JSONObject
 
-class HyperModule internal constructor(private val rct: ReactApplicationContext) :
-    ReactContextBaseJavaModule(rct) {
+class HyperModule(private val reactContext: ReactApplicationContext) :
+    ReactContextBaseJavaModule(reactContext) {
     companion object {
+        val NAME = "HyperModule"
         // Static methods with unique signatures for reflection access from lite SDK
         @JvmStatic
         fun confirmStatic(tag: String, map: MutableMap<String, String?>) {
@@ -54,8 +50,8 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     }
 
     override fun getName(): String {
-        HyperEventEmitter.initialize(rct)
-        return "HyperModule"
+        HyperEventEmitter.initialize(reactContext)
+        return NAME
     }
 
     // Using invalidate instead of deprecated onCatalystInstanceDestroy
@@ -110,7 +106,7 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
                     callBack.invoke(
                         Arguments.fromBundle(
                             LaunchOptions(
-                                it, BuildConfig.VERSION_NAME
+                                it, CoreBuildConfig.VERSION_NAME
                             ).toBundle(data)
                         )
                     )
@@ -124,7 +120,7 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
                     callBack.invoke(
                         Arguments.fromBundle(
                             LaunchOptions(
-                                reactApplicationContext, BuildConfig.VERSION_NAME
+                                reactApplicationContext, CoreBuildConfig.VERSION_NAME
                             ).toBundle(data)
                         )
                     )
@@ -209,7 +205,7 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     @ReactMethod
     fun addListener(eventName: String?) {
         if (listenerCount.incrementAndGet() == 1) {
-            HyperEventEmitter.initialize(rct)
+            HyperEventEmitter.initialize(reactContext)
         }
     }
 

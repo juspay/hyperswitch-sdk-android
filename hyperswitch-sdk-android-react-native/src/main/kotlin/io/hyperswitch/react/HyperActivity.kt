@@ -6,9 +6,6 @@ import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.ReactNativeHost
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
 import com.facebook.react.defaults.DefaultReactActivityDelegate
-import com.proyecto26.inappbrowser.ChromeTabsDismissedEvent
-import com.proyecto26.inappbrowser.ChromeTabsManagerActivity
-import io.hyperswitch.react.ReactNativeController
 import io.hyperswitch.redirect.RedirectEvent
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
@@ -39,14 +36,12 @@ class HyperActivity : ReactActivity() {
     @Subscribe
     fun onEvent(event: RedirectEvent) {
         unRegisterEventBus()
-        EventBus.getDefault().post(
-            ChromeTabsDismissedEvent(
-                event.message,
-                event.resultType,
-                event.isError
-            )
-        )
-        startActivity(ChromeTabsManagerActivity.createDismissIntent(applicationContext))
+        ChromeTabsHelper.createDismissedEvent(
+            event.message,
+            event.resultType,
+            event.isError
+        )?.let { EventBus.getDefault().post(it) }
+        ChromeTabsHelper.createDismissIntent(applicationContext)?.let { startActivity(it) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

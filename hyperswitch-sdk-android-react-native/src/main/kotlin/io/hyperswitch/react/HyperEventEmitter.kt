@@ -49,19 +49,19 @@ object HyperEventEmitter {
         payload: Map<String, Any>
     ) {
         val shouldEmit = isSubscribed(eventType)
-        
+
         if (shouldEmit && eventListener != null) {
             val event = PaymentEvent(
                 type = eventType,
                 payload = payload
             )
-            
+
             mainHandler.post {
                 eventListener?.onPaymentEvent(event)
             }
         }
     }
-    
+
     fun isSubscribed(eventType: String): Boolean {
         val subscription = subscriptionEvents ?: return false
         return subscription.isSubscribed(eventType)
@@ -117,7 +117,7 @@ object HyperEventEmitter {
         if (reactContext?.hasCatalystInstance() != true || reactContext?.catalystInstance?.isDestroyed == true) {
             return
         }
-        
+
         val iterator = pendingEvents.iterator()
         while (iterator.hasNext()) {
             val (tag, map) = iterator.next()
