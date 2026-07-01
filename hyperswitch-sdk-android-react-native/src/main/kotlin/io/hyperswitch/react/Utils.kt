@@ -8,7 +8,7 @@ import android.os.Parcelable
 import android.webkit.WebSettings
 import androidx.fragment.app.FragmentActivity
 import com.facebook.react.ReactFragment
-import io.hyperswitch.core.BuildConfig as CoreBuildConfig
+import io.hyperswitch.reactnative.BuildConfig as CoreBuildConfig
 import java.util.Locale
 class Utils {
   companion object {

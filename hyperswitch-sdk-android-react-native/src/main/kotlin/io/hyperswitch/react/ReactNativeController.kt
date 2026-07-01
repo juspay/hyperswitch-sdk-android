@@ -10,8 +10,8 @@ import com.facebook.react.defaults.DefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
-import io.hyperswitch.core.BuildConfig as CoreBuildConfig
-import io.hyperswitch.core.R
+import io.hyperswitch.reactnative.BuildConfig as CoreBuildConfig
+import io.hyperswitch.reactnative.R
 import io.hyperswitch.logs.CrashHandler
 import io.hyperswitch.logs.HSLog
 import io.hyperswitch.logs.HyperLogManager

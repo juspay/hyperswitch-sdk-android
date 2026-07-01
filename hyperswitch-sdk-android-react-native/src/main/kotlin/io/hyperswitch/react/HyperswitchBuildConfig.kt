@@ -3,7 +3,7 @@ package io.hyperswitch.react
 import android.app.Application
 import android.content.pm.PackageManager
 import android.util.Log
-import io.hyperswitch.core.BuildConfig as CoreBuildConfig
+import io.hyperswitch.reactnative.BuildConfig as CoreBuildConfig
 
 /**
  * Runtime bridge to read React-Native-specific build flags from the host app.

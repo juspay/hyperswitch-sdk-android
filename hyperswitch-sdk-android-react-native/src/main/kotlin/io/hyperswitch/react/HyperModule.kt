@@ -15,7 +15,7 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.uimanager.IllegalViewOperationException
 import com.facebook.react.uimanager.UIManagerModule
-import io.hyperswitch.core.BuildConfig as CoreBuildConfig
+import io.hyperswitch.reactnative.BuildConfig as CoreBuildConfig
 import io.hyperswitch.payments.GooglePayCallbackManager
 import io.hyperswitch.payments.launcher.PaymentMethod
 import io.hyperswitch.payments.view.WidgetLauncher

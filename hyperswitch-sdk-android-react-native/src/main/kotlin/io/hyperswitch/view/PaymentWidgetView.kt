@@ -13,7 +13,7 @@ import androidx.fragment.app.FragmentActivity
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReadableMap
-import io.hyperswitch.core.BuildConfig as CoreBuildConfig
+import io.hyperswitch.reactnative.BuildConfig as CoreBuildConfig
 import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.model.HyperswitchBaseConfiguration

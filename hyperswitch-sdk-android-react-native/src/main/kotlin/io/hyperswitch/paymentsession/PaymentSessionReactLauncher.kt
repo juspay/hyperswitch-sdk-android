@@ -17,7 +17,7 @@ import com.facebook.react.jstasks.HeadlessJsTaskConfig
 import com.facebook.react.jstasks.HeadlessJsTaskContext
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.facebook.react.uimanager.PixelUtil
-import io.hyperswitch.core.BuildConfig as CoreBuildConfig
+import io.hyperswitch.reactnative.BuildConfig as CoreBuildConfig
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.react.HyperswitchBuildConfig
