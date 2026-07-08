@@ -356,6 +356,26 @@ class HyperFragment : ReactFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // After onCreateView, ReactRootView.mAppProperties holds the original launch-options Bundle
+        // (the same object Fragment.arguments[ARG_LAUNCH_OPTIONS] pointed to). We break this shared
+        // reference by replacing Fragment.arguments with a new stripped copy that excludes
+        // prefetchedApiData (~420 KB). The original Bundle (still held by mAppProperties) is
+        // untouched so RN delivers the full data to JS asynchronously as normal.
+        // Without this, Android serialises all Fragment.arguments through Binder on Activity stop
+        // (e.g. browser redirect after confirm) and crashes with TransactionTooLargeException.
+        val origArgs = arguments
+        if (origArgs != null) {
+            val origLaunchOpts = origArgs.getBundle(ARG_LAUNCH_OPTIONS)
+            if (origLaunchOpts != null) {
+                val origProps = origLaunchOpts.getBundle("props")
+                if (origProps != null && origProps.containsKey("prefetchedApiData")) {
+                    val strippedProps = Bundle(origProps).apply { remove("prefetchedApiData") }
+                    val strippedLaunchOpts = Bundle(origLaunchOpts).apply { putBundle("props", strippedProps) }
+                    val strippedArgs = Bundle(origArgs).apply { putBundle(ARG_LAUNCH_OPTIONS, strippedLaunchOpts) }
+                    arguments = strippedArgs
+                }
+            }
+        }
         val reactRootView = view as? ReactRootView ?: return
         var scrollFixScheduled = false
         reactRootView.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener {
