@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.addCallback
 import androidx.fragment.app.FragmentActivity
+import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactInstanceEventListener
 import com.facebook.react.ReactNativeHost
@@ -18,7 +19,6 @@ import com.facebook.react.jstasks.HeadlessJsTaskContext
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.facebook.react.uimanager.PixelUtil
 import io.hyperswitch.BuildConfig
-import io.hyperswitch.react.ReactNativeController
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.paymentIntentClientSecret
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
@@ -37,11 +37,11 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
         reactContext = try {
             // Get ReactNativeHost from ReactNativeController singleton instead of casting Application to ReactApplication
             // This allows merchants to use their own Application class without extending MainApplication
-            if (!ReactNativeController.getIsInitialized()){
-                ReactNativeController.initialize(activity.application)
-            }
-            reactNativeHost = ReactNativeController.getReactNativeHost()
-            reactHost = ReactNativeController.getReactHost()
+
+            val application = activity.application as ReactApplication
+
+            reactNativeHost = application.reactNativeHost
+            reactHost = application.reactHost
             
             if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
                 val reactHost = checkNotNull(reactHost) { "ReactHost is not initialized in New Architecture" }
@@ -50,14 +50,9 @@ class PaymentSessionReactLauncher(private val activity: Activity) : SDKInterface
                 val reactInstanceManager = reactNativeHost?.reactInstanceManager
                 reactInstanceManager?.currentReactContext
             }
-        } catch (ex: IllegalStateException) {
+        } catch (ex: Exception) {
             throw IllegalStateException(
-                "HyperSDK not initialized. Please call HyperSDK.initialize() in your Application.onCreate()",
-                ex
-            )
-        } catch (ex: RuntimeException) {
-            throw IllegalStateException(
-                "Failed to initialize React Native instance. " + "Please check your AndroidManifest.xml and React Native configuration.",
+                "Internal Error",
                 ex
             )
         }

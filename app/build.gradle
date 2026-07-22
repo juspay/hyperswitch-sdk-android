@@ -111,3 +111,10 @@ dependencies {
     implementation project(':hyperswitch-sdk-android-logger')
     api project(':hyperswitch-sdk-android-api')
 }
+
+def appProject = rootProject.allprojects.find { it.plugins.hasPlugin('com.android.application') }
+try {
+    appProject.android.buildTypes.debug.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
+    appProject.android.buildTypes.profile.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
+    appProject.android.buildTypes.release.manifestPlaceholders += [applicationName: "io.hyperswitch.react.MainApplication"]
+} catch (ignored) {}

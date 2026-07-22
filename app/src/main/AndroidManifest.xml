@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
+        android:name=".react.MainApplication"
         android:enableOnBackInvokedCallback="true"
         android:extractNativeLibs="true"
         android:supportsRtl="true"

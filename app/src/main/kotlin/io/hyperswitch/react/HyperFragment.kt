@@ -17,14 +17,6 @@ class HyperFragment: ReactFragment() {
         registerEventBus()
     }
 
-    override fun getReactNativeHost(): ReactNativeHost {
-        return ReactNativeController.getReactNativeHost()
-    }
-
-    override fun getReactHost(): ReactHost {
-        return ReactNativeController.getReactHost()
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         unRegisterEventBus()
