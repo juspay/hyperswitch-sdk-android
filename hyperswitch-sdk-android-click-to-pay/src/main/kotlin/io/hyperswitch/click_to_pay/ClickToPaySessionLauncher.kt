@@ -139,5 +139,5 @@ interface ClickToPaySessionLauncher {
      * @throws ClickToPayException if cleanup fails
      */
     @Throws(ClickToPayException::class)
-    suspend fun close()
+    suspend fun close(closeHyperInstance : Boolean)
 }

@@ -10,7 +10,6 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
         android:orientation="vertical"
         android:padding="20dp">
 
@@ -102,14 +101,109 @@
                 android:layout_marginTop="4dp" />
         </LinearLayout>
 
-        <!-- Step 1: Get Authentication Credentials -->
+        <!-- Individual C2P Operation Buttons -->
         <Button
             android:id="@+id/btnStep1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:background="@drawable/rounded_button"
-            android:text="Step 1: Get Authentication Credentials"
+            android:text="1. Init Auth Session"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp" />
+        <Button
+            android:id="@+id/btnUseExistingAuth"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/rounded_button"
+            android:text="1. Use Existing Auth Session"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp" />
+
+        <Button
+            android:id="@+id/btnInitC2P"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/rounded_button"
+            android:text="1a. Init C2P Session"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp" />
+        <Button
+            android:id="@+id/btnGetActiveC2P"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/rounded_button"
+            android:text="1b. Get C2P Session"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp" />
+
+
+        <Button
+            android:id="@+id/btnCheckCustomer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/rounded_button"
+            android:text="2. Check Customer"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp" />
+
+        <Button
+            android:id="@+id/btnGetCards"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/rounded_button"
+            android:text="3. Get Cards"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp" />
+
+        <Button
+            android:id="@+id/btnShowCards"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/rounded_button"
+            android:text="4. Show Cards"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp" />
+
+        <Button
+            android:id="@+id/btnValidateOTP"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/rounded_button"
+            android:text="5. Validate OTP"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp" />
+
+        <Button
+            android:id="@+id/btnCheckout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/rounded_button"
+            android:text="6. Checkout"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
@@ -119,18 +213,37 @@
             android:id="@+id/signOut"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
             android:background="@drawable/rounded_button"
-            android:text="Sign Out"
+            android:text="7. Sign Out"
+            android:textAllCaps="false"
             android:textColor="#FFFFFF"
-            android:layout_marginBottom="8dp" />
+            android:textSize="16sp"
+            android:padding="12dp" />
 
         <Button
             android:id="@+id/btnClose"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
             android:background="@drawable/rounded_button"
-            android:text="Close Session"
-            android:textColor="#FFFFFF" />
+            android:text="8. Close Session"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp" />
+
+        <Button
+            android:id="@+id/btnNewActivity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/rounded_button"
+            android:text="9. New Activity"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp" />
 
         <View
             android:layout_width="match_parent"
@@ -143,12 +256,12 @@
             android:layout_width="match_parent"
             android:layout_height="300dp"
             android:background="#F5F5F5">
-            
+
             <TextView
                 android:id="@+id/resultText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Click 'Initialize Click To Pay' to begin"
+                android:text="Click individual buttons to test C2P operations"
                 android:textSize="16sp"
                 android:textColor="#333333"
                 android:lineSpacingExtra="4dp"
@@ -160,7 +273,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:text="Instructions:\n\n• Click each step button in sequence\n• Each button will be enabled after the previous step completes\n• Watch the result area for detailed progress\n• Check Logcat for detailed logs (tag: ClickToPay)"
+            android:text="Instructions:\n\n• Click any button to test that specific C2P operation\n• Buttons stay enabled – test operations in any order\n• Initialize Session first to create the C2P session\n• Watch the result area for detailed output\n• Check Logcat for detailed logs (tag: ClickToPay)"
             android:textSize="14sp"
             android:textColor="#666666"
             android:lineSpacingExtra="2dp" />
