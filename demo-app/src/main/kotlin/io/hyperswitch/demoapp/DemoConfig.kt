@@ -180,6 +180,7 @@ fun buildDemoConfiguration(netceteraApiKey: String? = null): PaymentSheet.Config
         .displaySavedPaymentMethodsCheckbox(true)
         .displaySavedPaymentMethods(true)
         .displayDefaultSavedPaymentIcon(true)
+        .hideCardNicknameField(false)
         .disableBranding(true)
         .stickyPayButton(true)
         .redirectionInfo(PaymentSheet.Visibility.Auto)
