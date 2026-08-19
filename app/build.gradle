@@ -1,6 +1,9 @@
 apply plugin: "com.android.library"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "kotlin-parcelize"
+
+ext.set("react.internal.libraryModeAppModule", "true")
+
 apply plugin: "com.facebook.react"
 
 group = "io.hyperswitch"
@@ -97,6 +100,15 @@ android {
             }
         }
     }
+}
+
+tasks.matching { it.name.startsWith("bundle") && it.name.endsWith("Aar") }.configureEach {
+    exclude "**/libc++_shared.so"
+    exclude "**/libfbjni.so"
+    exclude "**/libjsi.so"
+    exclude "**/libreactnative.so"
+    exclude "**/libhermes.so"
+    exclude "**/libhermestooling.so"
 }
 
 dependencies {

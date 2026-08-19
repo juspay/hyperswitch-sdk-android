@@ -20,6 +20,7 @@ internal class PaymentSessionHandlerImpl(
     private val lastUsedMethodData: ReadableMap,
     private val allMethodsData: ReadableArray,
     private val jsCallback: Callback,
+    private val sessionRouter: PaymentSessionRouter,
 ) : PaymentSessionHandler {
 
     override fun getCustomerDefaultSavedPaymentMethodData(): Result<PaymentMethod> =
@@ -60,7 +61,7 @@ internal class PaymentSessionHandlerImpl(
         paymentToken: String, cvc: String?, resultHandler: (PaymentResult) -> Unit
     ) {
         try {
-            val registered = ExitHeadlessCallBackManager.tryRegisterCallback(-1, resultHandler)
+            val registered = sessionRouter.tryRegisterExitCallback(-1, resultHandler)
             if (!registered) {
                 resultHandler(PaymentResult.Failed(
                     Throwable("Payment confirmation already in progress for this handler").apply {
@@ -74,7 +75,7 @@ internal class PaymentSessionHandlerImpl(
                 putString("cvc", cvc)
             })
         } catch (ex: Exception) {
-            ExitHeadlessCallBackManager.clearCallback(-1)
+            sessionRouter.clearExitCallback(-1)
             resultHandler(PaymentResult.Failed(Throwable("Not Initialised").apply {
                 initCause(Throwable("Not Initialised"))
             }))

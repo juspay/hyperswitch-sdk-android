@@ -3,27 +3,25 @@ package io.hyperswitch.react
 import android.os.Handler
 import android.os.Looper
 import com.facebook.react.bridge.Arguments
-import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.modules.core.DeviceEventManagerModule
+import com.facebook.react.bridge.WritableMap
 import io.hyperswitch.PaymentEvent
 import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.PaymentEventSubscription
-import java.util.concurrent.ConcurrentLinkedQueue
+import java.lang.ref.WeakReference
+import java.util.concurrent.atomic.AtomicReference
 
-object HyperEventEmitter {
-    private var reactContext: ReactApplicationContext? = null
-    private val pendingEvents = ConcurrentLinkedQueue<Pair<String, Map<String, String?>>>()
+class HyperEventEmitter {
+    private val moduleRef = AtomicReference<WeakReference<HyperModule>?>(null)
     @Volatile private var eventListener: PaymentEventListener? = null
     @Volatile private var subscriptionEvents: PaymentEventSubscription? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    fun initialize(context: ReactApplicationContext) {
-        reactContext = context
-        processPendingEvents()
+    fun attach(module: HyperModule) {
+        moduleRef.set(WeakReference(module))
     }
 
-    fun deinitialize() {
-        reactContext = null
+    fun detach() {
+        moduleRef.set(null)
         eventListener = null
         subscriptionEvents = null
         mainHandler.removeCallbacksAndMessages(null)
@@ -49,19 +47,19 @@ object HyperEventEmitter {
         payload: Map<String, Any>
     ) {
         val shouldEmit = isSubscribed(eventType)
-        
+
         if (shouldEmit && eventListener != null) {
             val event = PaymentEvent(
                 type = eventType,
                 payload = payload
             )
-            
+
             mainHandler.post {
                 eventListener?.onPaymentEvent(event)
             }
         }
     }
-    
+
     fun isSubscribed(eventType: String): Boolean {
         val subscription = subscriptionEvents ?: return false
         return subscription.isSubscribed(eventType)
@@ -77,67 +75,38 @@ object HyperEventEmitter {
         return subscription.getSubscribedEventStrings()
     }
 
-    fun confirmStatic(tag: String, map: MutableMap<String, String?>) {
+    fun emitEvent(tag: String, payload: WritableMap): Boolean {
+        val module = moduleRef.get()?.get() ?: return false
+        return try {
+            module.emitEvent(tag, payload)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun confirm(tag: String, map: MutableMap<String, String?>) {
+        emitEvent(tag, toWritableMap(map))
+    }
+
+    fun confirmCard(map: MutableMap<String, String?>) {
+        confirm("confirm", map)
+    }
+
+    fun confirmEC(map: MutableMap<String, String?>) {
+        confirm("confirmEC", map)
+    }
+
+    private fun toWritableMap(map: Map<String, String?>): WritableMap {
         val writableMap = Arguments.createMap()
         for ((key, value) in map) {
             when (value) {
-                "true" -> {
-                    writableMap.putBoolean(key, true)
-                }
-                "false" -> {
-                    writableMap.putBoolean(key, false)
-                }
-                else -> {
-                    writableMap.putString(key, value)
-                }
+                "true" -> writableMap.putBoolean(key, true)
+                "false" -> writableMap.putBoolean(key, false)
+                else -> writableMap.putString(key, value)
             }
         }
-
-        if (reactContext != null && reactContext!!.hasCatalystInstance()) {
-            try {
-                reactContext!!.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                    ?.emit(tag, writableMap)
-            } catch (e: Exception) {
-                pendingEvents.add(Pair(tag, map))
-            }
-        } else {
-            pendingEvents.add(Pair(tag, map))
-        }
+        return writableMap
     }
 
-    fun confirmCardStatic(map: MutableMap<String, String?>) {
-        confirmStatic("confirm", map)
-    }
-
-    fun confirmECStatic(map: MutableMap<String, String?>) {
-        confirmStatic("confirmEC", map)
-    }
-
-    private fun processPendingEvents() {
-        if (reactContext?.hasCatalystInstance() != true || reactContext?.catalystInstance?.isDestroyed == true) {
-            return
-        }
-        
-        val iterator = pendingEvents.iterator()
-        while (iterator.hasNext()) {
-            val (tag, map) = iterator.next()
-            val writableMap = Arguments.createMap()
-            for ((key, value) in map) {
-                 when (value) {
-                    "true" -> {
-                        writableMap.putBoolean(key, true)
-                    }
-                    "false" -> {
-                        writableMap.putBoolean(key, false)
-                    }
-                    else -> {
-                        writableMap.putString(key, value)
-                    }
-                }
-            }
-                reactContext!!.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                    ?.emit(tag, writableMap)
-                iterator.remove()
-        }
-    }
 }

@@ -8,7 +8,6 @@ import androidx.activity.addCallback
 import androidx.fragment.app.FragmentActivity
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactInstanceEventListener
-import com.facebook.react.ReactNativeHost
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactContext
 import com.facebook.react.bridge.UiThreadUtil
@@ -21,19 +20,18 @@ import io.hyperswitch.BuildConfig
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.react.ReactNativeController
-import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher.Companion.sessionConfig
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
 import io.hyperswitch.react.HyperFragment
-import io.hyperswitch.react.HyperEventEmitter
 
 class PaymentSessionReactLauncher(
     private val activity: Activity,
     hsConfig: HyperswitchBaseConfiguration? = null,
 ) : SDKInterface {
 
+    override var sessionConfig: PaymentSessionConfiguration? = null
+
     private var reactHost: ReactHost? = null
-    private var reactNativeHost: ReactNativeHost? = null
     private var reactContext: ReactContext? = null
     private var headlessTaskId: Int? = null
     private val launchOptions = LaunchOptions(activity, BuildConfig.VERSION_NAME, hsConfig)
@@ -41,21 +39,13 @@ class PaymentSessionReactLauncher(
     @SuppressLint("VisibleForTests")
     override fun initializeReactNativeInstance() {
         reactContext = try {
-            // Get ReactNativeHost from ReactNativeController singleton instead of casting Application to ReactApplication
             // This allows merchants to use their own Application class without extending MainApplication
             if (!ReactNativeController.getIsInitialized()){
                 ReactNativeController.initialize(activity.application)
             }
-            reactNativeHost = ReactNativeController.getReactNativeHost()
             reactHost = ReactNativeController.getReactHost()
 
-            if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
-                val reactHost = checkNotNull(reactHost) { "ReactHost is not initialized in New Architecture" }
-                reactHost.currentReactContext
-            } else {
-                val reactInstanceManager = reactNativeHost?.reactInstanceManager
-                reactInstanceManager?.currentReactContext
-            }
+            checkNotNull(reactHost) { "ReactHost is not initialized" }.currentReactContext
         } catch (ex: IllegalStateException) {
             throw IllegalStateException(
                 "HyperSDK not initialized. Please call HyperSDK.initialize() in your Application.onCreate()",
@@ -73,29 +63,16 @@ class PaymentSessionReactLauncher(
         activity.runOnUiThread {
             val context = reactContext
             if (context == null) {
-                if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
-                    val reactHost = checkNotNull(reactHost)
-                    reactHost.addReactInstanceEventListener(
-                        object : ReactInstanceEventListener {
-                            override fun onReactContextInitialized(context: ReactContext) {
-                                invokeStartTask(context, configuration)
-                                reactHost.removeReactInstanceEventListener(this)
-                            }
+                val reactHost = checkNotNull(reactHost)
+                reactHost.addReactInstanceEventListener(
+                    object : ReactInstanceEventListener {
+                        override fun onReactContextInitialized(context: ReactContext) {
+                            invokeStartTask(context, configuration)
+                            reactHost.removeReactInstanceEventListener(this)
                         }
-                    )
-                    reactHost.start()
-                } else {
-                    val reactInstanceManager = reactNativeHost?.reactInstanceManager
-                    reactInstanceManager?.addReactInstanceEventListener(
-                        object : ReactInstanceEventListener {
-                            override fun onReactContextInitialized(context: ReactContext) {
-                                invokeStartTask(context, configuration)
-                                reactInstanceManager.removeReactInstanceEventListener(this)
-                            }
-                        }
-                    )
-                    reactInstanceManager?.createReactContextInBackground()
-                }
+                    }
+                )
+                reactHost.start()
             } else {
                 invokeStartTask(context, configuration)
             }
@@ -103,7 +80,7 @@ class PaymentSessionReactLauncher(
     }
 
     private fun getSubscribedEventsSafely(): List<String> =
-        try { HyperEventEmitter.getSubscribedEvents() } catch (_: Exception) { emptyList() }
+        try { ReactNativeController.eventEmitter.getSubscribedEvents() } catch (_: Exception) { emptyList() }
 
     private fun invokeStartTask(reactContext: ReactContext, configuration: SavedPaymentMethodsConfiguration? = null) {
         val subscribedEvents = getSubscribedEventsSafely()
@@ -155,7 +132,7 @@ class PaymentSessionReactLauncher(
         if (activity is DefaultHardwareBackBtnHandler && activity is FragmentActivity) {
             val newReactNativeFragmentSheet =
                 HyperFragment.Builder().setComponentName("hyperSwitch").setLaunchOptions(bundle)
-                    .setFabricEnabled(BuildConfig.IS_NEW_ARCHITECTURE_ENABLED).build()
+                    .setFabricEnabled(true).build()
 
             val activity2 = activity as FragmentActivity
 

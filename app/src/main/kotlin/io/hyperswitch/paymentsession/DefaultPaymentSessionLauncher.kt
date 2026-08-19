@@ -9,7 +9,7 @@ import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
-import io.hyperswitch.react.HyperEventEmitter
+import io.hyperswitch.react.ReactNativeController
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
 
@@ -34,9 +34,7 @@ class DefaultPaymentSessionLauncher(
 
     override fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
         super.initPaymentSession(sessionConfig)
-        // Keep companion copy for PaymentSessionReactLauncher.invokeStartTask which
-        // needs static access from a listener lambda.
-        Companion.sessionConfig = sessionConfig
+        paymentSessionReactLauncher.sessionConfig = sessionConfig
     }
 
     private fun applySubscription(subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?) {
@@ -44,7 +42,7 @@ class DefaultPaymentSessionLauncher(
         val builder = PaymentEventSubscriptionBuilder()
         builder.subscribe()
         val (subscription, listener) = builder.build()
-        HyperEventEmitter.setEventListener(listener, subscription)
+        ReactNativeController.eventEmitter.setEventListener(listener, subscription)
     }
 
     override fun presentPaymentSheet(
@@ -52,7 +50,6 @@ class DefaultPaymentSessionLauncher(
         subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?,
         resultCallback: (PaymentResult) -> Unit
     ) {
-        isPresented = true
         applySubscription(subscribe)
         val isFragment =
             paymentSessionReactLauncher.presentSheet(sessionConfig, configuration)
@@ -64,7 +61,6 @@ class DefaultPaymentSessionLauncher(
         subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?,
         resultCallback: (PaymentResult) -> Unit
     ) {
-        isPresented = true
         applySubscription(subscribe)
         val isFragment = paymentSessionReactLauncher.presentSheet(configurationMap)
         PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
@@ -74,8 +70,7 @@ class DefaultPaymentSessionLauncher(
         configuration: SavedPaymentMethodsConfiguration?,
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
     ) {
-        isPresented = false
-        GetPaymentSessionCallBackManager.setCallback(sessionConfig?.sdkAuthorization, savedPaymentMethodCallback)
+        ReactNativeController.sessionRouter.setSessionCallback(sessionConfig?.sdkAuthorization, savedPaymentMethodCallback)
         paymentSessionReactLauncher.recreateReactContext(configuration)
     }
 
@@ -89,19 +84,13 @@ class DefaultPaymentSessionLauncher(
         configuration: SavedPaymentMethodsConfiguration?,
     ): PaymentSessionHandler =
         suspendCancellableCoroutine { continuation ->
-            isPresented = false
-            GetPaymentSessionCallBackManager.setCallback(sessionConfig?.sdkAuthorization) { handler ->
+            ReactNativeController.sessionRouter.setSessionCallback(sessionConfig?.sdkAuthorization) { handler ->
                 if (continuation.isActive) continuation.resume(handler)
             }
             continuation.invokeOnCancellation {
-                GetPaymentSessionCallBackManager.setCallback(sessionConfig?.sdkAuthorization, null)
+                ReactNativeController.sessionRouter.setSessionCallback(sessionConfig?.sdkAuthorization, null)
             }
             paymentSessionReactLauncher.recreateReactContext(configuration)
         }
 
-
-    companion object {
-        var isPresented: Boolean = false
-        var sessionConfig: PaymentSessionConfiguration? = null
-    }
 }
