@@ -24,21 +24,24 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 
 class Elements internal constructor(
-    activity: Activity,
-    config: HyperswitchBaseConfiguration?,
-    sessionConfiguration: PaymentSessionConfiguration
+    private val paymentSession: PaymentSession
 ) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-    // Fix 1: thread-safe list
     private val hsElements: CopyOnWriteArrayList<HyperswitchBoundElement> = CopyOnWriteArrayList()
 
-    private val paymentSession = PaymentSession(
-        activity,
-        config = config,
-        sessionConfig = sessionConfiguration
-    ).also { it.initPaymentSession(sessionConfiguration) }
+    internal companion object {
+        internal suspend fun create(
+            activity: Activity,
+            config: HyperswitchBaseConfiguration?,
+            sessionConfiguration: PaymentSessionConfiguration
+        ): Elements {
+            val ps = PaymentSession(activity, config, sessionConfiguration)
+            ps.initPaymentSession(sessionConfiguration)
+            return Elements(ps)
+        }
+    }
 
     fun bind(
         element: HyperswitchElement,
@@ -95,7 +98,21 @@ class Elements internal constructor(
         targets: List<HyperswitchBoundElement>,
         completion: suspend () -> PaymentSessionConfiguration
     ): ElementsUpdateResult {
-        if (targets.isEmpty()) return ElementsUpdateResult.Success
+        if (targets.isEmpty()) {
+            val newSdkAuthorization = runCatching { completion().sdkAuthorization }
+                .getOrElse { return ElementsUpdateResult.TotalFailure(it) }
+            if (newSdkAuthorization.isEmpty()) {
+                return ElementsUpdateResult.TotalFailure(
+                    IllegalArgumentException("sdkAuthorization must not be empty")
+                )
+            }
+            val prefetchedApiData = paymentSession.prepareIntentUpdate(newSdkAuthorization).getOrElse {
+                paymentSession.clearUnappliedPrefetch(newSdkAuthorization)
+                return ElementsUpdateResult.TotalFailure(it)
+            }
+            paymentSession.commitIntentUpdate(newSdkAuthorization, prefetchedApiData)
+            return ElementsUpdateResult.Success
+        }
         val initResults: List<Pair<HyperswitchBoundElement, Result<Unit>>> = coroutineScope {
             targets.map { hsElement ->
                 async {
@@ -127,11 +144,22 @@ class Elements internal constructor(
             ""
         }
 
+        // Fetch once for the Elements session. Every bound widget receives this same payload;
+        // none of them should independently repeat the intent API calls.
+        val prefetchedApiData = if (sdkAuthorization.isNotEmpty()) {
+            paymentSession.prepareIntentUpdate(sdkAuthorization).getOrNull()
+        } else {
+            null
+        }
+
         val completeResults: List<Pair<HyperswitchBoundElement, ElementUpdateIntentResult>> =
             coroutineScope {
                 initSucceeded.map { hsElement ->
                     async {
-                        hsElement to hsElement.updateIntentComplete(sdkAuthorization)
+                        hsElement to hsElement.updateIntentComplete(
+                            sdkAuthorization,
+                            prefetchedApiData,
+                        )
                     }
                 }.awaitAll()
             }
@@ -159,9 +187,20 @@ class Elements internal constructor(
             }
         }
 
-        if(sdkAuthorization.isNotEmpty()) {
-            paymentSession.updateSdkAuthorization(sdkAuthorization)
+        if (succeeded.isNotEmpty() && prefetchedApiData != null) {
+            paymentSession.commitIntentUpdate(sdkAuthorization, prefetchedApiData)
+        } else if (sdkAuthorization.isNotEmpty()) {
+            paymentSession.clearUnappliedPrefetch(sdkAuthorization)
         }
+
+        if (prefetchedApiData == null) {
+            return ElementsUpdateResult.TotalFailure(
+                cause = IllegalStateException("Unable to load the updated payment intent").apply {
+                    initCause(Throwable("PREFETCH_FAILED"))
+                }
+            )
+        }
+
         return when {
             failed.isEmpty() -> ElementsUpdateResult.Success
             succeeded.isEmpty() -> ElementsUpdateResult.TotalFailure(

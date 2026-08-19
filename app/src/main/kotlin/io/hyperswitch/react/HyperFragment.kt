@@ -20,8 +20,8 @@ import com.proyecto26.inappbrowser.ChromeTabsManagerActivity
 import io.hyperswitch.PaymentEvent
 import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.ElementUpdateIntentResult
-import io.hyperswitch.paymentsession.ExitHeadlessCallBackManager
 import io.hyperswitch.paymentsheet.PaymentResult
+import io.hyperswitch.paymentsession.SavedMethodConfirmationRegistry
 import io.hyperswitch.redirect.RedirectEvent
 import io.hyperswitch.utils.ConversionUtils
 import org.greenrobot.eventbus.EventBus
@@ -107,6 +107,7 @@ class HyperFragment : ReactFragment() {
 
     fun updatePaymentIntentComplete(
         sdkAuthorization: String,
+        prefetchedApiData: ReadableMap?,
         callback: ((ElementUpdateIntentResult) -> Unit)
     ) {
         val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
@@ -137,6 +138,12 @@ class HyperFragment : ReactFragment() {
             ?.emit("updateIntentComplete", Arguments.createMap().apply {
                 putString("sdkAuthorization", sdkAuthorization)
                 putInt("rootTag", rootTag)
+                prefetchedApiData?.let { data ->
+                    putMap(
+                        "prefetchedApiData",
+                        Arguments.createMap().apply { merge(data) },
+                    )
+                }
             })
     }
 
@@ -311,8 +318,10 @@ class HyperFragment : ReactFragment() {
             return
         }
 
-        // Try to register callback for this specific widget - fails if already in progress
-        val registered = ExitHeadlessCallBackManager.tryRegisterCallback(rootTag, callback)
+        val registered = SavedMethodConfirmationRegistry.tryRegister(
+            sdkAuthorization = sdkAuthorization,
+            callback = callback,
+        )
         if (!registered) {
             val paymentResult = PaymentResult.Failed(
                 Throwable("CVC payment already in progress for this widget").apply {
@@ -329,9 +338,15 @@ class HyperFragment : ReactFragment() {
         map.putString("sdkAuthorization", sdkAuthorization)
         map.putString("paymentToken", paymentToken)
         billing?.let { map.putString("billing", it) }
-        reactNativeHost.reactInstanceManager.currentReactContext
-            ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            ?.emit("triggerWidgetAction", map)
+        val reactContext = reactNativeHost.reactInstanceManager.currentReactContext
+        if (reactContext == null) {
+            SavedMethodConfirmationRegistry.remove(sdkAuthorization)
+            callback.invoke(PaymentResult.Failed(Throwable("React context is not available")))
+            return
+        }
+        reactContext
+            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+            .emit("triggerWidgetAction", map)
     }
 
 

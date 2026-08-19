@@ -1,5 +1,6 @@
 package io.hyperswitch.sdk
 
+import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.paymentsheet.PaymentRequestData
@@ -17,7 +18,6 @@ class HyperswitchBoundElement internal constructor(
     configuration: PaymentSheet.Configuration? = null,
     subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null
 ) {
-
     /** Secondary constructor accepting a raw configurationMap (mirrors the presentPaymentSheet overload). */
     internal constructor(
         paymentSession: PaymentSession,
@@ -56,11 +56,17 @@ class HyperswitchBoundElement internal constructor(
     }
 
     fun onPaymentResult(listener: PaymentResultListener) {
-        element.onPaymentResult(listener)
+        element.onPaymentResult(PaymentResultListener { result ->
+            paymentSession.handlePaymentResult(result)
+            listener.onPaymentResult(result)
+        })
     }
 
     fun onPaymentResult(onResult: (PaymentResult) -> Unit) {
-        element.onPaymentResult(onResult)
+        element.onPaymentResult { result ->
+            paymentSession.handlePaymentResult(result)
+            onResult(result)
+        }
     }
 
     fun onPaymentConfirmButtonClick(
@@ -74,12 +80,18 @@ class HyperswitchBoundElement internal constructor(
     @JvmSynthetic
     suspend fun confirmPayment(): PaymentResult {
         return suspendCancellableCoroutine { continuation ->
-            element.confirmPayment({it -> continuation.resume(it)})
+            element.confirmPayment { result ->
+                paymentSession.handlePaymentResult(result)
+                continuation.resume(result)
+            }
         }
     }
 
     fun confirmPayment(onResult: (PaymentResult) -> Unit) {
-        element.confirmPayment(onResult)
+        element.confirmPayment { result ->
+            paymentSession.handlePaymentResult(result)
+            onResult(result)
+        }
     }
 
     fun updateIntentInit(onInitComplete: () -> Unit) {
@@ -87,8 +99,11 @@ class HyperswitchBoundElement internal constructor(
     }
 
     @JvmSynthetic
-    suspend fun updateIntentComplete(sdkAuthorization: String): ElementUpdateIntentResult {
-        return element.updateIntentComplete(sdkAuthorization)
+    suspend fun updateIntentComplete(
+        sdkAuthorization: String,
+        prefetchedApiData: ReadableMap?,
+    ): ElementUpdateIntentResult {
+        return element.updateIntentComplete(sdkAuthorization, prefetchedApiData)
     }
 
     fun destroy() {

@@ -14,6 +14,7 @@ abstract class BasePaymentSessionLauncher(
     protected val hsConfig: HyperswitchBaseConfiguration?,
 ) : PaymentSessionLauncher {
 
+    @Volatile
     protected var sessionConfig: PaymentSessionConfiguration? = null
 
     init {
@@ -24,7 +25,7 @@ abstract class BasePaymentSessionLauncher(
         )
     }
 
-    override fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
+    override suspend fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
         this.sessionConfig = sessionConfig
     }
 

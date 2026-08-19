@@ -62,7 +62,6 @@ class PaymentWidgetView : FrameLayout {
     private lateinit var mContext: Context
     private var sdkAuthorization: String = ""
     private var hsConfig: HyperswitchBaseConfiguration? = null
-    private var prefetchTriggered: Boolean = false
     private var prefetchedData: ReadableMap? = null
 
     private var resultListener: PaymentResultListener? = null
@@ -254,11 +253,8 @@ class PaymentWidgetView : FrameLayout {
         val propsBundle = bundle.getBundle("props")
         if (propsBundle != null) {
             val data = prefetchedData
-            when {
-                !prefetchTriggered -> {}
-                data != null ->
-                    propsBundle.putBundle("prefetchedApiData", launchOptions.toBundle(data.toHashMap()))
-                else -> propsBundle.putBundle("prefetchedApiData", android.os.Bundle())
+            if (data != null) {
+                propsBundle.putBundle("prefetchedApiData", launchOptions.toBundle(data.toHashMap()))
             }
         }
         return bundle
@@ -279,13 +275,22 @@ class PaymentWidgetView : FrameLayout {
 
     fun updatePaymentIntentComplete(
         sdkAuthorization: String,
+        prefetchedApiData: ReadableMap?,
         callback: (ElementUpdateIntentResult) -> Unit
     ) {
         if (isEligibleForUpdateIntent()) {
-            sdkAuthorization?.takeIf { it.isNotEmpty() }?.let {
-                this.sdkAuthorization = it
+            this.fragment?.updatePaymentIntentComplete(
+                sdkAuthorization,
+                prefetchedApiData,
+            ) { result ->
+                if (result is ElementUpdateIntentResult.Success) {
+                    sdkAuthorization.takeIf { it.isNotEmpty() }?.let {
+                        this.sdkAuthorization = it
+                    }
+                    setPrefetchedApiData(prefetchedApiData)
+                }
+                callback(result)
             }
-            this.fragment?.updatePaymentIntentComplete(sdkAuthorization, callback)
                 ?: callback(
                     ElementUpdateIntentResult.Failure(
                         Throwable("Fragment not attached").apply {
@@ -337,9 +342,8 @@ class PaymentWidgetView : FrameLayout {
         }
     }
 
-    fun setPrefetchedApiData(prefetch: Pair<Boolean, ReadableMap?>) {
-        prefetchTriggered = prefetch.first
-        prefetchedData = prefetch.second
+    fun setPrefetchedApiData(prefetchedApiData: ReadableMap?) {
+        prefetchedData = prefetchedApiData
     }
 
     fun showWidgetInternal() {

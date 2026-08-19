@@ -46,13 +46,16 @@ class HyperswitchInstance internal constructor(
     @JvmSynthetic
     suspend fun elements(config: PaymentSessionConfiguration): Elements {
         val hsConfig = initDeferred.await()
-        return Elements(activity, hsConfig, config)
+        return Elements.create(activity, hsConfig, config)
     }
 
     fun elements(config: PaymentSessionConfiguration, onResult: (Elements) -> Unit) {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             val hsConfig = initDeferred.await()
-            withContext(Dispatchers.Main) { onResult(Elements(activity, hsConfig, config)) }
+            // Create off the main thread — Elements.create runs the prefetch and the React
+            // Native bootstrap; only the callback belongs on Main.
+            val elements = Elements.create(activity, hsConfig, config)
+            withContext(Dispatchers.Main) { onResult(elements) }
         }
     }
 }

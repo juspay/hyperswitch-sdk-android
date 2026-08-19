@@ -8,54 +8,60 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.module.annotations.ReactModule
-import com.facebook.react.modules.core.DeviceEventManagerModule
-import io.hyperswitch.paymentsession.ExitHeadlessCallBackManager
-import io.hyperswitch.paymentsession.GetPaymentSessionCallBackManager
 import io.hyperswitch.paymentsession.PaymentSessionHandlerImpl
+import io.hyperswitch.paymentsession.SavedMethodConfirmationRegistry
+import io.hyperswitch.paymentsession.SavedMethodsRequestRegistry
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CompletableDeferred
 
 @ReactModule(name = "HyperHeadless")
-class HyperHeadlessModule internal constructor(private val rct: ReactApplicationContext) :
+class HyperHeadlessModule internal constructor(rct: ReactApplicationContext) :
     ReactContextBaseJavaModule(rct) {
-
-    // Transient routing table: sdkAuthorization → callback that stores data on the launcher instance.
-    // Entries are added before a prefetch task starts and removed immediately after firing.
-    val pendingCallbacks = ConcurrentHashMap<String, (ReadableMap) -> Unit>()
 
     override fun getName(): String = "HyperHeadless"
 
     @ReactMethod
     fun getPaymentSession(
-        rootTag: Int,
+        sdkAuthorization: String,
         getPaymentMethodData: ReadableMap,
         getPaymentMethodData2: ReadableMap,
         getPaymentMethodDataArray: ReadableArray,
         callback: Callback
     ) {
+        val request = SavedMethodsRequestRegistry.take(sdkAuthorization) ?: return
+        if (!request.isCurrent(sdkAuthorization)) {
+            request.callback(PaymentSessionHandlerImpl.stale())
+            return
+        }
         val handler = PaymentSessionHandlerImpl(
-            sdkAuthorization = GetPaymentSessionCallBackManager.getSdkAuthorization(),
+            sdkAuthorization = sdkAuthorization,
+            currentSdkAuthorization = request.currentSdkAuthorization,
             defaultMethodData = getPaymentMethodData,
             lastUsedMethodData = getPaymentMethodData2,
             allMethodsData = getPaymentMethodDataArray,
             jsCallback = callback,
+            onTerminalResult = request.onTerminalResult,
         )
-        GetPaymentSessionCallBackManager.executeCallback(handler)
+        request.callback(handler)
     }
 
     @ReactMethod
-    fun exitHeadless(rootTag: Int, status: String) {
-        ExitHeadlessCallBackManager.executeCallback(rootTag, status)
+    fun exitHeadless(sdkAuthorization: String, status: String) {
+        SavedMethodConfirmationRegistry.complete(sdkAuthorization, status)
     }
 
+    /** Receives the completed prefetch for one payment and resumes its awaiting launcher. */
     @ReactMethod
-    fun storePrefetchedApiData(rootTag: Int, data: ReadableMap) {
-        val sdkAuth = data.getString("sdkAuthorization")
-        if (sdkAuth != null) {
-            pendingCallbacks.remove(sdkAuth)?.invoke(data)
-        }
-        val writableData = Arguments.createMap()
-        writableData.merge(data)
-        rct.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            .emit("prefetchApiDataReady", writableData)
+    fun storePrefetchedApiData(data: ReadableMap) {
+        val sdkAuthorization = data.getString("sdkAuthorization") ?: return
+        // The launcher holds this until the sheet is presented, long after the bridge call
+        // returns, so hand over an owned copy rather than the JS-backed map.
+        val payload = Arguments.createMap().apply { merge(data) }
+        inFlightPrefetches.remove(sdkAuthorization)?.complete(payload)
+    }
+
+    companion object {
+        internal val inFlightPrefetches =
+            ConcurrentHashMap<String, CompletableDeferred<ReadableMap>>()
     }
 }

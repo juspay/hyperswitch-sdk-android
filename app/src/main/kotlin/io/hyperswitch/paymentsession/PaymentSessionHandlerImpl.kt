@@ -13,22 +13,59 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.concurrent.atomic.AtomicBoolean
 
 internal class PaymentSessionHandlerImpl(
-    private var sdkAuthorization: String,
+    private val sdkAuthorization: String,
+    private val currentSdkAuthorization: () -> String,
     private val defaultMethodData: ReadableMap,
     private val lastUsedMethodData: ReadableMap,
     private val allMethodsData: ReadableArray,
     private val jsCallback: Callback,
+    private val onTerminalResult: (String, PaymentResult) -> Unit,
+    private val initializationError: Throwable? = null,
 ) : PaymentSessionHandler {
 
-    override fun getCustomerDefaultSavedPaymentMethodData(): Result<PaymentMethod> =
-        parsePaymentMethod(defaultMethodData)
+    private val confirmationStarted = AtomicBoolean(false)
 
-    override fun getCustomerLastUsedPaymentMethodData(): Result<PaymentMethod> =
-        parsePaymentMethod(lastUsedMethodData)
+    internal companion object {
+        fun failed(error: Throwable): PaymentSessionHandlerImpl {
+            val errorMap = Arguments.createMap().apply {
+                putString("code", error.cause?.message ?: "UNKNOWN_ERROR")
+                putString("message", error.message ?: "Unable to load saved payment methods")
+            }
+            return PaymentSessionHandlerImpl(
+                sdkAuthorization = "",
+                currentSdkAuthorization = { "" },
+                defaultMethodData = errorMap,
+                lastUsedMethodData = errorMap,
+                allMethodsData = Arguments.createArray(),
+                jsCallback = Callback {},
+                onTerminalResult = { _, _ -> },
+                initializationError = error,
+            )
+        }
+
+        fun stale(): PaymentSessionHandlerImpl = failed(staleHandlerError())
+
+        private fun staleHandlerError(): Throwable =
+            Throwable("Saved payment methods handler belongs to the previous payment intent").apply {
+                initCause(Throwable("STALE_PAYMENT_SESSION_HANDLER"))
+            }
+    }
+
+    override fun getCustomerDefaultSavedPaymentMethodData(): Result<PaymentMethod> {
+        initializationError?.let { return Result.failure(it) }
+        return parsePaymentMethod(defaultMethodData)
+    }
+
+    override fun getCustomerLastUsedPaymentMethodData(): Result<PaymentMethod> {
+        initializationError?.let { return Result.failure(it) }
+        return parsePaymentMethod(lastUsedMethodData)
+    }
 
     override fun getCustomerSavedPaymentMethodData(): Result<List<PaymentMethod>> {
+        initializationError?.let { return Result.failure(it) }
         val list = mutableListOf<PaymentMethod>()
         for (i in 0 until allMethodsData.size()) {
             allMethodsData.getMap(i)?.let { map ->
@@ -41,32 +78,60 @@ internal class PaymentSessionHandlerImpl(
     override fun confirmWithCustomerDefaultPaymentMethod(
         cvc: String?, resultHandler: (PaymentResult) -> Unit
     ) {
-        defaultMethodData.getString("payment_token")
-            ?.let { confirmWithCustomerPaymentToken(it, cvc, resultHandler) }
+        initializationError?.let { error ->
+            resultHandler(PaymentResult.Failed(error))
+            return
+        }
+        val paymentToken = defaultMethodData.getString("payment_token")
+        if (paymentToken == null) {
+            deliverDirectFailure("Saved payment method has no payment token", resultHandler)
+        } else {
+            confirmWithCustomerPaymentToken(paymentToken, cvc, resultHandler)
+        }
     }
 
     override fun confirmWithCustomerLastUsedPaymentMethod(
         cvc: String?, resultHandler: (PaymentResult) -> Unit
     ) {
-        lastUsedMethodData.getString("payment_token")
-            ?.let { confirmWithCustomerPaymentToken(it, cvc, resultHandler) }
-    }
-
-    override fun updateSdkAuthorization(sdkAuthorization: String){
-        this.sdkAuthorization = sdkAuthorization
+        initializationError?.let { error ->
+            resultHandler(PaymentResult.Failed(error))
+            return
+        }
+        val paymentToken = lastUsedMethodData.getString("payment_token")
+        if (paymentToken == null) {
+            deliverDirectFailure("Saved payment method has no payment token", resultHandler)
+        } else {
+            confirmWithCustomerPaymentToken(paymentToken, cvc, resultHandler)
+        }
     }
 
     override fun confirmWithCustomerPaymentToken(
         paymentToken: String, cvc: String?, resultHandler: (PaymentResult) -> Unit
     ) {
+        initializationError?.let { error ->
+            resultHandler(PaymentResult.Failed(error))
+            return
+        }
+        staleHandlerResult()?.let { result ->
+            onTerminalResult(sdkAuthorization, result)
+            resultHandler(result)
+            return
+        }
+        if (!confirmationStarted.compareAndSet(false, true)) {
+            resultHandler(alreadyInProgressResult())
+            return
+        }
         try {
-            val registered = ExitHeadlessCallBackManager.tryRegisterCallback(-1, resultHandler)
+            val terminalCallback = { result: PaymentResult ->
+                onTerminalResult(sdkAuthorization, result)
+                resultHandler(result)
+            }
+            val registered = SavedMethodConfirmationRegistry.tryRegister(
+                sdkAuthorization = sdkAuthorization,
+                callback = terminalCallback,
+            )
             if (!registered) {
-                resultHandler(PaymentResult.Failed(
-                    Throwable("Payment confirmation already in progress for this handler").apply {
-                        initCause(Throwable("ALREADY_IN_PROGRESS"))
-                    }
-                ))
+                resultHandler(alreadyInProgressResult())
                 return
             }
             jsCallback.invoke(Arguments.createMap().apply {
@@ -74,33 +139,59 @@ internal class PaymentSessionHandlerImpl(
                 putString("cvc", cvc)
             })
         } catch (ex: Exception) {
-            ExitHeadlessCallBackManager.clearCallback(-1)
-            resultHandler(PaymentResult.Failed(Throwable("Not Initialised").apply {
+            SavedMethodConfirmationRegistry.remove(sdkAuthorization)
+            val result = PaymentResult.Failed(Throwable("Not Initialised").apply {
                 initCause(Throwable("Not Initialised"))
-            }))
+            })
+            onTerminalResult(sdkAuthorization, result)
+            resultHandler(result)
         }
     }
 
     // ── CVCWidget suspend overloads ───────────────────────────────────────────
 
     override suspend fun confirmWithCustomerLastUsedPaymentMethod(cvcWidget: View): PaymentResult {
-        val method = getCustomerLastUsedPaymentMethodData()
-            .getOrElse { return PaymentResult.Failed(it) }
-        (cvcWidget as? CVCWidget)?.let {
-            it.setSdkAuthorization(sdkAuthorization)
-            return it.confirmCVCWidget(sdkAuthorization, method.paymentToken, method.billing)
+        initializationError?.let { return PaymentResult.Failed(it) }
+        staleHandlerResult()?.let { result ->
+            onTerminalResult(sdkAuthorization, result)
+            return result
         }
-        return PaymentResult.Failed(Throwable("View can't be cast as CVCWidget"))
+        if (!confirmationStarted.compareAndSet(false, true)) {
+            return alreadyInProgressResult()
+        }
+        val method = getCustomerLastUsedPaymentMethodData().getOrElse {
+            return PaymentResult.Failed(it).also {
+                onTerminalResult(sdkAuthorization, it)
+            }
+        }
+        val result = (cvcWidget as? CVCWidget)?.let {
+            it.setSdkAuthorization(sdkAuthorization)
+            it.confirmCVCWidget(sdkAuthorization, method.paymentToken, method.billing)
+        } ?: PaymentResult.Failed(Throwable("View can't be cast as CVCWidget"))
+        onTerminalResult(sdkAuthorization, result)
+        return result
     }
 
     override suspend fun confirmWithCustomerDefaultPaymentMethod(cvcWidget: View): PaymentResult {
-        val method = getCustomerDefaultSavedPaymentMethodData()
-            .getOrElse { return PaymentResult.Failed(it) }
-        (cvcWidget as? CVCWidget)?.let {
-            it.setSdkAuthorization(sdkAuthorization)
-            return it.confirmCVCWidget(sdkAuthorization, method.paymentToken, method.billing)
+        initializationError?.let { return PaymentResult.Failed(it) }
+        staleHandlerResult()?.let { result ->
+            onTerminalResult(sdkAuthorization, result)
+            return result
         }
-        return PaymentResult.Failed(Throwable("View can't be cast as CVCWidget"))
+        if (!confirmationStarted.compareAndSet(false, true)) {
+            return alreadyInProgressResult()
+        }
+        val method = getCustomerDefaultSavedPaymentMethodData().getOrElse {
+            return PaymentResult.Failed(it).also {
+                onTerminalResult(sdkAuthorization, it)
+            }
+        }
+        val result = (cvcWidget as? CVCWidget)?.let {
+            it.setSdkAuthorization(sdkAuthorization)
+            it.confirmCVCWidget(sdkAuthorization, method.paymentToken, method.billing)
+        } ?: PaymentResult.Failed(Throwable("View can't be cast as CVCWidget"))
+        onTerminalResult(sdkAuthorization, result)
+        return result
     }
 
     // ── CVCWidget callback overloads (Java-friendly, no Continuation needed) ─
@@ -120,6 +211,44 @@ internal class PaymentSessionHandlerImpl(
             resultHandler(confirmWithCustomerDefaultPaymentMethod(cvcWidget))
         }
     }
+
+    private fun deliverDirectFailure(
+        message: String,
+        resultHandler: (PaymentResult) -> Unit,
+    ) {
+        staleHandlerResult()?.let { result ->
+            onTerminalResult(sdkAuthorization, result)
+            resultHandler(result)
+            return
+        }
+        if (!confirmationStarted.compareAndSet(false, true)) {
+            resultHandler(alreadyInProgressResult())
+            return
+        }
+        val result = PaymentResult.Failed(Throwable(message).apply {
+            initCause(Throwable("MISSING_PAYMENT_TOKEN"))
+        })
+        onTerminalResult(sdkAuthorization, result)
+        resultHandler(result)
+    }
+
+    private fun staleHandlerResult(): PaymentResult.Failed? =
+        if (currentSdkAuthorization() == sdkAuthorization) {
+            null
+        } else {
+            PaymentResult.Failed(
+                Throwable("Saved payment methods handler belongs to the previous payment intent").apply {
+                    initCause(Throwable("STALE_PAYMENT_SESSION_HANDLER"))
+                }
+            )
+        }
+
+    private fun alreadyInProgressResult(): PaymentResult =
+        PaymentResult.Failed(
+            Throwable("Payment confirmation already in progress for this handler").apply {
+                initCause(Throwable("ALREADY_IN_PROGRESS"))
+            }
+        )
 
     // ── Parsing ──────────────────────────────────────────────────────────────
 

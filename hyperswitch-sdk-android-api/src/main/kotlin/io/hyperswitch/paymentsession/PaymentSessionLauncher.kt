@@ -6,7 +6,7 @@ import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
 
 interface PaymentSessionLauncher {
-    fun initPaymentSession(sessionConfig: PaymentSessionConfiguration)
+    suspend fun initPaymentSession(sessionConfig: PaymentSessionConfiguration)
     fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration?, subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?, resultCallback: (PaymentResult) -> Unit
     )

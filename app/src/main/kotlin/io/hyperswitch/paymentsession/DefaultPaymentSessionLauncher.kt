@@ -12,12 +12,14 @@ import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.react.HyperEventEmitter
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 class DefaultPaymentSessionLauncher(
     activity: Activity,
     hsConfig: HyperswitchBaseConfiguration?,
-    private var paymentSessionReactLauncher: SDKInterface = PaymentSessionReactLauncher(activity, hsConfig)
+    private val paymentSessionReactLauncher: PaymentSessionReactLauncher =
+        PaymentSessionReactLauncher(activity, hsConfig)
 ) : BasePaymentSessionLauncher(activity, hsConfig) {
 
     init {
@@ -33,19 +35,40 @@ class DefaultPaymentSessionLauncher(
         paymentSessionReactLauncher.initializeReactNativeInstance()
     }
 
-    override fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
+    /**
+     * Initializes the session and fetches everything the sheet and headless flows need. Callers
+     * await this before presenting anything; a failure only means the flows fall back to fetching
+     * for themselves.
+     */
+    override suspend fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
         super.initPaymentSession(sessionConfig)
-        val launcher = paymentSessionReactLauncher as PaymentSessionReactLauncher
-        launcher.sessionConfig = sessionConfig
-        launcher.isPrefetchTriggered = true
-        launcher.prefetchedData = null
-        paymentSessionReactLauncher.recreateReactContext(null, headlessType = "prefetch")
+        val data = paymentSessionReactLauncher
+            .fetchPrefetch(sessionConfig)
+            .getOrNull()
+        paymentSessionReactLauncher.commitPrefetch(sessionConfig, data)
     }
 
-    fun getPrefetchedApiData(): Pair<Boolean, ReadableMap?> {
-        val launcher = paymentSessionReactLauncher as PaymentSessionReactLauncher
-        return Pair(launcher.isPrefetchTriggered, launcher.prefetchedData)
+    /** Fetches the new intent's data without changing the active session. */
+    suspend fun prepareIntentUpdate(
+        sessionConfig: PaymentSessionConfiguration,
+    ): Result<ReadableMap> = paymentSessionReactLauncher.fetchPrefetch(
+        sessionConfig,
+        headlessType = "updateIntent",
+    )
+
+    fun commitIntentUpdate(
+        sessionConfig: PaymentSessionConfiguration,
+        prefetchedData: ReadableMap,
+    ) {
+        this.sessionConfig = sessionConfig
+        paymentSessionReactLauncher.commitPrefetch(sessionConfig, prefetchedData)
     }
+
+    fun clearPrefetch(sdkAuthorization: String) {
+        paymentSessionReactLauncher.clearPrefetch(sdkAuthorization)
+    }
+
+    fun getPrefetchedApiData(): ReadableMap? = paymentSessionReactLauncher.prefetchedData
 
     private fun applySubscription(subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?) {
         subscribe ?: return
@@ -64,7 +87,11 @@ class DefaultPaymentSessionLauncher(
         applySubscription(subscribe)
         val isFragment =
             paymentSessionReactLauncher.presentSheet(sessionConfig, configuration)
-        PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
+        val authorization = sessionConfig?.sdkAuthorization.orEmpty()
+        PaymentSheetCallbackManager.setCallback({ result ->
+            clearAfterTerminalResult(authorization, result)
+            resultCallback(result)
+        }, isFragment)
     }
 
     override fun presentPaymentSheet(
@@ -75,7 +102,11 @@ class DefaultPaymentSessionLauncher(
         isPresented = true
         applySubscription(subscribe)
         val isFragment = paymentSessionReactLauncher.presentSheet(configurationMap)
-        PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
+        val authorization = sessionConfig?.sdkAuthorization.orEmpty()
+        PaymentSheetCallbackManager.setCallback({ result ->
+            clearAfterTerminalResult(authorization, result)
+            resultCallback(result)
+        }, isFragment)
     }
 
     override fun getCustomerSavedPaymentMethods(
@@ -83,8 +114,37 @@ class DefaultPaymentSessionLauncher(
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
     ) {
         isPresented = false
-        GetPaymentSessionCallBackManager.setCallback(sessionConfig?.sdkAuthorization, savedPaymentMethodCallback)
-        paymentSessionReactLauncher.recreateReactContext(configuration)
+        val authorization = sessionConfig?.sdkAuthorization.orEmpty()
+        val request = PendingSavedMethodsRequest(
+            callback = savedPaymentMethodCallback,
+            onTerminalResult = { resultAuthorization, result ->
+                clearAfterTerminalResult(resultAuthorization, result)
+            },
+            currentSdkAuthorization = { sessionConfig?.sdkAuthorization.orEmpty() },
+        )
+        if (!SavedMethodsRequestRegistry.tryRegister(
+                authorization,
+                request,
+                SAVED_METHODS_TIMEOUT_MS,
+                onTimeout = {
+                    savedPaymentMethodCallback(
+                        PaymentSessionHandlerImpl.failed(savedMethodsTimeoutError())
+                    )
+                },
+            )
+        ) {
+            savedPaymentMethodCallback(
+                PaymentSessionHandlerImpl.failed(alreadyInProgressError())
+            )
+            return
+        }
+        try {
+            paymentSessionReactLauncher.startHeadlessTask(configuration)
+        } catch (error: Throwable) {
+            if (SavedMethodsRequestRegistry.remove(authorization, request)) {
+                savedPaymentMethodCallback(PaymentSessionHandlerImpl.failed(error))
+            }
+        }
     }
 
     override fun getCustomerSavedPaymentMethods(
@@ -98,17 +158,67 @@ class DefaultPaymentSessionLauncher(
     ): PaymentSessionHandler =
         suspendCancellableCoroutine { continuation ->
             isPresented = false
-            GetPaymentSessionCallBackManager.setCallback(sessionConfig?.sdkAuthorization) { handler ->
-                if (continuation.isActive) continuation.resume(handler)
+            val authorization = sessionConfig?.sdkAuthorization.orEmpty()
+            val request = PendingSavedMethodsRequest(
+                callback = { handler ->
+                    if (continuation.isActive) continuation.resume(handler)
+                },
+                onTerminalResult = { resultAuthorization, result ->
+                    clearAfterTerminalResult(resultAuthorization, result)
+                },
+                currentSdkAuthorization = { sessionConfig?.sdkAuthorization.orEmpty() },
+            )
+            if (!SavedMethodsRequestRegistry.tryRegister(
+                    authorization,
+                    request,
+                    SAVED_METHODS_TIMEOUT_MS,
+                    onTimeout = {
+                        if (continuation.isActive) {
+                            continuation.resumeWithException(savedMethodsTimeoutError())
+                        }
+                    },
+                )
+            ) {
+                continuation.resumeWithException(alreadyInProgressError())
+                return@suspendCancellableCoroutine
             }
             continuation.invokeOnCancellation {
-                GetPaymentSessionCallBackManager.setCallback(sessionConfig?.sdkAuthorization, null)
+                SavedMethodsRequestRegistry.remove(authorization, request)
             }
-            paymentSessionReactLauncher.recreateReactContext(configuration)
+            try {
+                paymentSessionReactLauncher.startHeadlessTask(configuration)
+            } catch (error: Throwable) {
+                if (
+                    SavedMethodsRequestRegistry.remove(authorization, request) &&
+                    continuation.isActive
+                ) {
+                    continuation.resumeWithException(error)
+                }
+            }
         }
 
 
     companion object {
         var isPresented: Boolean = false
+        private const val SAVED_METHODS_TIMEOUT_MS = 30_000L
+    }
+
+    private fun alreadyInProgressError(): IllegalStateException =
+        IllegalStateException("Saved payment methods request already in progress").apply {
+            initCause(Throwable("ALREADY_IN_PROGRESS"))
+        }
+
+    private fun savedMethodsTimeoutError(): IllegalStateException =
+        IllegalStateException("Saved payment methods request timed out").apply {
+            initCause(Throwable("HEADLESS_TIMEOUT"))
+        }
+
+    internal fun clearAfterTerminalResult(
+        sdkAuthorization: String,
+        result: PaymentResult,
+    ) {
+        if (result !is PaymentResult.Canceled) {
+            clearPrefetch(sdkAuthorization)
+        }
     }
 }
