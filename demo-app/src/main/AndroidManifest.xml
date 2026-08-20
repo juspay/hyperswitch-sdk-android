@@ -27,6 +27,13 @@
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             >
     </activity>
+
+        <!-- POC ONLY — DELETE AFTER DEMO -->
+        <activity android:name=".PocSharedStateActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            >
+    </activity>
     </application>
 
 </manifest>

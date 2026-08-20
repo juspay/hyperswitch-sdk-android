@@ -72,6 +72,11 @@ class MainActivity : AppCompatActivity(), HyperInterface {
         findViewById<View>(R.id.launchWidgetLayout).setOnClickListener {
             startActivity(Intent(this, WidgetActivity::class.java))
         }
+
+        // POC ONLY — DELETE AFTER DEMO
+        findViewById<View>(R.id.launchPocSharedState).setOnClickListener {
+            startActivity(Intent(this, PocSharedStateActivity::class.java))
+        }
     }
 
     // ── Backend calls ──────────────────────────────────────────────────────────────────────────
@@ -95,7 +100,13 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                             config = HyperswitchConfiguration(
                                 publishableKey = publishableKey,
                                 profileId = profileId,
-                            )
+//                                customConfig = CustomEndpointConfiguration(
+//                                    overrideEndpoints = OverrideEndpoints(
+//                                        customBackendEndpoint = "https://integ.hyperswitch.io/api",
+//                                    )
+//                                ),
+                            ),
+
                         )
 
                         lifecycleScope.launch {

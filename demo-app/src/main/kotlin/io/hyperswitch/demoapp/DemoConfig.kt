@@ -139,7 +139,7 @@ fun buildCustomer(): PaymentSheet.CustomerConfiguration = PaymentSheet.CustomerC
 // ── Payment method layout ──────────────────────────────────────────────────────────────────────
 
 fun buildPaymentMethodLayout(): PaymentSheet.PaymentMethodLayout = PaymentSheet.PaymentMethodLayout(
-    type               = PaymentSheet.LayoutType.Tabs,
+    type               = PaymentSheet.LayoutType.Accordion,
     radios             = false,
     maxAccordionItems  = 3,
     spacedAccordionItems = true,
@@ -150,8 +150,9 @@ fun buildPaymentMethodLayout(): PaymentSheet.PaymentMethodLayout = PaymentSheet.
         hideCVCError     = false,
         cvcIcon          = PaymentSheet.Visibility.Auto,
         groupingBehavior = PaymentSheet.GroupingBehavior(
-            displayInSeparateScreen = true,
+            displayInSeparateScreen = false,
             groupByPaymentMethods   = false,
+            displayInSeparateSection = false
         ),
     ),
 )
@@ -182,6 +183,8 @@ fun buildDemoConfiguration(netceteraApiKey: String? = null): PaymentSheet.Config
         .displayDefaultSavedPaymentIcon(true)
         .disableBranding(true)
         .stickyPayButton(true)
+        .displayPayButton(true)
+
         .redirectionInfo(PaymentSheet.Visibility.Auto)
         .paymentMethodOrder(
             listOf("apple_pay", "google_pay", "paypal", "samsung_pay", "credit", "klarna")

@@ -30,4 +30,13 @@
     <string name="launch_payment_sheet">Launch Payment Sheet</string>
     <string name="launch_widget_layout">Launch Widget</string>
     <string name="confirm_with_last_used_pm">Confirm with Last Used PM</string>
+
+    <!-- POC ONLY — DELETE AFTER DEMO -->
+    <string name="btn_launch_poc_shared_state">PoC: Shared JS State</string>
+    <string name="title_poc_shared_state">PoC — JS module state is shared across roots</string>
+    <string name="subtitle_poc_shared_state">Two PaymentElement widgets = two ReactRootViews on ONE JS VM. Tap WRITE in widget B, then READ SHARED in widget A: A displays B\'s value because module state is per-VM, not per-root.</string>
+    <string name="section_poc_widget_a">Widget A</string>
+    <string name="section_poc_widget_b">Widget B</string>
+    <string name="poc_logcat_hint">Evidence is also in logcat: adb logcat -s ReactNativeJS:I</string>
+    <string name="btn_poc_trigger_headless">Trigger Headless (VM check)</string>
 </resources>

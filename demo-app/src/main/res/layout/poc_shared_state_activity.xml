@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/surface_page"
+    android:fitsSystemWindows="true"
+    tools:context=".PocSharedStateActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="48dp"
+        android:paddingBottom="32dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="20dp"
+            android:text="@string/title_poc_shared_state"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginTop="8dp"
+            android:text="@string/subtitle_poc_shared_state"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary" />
+
+        <TextView
+            android:id="@+id/pocStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:minHeight="40dp"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+
+        <!-- ── Widget A ───────────────────────────────────────────────── -->
+        <TextView
+            style="@style/HsSectionLabel"
+            android:text="@string/section_poc_widget_a" />
+
+        <io.hyperswitch.view.PaymentElement
+            android:id="@+id/pocPaymentElementA"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="280dp" />
+
+        <!-- ── Widget B ───────────────────────────────────────────────── -->
+        <TextView
+            style="@style/HsSectionLabel"
+            android:text="@string/section_poc_widget_b" />
+
+        <io.hyperswitch.view.PaymentElement
+            android:id="@+id/pocPaymentElementB"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="280dp" />
+
+        <Button
+            style="@style/HsButtonOutline"
+            android:id="@+id/pocTriggerHeadless"
+            android:layout_marginTop="20dp"
+            android:text="@string/btn_poc_trigger_headless" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginTop="20dp"
+            android:text="@string/poc_logcat_hint"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary" />
+
+    </LinearLayout>
+
+</ScrollView>

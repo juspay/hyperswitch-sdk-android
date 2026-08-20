@@ -103,6 +103,13 @@
             android:layout_marginTop="24dp"
             android:text="@string/btn_launch_widget" />
 
+        <!-- POC ONLY — DELETE AFTER DEMO -->
+        <Button
+            style="@style/HsButtonOutline"
+            android:id="@+id/launchPocSharedState"
+            android:layout_marginTop="12dp"
+            android:text="@string/btn_launch_poc_shared_state" />
+
     </LinearLayout>
 
 </ScrollView>
