@@ -2,7 +2,7 @@ package io.hyperswitch.demoapp
 
 import android.app.Application
 import com.facebook.react.ReactApplication
-import com.facebook.react.ReactNativeHost
+import com.facebook.react.ReactHost
 import io.hyperswitch.react.ReactNativeController
 
 class DemoApplication : Application(), ReactApplication {
@@ -12,6 +12,6 @@ class DemoApplication : Application(), ReactApplication {
         ReactNativeController.initialize(this)
     }
 
-    override val reactNativeHost: ReactNativeHost
-        get() = ReactNativeController.getReactNativeHost()
+    override val reactHost: ReactHost
+        get() = ReactNativeController.getReactHost()
 }

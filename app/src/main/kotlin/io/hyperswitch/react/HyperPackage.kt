@@ -1,16 +1,50 @@
 package io.hyperswitch.react
 
-import com.facebook.react.ReactPackage
+import com.facebook.react.BaseReactPackage
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.module.model.ReactModuleInfo
+import com.facebook.react.module.model.ReactModuleInfoProvider
 import com.facebook.react.uimanager.ViewManager
+import io.hyperswitch.paymentsession.PaymentSessionRouter
 
-class HyperPackage : ReactPackage {
+class HyperPackage(
+    private val eventEmitter: HyperEventEmitter,
+    private val sessionRouter: PaymentSessionRouter,
+) : BaseReactPackage() {
+
+    override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? {
+        return when (name) {
+            io.hyperswitch.react.codegen.NativeHyperModuleSpec.NAME -> HyperModule(reactContext, eventEmitter)
+            io.hyperswitch.react.codegen.NativeHyperHeadlessSpec.NAME -> HyperHeadlessModule(reactContext, sessionRouter)
+            else -> null
+        }
+    }
+
     override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
         return listOf(GooglePayButtonManager())
     }
 
-    override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-        return listOf(HyperModule(reactContext), HyperHeadlessModule(reactContext))
+    override fun getReactModuleInfoProvider(): ReactModuleInfoProvider {
+        return ReactModuleInfoProvider {
+            mapOf(
+                io.hyperswitch.react.codegen.NativeHyperModuleSpec.NAME to ReactModuleInfo(
+                    io.hyperswitch.react.codegen.NativeHyperModuleSpec.NAME,
+                    io.hyperswitch.react.codegen.NativeHyperModuleSpec.NAME,
+                    canOverrideExistingModule = false,
+                    needsEagerInit = false,
+                    isCxxModule = false,
+                    isTurboModule = true,
+                ),
+                io.hyperswitch.react.codegen.NativeHyperHeadlessSpec.NAME to ReactModuleInfo(
+                    io.hyperswitch.react.codegen.NativeHyperHeadlessSpec.NAME,
+                    io.hyperswitch.react.codegen.NativeHyperHeadlessSpec.NAME,
+                    canOverrideExistingModule = false,
+                    needsEagerInit = false,
+                    isCxxModule = false,
+                    isTurboModule = true,
+                ),
+            )
+        }
     }
 }

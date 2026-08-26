@@ -2,39 +2,35 @@ package io.hyperswitch.react
 
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.bridge.ReactContextBaseJavaModule
-import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
-import io.hyperswitch.paymentsession.ExitHeadlessCallBackManager
-import io.hyperswitch.paymentsession.GetPaymentSessionCallBackManager
 import io.hyperswitch.paymentsession.PaymentSessionHandlerImpl
+import io.hyperswitch.paymentsession.PaymentSessionRouter
 
-class HyperHeadlessModule internal constructor(private val rct: ReactApplicationContext) :
-    ReactContextBaseJavaModule(rct) {
+class HyperHeadlessModule internal constructor(
+    rct: ReactApplicationContext,
+    private val sessionRouter: PaymentSessionRouter,
+) : io.hyperswitch.react.codegen.NativeHyperHeadlessSpec(rct) {
 
-    override fun getName(): String = "HyperHeadless"
-
-    @ReactMethod
-    fun getPaymentSession(
-        rootTag: Int,
-        getPaymentMethodData: ReadableMap,
-        getPaymentMethodData2: ReadableMap,
-        getPaymentMethodDataArray: ReadableArray,
+    override fun getPaymentSession(
+        rootTag: Double,
+        paymentIntentData: ReadableMap,
+        defaultPaymentMethod: ReadableMap,
+        savedPaymentMethods: ReadableArray,
         callback: Callback
     ) {
         val handler = PaymentSessionHandlerImpl(
-            sdkAuthorization = GetPaymentSessionCallBackManager.getSdkAuthorization(),
-            defaultMethodData = getPaymentMethodData,
-            lastUsedMethodData = getPaymentMethodData2,
-            allMethodsData = getPaymentMethodDataArray,
+            sdkAuthorization = sessionRouter.getSdkAuthorization(),
+            defaultMethodData = paymentIntentData,
+            lastUsedMethodData = defaultPaymentMethod,
+            allMethodsData = savedPaymentMethods,
             jsCallback = callback,
+            sessionRouter = sessionRouter,
         )
-        GetPaymentSessionCallBackManager.executeCallback(handler)
+        sessionRouter.executeSessionCallback(handler)
     }
 
-    @ReactMethod
-    fun exitHeadless(rootTag: Int, status: String) {
-        ExitHeadlessCallBackManager.executeCallback(rootTag, status)
+    override fun exitHeadless(rootTag: Double, result: ReadableMap) {
+        sessionRouter.executeExitCallback(rootTag.toInt(), result.toExitResultJson())
     }
 }
