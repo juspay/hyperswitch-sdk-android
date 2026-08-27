@@ -116,8 +116,8 @@ class PaymentWidgetView : FrameLayout {
     fun initWidget(config: HyperswitchBaseConfiguration) {
         this.hsConfig = config
         this.widgetType = this.widgetType ?: "widgetPaymentSheet"
-        launchOptions = LaunchOptions(mContext.applicationContext, BuildConfig.VERSION_NAME, config)
         ReactNativeController.initialize(mContext.applicationContext as Application)
+        launchOptions = LaunchOptions(mContext.applicationContext, BuildConfig.VERSION_NAME, config)
     }
 
     fun isSdkAuthorizationEmpty(): Boolean {

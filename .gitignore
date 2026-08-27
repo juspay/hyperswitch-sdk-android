@@ -66,3 +66,5 @@ buck-out/
 .vs
 
 maven
+
+**/.cxx/

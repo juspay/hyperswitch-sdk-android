@@ -1,0 +1,2 @@
+-keep class io.hyperswitch.vault.core.** { *; }
+-keep class io.hyperswitch.vault.widget.** { *; }

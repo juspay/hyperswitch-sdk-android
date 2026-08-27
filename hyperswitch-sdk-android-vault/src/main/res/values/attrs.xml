@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="HyperswitchVaultField">
+        <attr name="fieldName" format="string" />
+        <attr name="placeholder" format="string" />
+        <attr name="isRequired" format="boolean" />
+        <attr name="fieldType" format="enum">
+            <enum name="card_number" value="0" />
+            <enum name="exp_date" value="1" />
+            <enum name="cvc" value="2" />
+            <enum name="card_holder" value="3" />
+            <enum name="ssn" value="4" />
+            <enum name="info" value="5" />
+        </attr>
+    </declare-styleable>
+</resources>
