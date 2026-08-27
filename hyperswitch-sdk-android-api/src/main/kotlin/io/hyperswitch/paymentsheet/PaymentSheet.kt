@@ -1481,6 +1481,11 @@ class PaymentSheet internal constructor(
         val cardBrandIcon: CardBrandVisibility? = null,
         /** Whether to show a checked icon on selected payment methods. */
         val showCheckedIconForSelection: Boolean? = null,
+        /**
+         * Text shown on the separator between the wallet buttons and the remaining
+         * payment methods. Defaults to the localised "Or pay using".
+         */
+        val separatorText: String? = null,
     ) : Parcelable {
         val bundle: Bundle
             get() = Bundle().apply {
@@ -1495,6 +1500,7 @@ class PaymentSheet internal constructor(
                 putString("cvcIcon", cvcIcon?.value)
                 putString("cardBrandIcon", cardBrandIcon?.value)
                 if (showCheckedIconForSelection != null) putBoolean("showCheckedIconForSelection", showCheckedIconForSelection)
+                putString("separatorText", separatorText)
             }
     }
 
