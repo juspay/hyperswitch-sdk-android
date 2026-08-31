@@ -45,6 +45,11 @@ open class BaseVaultFieldView @JvmOverloads constructor(
     var placeholder: String? = null
     private var appearance: VaultAppearance? = null
 
+    /* Owner-collect identity, forwarded to the field surface's config props.
+     * Set by HyperswitchCollect.bindView. */
+    internal var sdkAuthorization: String? = null
+    internal var jsEnvironment: String? = null
+
     /** Vault alias shown after a successful tokenization (read-only). */
     private var alias: String? = null
 
@@ -104,6 +109,8 @@ open class BaseVaultFieldView @JvmOverloads constructor(
             if (fieldName.isNotBlank()) putString("fieldName", fieldName)
             placeholder?.let { putString("placeholder", it) }
             putBoolean("isRequired", isRequired)
+            sdkAuthorization?.let { putString("sdkAuthorization", it) }
+            jsEnvironment?.let { putString("environment", it) }
             alias?.let {
                 putString("value", it)
                 putBoolean("readOnly", true)
@@ -170,6 +177,21 @@ open class BaseVaultFieldView @JvmOverloads constructor(
         VaultStateStore.subscribe(tag) { state ->
             currentState = state
             stateChangeListener?.onStateChange(state)
+        }
+        /*
+         * The JS vault package pushes redacted states keyed by FieldType (one
+         * shared runtime may serve several field surfaces). fieldName from
+         * the view's own attrs is merged in — the JS side never sees it.
+         */
+        VaultStateStore.subscribeByType(defaultFieldType.rawValue) { state ->
+            val merged =
+                if (state.fieldName.isNullOrBlank() && fieldName.isNotBlank()) {
+                    state.copy(fieldName = fieldName)
+                } else {
+                    state
+                }
+            currentState = merged
+            stateChangeListener?.onStateChange(merged)
         }
     }
 

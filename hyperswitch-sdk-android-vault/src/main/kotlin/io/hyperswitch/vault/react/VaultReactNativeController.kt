@@ -58,6 +58,22 @@ object VaultReactNativeController {
             ?.emit(TOKENISE_EVENT, Arguments.createMap())
     }
 
+    /**
+     * Broadcasts an answerable tokenise request: a mounted JS vault surface
+     * claims [requestId], runs the vault confirm, and answers through
+     * HyperVaultModule.submitTokeniseResult with the vaultSubmitResult JSON.
+     */
+    fun emitTokenise(requestId: Long, sdkAuthorization: String, environment: String) {
+        val payload = Arguments.createMap().apply {
+            putDouble("requestId", requestId.toDouble())
+            putString("sdkAuthorization", sdkAuthorization)
+            putString("environment", environment)
+        }
+        reactContextOrNull()
+            ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+            ?.emit(TOKENISE_EVENT, payload)
+    }
+
     fun initialize(application: Application) {
         synchronized(this) {
             if (isInitialized.get()) return

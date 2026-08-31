@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import io.hyperswitch.vault.BuildConfig
+import io.hyperswitch.vault.react.TokeniseDispatcher
 import io.hyperswitch.vault.react.VaultReactNativeController
 import io.hyperswitch.vault.react.VaultStateStore
 import io.hyperswitch.vault.widget.BaseVaultFieldView
@@ -79,13 +80,28 @@ class HyperswitchCollect {
     fun setOnFieldStateChangeListener(listener: OnFieldStateChangeListener?) {
         fieldStateChangeListener = listener
     }
+
     /**
-     * Broadcasts a tokenise request to all JS vault field surfaces. The CVC
-     * field surface answers with the collected states of every field, read
-     * from the shared JS registry (src/vault/registry.js); the raw per-state
-     * native layer (HyperVaultModule.updateFieldState) is untouched.
+     * Tokenises the values of every bound field and reports the outcome on
+     * the main thread.
+     *
+     * The broadcast is claimed by exactly one mounted JS vault surface, which
+     * runs the payment-method-session confirm from the shared JS registry and
+     * answers with the vaultSubmitResult JSON; the JS-side timeout (
+     * TokeniseDispatcher) guarantees [completion] fires even when no surface
+     * is mounted.
      */
-    fun tokenise() = VaultReactNativeController.emitTokenise()
+    fun tokenise(completion: (VaultTokeniseResult) -> Unit) {
+        val requestId = TokeniseDispatcher.newRequestId()
+        TokeniseDispatcher.register(requestId) { json ->
+            completion(VaultTokeniseResult.fromJson(json))
+        }
+        VaultReactNativeController.emitTokenise(
+            requestId,
+            sdkAuthorization,
+            environment.jsEnvName,
+        )
+    }
 
     fun getFieldStates(): Collection<FieldState> =
         views.mapNotNull { it.getState() }
