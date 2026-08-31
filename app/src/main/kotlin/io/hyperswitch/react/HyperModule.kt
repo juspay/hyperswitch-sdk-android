@@ -8,16 +8,17 @@ import android.view.ViewGroup
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.bridge.ReactContextBaseJavaModule
-import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
-import com.facebook.react.uimanager.IllegalViewOperationException
-import com.facebook.react.uimanager.UIManagerModule
+import com.facebook.react.bridge.UiThreadUtil
+import com.facebook.react.bridge.WritableMap
+import com.facebook.react.uimanager.UIManagerHelper
+import com.facebook.react.uimanager.common.UIManagerType
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.PaymentEventSubscription
@@ -30,42 +31,73 @@ import io.hyperswitch.webview.utils.Callback as HSCallback
 import io.hyperswitch.webview.utils.HSWebViewManagerImpl
 import io.hyperswitch.webview.utils.HSWebViewWrapper
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
 import org.json.JSONObject
 
-class HyperModule internal constructor(private val rct: ReactApplicationContext) :
-    ReactContextBaseJavaModule(rct) {
+internal fun ReadableMap.toExitResultJson(): String {
+    val json = JSONObject()
+    val iterator = keySetIterator()
+    while (iterator.hasNextKey()) {
+        val key = iterator.nextKey()
+        json.put(key, getString(key))
+    }
+    return json.toString()
+}
+
+class HyperModule internal constructor(
+    private val rct: ReactApplicationContext,
+    private val eventEmitter: HyperEventEmitter,
+) : io.hyperswitch.react.codegen.NativeHyperModuleSpec(rct) {
     companion object {
-        // Static methods with unique signatures for reflection access from lite SDK
         @JvmStatic
         fun confirmStatic(tag: String, map: MutableMap<String, String?>) {
-            HyperEventEmitter.confirmStatic(tag, map)
+            ReactNativeController.eventEmitter.confirm(tag, map)
         }
 
         @JvmStatic
         fun confirmCardStatic(map: MutableMap<String, String?>) {
-            HyperEventEmitter.confirmCardStatic(map)
+            ReactNativeController.eventEmitter.confirmCard(map)
         }
 
         @JvmStatic
         fun confirmECStatic(map: MutableMap<String, String?>) {
-            HyperEventEmitter.confirmECStatic(map)
+            ReactNativeController.eventEmitter.confirmEC(map)
         }
     }
 
-    override fun getName(): String {
-        HyperEventEmitter.initialize(rct)
-        return "HyperModule"
+    override fun initialize() {
+        super.initialize()
+        eventEmitter.attach(this)
     }
 
     // Using invalidate instead of deprecated onCatalystInstanceDestroy
     override fun invalidate() {
         super.invalidate()
-        HyperEventEmitter.deinitialize()
+        eventEmitter.detach()
     }
 
-    @ReactMethod
-    fun updateWidgetHeight(height: Int) {
+    fun emitEvent(tag: String, payload: WritableMap) {
+        when (tag) {
+            "confirm" -> emitConfirm(payload)
+            "widget" -> emitWidget(payload)
+            "confirmEC" -> emitConfirmEC(payload)
+            "triggerWidgetAction" -> emitTriggerWidgetAction(payload)
+            "updateIntentInit" -> emitUpdateIntentInit(payload)
+            "updateIntentComplete" -> emitUpdateIntentComplete(payload)
+            else -> Log.w("HyperModule", "emitEvent: unknown event tag $tag")
+        }
+    }
+
+    override fun launchApplePay(requestObj: String, callback: Callback) {}
+
+    override fun startApplePay(requestObj: String, callback: Callback) {}
+
+    override fun presentApplePay(requestObj: String, callback: Callback) {}
+
+    override fun onAddPaymentMethod(data: String) {}
+
+    override fun exitPaymentMethodManagement(rootTag: Double, result: String, reset: Boolean) {}
+
+    override fun updateWidgetHeight(height: Double) {
         // Express checkout widget height adjustment is not yet implemented.
     }
 
@@ -73,8 +105,7 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
      * Called from JS when a wallet confirm button is tapped.
      * Stores the callback; native later calls [resolveConfirmCallback] to proceed/abort.
      */
-    @ReactMethod
-    fun onPaymentConfirmButtonClick(rootTag: Double, payload: String, callback: Callback) {
+    override fun onPaymentConfirmButtonClick(rootTag: Double, payload: String, callback: Callback) {
         findViewWithRootTag(rootTag.toInt()) {
             try {
                 if(it == null){
@@ -90,18 +121,10 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
         }
     }
 
-    @ReactMethod
-    fun sendMessageToNative(rnMessage: String) {
-        val jsonObject = JSONObject(rnMessage)
-        if (jsonObject.optBoolean("isReady", false)) {
-//            HyperEventEmitter.initialize(rct)
-            WidgetLauncher.onPaymentReadyCallback(true)
-        }
-    }
-
     // Method to launch Google Pay payment
-    @ReactMethod
-    fun launchGPay(googlePayRequest: String, callBack: Callback) {
+    override fun launchGPay(requestObj: String, callback: Callback) {
+        val googlePayRequest = requestObj
+        val callBack = callback
         currentActivity?.let {
             GooglePayCallbackManager.setCallback(
                 it,
@@ -134,8 +157,8 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     }
 
     // Method to exit the payment sheet
-    @ReactMethod
-    fun exitPaymentsheet(rootTag: Int, paymentResult: String, reset: Boolean) {
+    override fun exitPaymentsheet(rootTag: Double, result: ReadableMap, reset: Boolean) {
+        val paymentResult = result.toExitResultJson()
         val isFragment = PaymentSheetCallbackManager.executeCallback(paymentResult)
         (currentActivity as? FragmentActivity)?.let {
             if (isFragment) it.supportFragmentManager.findFragmentByTag("paymentSheet")
@@ -148,32 +171,27 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     }
 
     // Method to exit the widget
-    @ReactMethod
-    fun exitWidget(paymentResult: String, widgetType: String) {
+    override fun exitWidget(result: ReadableMap, widgetType: String) {
+        val paymentResult = result.toExitResultJson()
         WidgetLauncher.onPaymentResultCallback(widgetType, paymentResult)
     }
 
     // Method to exit the card form
-    @ReactMethod
-    fun exitCardForm(paymentResult: String) {
+    override fun exitCardForm(result: String) {
+        val paymentResult = result
         WidgetLauncher.onPaymentResultCallback(PaymentMethod.CARD.apiValue, paymentResult)
     }
 
-    // Method to launch widget payment sheet
-    @ReactMethod
-    fun launchWidgetPaymentSheet(paymentResult: String, callBack: Callback) {
-    }
-
     // Method to exit widget payment sheet
-    @ReactMethod
-    fun exitWidgetPaymentsheet(rootTag: Double, paymentResult: String, reset: Boolean) {
+    override fun exitWidgetPaymentsheet(rootTag: Double, result: ReadableMap, reset: Boolean) {
+        val paymentResult = result.toExitResultJson()
         findViewWithRootTag(rootTag.toInt(), {
             it?.notifyResult(CallbackType.PAYMENT_RESULT, paymentResult)
         })
     }
 
-    @ReactMethod
-    fun notifyWidgetPaymentResult(rootTag: Double, result: String) {
+    override fun notifyWidgetPaymentResult(rootTag: Double, result: ReadableMap) {
+        val paymentResult = result.toExitResultJson()
         findViewWithRootTag(rootTag.toInt(), { fragment ->
             if (fragment == null) {
                 Log.w(
@@ -181,46 +199,28 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
                     "notifyWidgetPaymentResult: no fragment found for rootTag=$rootTag"
                 )
             } else {
-                fragment.notifyResult(CallbackType.CONFIRM_ACTION, result)
+                fragment.notifyResult(CallbackType.CONFIRM_ACTION, paymentResult)
             }
         })
     }
 
-    @ReactMethod
-    fun onUpdateIntentEvent(rootTag: Double, type: String, result: String) {
+    override fun onUpdateIntentEvent(rootTag: Double, eventType: String, result: ReadableMap) {
+        val type = eventType
+        val paymentResult = result.toExitResultJson()
         findViewWithRootTag(rootTag.toInt(), { fragment ->
             if (fragment == null) {
                 Log.w("HyperModule", "onUpdateIntentEvent: no fragment found for rootTag=$rootTag")
                 return@findViewWithRootTag
             }
             if (type == "UPDATE_INTENT_INIT_RETURNED") {
-                fragment.notifyResult(CallbackType.UPDATE_INTENT_INIT, result)
+                fragment.notifyResult(CallbackType.UPDATE_INTENT_INIT, paymentResult)
             } else if (type == "UPDATE_INTENT_COMPLETE_RETURNED") {
-                fragment.notifyResult(CallbackType.UPDATE_INTENT_COMPLETE, result)
+                fragment.notifyResult(CallbackType.UPDATE_INTENT_COMPLETE, paymentResult)
             }
         })
     }
 
-    // Variable to keep track of event listener count
-    private val listenerCount = AtomicInteger(0)
-
-
-    // Method to add event listener
-    @ReactMethod
-    fun addListener(eventName: String?) {
-        if (listenerCount.incrementAndGet() == 1) {
-            HyperEventEmitter.initialize(rct)
-        }
-    }
-
-    // Method to remove event listeners
-    @ReactMethod
-    fun removeListeners(count: Int) {
-        listenerCount.addAndGet(-count)
-    }
-
-    @ReactMethod
-    fun emitPaymentEvent(rootTag: Double, eventType: String, payload: ReadableMap) {
+    override fun emitPaymentEvent(rootTag: Double, eventType: String, payload: ReadableMap) {
         findViewWithRootTag(rootTag.toInt(), { fragment ->
             if (fragment == null) {
                 Log.w("HyperModule", "emitPaymentEvent: no fragment found for rootTag=$rootTag")
@@ -230,8 +230,7 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
         })
     }
 
-    @ReactMethod
-   fun openIframeBridge(url: String, timeoutMs: Int, callback: Callback) {
+    override fun openIframeBridge(url: String, timeoutMs: Double, callback: Callback) {
          if (timeoutMs <= 0) {
              callback.invoke("")
              return
@@ -348,23 +347,19 @@ class HyperModule internal constructor(private val rct: ReactApplicationContext)
     }
 
     private fun findViewWithRootTag(rootTag: Int, onFound: (HyperFragment?) -> Unit) {
-        val uiManagerModule =
-            reactApplicationContext.getNativeModule<UIManagerModule?>(UIManagerModule::class.java)
-
-        if (uiManagerModule == null) {
+        if (rootTag <= 0) {
             onFound(null)
             return
         }
-
-        uiManagerModule.addUIBlock { nvhm ->
-            try {
-                val reactRootView = nvhm.resolveView(rootTag)
-                onFound(FragmentManager.findFragment(reactRootView))
-            } catch (e: IllegalViewOperationException) {
-                onFound(null)
-            } catch (e: Exception) {
-                onFound(null)
+        UiThreadUtil.runOnUiThread {
+            val fragment = try {
+                UIManagerHelper.getUIManager(rct, UIManagerType.FABRIC)
+                    ?.resolveView(rootTag)
+                    ?.let { view -> FragmentManager.findFragment<Fragment>(view) }
+            } catch (_: Exception) {
+                null
             }
+            onFound(fragment as? HyperFragment)
         }
     }
 }

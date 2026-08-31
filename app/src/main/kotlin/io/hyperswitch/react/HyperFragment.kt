@@ -6,13 +6,12 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.LayoutInflater
 import com.facebook.react.ReactFragment
 import com.facebook.react.ReactHost
-import com.facebook.react.ReactNativeHost
-import com.facebook.react.ReactRootView
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReadableMap
-import com.facebook.react.modules.core.DeviceEventManagerModule
+import com.facebook.react.interfaces.fabric.ReactSurface
 import com.facebook.react.views.scroll.ReactHorizontalScrollView
 import com.facebook.react.views.scroll.ReactScrollView
 import com.proyecto26.inappbrowser.ChromeTabsDismissedEvent
@@ -64,6 +63,16 @@ class HyperFragment : ReactFragment() {
      */
     private val callbacks = ConcurrentHashMap<CallbackType, HyperCallback>()
 
+    private var hyperSurface: ReactSurface? = null
+
+    private val surfaceId: Int
+        get() = currentSurfaceId()
+
+    fun currentSurfaceId(): Int {
+        val id = hyperSurface?.surfaceID ?: return -1
+        return if (id > 0) id else -1
+    }
+
     /** Per-widget listener set by HyperswitchBoundElement.subscribe(). Null for PaymentSheet. */
     private var paymentEventListener: PaymentEventListener? = null
 
@@ -88,7 +97,7 @@ class HyperFragment : ReactFragment() {
     }
 
     fun updatePaymentIntentInit(callback: (() -> Unit)?) {
-        val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
+        val rootTag = surfaceId
         if (rootTag == -1) {
             callback?.invoke()
             return
@@ -98,18 +107,16 @@ class HyperFragment : ReactFragment() {
             return
         }
         callbacks[CallbackType.UPDATE_INTENT_INIT] = HyperCallback.UpdateIntentInit(callback)
-        reactNativeHost.reactInstanceManager.currentReactContext
-            ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            ?.emit("updateIntentInit", Arguments.createMap().apply {
-                putInt("rootTag", rootTag)
-            })
+        ReactNativeController.eventEmitter.emitEvent("updateIntentInit", Arguments.createMap().apply {
+            putInt("rootTag", rootTag)
+        })
     }
 
     fun updatePaymentIntentComplete(
         sdkAuthorization: String,
         callback: ((ElementUpdateIntentResult) -> Unit)
     ) {
-        val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
+        val rootTag = surfaceId
         if (rootTag == -1) {
             callback.invoke(
                 ElementUpdateIntentResult.Failure(
@@ -132,12 +139,10 @@ class HyperFragment : ReactFragment() {
         }
         callbacks[CallbackType.UPDATE_INTENT_COMPLETE] =
             HyperCallback.UpdateIntentComplete(callback)
-        reactNativeHost.reactInstanceManager.currentReactContext
-            ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            ?.emit("updateIntentComplete", Arguments.createMap().apply {
-                putString("sdkAuthorization", sdkAuthorization)
-                putInt("rootTag", rootTag)
-            })
+        ReactNativeController.eventEmitter.emitEvent("updateIntentComplete", Arguments.createMap().apply {
+            putString("sdkAuthorization", sdkAuthorization)
+            putInt("rootTag", rootTag)
+        })
     }
 
     fun confirmPayment(callback: ((PaymentResult) -> Unit)) {
@@ -147,7 +152,7 @@ class HyperFragment : ReactFragment() {
             )
             return
         }
-        val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
+        val rootTag = surfaceId
         if (rootTag == -1) {
             callback.invoke(
                 PaymentResult.Failed(Throwable("React Context not ready"))
@@ -161,18 +166,13 @@ class HyperFragment : ReactFragment() {
             return
         }
         callbacks[CallbackType.CONFIRM_ACTION] = HyperCallback.Payment(callback)
-        reactNativeHost.reactInstanceManager.currentReactContext
-            ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            ?.emit("triggerWidgetAction", Arguments.createMap().apply {
-                putString("actionType", EventName.CONFIRM_PAYMENT_ACTION.name)
-                putInt("rootTag", rootTag)
-            })
+        ReactNativeController.eventEmitter.emitEvent("triggerWidgetAction", Arguments.createMap().apply {
+            putString("actionType", EventName.CONFIRM_PAYMENT_ACTION.name)
+            putInt("rootTag", rootTag)
+        })
     }
 
     /**
-     * Called directly on this instance by the native module after finding the
-     * fragment via [UIManagerModule] + [androidx.fragment.app.FragmentManager.findFragment].
-     *
      * PAYMENT_RESULT  → fires CONFIRM_ACTION if present, otherwise PAYMENT_RESULT.
      * CONFIRM_ACTION  → fires and removes CONFIRM_ACTION (one-shot resolve).
      */
@@ -290,7 +290,7 @@ class HyperFragment : ReactFragment() {
                 val event = PaymentEvent(type = eventType, payload = payload)
                 listener.onPaymentEvent(event)
             } else {
-                HyperEventEmitter.emitPaymentEvent(eventType, payload)
+                ReactNativeController.eventEmitter.emitPaymentEvent(eventType, payload)
             }
         } catch (e: Exception) {
             Log.e("HyperFragment", "Error in notifyEvent", e)
@@ -304,13 +304,15 @@ class HyperFragment : ReactFragment() {
         billing: String?,
         callback: ((PaymentResult) -> Unit)
     ) {
-        val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
+        val rootTag = surfaceId
         if (rootTag == -1) {
             val paymentResult = PaymentResult.Failed(Throwable("cannot find the view"))
             callback.invoke(paymentResult)
             return
         }
 
+        // Try to register callback for this specific widget - fails if already in progress
+        val registered = ReactNativeController.sessionRouter.tryRegisterExitCallback(rootTag, callback)
         val registered = SavedMethodConfirmationRegistry.tryRegister(
             sdkAuthorization = sdkAuthorization,
             callback = callback,
@@ -331,15 +333,7 @@ class HyperFragment : ReactFragment() {
         map.putString("sdkAuthorization", sdkAuthorization)
         map.putString("paymentToken", paymentToken)
         billing?.let { map.putString("billing", it) }
-        val reactContext = reactNativeHost.reactInstanceManager.currentReactContext
-        if (reactContext == null) {
-            SavedMethodConfirmationRegistry.remove(sdkAuthorization)
-            callback.invoke(PaymentResult.Failed(Throwable("React context is not available")))
-            return
-        }
-        reactContext
-            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            .emit("triggerWidgetAction", map)
+        ReactNativeController.eventEmitter.emitEvent("triggerWidgetAction", map)
     }
 
 
@@ -362,9 +356,23 @@ class HyperFragment : ReactFragment() {
         registerEventBus()
     }
 
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val componentName = arguments?.getString("arg_component_name") ?: "hyperSwitch"
+        val launchOptions = arguments?.getBundle("arg_launch_options")
+        val surface = ReactNativeController.getReactHost()
+            .createSurface(requireActivity(), componentName, launchOptions)
+        hyperSurface = surface
+        reactDelegate.setReactSurface(surface)
+        return super.onCreateView(inflater, container, savedInstanceState)
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val reactRootView = view as? ReactRootView ?: return
+        val reactRootView = view as? ViewGroup ?: return
         var scrollFixScheduled = false
         reactRootView.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener {
             override fun onChildViewAdded(parent: View?, child: View?) {
@@ -384,6 +392,9 @@ class HyperFragment : ReactFragment() {
     override fun onDestroyView() {
         try {
             super.onDestroyView()
+            hyperSurface?.stop()
+            hyperSurface = null
+            reactDelegate.setReactSurface(null)
             callbacks.clear()
             onExit = null
             paymentEventListener = null
@@ -458,8 +469,8 @@ class HyperFragment : ReactFragment() {
         startActivity(ChromeTabsManagerActivity.createDismissIntent(requireContext()))
     }
 
-    override fun getReactNativeHost(): ReactNativeHost = ReactNativeController.getReactNativeHost()
-    override fun getReactHost(): ReactHost = ReactNativeController.getReactHost()
+    override val reactHost: ReactHost
+        get() = ReactNativeController.getReactHost()
 
     // ─── Builder ──────────────────────────────────────────────────────────────
 
@@ -474,9 +485,9 @@ class HyperFragment : ReactFragment() {
 
         fun build(): HyperFragment = HyperFragment().also { fragment ->
             fragment.arguments = Bundle().apply {
-                putString(ARG_COMPONENT_NAME, mComponentName)
-                putBundle(ARG_LAUNCH_OPTIONS, mLaunchOptions)
-                putBoolean(ARG_FABRIC_ENABLED, mFabricEnabled)
+                putString("arg_component_name", mComponentName)
+                putBundle("arg_launch_options", mLaunchOptions)
+                putBoolean("arg_fabric_enabled", mFabricEnabled)
             }
         }
     }

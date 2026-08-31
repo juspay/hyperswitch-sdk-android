@@ -215,6 +215,9 @@ class PaymentSheet internal constructor(
 
         /** Whether to split card number, expiry, and CVC into separate input fields. */
         val splitCardFields: Boolean? = null,
+
+        /** Whether to hide the card nickname input field regardless of the mandate/save-card state. */
+        val hideCardNicknameField: Boolean? = null,
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -272,6 +275,7 @@ class PaymentSheet internal constructor(
                     }
                     putBundle("paymentMethodLayout", paymentMethodLayout?.bundle)
                     if (splitCardFields != null) putBoolean("splitCardFields", splitCardFields)
+                    if (hideCardNicknameField != null) putBoolean("hideCardNicknameField", hideCardNicknameField)
                 }
             }
 
@@ -312,6 +316,7 @@ class PaymentSheet internal constructor(
             private var paymentMethodsConfig: List<PaymentMethodConfig>? = null
             private var paymentMethodLayout: PaymentMethodLayout? = null
             private var splitCardFields: Boolean? = null
+            private var hideCardNicknameField: Boolean? = null
             fun merchantDisplayName(merchantDisplayName: String) =
                 apply { this.merchantDisplayName = merchantDisplayName }
 
@@ -420,6 +425,9 @@ class PaymentSheet internal constructor(
             fun splitCardFields(splitCardFields: Boolean) =
                 apply { this.splitCardFields = splitCardFields }
 
+            fun hideCardNicknameField(hideCardNicknameField: Boolean) =
+                apply { this.hideCardNicknameField = hideCardNicknameField }
+
             fun build() = Configuration(
                 merchantDisplayName,
                 customer,
@@ -453,6 +461,7 @@ class PaymentSheet internal constructor(
                 paymentMethodsConfig,
                 paymentMethodLayout,
                 splitCardFields,
+                hideCardNicknameField,
             )
         }
     }
@@ -1481,6 +1490,11 @@ class PaymentSheet internal constructor(
         val cardBrandIcon: CardBrandVisibility? = null,
         /** Whether to show a checked icon on selected payment methods. */
         val showCheckedIconForSelection: Boolean? = null,
+        /**
+         * Text shown on the separator between the wallet buttons and the remaining
+         * payment methods. Defaults to the localised "Or pay using".
+         */
+        val separatorText: String? = null,
     ) : Parcelable {
         val bundle: Bundle
             get() = Bundle().apply {
@@ -1495,6 +1509,7 @@ class PaymentSheet internal constructor(
                 putString("cvcIcon", cvcIcon?.value)
                 putString("cardBrandIcon", cardBrandIcon?.value)
                 if (showCheckedIconForSelection != null) putBoolean("showCheckedIconForSelection", showCheckedIconForSelection)
+                putString("separatorText", separatorText)
             }
     }
 

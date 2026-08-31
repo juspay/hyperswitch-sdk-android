@@ -22,6 +22,7 @@ internal class PaymentSessionHandlerImpl(
     private val lastUsedMethodData: ReadableMap,
     private val allMethodsData: ReadableArray,
     private val jsCallback: Callback,
+    private val sessionRouter: PaymentSessionRouter,
     private val onTerminalResult: (String, PaymentResult) -> Unit,
     private val initializationError: Throwable? = null,
 ) : PaymentSessionHandler {
@@ -108,6 +109,8 @@ internal class PaymentSessionHandlerImpl(
     override fun confirmWithCustomerPaymentToken(
         paymentToken: String, cvc: String?, resultHandler: (PaymentResult) -> Unit
     ) {
+            val registered = sessionRouter.tryRegisterExitCallback(-1, resultHandler)
+
         initializationError?.let { error ->
             resultHandler(PaymentResult.Failed(error))
             return
@@ -139,6 +142,8 @@ internal class PaymentSessionHandlerImpl(
                 putString("cvc", cvc)
             })
         } catch (ex: Exception) {
+            sessionRouter.clearExitCallback(-1)
+
             SavedMethodConfirmationRegistry.remove(sdkAuthorization)
             val result = PaymentResult.Failed(Throwable("Not Initialised").apply {
                 initCause(Throwable("Not Initialised"))

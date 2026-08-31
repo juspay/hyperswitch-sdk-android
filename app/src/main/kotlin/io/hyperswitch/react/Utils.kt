@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.os.Parcelable
 import android.webkit.WebSettings
 import androidx.fragment.app.FragmentActivity
-import com.facebook.react.ReactFragment
 import io.hyperswitch.BuildConfig
 import java.util.Locale
 class Utils {
@@ -35,7 +34,7 @@ class Utils {
           // Check if React Native fragment exists or if request has changed
           if (reactNativeFragmentSheet == null || areBundlesNotEqual(request, lastRequest, context)) {
             lastRequest = request
-            val newReactNativeFragmentSheet = ReactFragment.Builder()
+            val newReactNativeFragmentSheet = HyperFragment.Builder()
               .setComponentName("hyperSwitch")
               .setLaunchOptions(getLaunchOptions(request, message, context))
               .setFabricEnabled(BuildConfig.IS_NEW_ARCHITECTURE_ENABLED)
@@ -45,7 +44,7 @@ class Utils {
             transaction.show(reactNativeFragmentSheet).commitAllowingStateLoss()
           }
         } else {
-          val reactNativeFragmentCard = ReactFragment.Builder()
+          val reactNativeFragmentCard = HyperFragment.Builder()
             .setComponentName("hyperSwitch")
             .setLaunchOptions(getLaunchOptions(request, message, context))
             .setFabricEnabled(BuildConfig.IS_NEW_ARCHITECTURE_ENABLED)
@@ -124,7 +123,7 @@ class Utils {
 
     // Handle back press for React fragment
     fun onBackPressed(context: FragmentActivity): Boolean {
-      val reactNativeFragmentSheet = context.supportFragmentManager.findFragmentByTag("paymentSheet") as? ReactFragment
+      val reactNativeFragmentSheet = context.supportFragmentManager.findFragmentByTag("paymentSheet") as? HyperFragment
       return if (reactNativeFragmentSheet == null || reactNativeFragmentSheet.isHidden) {
         false
       } else {

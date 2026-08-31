@@ -10,7 +10,7 @@ import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
-import io.hyperswitch.react.HyperEventEmitter
+import io.hyperswitch.react.ReactNativeController
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -74,7 +74,7 @@ class DefaultPaymentSessionLauncher(
         val builder = PaymentEventSubscriptionBuilder()
         builder.subscribe()
         val (subscription, listener) = builder.build()
-        HyperEventEmitter.setEventListener(listener, subscription)
+        ReactNativeController.eventEmitter.setEventListener(listener, subscription)
     }
 
     override fun presentPaymentSheet(
@@ -82,7 +82,6 @@ class DefaultPaymentSessionLauncher(
         subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?,
         resultCallback: (PaymentResult) -> Unit
     ) {
-        isPresented = true
         applySubscription(subscribe)
         val isFragment =
             paymentSessionReactLauncher.presentSheet(sessionConfig, configuration)
@@ -98,7 +97,6 @@ class DefaultPaymentSessionLauncher(
         subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?,
         resultCallback: (PaymentResult) -> Unit
     ) {
-        isPresented = true
         applySubscription(subscribe)
         val isFragment = paymentSessionReactLauncher.presentSheet(configurationMap)
         val authorization = sessionConfig?.sdkAuthorization.orEmpty()
@@ -112,6 +110,8 @@ class DefaultPaymentSessionLauncher(
         configuration: SavedPaymentMethodsConfiguration?,
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
     ) {
+        // ReactNativeController.sessionRouter.setSessionCallback(sessionConfig?.sdkAuthorization, savedPaymentMethodCallback)
+
         isPresented = false
         val authorization = sessionConfig?.sdkAuthorization.orEmpty()
         val request = PendingSavedMethodsRequest(
@@ -156,6 +156,8 @@ class DefaultPaymentSessionLauncher(
         configuration: SavedPaymentMethodsConfiguration?,
     ): PaymentSessionHandler =
         suspendCancellableCoroutine { continuation ->
+            // ReactNativeController.sessionRouter.setSessionCallback(sessionConfig?.sdkAuthorization) { handler ->
+
             isPresented = false
             val authorization = sessionConfig?.sdkAuthorization.orEmpty()
             val request = PendingSavedMethodsRequest(
@@ -182,6 +184,8 @@ class DefaultPaymentSessionLauncher(
                 return@suspendCancellableCoroutine
             }
             continuation.invokeOnCancellation {
+                // ReactNativeController.sessionRouter.setSessionCallback(sessionConfig?.sdkAuthorization, null)
+
                 SavedMethodsRequestRegistry.remove(authorization, request)
             }
             try {

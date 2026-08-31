@@ -15,6 +15,8 @@ interface PresentationInterface {
 
 /** React Native lifecycle operations — only meaningful in the full SDK. */
 interface ReactNativeLifecycle {
+    var sessionConfig: PaymentSessionConfiguration?
+
     fun initializeReactNativeInstance()
     fun startHeadlessTask(
         configuration: SavedPaymentMethodsConfiguration? = null,

@@ -2,29 +2,25 @@ package io.hyperswitch.react
 
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.bridge.ReactContextBaseJavaModule
-import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
-import com.facebook.react.module.annotations.ReactModule
 import io.hyperswitch.paymentsession.PaymentSessionHandlerImpl
 import io.hyperswitch.paymentsession.SavedMethodConfirmationRegistry
 import io.hyperswitch.paymentsession.SavedMethodsRequestRegistry
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CompletableDeferred
+import io.hyperswitch.paymentsession.PaymentSessionRouter
 
-@ReactModule(name = "HyperHeadless")
-class HyperHeadlessModule internal constructor(rct: ReactApplicationContext) :
-    ReactContextBaseJavaModule(rct) {
+class HyperHeadlessModule internal constructor(
+    rct: ReactApplicationContext,
+    private val sessionRouter: PaymentSessionRouter,
+) : io.hyperswitch.react.codegen.NativeHyperHeadlessSpec(rct) {
 
-    override fun getName(): String = "HyperHeadless"
-
-    @ReactMethod
-    fun getPaymentSession(
-        sdkAuthorization: String,
-        getPaymentMethodData: ReadableMap,
-        getPaymentMethodData2: ReadableMap,
-        getPaymentMethodDataArray: ReadableArray,
+    override fun getPaymentSession(
+        rootTag: Double,
+        paymentIntentData: ReadableMap,
+        defaultPaymentMethod: ReadableMap,
+        savedPaymentMethods: ReadableArray,
         callback: Callback
     ) {
         val request = SavedMethodsRequestRegistry.take(sdkAuthorization) ?: return
@@ -33,15 +29,15 @@ class HyperHeadlessModule internal constructor(rct: ReactApplicationContext) :
             return
         }
         val handler = PaymentSessionHandlerImpl(
-            sdkAuthorization = sdkAuthorization,
-            currentSdkAuthorization = request.currentSdkAuthorization,
-            defaultMethodData = getPaymentMethodData,
-            lastUsedMethodData = getPaymentMethodData2,
-            allMethodsData = getPaymentMethodDataArray,
+            sdkAuthorization = sessionRouter.getSdkAuthorization(),
+            defaultMethodData = paymentIntentData,
+            lastUsedMethodData = defaultPaymentMethod,
+            allMethodsData = savedPaymentMethods,
             jsCallback = callback,
+            sessionRouter = sessionRouter,
             onTerminalResult = request.onTerminalResult,
         )
-        request.callback(handler)
+        sessionRouter.executeSessionCallback(handler)
     }
 
     @ReactMethod

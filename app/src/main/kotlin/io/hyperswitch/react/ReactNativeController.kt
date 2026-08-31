@@ -2,18 +2,17 @@ package io.hyperswitch.react
 
 import android.app.Application
 import android.content.Context
-import com.facebook.react.PackageList
+import io.hyperswitch.react.PackageList
 import com.facebook.react.ReactHost
-import com.facebook.react.ReactNativeHost
-import com.facebook.react.ReactPackage
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint
 import com.facebook.react.defaults.DefaultReactHost
-import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
+import com.facebook.react.uimanager.DisplayMetricsHolder
 import com.facebook.soloader.SoLoader
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.R
 import io.hyperswitch.logs.CrashHandler
+import io.hyperswitch.paymentsession.PaymentSessionRouter
 import io.hyperswitch.logs.HSLog
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogCategory
@@ -25,17 +24,18 @@ import java.util.concurrent.atomic.AtomicReference
  *
  * Entry point for initializing and accessing the Hyperswitch React Native runtime.
  * This object is responsible for:
- * - Initializing React Native (Old & New Architecture)
+ * - Initializing React Native (New Architecture / bridgeless)
  * - Loading JS bundles (OTA or bundled assets)
- * - Managing ReactHost / ReactNativeHost lifecycle
+ * - Managing the ReactHost lifecycle
  * - Setting up crash handling and native dependencies
  *
  * This SDK is designed to be initialized once per application lifecycle.
  */
 object ReactNativeController {
 
-    @Volatile
-    private var reactNativeHost = AtomicReference<ReactNativeHost?>(null)
+    val eventEmitter = HyperEventEmitter()
+
+    val sessionRouter = PaymentSessionRouter()
 
     @Volatile
     private var reactHost = AtomicReference<ReactHost?>(null)
@@ -90,56 +90,12 @@ object ReactNativeController {
     }
 
     /**
-     * Creates and configures the ReactNativeHost instance.
-     *
-     * Responsibilities:
-     * - Registers required React Native packages
-     * - Enables Hermes and New Architecture flags
-     * - Resolves JS bundle source (OTA or bundled)
-     *
-     * @param application Application context
-     * @return Configured ReactNativeHost instance
-     */
-    private fun createReactNativeHost(
-        application: Application,
-    ): ReactNativeHost {
-        return object : DefaultReactNativeHost(application) {
-            override fun getPackages(): List<ReactPackage> {
-                return PackageList(this).packages.apply {
-                    add(HyperPackage())
-                }
-            }
-            override fun getJSMainModuleName(): String = "index"
-            override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
-            override val isNewArchEnabled: Boolean =
-                BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
-            override val isHermesEnabled: Boolean =
-                BuildConfig.IS_HERMES_ENABLED
-            override fun getJSBundleFile(): String =
-                    getBundleFromAirborne(application)
-
-        }
-    }
-
-    /**
      * Returns whether the SDK has already been initialized.
      *
      * @return true if initialized, false otherwise
      */
     fun getIsInitialized(): Boolean {
         return isInitialized.get()
-    }
-
-    /**
-     * Returns the initialized ReactNativeHost instance.
-     *
-     * @throws IllegalStateException if SDK is not initialized
-     * @return ReactNativeHost
-     */
-    fun getReactNativeHost(): ReactNativeHost {
-        return checkNotNull(reactNativeHost.get()) {
-            "ReactNative not initialized. Call ReactNativeController.initialize()"
-        }
     }
 
     /**
@@ -162,7 +118,7 @@ object ReactNativeController {
      * - Registers a global crash handler
      * - Initializes SoLoader
      * - Loads New Architecture entry point if enabled
-     * - Creates ReactNativeHost and ReactHost instances
+     * - Creates the ReactHost instance
      * @param application Application instance
      */
     fun initialize(application: Application) {
@@ -176,16 +132,19 @@ object ReactNativeController {
 
                 SoLoader.init(application, OpenSourceMergedSoMapping)
 
-                if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
-                    DefaultNewArchitectureEntryPoint.load()
-                }
+                DisplayMetricsHolder.initDisplayMetricsIfNotInitialized(application.applicationContext)
 
-                reactNativeHost.set(createReactNativeHost(application))
+                DefaultNewArchitectureEntryPoint.load()
 
                 reactHost.set(
                     DefaultReactHost.getDefaultReactHost(
-                        application.applicationContext,
-                        reactNativeHost.get()!!,
+                        context = application.applicationContext,
+                        packageList = PackageList(application).packages.apply {
+                            add(HyperPackage(eventEmitter, sessionRouter))
+                        },
+                        jsMainModulePath = "index",
+                        jsBundleFilePath = getBundleFromAirborne(application),
+                        useDevSupport = BuildConfig.DEBUG,
                     )
                 )
 
