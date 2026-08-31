@@ -56,10 +56,6 @@ open class HyperswitchElement @JvmOverloads constructor(
         internalView.setSdkAuthorization(sdkAuthorization)
     }
 
-    fun setPrefetchedApiData(prefetchedApiData: ReadableMap?) {
-        internalView.setPrefetchedApiData(prefetchedApiData)
-    }
-
     fun showWidget() {
         internalView.showWidgetInternal()
     }
@@ -163,12 +159,10 @@ open class HyperswitchElement @JvmOverloads constructor(
     @JvmSynthetic
     suspend fun updateIntentComplete(
         sdkAuthorization: String,
-        prefetchedApiData: ReadableMap?,
     ): ElementUpdateIntentResult {
         return suspendCancellableCoroutine { continuation ->
             internalView.updatePaymentIntentComplete(
                 sdkAuthorization,
-                prefetchedApiData,
             ) { result ->
                 if (continuation.isActive) {
                     continuation.resume(result)

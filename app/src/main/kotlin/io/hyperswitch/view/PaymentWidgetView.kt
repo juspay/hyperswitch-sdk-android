@@ -62,7 +62,6 @@ class PaymentWidgetView : FrameLayout {
     private lateinit var mContext: Context
     private var sdkAuthorization: String = ""
     private var hsConfig: HyperswitchBaseConfiguration? = null
-    private var prefetchedData: ReadableMap? = null
 
     private var resultListener: PaymentResultListener? = null
 
@@ -250,13 +249,6 @@ class PaymentWidgetView : FrameLayout {
             sessionConfig = if (this.sdkAuthorization.isNotEmpty()) PaymentSessionConfiguration(this.sdkAuthorization) else null,
             subscribedEvents = this.subscribedEvents,
         )
-        val propsBundle = bundle.getBundle("props")
-        if (propsBundle != null) {
-            val data = prefetchedData
-            if (data != null) {
-                propsBundle.putBundle("prefetchedApiData", launchOptions.toBundle(data.toHashMap()))
-            }
-        }
         return bundle
     }
 
@@ -275,19 +267,16 @@ class PaymentWidgetView : FrameLayout {
 
     fun updatePaymentIntentComplete(
         sdkAuthorization: String,
-        prefetchedApiData: ReadableMap?,
         callback: (ElementUpdateIntentResult) -> Unit
     ) {
         if (isEligibleForUpdateIntent()) {
             this.fragment?.updatePaymentIntentComplete(
                 sdkAuthorization,
-                prefetchedApiData,
             ) { result ->
                 if (result is ElementUpdateIntentResult.Success) {
                     sdkAuthorization.takeIf { it.isNotEmpty() }?.let {
                         this.sdkAuthorization = it
                     }
-                    setPrefetchedApiData(prefetchedApiData)
                 }
                 callback(result)
             }
@@ -340,10 +329,6 @@ class PaymentWidgetView : FrameLayout {
         if (isAttachedToWindow && !isSdkAuthorizationEmpty()) {
             post { showWidgetInternal() }
         }
-    }
-
-    fun setPrefetchedApiData(prefetchedApiData: ReadableMap?) {
-        prefetchedData = prefetchedApiData
     }
 
     fun showWidgetInternal() {

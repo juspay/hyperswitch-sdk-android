@@ -42,10 +42,14 @@ class DefaultPaymentSessionLauncher(
      */
     override suspend fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
         super.initPaymentSession(sessionConfig)
-        val data = paymentSessionReactLauncher
-            .fetchPrefetch(sessionConfig)
-            .getOrNull()
-        paymentSessionReactLauncher.commitPrefetch(sessionConfig, data)
+        // Await prefetch completion only; the payload lives in the JS PrefetchCache.
+        if (paymentSessionReactLauncher.fetchPrefetch(sessionConfig).isFailure) {
+            // A failed re-validation must not leave an earlier (e.g. cancelled) attempt's
+            // entry behind: the sheet would mount with minutes-old session tokens instead
+            // of fetching for itself.
+            paymentSessionReactLauncher.clearPrefetch(sessionConfig.sdkAuthorization)
+        }
+        paymentSessionReactLauncher.commitSession(sessionConfig)
     }
 
     /** Fetches the new intent's data without changing the active session. */
@@ -56,19 +60,14 @@ class DefaultPaymentSessionLauncher(
         headlessType = "updateIntent",
     )
 
-    fun commitIntentUpdate(
-        sessionConfig: PaymentSessionConfiguration,
-        prefetchedData: ReadableMap,
-    ) {
+    fun commitIntentUpdate(sessionConfig: PaymentSessionConfiguration) {
         this.sessionConfig = sessionConfig
-        paymentSessionReactLauncher.commitPrefetch(sessionConfig, prefetchedData)
+        paymentSessionReactLauncher.commitSession(sessionConfig)
     }
 
     fun clearPrefetch(sdkAuthorization: String) {
         paymentSessionReactLauncher.clearPrefetch(sdkAuthorization)
     }
-
-    fun getPrefetchedApiData(): ReadableMap? = paymentSessionReactLauncher.prefetchedData
 
     private fun applySubscription(subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?) {
         subscribe ?: return

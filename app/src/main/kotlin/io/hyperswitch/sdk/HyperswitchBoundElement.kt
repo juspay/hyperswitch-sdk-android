@@ -1,6 +1,5 @@
 package io.hyperswitch.sdk
 
-import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.paymentsheet.PaymentRequestData
@@ -44,7 +43,6 @@ class HyperswitchBoundElement internal constructor(
             element.setOnEventCallback(listener)
         }
         element.setSdkAuthorization(paymentSession.getSdkAuthorization())
-        element.setPrefetchedApiData(paymentSession.getPrefetchedApiData())
     }
 
     fun setConfiguration(configuration: PaymentSheet.Configuration) {
@@ -99,11 +97,8 @@ class HyperswitchBoundElement internal constructor(
     }
 
     @JvmSynthetic
-    suspend fun updateIntentComplete(
-        sdkAuthorization: String,
-        prefetchedApiData: ReadableMap?,
-    ): ElementUpdateIntentResult {
-        return element.updateIntentComplete(sdkAuthorization, prefetchedApiData)
+    suspend fun updateIntentComplete(sdkAuthorization: String): ElementUpdateIntentResult {
+        return element.updateIntentComplete(sdkAuthorization)
     }
 
     fun destroy() {

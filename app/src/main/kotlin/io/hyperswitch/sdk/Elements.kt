@@ -106,11 +106,11 @@ class Elements internal constructor(
                     IllegalArgumentException("sdkAuthorization must not be empty")
                 )
             }
-            val prefetchedApiData = paymentSession.prepareIntentUpdate(newSdkAuthorization).getOrElse {
+            paymentSession.prepareIntentUpdate(newSdkAuthorization).getOrElse {
                 paymentSession.clearUnappliedPrefetch(newSdkAuthorization)
                 return ElementsUpdateResult.TotalFailure(it)
             }
-            paymentSession.commitIntentUpdate(newSdkAuthorization, prefetchedApiData)
+            paymentSession.commitIntentUpdate(newSdkAuthorization)
             return ElementsUpdateResult.Success
         }
         val initResults: List<Pair<HyperswitchBoundElement, Result<Unit>>> = coroutineScope {
@@ -144,22 +144,20 @@ class Elements internal constructor(
             ""
         }
 
-        // Fetch once for the Elements session. Every bound widget receives this same payload;
-        // none of them should independently repeat the intent API calls.
-        val prefetchedApiData = if (sdkAuthorization.isNotEmpty()) {
-            paymentSession.prepareIntentUpdate(sdkAuthorization).getOrNull()
+        // Fetch once for the Elements session. The payload stays in the JS PrefetchCache and
+        // every bound widget resolves it from there by sdkAuthorization — none of them
+        // should independently repeat the intent API calls.
+        val prefetchSucceeded = if (sdkAuthorization.isNotEmpty()) {
+            paymentSession.prepareIntentUpdate(sdkAuthorization).isSuccess
         } else {
-            null
+            false
         }
 
         val completeResults: List<Pair<HyperswitchBoundElement, ElementUpdateIntentResult>> =
             coroutineScope {
                 initSucceeded.map { hsElement ->
                     async {
-                        hsElement to hsElement.updateIntentComplete(
-                            sdkAuthorization,
-                            prefetchedApiData,
-                        )
+                        hsElement to hsElement.updateIntentComplete(sdkAuthorization)
                     }
                 }.awaitAll()
             }
@@ -187,13 +185,13 @@ class Elements internal constructor(
             }
         }
 
-        if (succeeded.isNotEmpty() && prefetchedApiData != null) {
-            paymentSession.commitIntentUpdate(sdkAuthorization, prefetchedApiData)
+        if (succeeded.isNotEmpty() && prefetchSucceeded) {
+            paymentSession.commitIntentUpdate(sdkAuthorization)
         } else if (sdkAuthorization.isNotEmpty()) {
             paymentSession.clearUnappliedPrefetch(sdkAuthorization)
         }
 
-        if (prefetchedApiData == null) {
+        if (!prefetchSucceeded) {
             return ElementsUpdateResult.TotalFailure(
                 cause = IllegalStateException("Unable to load the updated payment intent").apply {
                     initCause(Throwable("PREFETCH_FAILED"))

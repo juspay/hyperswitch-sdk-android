@@ -74,14 +74,11 @@ class PaymentSession internal constructor(
     internal suspend fun prepareIntentUpdate(sdkAuthorization: String): Result<ReadableMap> =
         paymentSessionLauncher.prepareIntentUpdate(PaymentSessionConfiguration(sdkAuthorization))
 
-    internal fun commitIntentUpdate(
-        sdkAuthorization: String,
-        prefetchedApiData: ReadableMap,
-    ) {
+    internal fun commitIntentUpdate(sdkAuthorization: String) {
         val previousAuthorization = sessionConfig.sdkAuthorization
         val newConfig = PaymentSessionConfiguration(sdkAuthorization)
         sessionConfig = newConfig
-        paymentSessionLauncher.commitIntentUpdate(newConfig, prefetchedApiData)
+        paymentSessionLauncher.commitIntentUpdate(newConfig)
         if (previousAuthorization != sdkAuthorization) {
             paymentSessionLauncher.clearPrefetch(previousAuthorization)
         }
@@ -138,6 +135,4 @@ class PaymentSession internal constructor(
     fun getSdkAuthorization(): String {
         return sessionConfig.sdkAuthorization
     }
-
-    fun getPrefetchedApiData(): ReadableMap? = paymentSessionLauncher.getPrefetchedApiData()
 }

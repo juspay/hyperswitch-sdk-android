@@ -1,6 +1,5 @@
 package io.hyperswitch.react
 
-import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
@@ -50,14 +49,15 @@ class HyperHeadlessModule internal constructor(rct: ReactApplicationContext) :
         SavedMethodConfirmationRegistry.complete(sdkAuthorization, status)
     }
 
-    /** Receives the completed prefetch for one payment and resumes its awaiting launcher. */
+    /**
+     * Completion signal for one payment's prefetch. The payload itself lives only in the JS
+     * PrefetchCache (shared VM); native just resumes the awaiting launcher. The argument map
+     * is `{sdkAuthorization}`-only and is merely echoed back to the (discarded) await result.
+     */
     @ReactMethod
-    fun storePrefetchedApiData(data: ReadableMap) {
+    fun completePrefetch(data: ReadableMap) {
         val sdkAuthorization = data.getString("sdkAuthorization") ?: return
-        // The launcher holds this until the sheet is presented, long after the bridge call
-        // returns, so hand over an owned copy rather than the JS-backed map.
-        val payload = Arguments.createMap().apply { merge(data) }
-        inFlightPrefetches.remove(sdkAuthorization)?.complete(payload)
+        inFlightPrefetches.remove(sdkAuthorization)?.complete(data)
     }
 
     companion object {

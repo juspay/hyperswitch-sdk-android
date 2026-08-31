@@ -41,7 +41,6 @@ class PaymentSessionReactLauncher(
     private var reactNativeHost: ReactNativeHost? = null
     private val launchOptions = LaunchOptions(activity, BuildConfig.VERSION_NAME, hsConfig)
 
-    @Volatile internal var prefetchedData: ReadableMap? = null
     @Volatile internal var sessionConfig: PaymentSessionConfiguration? = null
 
     /**
@@ -72,6 +71,8 @@ class PaymentSessionReactLauncher(
             taskSessionConfig = taskSessionConfig,
         )
 
+        // The deferred only signals completion: JS cached the payload in its own module
+        // state (shared VM) before calling completePrefetch, and resolves it from there.
         val data = withTimeoutOrNull(PREFETCH_TIMEOUT_MS) { prefetch.await() }
         if (data == null) {
             // Remove only this exact deferred so a newer prefetch cannot be cleared by this one.
@@ -83,18 +84,11 @@ class PaymentSessionReactLauncher(
         return Result.success(data)
     }
 
-    fun commitPrefetch(
-        committedSessionConfig: PaymentSessionConfiguration,
-        data: ReadableMap?,
-    ) {
+    fun commitSession(committedSessionConfig: PaymentSessionConfiguration) {
         sessionConfig = committedSessionConfig
-        prefetchedData = data
     }
 
     fun clearPrefetch(sdkAuthorization: String) {
-        if (sessionConfig?.sdkAuthorization == sdkAuthorization) {
-            prefetchedData = null
-        }
         emitPrefetchCacheRemoval(sdkAuthorization)
     }
 
@@ -251,7 +245,6 @@ class PaymentSessionReactLauncher(
     ): Boolean {
         val subscribedEvents = getSubscribedEventsSafely()
         val bundle = launchOptions.getBundle(sessionConfig, configuration, subscribedEvents)
-        addPrefetchedApiDataToBundle(bundle)
         applyFonts(configuration, bundle)
         return presentSheet(bottomInsetToDIPFromPixel(bundle))
     }
@@ -259,19 +252,7 @@ class PaymentSessionReactLauncher(
     override fun presentSheet(configurationMap: Map<String, Any?>): Boolean {
         val subscribedEvents = getSubscribedEventsSafely()
         val bundle = launchOptions.getBundleWithHyperParams(configurationMap, subscribedEvents)
-        addPrefetchedApiDataToBundle(bundle)
         return presentSheet(bottomInsetToDIPFromPixel(bundle))
-    }
-
-    private fun addPrefetchedApiDataToBundle(bundle: Bundle) {
-        val propsBundle = bundle.getBundle("props") ?: return
-        val data = prefetchedData
-        if (data != null) {
-            propsBundle.putBundle(
-                "prefetchedApiData",
-                launchOptions.toBundle(data.toHashMap())
-            )
-        }
     }
 
     private fun presentSheet(bundle: Bundle): Boolean {
