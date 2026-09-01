@@ -6,8 +6,8 @@ import java.util.concurrent.ConcurrentHashMap
 
 typealias ConfirmationCallback = (PaymentResult) -> Unit
 
-/** Holds only confirmations currently running for a saved-method handler. */
-internal object SavedMethodConfirmationRegistry {
+/** Holds only confirmations currently running through the headless runtime. */
+internal object HeadlessConfirmationRegistry {
     private val callbacks = ConcurrentHashMap<String, ConfirmationCallback>()
 
     fun tryRegister(

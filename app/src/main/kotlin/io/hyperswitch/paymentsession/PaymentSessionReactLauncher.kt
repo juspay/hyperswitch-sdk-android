@@ -130,10 +130,6 @@ class PaymentSessionReactLauncher(
         }
     }
 
-    /**
-     * The context can be null on first launch, so always read the host's live context. Later
-     * tasks then reuse the runtime created by the first task instead of initializing it again.
-     */
     private fun currentReactContext(): ReactContext? = reactHost?.currentReactContext
 
     override fun startHeadlessTask(

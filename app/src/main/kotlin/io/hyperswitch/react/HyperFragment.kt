@@ -20,7 +20,7 @@ import io.hyperswitch.PaymentEvent
 import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.paymentsheet.PaymentResult
-import io.hyperswitch.paymentsession.SavedMethodConfirmationRegistry
+import io.hyperswitch.paymentsession.HeadlessConfirmationRegistry
 import io.hyperswitch.redirect.RedirectEvent
 import io.hyperswitch.utils.ConversionUtils
 import org.greenrobot.eventbus.EventBus
@@ -312,7 +312,7 @@ class HyperFragment : ReactFragment() {
         }
 
         // Try to register callback for this specific authorization - fails if already in progress
-        val registered = SavedMethodConfirmationRegistry.tryRegister(
+        val registered = HeadlessConfirmationRegistry.tryRegister(
             sdkAuthorization = sdkAuthorization,
             callback = callback,
         )
@@ -337,7 +337,7 @@ class HyperFragment : ReactFragment() {
             // JS runtime is gone; nothing will consume this widget action. Roll back the
             // registration so a later confirm on the same authorization isn't stuck failing
             // with ALREADY_IN_PROGRESS on a callback that can never fire.
-            SavedMethodConfirmationRegistry.remove(sdkAuthorization)
+            HeadlessConfirmationRegistry.remove(sdkAuthorization)
             callback.invoke(PaymentResult.Failed(Throwable("React context is not available")))
             return
         }

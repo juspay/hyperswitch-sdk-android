@@ -41,8 +41,6 @@ internal class PaymentSessionHandlerImpl(
                 lastUsedMethodData = errorMap,
                 allMethodsData = Arguments.createArray(),
                 jsCallback = Callback {},
-                // A failed handler never reaches the registry-dependent paths
-                // (initializationError short-circuits first).
                 onTerminalResult = { _, _ -> },
                 initializationError = error,
             )
@@ -128,7 +126,7 @@ internal class PaymentSessionHandlerImpl(
                 onTerminalResult(sdkAuthorization, result)
                 resultHandler(result)
             }
-            val registered = SavedMethodConfirmationRegistry.tryRegister(
+            val registered = HeadlessConfirmationRegistry.tryRegister(
                 sdkAuthorization = sdkAuthorization,
                 callback = terminalCallback,
             )
@@ -141,7 +139,7 @@ internal class PaymentSessionHandlerImpl(
                 putString("cvc", cvc)
             })
         } catch (ex: Exception) {
-            SavedMethodConfirmationRegistry.remove(sdkAuthorization)
+            HeadlessConfirmationRegistry.remove(sdkAuthorization)
             val result = PaymentResult.Failed(Throwable("Not Initialised").apply {
                 initCause(Throwable("Not Initialised"))
             })
