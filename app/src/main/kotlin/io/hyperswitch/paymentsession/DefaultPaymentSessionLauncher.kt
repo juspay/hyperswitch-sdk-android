@@ -110,8 +110,6 @@ class DefaultPaymentSessionLauncher(
         configuration: SavedPaymentMethodsConfiguration?,
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
     ) {
-        // ReactNativeController.sessionRouter.setSessionCallback(sessionConfig?.sdkAuthorization, savedPaymentMethodCallback)
-
         isPresented = false
         val authorization = sessionConfig?.sdkAuthorization.orEmpty()
         val request = PendingSavedMethodsRequest(
@@ -156,8 +154,6 @@ class DefaultPaymentSessionLauncher(
         configuration: SavedPaymentMethodsConfiguration?,
     ): PaymentSessionHandler =
         suspendCancellableCoroutine { continuation ->
-            // ReactNativeController.sessionRouter.setSessionCallback(sessionConfig?.sdkAuthorization) { handler ->
-
             isPresented = false
             val authorization = sessionConfig?.sdkAuthorization.orEmpty()
             val request = PendingSavedMethodsRequest(
@@ -184,8 +180,6 @@ class DefaultPaymentSessionLauncher(
                 return@suspendCancellableCoroutine
             }
             continuation.invokeOnCancellation {
-                // ReactNativeController.sessionRouter.setSessionCallback(sessionConfig?.sdkAuthorization, null)
-
                 SavedMethodsRequestRegistry.remove(authorization, request)
             }
             try {

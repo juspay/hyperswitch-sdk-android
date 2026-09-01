@@ -35,14 +35,11 @@ class PaymentSessionReactLauncher(
     hsConfig: HyperswitchBaseConfiguration? = null,
 ) : SDKInterface {
 
-    override var sessionConfig: PaymentSessionConfiguration? = null
-
     private var reactHost: ReactHost? = null
     private var reactContext: ReactContext? = null
-    private var headlessTaskId: Int? = null
     private val launchOptions = LaunchOptions(activity, BuildConfig.VERSION_NAME, hsConfig)
 
-    @Volatile internal var sessionConfig: PaymentSessionConfiguration? = null
+    @Volatile override var sessionConfig: PaymentSessionConfiguration? = null
 
     /**
      * Runs the prefetch headless task and waits for its result.
@@ -137,14 +134,7 @@ class PaymentSessionReactLauncher(
      * The context can be null on first launch, so always read the host's live context. Later
      * tasks then reuse the runtime created by the first task instead of initializing it again.
      */
-    private fun currentReactContext(): ReactContext? {
-        val context = if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
-            reactHost?.currentReactContext
-        } else {
-            reactNativeHost?.reactInstanceManager?.currentReactContext
-        }
-        return context
-    }
+    private fun currentReactContext(): ReactContext? = reactHost?.currentReactContext
 
     override fun startHeadlessTask(
         configuration: SavedPaymentMethodsConfiguration?,
@@ -165,7 +155,7 @@ class PaymentSessionReactLauncher(
                 reactHost.addReactInstanceEventListener(
                     object : ReactInstanceEventListener {
                         override fun onReactContextInitialized(context: ReactContext) {
-                            invokeStartTask(context, configuration)
+                            invokeStartTask(context, configuration, headlessType, taskSessionConfig)
                             reactHost.removeReactInstanceEventListener(this)
                         }
                     }

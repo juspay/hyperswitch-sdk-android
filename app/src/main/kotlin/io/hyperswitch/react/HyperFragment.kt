@@ -311,8 +311,7 @@ class HyperFragment : ReactFragment() {
             return
         }
 
-        // Try to register callback for this specific widget - fails if already in progress
-        val registered = ReactNativeController.sessionRouter.tryRegisterExitCallback(rootTag, callback)
+        // Try to register callback for this specific authorization - fails if already in progress
         val registered = SavedMethodConfirmationRegistry.tryRegister(
             sdkAuthorization = sdkAuthorization,
             callback = callback,
@@ -333,7 +332,15 @@ class HyperFragment : ReactFragment() {
         map.putString("sdkAuthorization", sdkAuthorization)
         map.putString("paymentToken", paymentToken)
         billing?.let { map.putString("billing", it) }
-        ReactNativeController.eventEmitter.emitEvent("triggerWidgetAction", map)
+        val emitted = ReactNativeController.eventEmitter.emitEvent("triggerWidgetAction", map)
+        if (!emitted) {
+            // JS runtime is gone; nothing will consume this widget action. Roll back the
+            // registration so a later confirm on the same authorization isn't stuck failing
+            // with ALREADY_IN_PROGRESS on a callback that can never fire.
+            SavedMethodConfirmationRegistry.remove(sdkAuthorization)
+            callback.invoke(PaymentResult.Failed(Throwable("React context is not available")))
+            return
+        }
     }
 
 

@@ -17,7 +17,7 @@ class HyperHeadlessModule internal constructor(
 ) : io.hyperswitch.react.codegen.NativeHyperHeadlessSpec(rct) {
 
     override fun getPaymentSession(
-        rootTag: Double,
+        sdkAuthorization: String,
         paymentIntentData: ReadableMap,
         defaultPaymentMethod: ReadableMap,
         savedPaymentMethods: ReadableArray,
@@ -29,7 +29,8 @@ class HyperHeadlessModule internal constructor(
             return
         }
         val handler = PaymentSessionHandlerImpl(
-            sdkAuthorization = sessionRouter.getSdkAuthorization(),
+            sdkAuthorization = sdkAuthorization,
+            currentSdkAuthorization = request.currentSdkAuthorization,
             defaultMethodData = paymentIntentData,
             lastUsedMethodData = defaultPaymentMethod,
             allMethodsData = savedPaymentMethods,
@@ -37,12 +38,13 @@ class HyperHeadlessModule internal constructor(
             sessionRouter = sessionRouter,
             onTerminalResult = request.onTerminalResult,
         )
-        sessionRouter.executeSessionCallback(handler)
+        request.callback(handler)
     }
 
-    @ReactMethod
-    fun exitHeadless(sdkAuthorization: String, status: String) {
-        SavedMethodConfirmationRegistry.complete(sdkAuthorization, status)
+    // rootTag is part of the wire contract for iOS's CVC-widget lookup; Android's
+    // confirmation registry is keyed by sdkAuthorization and ignores it.
+    override fun exitHeadless(sdkAuthorization: String, rootTag: Double, result: ReadableMap) {
+        SavedMethodConfirmationRegistry.complete(sdkAuthorization, result)
     }
 
     /**
@@ -50,8 +52,7 @@ class HyperHeadlessModule internal constructor(
      * PrefetchCache (shared VM); native just resumes the awaiting launcher. The argument map
      * is `{sdkAuthorization}`-only and is merely echoed back to the (discarded) await result.
      */
-    @ReactMethod
-    fun completePrefetch(data: ReadableMap) {
+    override fun completePrefetch(data: ReadableMap) {
         val sdkAuthorization = data.getString("sdkAuthorization") ?: return
         inFlightPrefetches.remove(sdkAuthorization)?.complete(data)
     }
