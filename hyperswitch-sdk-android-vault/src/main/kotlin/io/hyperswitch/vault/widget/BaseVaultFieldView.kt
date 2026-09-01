@@ -47,6 +47,13 @@ open class BaseVaultFieldView @JvmOverloads constructor(
     defStyleAttr: Int = 0,
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
+    init {
+        // A default height so XML `wrap_content` (or a bare programmatic
+        // instance) never collapses this to zero — merchants who wrap the
+        // field in their own constraints override it in the normal way.
+        minimumHeight = (48 * resources.displayMetrics.density).toInt()
+    }
+
     /** Value of the `type` initial prop of the `hs-vault` app. */
     protected open val fieldTypeName: String = "infoInput"
 
@@ -68,9 +75,21 @@ open class BaseVaultFieldView @JvmOverloads constructor(
     private var codeOptions: VaultFieldOptions? = null
 
     /* Owner-collect identity, forwarded to the field surface's config props.
-     * Set by HyperswitchCollect.bindView. */
+     * Set by HyperswitchCollect.bindView; changing re-mounts the surface so
+     * the React side picks up the new sdkAuthorization/environment via its
+     * initialProps (the JS bundle reads them once, at mount). */
     internal var sdkAuthorization: String? = null
+        set(value) {
+            if (field == value) return
+            field = value
+            remountSurface()
+        }
     internal var jsEnvironment: String? = null
+        set(value) {
+            if (field == value) return
+            field = value
+            remountSurface()
+        }
 
     private var rootTag: Int = -1
     private var surface: ReactSurface? = null
@@ -117,6 +136,19 @@ open class BaseVaultFieldView @JvmOverloads constructor(
         surface?.view?.let { removeView(it) }
         surface = null
         mounted = false
+    }
+
+    /*
+     * Tears the mounted surface down and starts a new one, with the (possibly
+     * new) sdkAuthorization / environment values visible in the surface's
+     * initialProps. Used by HyperswitchCollect.bindView when the session
+     * rotates after the field is already on screen — without this, the React
+     * surface sees stale credentials from the first mount.
+     */
+    private fun remountSurface() {
+        if (!mounted) return
+        onDetachedFromWindow()
+        onAttachedToWindow()
     }
 
     private fun parseAttrs(attrs: AttributeSet) {
@@ -215,8 +247,14 @@ open class BaseVaultFieldView @JvmOverloads constructor(
             // ── internal (library-owned) ──
             if (fieldName.isNotBlank()) putString("fieldName", fieldName)
             putBoolean("isRequired", isRequired)
-            sdkAuthorization?.let { putString("sdkAuthorization", it) }
-            jsEnvironment?.let { putString("environment", it) }
+
+            // ── session (library-owned, set by HyperswitchCollect.bindView) ──
+            if (sdkAuthorization != null || jsEnvironment != null) {
+                putBundle("sessionConfig", Bundle().apply {
+                    sdkAuthorization?.let { putString("sdkAuthorization", it) }
+                    jsEnvironment?.let { putString("environment", it) }
+                })
+            }
 
             // ── merchant-owned ──
             val appearance = VaultAppearance.merge(xmlAppearance, codeAppearance)

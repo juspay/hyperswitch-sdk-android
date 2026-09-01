@@ -2,16 +2,15 @@ package io.hyperswitch.vault.react
 
 import android.os.Handler
 import android.os.Looper
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
 
 /**
- * Pending native `HyperswitchCollect.tokenise(completion)` calls awaiting
- * their JS answer (HyperVaultModule.submitTokeniseResult).
+ * Pending native `HyperswitchCollect.tokenise(completion)` awaiting the JS
+ * answer (HyperVaultModule.returnTokenizedValue).
  *
- * One entry per requestId; resolved exactly once, on the main thread — either
- * by the JS bridge or by the timeout safety net (fires when no JS vault
- * surface answered, e.g. the runtime never started or no field is mounted).
+ * One in-flight tokenise per vault SDK instance; a fresh registration
+ * replaces any earlier completion. The timeout safety net guarantees the
+ * completion fires exactly once even when no JS vault surface is mounted to
+ * answer.
  */
 internal object TokeniseDispatcher {
 
@@ -21,23 +20,25 @@ internal object TokeniseDispatcher {
     private const val TIMEOUT_RESULT =
         """{"status":"not_ready","error":{"code":"not_ready","message":"The card form is not ready yet."}}"""
 
-    private val nextId = AtomicLong(1)
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val pending = ConcurrentHashMap<Long, (String) -> Unit>()
-    private val timeouts = ConcurrentHashMap<Long, Runnable>()
+    private var pending: ((String) -> Unit)? = null
+    private var timeout: Runnable? = null
 
-    fun newRequestId(): Long = nextId.getAndIncrement()
-
-    fun register(requestId: Long, completion: (String) -> Unit) {
-        pending[requestId] = completion
-        val timeout = Runnable { resolve(requestId, TIMEOUT_RESULT) }
-        timeouts[requestId] = timeout
-        mainHandler.postDelayed(timeout, TIMEOUT_MS)
+    @Synchronized
+    fun register(completion: (String) -> Unit) {
+        timeout?.let(mainHandler::removeCallbacks)
+        val t = Runnable { resolve(TIMEOUT_RESULT) }
+        pending = completion
+        timeout = t
+        mainHandler.postDelayed(t, TIMEOUT_MS)
     }
 
-    fun resolve(requestId: Long, resultJson: String) {
-        val completion = pending.remove(requestId) ?: return
-        timeouts.remove(requestId)?.let(mainHandler::removeCallbacks)
+    @Synchronized
+    fun resolve(resultJson: String) {
+        timeout?.let(mainHandler::removeCallbacks)
+        timeout = null
+        val completion = pending ?: return
+        pending = null
         mainHandler.post { completion(resultJson) }
     }
 }

@@ -14,7 +14,7 @@ import org.json.JSONArray
  *   ([{fieldType, bin, isEmpty, isValid, ...}]), keyed by FieldType. No raw
  *   values: card_number carries only the PCI-safe BIN under `bin`; expiry
  *   and CVC send flags only.
- * - submitTokeniseResult: the JS answer to a native tokenise() broadcast;
+ * - returnTokenizedValue: the JS answer to a native tokenise() broadcast;
  *   resolves the pending collector completion via TokeniseDispatcher.
  */
 class HyperVaultModule(reactContext: ReactApplicationContext) :
@@ -43,7 +43,7 @@ class HyperVaultModule(reactContext: ReactApplicationContext) :
         }
     }
 
-    override fun submitTokeniseResult(requestId: Double, resultJson: String) {
-        TokeniseDispatcher.resolve(requestId.toLong(), resultJson)
+    override fun returnTokenizedValue(resultJson: String) {
+        TokeniseDispatcher.resolve(resultJson)
     }
 }

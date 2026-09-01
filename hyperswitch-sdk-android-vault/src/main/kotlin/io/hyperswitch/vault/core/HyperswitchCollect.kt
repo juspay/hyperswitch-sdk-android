@@ -67,6 +67,8 @@ class HyperswitchCollect {
     fun bindView(view: BaseVaultFieldView?) {
         if (view == null) return
         views.add(view)
+        view.sdkAuthorization = sdkAuthorization
+        view.jsEnvironment = environment.jsEnvName
         view.stateChangeListener = OnFieldStateChangeListener { state ->
             fieldStateChangeListener?.onStateChange(state)
         }
@@ -74,6 +76,8 @@ class HyperswitchCollect {
 
     fun unbindView(view: BaseVaultFieldView) {
         views.remove(view)
+        view.sdkAuthorization = null
+        view.jsEnvironment = null
         view.stateChangeListener = null
     }
 
@@ -92,12 +96,10 @@ class HyperswitchCollect {
      * is mounted.
      */
     fun tokenise(completion: (VaultTokeniseResult) -> Unit) {
-        val requestId = TokeniseDispatcher.newRequestId()
-        TokeniseDispatcher.register(requestId) { json ->
+        TokeniseDispatcher.register { json ->
             completion(VaultTokeniseResult.fromJson(json))
         }
         VaultReactNativeController.emitTokenise(
-            requestId,
             sdkAuthorization,
             environment.jsEnvName,
         )

@@ -11,10 +11,16 @@ data class FieldState(
     val fieldName: String?,
     val fieldType: FieldType,
     val bin: String?,
-    val isEmpty: Boolean,
-    val isValid: Boolean,
-    val isRequired: Boolean,
-    val isFocused: Boolean,
+    /*
+     * Brand detected from the card_number widget, named `cardBrand` for
+     * parity with iOS; parsed from the JS `brand` wire key. Absent for
+     * non-card fields and while no brand is known.
+     */
+    val cardBrand: String? = null,
+    val isEmpty: Boolean = true,
+    val isValid: Boolean = false,
+    val isRequired: Boolean = false,
+    val isFocused: Boolean = false,
     val isTokenized: Boolean = false,
 ) {
     companion object {
@@ -24,6 +30,7 @@ data class FieldState(
                 fieldName = obj.optString("fieldName").takeIf { it.isNotEmpty() },
                 fieldType = FieldType.fromRawValue(obj.optString("fieldType")) ?: FieldType.INFO,
                 bin = obj.optString("bin").takeIf { it.isNotEmpty() },
+                cardBrand = obj.optString("brand").takeIf { it.isNotEmpty() },
                 isEmpty = obj.optBoolean("isEmpty", true),
                 isValid = obj.optBoolean("isValid"),
                 isRequired = obj.optBoolean("isRequired"),

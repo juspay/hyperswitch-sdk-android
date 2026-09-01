@@ -32,7 +32,7 @@
         </attr>
         <attr name="vaultCvcIcon" format="enum">
             <enum name="none" value="0" />
-            <enum name="default" value="1" />
+            <enum name="enabled" value="1" />
         </attr>
         <attr name="vaultAccessibilityLabel" format="string" />
         <attr name="vaultAccessibilityHint" format="string" />

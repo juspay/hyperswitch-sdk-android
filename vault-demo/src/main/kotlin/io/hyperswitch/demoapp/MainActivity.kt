@@ -25,6 +25,7 @@ class MainActivity : AppCompatActivity() {
     private var collect: HyperswitchCollect? = null
     private val vaultFields = mutableListOf<BaseVaultFieldView>()
     private lateinit var tokeniseButton: Button
+    private lateinit var reloadButton: Button
     private lateinit var statesView: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,6 +51,13 @@ class MainActivity : AppCompatActivity() {
         }
         container.addView(tokeniseButton)
 
+        reloadButton = Button(this).apply {
+            text = "Reload Session"
+            isEnabled = false
+            setOnClickListener { reloadSession() }
+        }
+        container.addView(reloadButton)
+
         statesView = TextView(this).apply {
             textSize = 12f
             text = "Fetching vault session…"
@@ -64,20 +72,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * The vault sdk_authorization is NOT the payments one: it is minted by a
-     * payment-method-session. mockServer.js (client-core) mints one at
-     * POST /v1/payment-method-sessions and serves it here.
+     * The vault sdk_authorization is NOT the payments one: it is carried inside
+     * the session response (`vault_details.vault_data.sdk_authorization`),
+     * minted by the two-call flow of react-native-hyperswitch-vault's example
+     * merchant-server (POST /payments -> POST /payments/session_tokens).
+     * mockServer.js (client-core) serves exactly that shape at `/vault-session`.
+     * Everything else in the session body is SDK-facing only; the demo never
+     * decodes or logs it.
      */
     private fun fetchVaultAuthorization() {
-        reset().get("$SERVER_URL/create-payment-method-session")
+        reset().get("$SERVER_URL/vault-session")
             .responseString(object : Handler<String?> {
                 override fun success(value: String?) {
                     try {
                         val json = value?.let { JSONObject(it) } ?: return
-                        val sdkAuthorization = json.getString("sdkAuthorization")
+                        val sdkAuthorization = json
+                            .getJSONObject("vault_details")
+                            .getJSONObject("vault_data")
+                            .getString("sdk_authorization")
                         runOnUiThread { onAuthorizationReady(sdkAuthorization) }
                     } catch (e: JSONException) {
-                        Log.e(TAG, "Failed to parse vault session response", e)
+                        Log.e(TAG, "Vault session missing vault_details.vault_data.sdk_authorization", e)
                         setStatus("Bad vault session response")
                     }
                 }
@@ -90,7 +105,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onAuthorizationReady(sdkAuthorization: String) {
-        val collect = HyperswitchCollect(this, sdkAuthorization, Environment.SANDBOX)
+        // Drop the previous session: unbind every field so the next
+        // bindView re-emits initialProps with the fresh sdk_authorization.
+        collect?.let { previous ->
+            vaultFields.forEach(previous::unbindView)
+        }
+
+        // Environment must match the host mockServer.js minted the session
+        // against: INTEG -> integ.hyperswitch.io servers, JS vault host
+        // dev.hyperswitch.io/api (the "#integration" environment).
+        val collect = HyperswitchCollect(this, sdkAuthorization, Environment.INTEG)
         this.collect = collect
 
         vaultFields.forEach(collect::bindView)
@@ -99,13 +123,19 @@ class MainActivity : AppCompatActivity() {
         }
 
         tokeniseButton.isEnabled = true
+        reloadButton.isEnabled = true
         setStatus("Vault session ready")
         Log.i(TAG, "[VAULT-TEST] collect initialised with backend sdk authorization")
     }
 
+    private fun reloadSession() {
+        setStatus("Reloading vault session…")
+        tokeniseButton.isEnabled = false
+        fetchVaultAuthorization()
+    }
+
     private fun addField(field: BaseVaultFieldView, name: String, container: LinearLayout) {
         field.fieldName = name
-        field.placeholder = name
         field.layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, dp(56)
         ).apply { topMargin = dp(12) }
@@ -118,7 +148,7 @@ class MainActivity : AppCompatActivity() {
         Log.i(TAG, "[VAULT-TEST] getFieldStates() -> ${states.size} states")
         states.forEach { Log.i(TAG, "[VAULT-TEST] state: $it") }
         statesView.text = states.joinToString("\n\n") {
-            "${it.fieldName}: content='${it.content}' empty=${it.isEmpty} valid=${it.isValid}"
+            "${it.fieldName} empty=${it.isEmpty} valid=${it.isValid}"
         }
     }
 

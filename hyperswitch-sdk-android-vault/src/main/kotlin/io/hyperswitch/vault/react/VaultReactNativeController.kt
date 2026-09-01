@@ -60,12 +60,11 @@ object VaultReactNativeController {
 
     /**
      * Broadcasts an answerable tokenise request: a mounted JS vault surface
-     * claims [requestId], runs the vault confirm, and answers through
-     * HyperVaultModule.submitTokeniseResult with the vaultSubmitResult JSON.
+     * claims the event, runs the vault confirm, and answers through
+     * HyperVaultModule.returnTokenizedValue with the vaultSubmitResult JSON.
      */
-    fun emitTokenise(requestId: Long, sdkAuthorization: String, environment: String) {
+    fun emitTokenise(sdkAuthorization: String, environment: String) {
         val payload = Arguments.createMap().apply {
-            putDouble("requestId", requestId.toDouble())
             putString("sdkAuthorization", sdkAuthorization)
             putString("environment", environment)
         }
