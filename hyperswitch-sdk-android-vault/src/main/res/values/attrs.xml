@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="HyperswitchVaultField">
+        <!-- ── internal (library contract) ── -->
         <attr name="fieldName" format="string" />
         <attr name="placeholder" format="string" />
         <attr name="isRequired" format="boolean" />
@@ -12,5 +13,42 @@
             <enum name="ssn" value="4" />
             <enum name="info" value="5" />
         </attr>
+
+        <!-- ── merchant configuration: field options ── -->
+        <attr name="vaultLabel" format="string" />
+        <attr name="vaultLabelBehavior" format="enum">
+            <enum name="none" value="0" />
+            <enum name="pinned" value="1" />
+            <enum name="floating" value="2" />
+        </attr>
+        <attr name="vaultErrorDisplay" format="enum">
+            <enum name="none" value="0" />
+            <enum name="inline" value="1" />
+        </attr>
+        <attr name="vaultBrandIconMode" format="enum">
+            <enum name="auto" value="0" />
+            <enum name="fixed" value="1" />
+            <enum name="hidden" value="2" />
+        </attr>
+        <attr name="vaultCvcIcon" format="enum">
+            <enum name="none" value="0" />
+            <enum name="default" value="1" />
+        </attr>
+        <attr name="vaultAccessibilityLabel" format="string" />
+        <attr name="vaultAccessibilityHint" format="string" />
+        <attr name="vaultTestTag" format="string" />
+
+        <!-- ── merchant configuration: appearance tokens (flat, matches RN contract) ── -->
+        <attr name="vaultPrimaryColor" format="color" />
+        <attr name="vaultTextColor" format="color" />
+        <attr name="vaultErrorColor" format="color" />
+        <attr name="vaultPlaceholderColor" format="color" />
+        <attr name="vaultBackgroundColor" format="color" />
+        <attr name="vaultBorderColor" format="color" />
+        <attr name="vaultBorderRadius" format="dimension" />
+        <attr name="vaultBorderWidth" format="dimension" />
+        <attr name="vaultInputHeight" format="dimension" />
+        <attr name="vaultFontScale" format="float" />
+        <attr name="vaultFontFamily" format="string" />
     </declare-styleable>
 </resources>

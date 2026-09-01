@@ -10,9 +10,10 @@ import org.json.JSONArray
  *
  * TurboModule called by the JS vault package:
  * - updateFieldState: the legacy per-surface state push, keyed by rootTag.
- * - updateVaultFieldStates: the aggregated push of a surface's mounted
- *   fields ([{fieldType, value(redacted), isEmpty, isValid, ...}]), keyed by
- *   FieldType. Values are redacted JS-side (PAN to BIN, CVC masked).
+ * - updateVaultFieldStates: aggregated push of a surface's mounted fields
+ *   ([{fieldType, bin, isEmpty, isValid, ...}]), keyed by FieldType. No raw
+ *   values: card_number carries only the PCI-safe BIN under `bin`; expiry
+ *   and CVC send flags only.
  * - submitTokeniseResult: the JS answer to a native tokenise() broadcast;
  *   resolves the pending collector completion via TokeniseDispatcher.
  */

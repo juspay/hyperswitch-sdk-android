@@ -15,15 +15,31 @@ import io.hyperswitch.vault.core.FieldState
 import io.hyperswitch.vault.core.FieldType
 import io.hyperswitch.vault.core.OnFieldStateChangeListener
 import io.hyperswitch.vault.core.VaultAppearance
+import io.hyperswitch.vault.core.VaultFieldOptions
 import io.hyperswitch.vault.react.VaultReactNativeController
 import io.hyperswitch.vault.react.VaultStateStore
 
 /**
  * BaseVaultFieldView
  *
- * Native-host container for one secure vault field. the Hyperswitch Vault SDK renders the
- * input itself as a React Native surface of the shared runtime — the view you
- * place in the merchant layout is only a host.
+ * Native-host container for one secure vault field. The Hyperswitch Vault SDK
+ * renders the input itself as a React Native surface of the shared runtime —
+ * the view you place in the merchant layout is only a host.
+ *
+ * ── Initial-prop shape ──────────────────────────────────────────────────────
+ * Top level of `config` holds library-owned keys only:
+ *
+ *     type, fieldName, isRequired, sdkAuthorization, environment
+ *
+ * No raw card data — no `value`, no `readOnly` — ever enters the Bundle. The
+ * sensitive value lives only inside the RN surface.
+ *
+ * Every merchant-set customization lives under `configuration`:
+ *
+ *     configuration: {
+ *         appearance: { ...theme tokens... },
+ *         options:    { ...field options... },
+ *     }
  */
 open class BaseVaultFieldView @JvmOverloads constructor(
     context: Context,
@@ -42,16 +58,19 @@ open class BaseVaultFieldView @JvmOverloads constructor(
         }
     var isRequired: Boolean = true
         private set
-    var placeholder: String? = null
-    private var appearance: VaultAppearance? = null
+
+    /** Merchant theme tokens, gathered from XML attrs and overridable in code. */
+    private var xmlAppearance: VaultAppearance? = null
+    private var codeAppearance: VaultAppearance? = null
+
+    /** Merchant field options, gathered from XML attrs and overridable in code. */
+    private var xmlOptions: VaultFieldOptions? = null
+    private var codeOptions: VaultFieldOptions? = null
 
     /* Owner-collect identity, forwarded to the field surface's config props.
      * Set by HyperswitchCollect.bindView. */
     internal var sdkAuthorization: String? = null
     internal var jsEnvironment: String? = null
-
-    /** Vault alias shown after a successful tokenization (read-only). */
-    private var alias: String? = null
 
     private var rootTag: Int = -1
     private var surface: ReactSurface? = null
@@ -70,9 +89,14 @@ open class BaseVaultFieldView @JvmOverloads constructor(
         isRequired = required
     }
 
-    /** Must be set before the view is attached to a window. */
+    /** Must be set before the view is attached to a window. Merged with XML. */
     fun setAppearance(appearance: VaultAppearance) {
-        this.appearance = appearance
+        this.codeAppearance = appearance
+    }
+
+    /** Must be set before the view is attached to a window. Merged with XML. */
+    fun setOptions(options: VaultFieldOptions) {
+        this.codeOptions = options
     }
 
     fun getState(): FieldState? =
@@ -97,25 +121,112 @@ open class BaseVaultFieldView @JvmOverloads constructor(
 
     private fun parseAttrs(attrs: AttributeSet) {
         val a = context.obtainStyledAttributes(attrs, R.styleable.HyperswitchVaultField)
-        fieldName = a.getString(R.styleable.HyperswitchVaultField_fieldName) ?: fieldName
-        isRequired = a.getBoolean(R.styleable.HyperswitchVaultField_isRequired, isRequired)
-        placeholder = a.getString(R.styleable.HyperswitchVaultField_placeholder) ?: placeholder
-        a.recycle()
+        try {
+            fieldName = a.getString(R.styleable.HyperswitchVaultField_fieldName) ?: fieldName
+            isRequired = a.getBoolean(R.styleable.HyperswitchVaultField_isRequired, isRequired)
+
+            val placeholder = a.getString(R.styleable.HyperswitchVaultField_placeholder)
+
+            // ── field options ──
+            val label = a.getString(R.styleable.HyperswitchVaultField_vaultLabel)
+            val labelBehavior = when (a.getInt(R.styleable.HyperswitchVaultField_vaultLabelBehavior, -1)) {
+                1 -> VaultFieldOptions.LabelBehavior.STATIC
+                2 -> VaultFieldOptions.LabelBehavior.FLOATING
+                0 -> VaultFieldOptions.LabelBehavior.NONE
+                else -> null
+            }
+            val errorDisplay = when (a.getInt(R.styleable.HyperswitchVaultField_vaultErrorDisplay, -1)) {
+                1 -> VaultFieldOptions.ErrorDisplay.INLINE
+                0 -> VaultFieldOptions.ErrorDisplay.NONE
+                else -> null
+            }
+            val brandIconMode = when (a.getInt(R.styleable.HyperswitchVaultField_vaultBrandIconMode, -1)) {
+                0 -> VaultAppearance.BrandIconMode.AUTO
+                1 -> VaultAppearance.BrandIconMode.STATIC
+                2 -> VaultAppearance.BrandIconMode.HIDDEN
+                else -> null
+            }
+            val cvcIcon = when (a.getInt(R.styleable.HyperswitchVaultField_vaultCvcIcon, -1)) {
+                1 -> VaultFieldOptions.CvcIcon.DEFAULT
+                0 -> VaultFieldOptions.CvcIcon.NONE
+                else -> null
+            }
+            val accessibilityLabel = a.getString(R.styleable.HyperswitchVaultField_vaultAccessibilityLabel)
+            val accessibilityHint = a.getString(R.styleable.HyperswitchVaultField_vaultAccessibilityHint)
+            val testTag = a.getString(R.styleable.HyperswitchVaultField_vaultTestTag)
+
+            if (listOf(placeholder, label, labelBehavior, errorDisplay, brandIconMode,
+                    cvcIcon, accessibilityLabel, accessibilityHint, testTag).any { it != null }
+            ) {
+                xmlOptions = VaultFieldOptions(
+                    placeholder = placeholder,
+                    label = label,
+                    labelBehavior = labelBehavior,
+                    errorDisplay = errorDisplay,
+                    accessibilityLabel = accessibilityLabel,
+                    accessibilityHint = accessibilityHint,
+                    testID = testTag,
+                    brandIconMode = brandIconMode,
+                    cvcIcon = cvcIcon,
+                )
+            }
+
+            // ── appearance tokens ──
+            val primary = a.getColorOrNull(R.styleable.HyperswitchVaultField_vaultPrimaryColor)
+            val text = a.getColorOrNull(R.styleable.HyperswitchVaultField_vaultTextColor)
+            val error = a.getColorOrNull(R.styleable.HyperswitchVaultField_vaultErrorColor)
+            val placeholderColor = a.getColorOrNull(R.styleable.HyperswitchVaultField_vaultPlaceholderColor)
+            val background = a.getColorOrNull(R.styleable.HyperswitchVaultField_vaultBackgroundColor)
+            val border = a.getColorOrNull(R.styleable.HyperswitchVaultField_vaultBorderColor)
+            val radius = a.getDimensionOrNull(R.styleable.HyperswitchVaultField_vaultBorderRadius)
+            val borderWidth = a.getDimensionOrNull(R.styleable.HyperswitchVaultField_vaultBorderWidth)
+            val inputHeight = a.getDimensionOrNull(R.styleable.HyperswitchVaultField_vaultInputHeight)
+            val fontScale = if (a.hasValue(R.styleable.HyperswitchVaultField_vaultFontScale)) {
+                a.getFloat(R.styleable.HyperswitchVaultField_vaultFontScale, 1f)
+            } else null
+            val fontFamily = a.getString(R.styleable.HyperswitchVaultField_vaultFontFamily)
+
+            if (listOf(primary, text, error, placeholderColor, background, border,
+                    radius, borderWidth, inputHeight, fontScale, fontFamily).any { it != null }
+            ) {
+                xmlAppearance = VaultAppearance(
+                    primaryColor = primary,
+                    textColor = text,
+                    errorColor = error,
+                    placeholderColor = placeholderColor,
+                    backgroundColor = background,
+                    borderColor = border,
+                    borderRadius = radius?.let { pxToDp(it) },
+                    borderWidth = borderWidth?.let { pxToDp(it) },
+                    inputHeight = inputHeight?.let { pxToDp(it) },
+                    fontScale = fontScale,
+                    fontFamily = fontFamily,
+                    brandIconMode = brandIconMode,
+                )
+            }
+        } finally {
+            a.recycle()
+        }
     }
 
     protected open fun buildInitialProps(): Bundle = Bundle().apply {
         putString("type", fieldTypeName)
         putBundle("config", Bundle().apply {
+            // ── internal (library-owned) ──
             if (fieldName.isNotBlank()) putString("fieldName", fieldName)
-            placeholder?.let { putString("placeholder", it) }
             putBoolean("isRequired", isRequired)
             sdkAuthorization?.let { putString("sdkAuthorization", it) }
             jsEnvironment?.let { putString("environment", it) }
-            alias?.let {
-                putString("value", it)
-                putBoolean("readOnly", true)
+
+            // ── merchant-owned ──
+            val appearance = VaultAppearance.merge(xmlAppearance, codeAppearance)
+            val options = VaultFieldOptions.merge(xmlOptions, codeOptions)
+            if (appearance != null || options != null) {
+                putBundle("configuration", Bundle().apply {
+                    appearance?.let { putBundle("appearance", it.toBundle()) }
+                    options?.let { putBundle("options", it.toBundle()) }
+                })
             }
-            appearance?.toBundle()?.let { putBundle("appearance", it) }
         })
     }
 
@@ -195,15 +306,14 @@ open class BaseVaultFieldView @JvmOverloads constructor(
         }
     }
 
-    /**
-     * Hyperswitch-style `setText(token)`: replaces the sensitive content with the vault
-     * alias by re-mounting this field's surface read-only.
-     */
-    internal fun setAlias(token: String) {
-        alias = token
-        surface?.view?.let { removeView(it) }
-        surface = null
-        rootTag = -1
-        attachSurface()
-    }
+    private fun pxToDp(px: Float): Float =
+        px / resources.displayMetrics.density
+
+    private fun android.content.res.TypedArray.getColorOrNull(
+        styleable: Int,
+    ): Int? = if (hasValue(styleable)) getColor(styleable, 0) else null
+
+    private fun android.content.res.TypedArray.getDimensionOrNull(
+        styleable: Int,
+    ): Float? = if (hasValue(styleable)) getDimension(styleable, 0f) else null
 }
