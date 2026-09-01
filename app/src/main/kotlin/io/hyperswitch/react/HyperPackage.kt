@@ -6,17 +6,15 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.module.model.ReactModuleInfo
 import com.facebook.react.module.model.ReactModuleInfoProvider
 import com.facebook.react.uimanager.ViewManager
-import io.hyperswitch.paymentsession.PaymentSessionRouter
 
 class HyperPackage(
     private val eventEmitter: HyperEventEmitter,
-    private val sessionRouter: PaymentSessionRouter,
 ) : BaseReactPackage() {
 
     override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? {
         return when (name) {
             io.hyperswitch.react.codegen.NativeHyperModuleSpec.NAME -> HyperModule(reactContext, eventEmitter)
-            io.hyperswitch.react.codegen.NativeHyperHeadlessSpec.NAME -> HyperHeadlessModule(reactContext, sessionRouter)
+            io.hyperswitch.react.codegen.NativeHyperHeadlessSpec.NAME -> HyperHeadlessModule(reactContext)
             else -> null
         }
     }

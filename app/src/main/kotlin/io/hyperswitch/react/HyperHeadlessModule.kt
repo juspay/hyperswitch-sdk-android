@@ -9,11 +9,9 @@ import io.hyperswitch.paymentsession.SavedMethodConfirmationRegistry
 import io.hyperswitch.paymentsession.SavedMethodsRequestRegistry
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CompletableDeferred
-import io.hyperswitch.paymentsession.PaymentSessionRouter
 
 class HyperHeadlessModule internal constructor(
     rct: ReactApplicationContext,
-    private val sessionRouter: PaymentSessionRouter,
 ) : io.hyperswitch.react.codegen.NativeHyperHeadlessSpec(rct) {
 
     override fun getPaymentSession(
@@ -35,7 +33,6 @@ class HyperHeadlessModule internal constructor(
             lastUsedMethodData = defaultPaymentMethod,
             allMethodsData = savedPaymentMethods,
             jsCallback = callback,
-            sessionRouter = sessionRouter,
             onTerminalResult = request.onTerminalResult,
         )
         request.callback(handler)

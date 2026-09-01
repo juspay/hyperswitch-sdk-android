@@ -1,8 +1,8 @@
 package io.hyperswitch.paymentsession
 
+import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.paymentsheet.PaymentResult
 import java.util.concurrent.ConcurrentHashMap
-import org.json.JSONObject
 
 typealias ConfirmationCallback = (PaymentResult) -> Unit
 
@@ -16,9 +16,9 @@ internal object SavedMethodConfirmationRegistry {
     ): Boolean = sdkAuthorization.isNotEmpty() &&
         callbacks.putIfAbsent(sdkAuthorization, callback) == null
 
-    fun complete(sdkAuthorization: String, data: String): Boolean {
+    fun complete(sdkAuthorization: String, result: ReadableMap): Boolean {
         val callback = callbacks.remove(sdkAuthorization) ?: return false
-        callback(parseResult(data))
+        callback(parseResult(result))
         return true
     }
 
@@ -26,14 +26,15 @@ internal object SavedMethodConfirmationRegistry {
         callbacks.remove(sdkAuthorization)
     }
 
-    private fun parseResult(data: String): PaymentResult {
-        val message = runCatching { JSONObject(data) }.getOrNull()
-            ?: return failure("UNKNOWN_ERROR", "An error has occurred.")
-        return when (val status = message.optString("status")) {
+    // `result` is the codegen PaymentExitResult object: {status, type?, code?, message?}.
+    private fun parseResult(result: ReadableMap): PaymentResult {
+        fun opt(key: String): String =
+            if (result.hasKey(key) && !result.isNull(key)) result.getString(key) ?: "" else ""
+        return when (val status = opt("status")) {
             "cancelled" -> PaymentResult.Canceled(status)
             "failed", "requires_payment_method" -> failure(
-                message.optString("code", "UNKNOWN_ERROR").ifEmpty { "UNKNOWN_ERROR" },
-                message.optString("message", "An error has occurred."),
+                opt("code").ifEmpty { "UNKNOWN_ERROR" },
+                opt("message").ifEmpty { "An error has occurred." },
             )
             "" -> failure("UNKNOWN_ERROR", "An error has occurred.")
 
