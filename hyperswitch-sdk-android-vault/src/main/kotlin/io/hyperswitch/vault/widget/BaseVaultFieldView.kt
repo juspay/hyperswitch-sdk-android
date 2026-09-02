@@ -54,9 +54,11 @@ open class BaseVaultFieldView @JvmOverloads constructor(
         minimumHeight = (48 * resources.displayMetrics.density).toInt()
     }
 
-    /** Value of the `type` initial prop of the `hs-vault` app. */
-    protected open val fieldTypeName: String = "infoInput"
-
+    /**
+     * The surface-prop `type` AND the native state-store key for this field —
+     * one naming scheme, the FieldType wire values ("card_number", "exp_date",
+     * …). JS decodes the same strings (see VaultFieldTypes.fieldTypeFromString).
+     */
     protected open val defaultFieldType: FieldType = FieldType.INFO
 
     var fieldName: String = ""
@@ -75,7 +77,7 @@ open class BaseVaultFieldView @JvmOverloads constructor(
     private var codeOptions: VaultFieldOptions? = null
 
     /* Owner-collect identity, forwarded to the field surface's config props.
-     * Set by HyperswitchCollect.bindView; changing re-mounts the surface so
+     * Set by HyperswitchVault.bindView; changing re-mounts the surface so
      * the React side picks up the new sdkAuthorization/environment via its
      * initialProps (the JS bundle reads them once, at mount). */
     internal var sdkAuthorization: String? = null
@@ -141,7 +143,7 @@ open class BaseVaultFieldView @JvmOverloads constructor(
     /*
      * Tears the mounted surface down and starts a new one, with the (possibly
      * new) sdkAuthorization / environment values visible in the surface's
-     * initialProps. Used by HyperswitchCollect.bindView when the session
+     * initialProps. Used by HyperswitchVault.bindView when the session
      * rotates after the field is already on screen — without this, the React
      * surface sees stale credentials from the first mount.
      */
@@ -217,9 +219,10 @@ open class BaseVaultFieldView @JvmOverloads constructor(
                 a.getFloat(R.styleable.HyperswitchVaultField_vaultFontScale, 1f)
             } else null
             val fontFamily = a.getString(R.styleable.HyperswitchVaultField_vaultFontFamily)
+            val gap = a.getDimensionOrNull(R.styleable.HyperswitchVaultField_vaultGap)
 
             if (listOf(primary, text, error, placeholderColor, background, border,
-                    radius, borderWidth, inputHeight, fontScale, fontFamily).any { it != null }
+                    radius, borderWidth, inputHeight, fontScale, fontFamily, gap).any { it != null }
             ) {
                 xmlAppearance = VaultAppearance(
                     primaryColor = primary,
@@ -233,6 +236,7 @@ open class BaseVaultFieldView @JvmOverloads constructor(
                     inputHeight = inputHeight?.let { pxToDp(it) },
                     fontScale = fontScale,
                     fontFamily = fontFamily,
+                    gap = gap?.let { pxToDp(it) },
                     brandIconMode = brandIconMode,
                 )
             }
@@ -242,13 +246,13 @@ open class BaseVaultFieldView @JvmOverloads constructor(
     }
 
     protected open fun buildInitialProps(): Bundle = Bundle().apply {
-        putString("type", fieldTypeName)
+        putString("type", defaultFieldType.rawValue)
         putBundle("config", Bundle().apply {
             // ── internal (library-owned) ──
             if (fieldName.isNotBlank()) putString("fieldName", fieldName)
             putBoolean("isRequired", isRequired)
 
-            // ── session (library-owned, set by HyperswitchCollect.bindView) ──
+            // ── session (library-owned, set by HyperswitchVault.bindView) ──
             if (sdkAuthorization != null || jsEnvironment != null) {
                 putBundle("sessionConfig", Bundle().apply {
                     sdkAuthorization?.let { putString("sdkAuthorization", it) }

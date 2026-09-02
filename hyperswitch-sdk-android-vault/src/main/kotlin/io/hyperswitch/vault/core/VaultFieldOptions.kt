@@ -23,6 +23,14 @@ data class VaultFieldOptions(
     val brandIconMode: VaultAppearance.BrandIconMode? = null,
     /** CVC field only. */
     val cvcIcon: CvcIcon? = null,
+    /**
+     * Renders the field as a bare input — no label, icons, box or inline
+     * error UI. Wins over the other options; accessibility text and masking
+     * survive. Technical details in the RN vault's field-options docs.
+     */
+    val unstyled: Boolean? = null,
+    /** Per-slot styles; a style never turns an element on. */
+    val styles: VaultFieldStyles? = null,
 ) {
     enum class LabelBehavior(val raw: String) {
         NONE("none"),
@@ -50,6 +58,8 @@ data class VaultFieldOptions(
         testID?.let { putString("testID", it) }
         brandIconMode?.let { putString("brandIconMode", it.raw) }
         cvcIcon?.let { putString("cvcIcon", it.raw) }
+        unstyled?.let { putBoolean("unstyled", it) }
+        styles?.takeUnless { it.isEmpty }?.let { putBundle("styles", it.toBundle()) }
     }
 
     internal companion object {
@@ -67,6 +77,8 @@ data class VaultFieldOptions(
                 testID = override.testID ?: base.testID,
                 brandIconMode = override.brandIconMode ?: base.brandIconMode,
                 cvcIcon = override.cvcIcon ?: base.cvcIcon,
+                unstyled = override.unstyled ?: base.unstyled,
+                styles = VaultFieldStyles.merge(base.styles, override.styles),
             )
         }
     }

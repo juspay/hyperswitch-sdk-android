@@ -22,6 +22,9 @@ data class VaultAppearance(
     val inputHeight: Float? = null,
     val fontScale: Float? = null,
     val gap: Float? = null,
+    val placeholderTextSizeAdjust: Float? = null,
+    val errorTextSizeAdjust: Float? = null,
+    val errorMessageSpacing: Float? = null,
     val brandIconMode: BrandIconMode? = null,
 ) {
     enum class BrandIconMode(val raw: String) {
@@ -43,6 +46,9 @@ data class VaultAppearance(
         inputHeight?.let { putDouble("inputHeight", it.toDouble()) }
         fontScale?.let { putDouble("fontScale", it.toDouble()) }
         gap?.let { putDouble("gap", it.toDouble()) }
+        placeholderTextSizeAdjust?.let { putDouble("placeholderTextSizeAdjust", it.toDouble()) }
+        errorTextSizeAdjust?.let { putDouble("errorTextSizeAdjust", it.toDouble()) }
+        errorMessageSpacing?.let { putDouble("errorMessageSpacing", it.toDouble()) }
         brandIconMode?.let { putString("brandIconMode", it.raw) }
     }
 
@@ -66,6 +72,10 @@ data class VaultAppearance(
                 inputHeight = override.inputHeight ?: base.inputHeight,
                 fontScale = override.fontScale ?: base.fontScale,
                 gap = override.gap ?: base.gap,
+                placeholderTextSizeAdjust =
+                    override.placeholderTextSizeAdjust ?: base.placeholderTextSizeAdjust,
+                errorTextSizeAdjust = override.errorTextSizeAdjust ?: base.errorTextSizeAdjust,
+                errorMessageSpacing = override.errorMessageSpacing ?: base.errorMessageSpacing,
                 brandIconMode = override.brandIconMode ?: base.brandIconMode,
             )
         }

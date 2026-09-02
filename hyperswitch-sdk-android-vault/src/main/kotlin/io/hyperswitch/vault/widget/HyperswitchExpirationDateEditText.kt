@@ -9,7 +9,6 @@ open class HyperswitchExpirationDateEditText @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
 ) : BaseVaultFieldView(context, attrs, defStyleAttr) {
-    override val fieldTypeName: String = "expDateInput"
     override val defaultFieldType: FieldType = FieldType.CARD_EXPIRATION_DATE
 
     init {

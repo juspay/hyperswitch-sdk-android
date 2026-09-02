@@ -17,12 +17,12 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 
 /**
- * HyperswitchCollect
+ * HyperswitchVault
  *
  * (`io.hyperswitch:hyperswitch-vault-sdk-android`).
  *
  * ```kotlin
- * val collect = HyperswitchCollect(this, "vault_42", Environment.SANDBOX)
+ * val collect = HyperswitchVault(this, "vault_42", Environment.SANDBOX)
  * collect.bindView(cardNumberField)
  * collect.bindView(expDateField)
  * collect.bindView(cvcField)
@@ -34,7 +34,7 @@ import org.json.JSONObject
  * views; this class orchestrates the VGS-shaped native API: binding, state
  * tracking, submit, aliases replacement.
  */
-class HyperswitchCollect {
+class HyperswitchVault {
 
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private val client = OkHttpClient()
@@ -100,8 +100,10 @@ class HyperswitchCollect {
             completion(VaultTokeniseResult.fromJson(json))
         }
         VaultReactNativeController.emitTokenise(
-            sdkAuthorization,
-            environment.jsEnvName,
+            VaultTokeniseRequest(
+                sdkAuthorization = sdkAuthorization,
+                environment = environment.jsEnvName,
+            ),
         )
     }
 

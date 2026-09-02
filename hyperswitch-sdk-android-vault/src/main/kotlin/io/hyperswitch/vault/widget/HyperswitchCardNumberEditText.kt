@@ -9,7 +9,6 @@ open class HyperswitchCardNumberEditText @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
 ) : BaseVaultFieldView(context, attrs, defStyleAttr) {
-    override val fieldTypeName: String = "cardNumberInput"
     override val defaultFieldType: FieldType = FieldType.CARD_NUMBER
 
     init {

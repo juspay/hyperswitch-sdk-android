@@ -9,7 +9,6 @@ open class HyperswitchSSNEditText @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
 ) : BaseVaultFieldView(context, attrs, defStyleAttr) {
-    override val fieldTypeName: String = "ssnInput"
     override val defaultFieldType: FieldType = FieldType.SSN
 
     init {

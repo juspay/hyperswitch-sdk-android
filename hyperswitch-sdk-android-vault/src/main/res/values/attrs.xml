@@ -50,5 +50,6 @@
         <attr name="vaultInputHeight" format="dimension" />
         <attr name="vaultFontScale" format="float" />
         <attr name="vaultFontFamily" format="string" />
+        <attr name="vaultGap" format="dimension" />
     </declare-styleable>
 </resources>

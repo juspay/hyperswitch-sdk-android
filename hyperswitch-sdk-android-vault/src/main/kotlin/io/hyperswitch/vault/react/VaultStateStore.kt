@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Latest state (keyed by surface rootTag) of every mounted vault field.
  * Fed by [HyperVaultModule.updateFieldState]; consumed by
- * [io.hyperswitch.vault.core.HyperswitchCollect] for VGS-style submit calls.
+ * [io.hyperswitch.vault.core.HyperswitchVault] for VGS-style submit calls.
  */
 internal object VaultStateStore {
 

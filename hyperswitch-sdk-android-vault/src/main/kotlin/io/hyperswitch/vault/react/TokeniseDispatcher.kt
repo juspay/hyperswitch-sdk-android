@@ -4,7 +4,7 @@ import android.os.Handler
 import android.os.Looper
 
 /**
- * Pending native `HyperswitchCollect.tokenise(completion)` awaiting the JS
+ * Pending native `HyperswitchVault.tokenise(completion)` awaiting the JS
  * answer (HyperVaultModule.returnTokenizedValue).
  *
  * One in-flight tokenise per vault SDK instance; a fresh registration

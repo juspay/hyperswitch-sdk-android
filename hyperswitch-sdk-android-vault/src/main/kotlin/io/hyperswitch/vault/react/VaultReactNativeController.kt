@@ -3,17 +3,16 @@ package io.hyperswitch.vault.react
 import android.app.Application
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactInstanceEventListener
-import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactContext
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint
 import com.facebook.react.defaults.DefaultReactHost
-import com.facebook.react.modules.core.DeviceEventManagerModule
 import com.facebook.react.packagerconnection.PackagerConnectionSettings
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.react.uimanager.DisplayMetricsHolder
 import com.facebook.soloader.SoLoader
 import io.hyperswitch.react.PackageList
 import io.hyperswitch.vault.BuildConfig
+import io.hyperswitch.vault.core.VaultTokeniseRequest
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
@@ -44,33 +43,22 @@ object VaultReactNativeController {
     fun reactContextOrNull(): ReactContext? =
         reactHost.get()?.currentReactContext
 
-    /** Event name for tokenise broadcasts; mirrors src/vault/registry.js. */
-    const val TOKENISE_EVENT = "hsVaultTokenise"
-
     /**
-     * Broadcasts a tokenise request to every JS vault surface running on this
-     * runtime. The CVC surface listens and answers with the collected states
-     * from the shared JS registry (see src/vault/registry.js).
+     * Broadcasts a typed tokenise request to every JS vault surface running
+     * on this runtime: a mounted JS vault surface claims the event, runs the
+     * vault confirm, and answers through HyperVaultModule.returnTokenizedValue
+     * with the vaultSubmitResult JSON. The CVC surface listens and answers
+     * with the collected states from the shared JS HyperVaultStore.
+     *
+     * Routed through the live HyperVaultModule instance held by
+     * [VaultEventEmitter] — the codegen-typed `onVaultTokenise` EventEmitter,
+     * twin of the main SDK's HyperModule.triggerWidgetAction channel. The
+     * event name + payload type live in [VaultTokeniseRequest] — the Kotlin
+     * side of the shared contract (JS: src/specs/NativeHyperVaultModule.ts,
+     * Swift: VaultTokeniseRequest.swift).
      */
-    fun emitTokenise() {
-        reactContextOrNull()
-            ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            ?.emit(TOKENISE_EVENT, Arguments.createMap())
-    }
-
-    /**
-     * Broadcasts an answerable tokenise request: a mounted JS vault surface
-     * claims the event, runs the vault confirm, and answers through
-     * HyperVaultModule.returnTokenizedValue with the vaultSubmitResult JSON.
-     */
-    fun emitTokenise(sdkAuthorization: String, environment: String) {
-        val payload = Arguments.createMap().apply {
-            putString("sdkAuthorization", sdkAuthorization)
-            putString("environment", environment)
-        }
-        reactContextOrNull()
-            ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            ?.emit(TOKENISE_EVENT, payload)
+    fun emitTokenise(request: VaultTokeniseRequest) {
+        VaultEventEmitter.emitVaultTokenise(request)
     }
 
     fun initialize(application: Application) {
