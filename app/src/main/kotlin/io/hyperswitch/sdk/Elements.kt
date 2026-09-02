@@ -153,6 +153,20 @@ class Elements internal constructor(
             false
         }
 
+        /* A failed prefetch must reach the caller WITHOUT broadcasting to widgets:
+           the complete-phase broadcast would switch the JS widgets to the new intent
+           while the native session stays on the old authorization — split-brain state. */
+        if (!prefetchSucceeded) {
+            if (sdkAuthorization.isNotEmpty()) {
+                paymentSession.clearUnappliedPrefetch(sdkAuthorization)
+            }
+            return ElementsUpdateResult.TotalFailure(
+                cause = IllegalStateException("Unable to load the updated payment intent").apply {
+                    initCause(Throwable("PREFETCH_FAILED"))
+                }
+            )
+        }
+
         val completeResults: List<Pair<HyperswitchBoundElement, ElementUpdateIntentResult>> =
             coroutineScope {
                 initSucceeded.map { hsElement ->
@@ -185,18 +199,10 @@ class Elements internal constructor(
             }
         }
 
-        if (succeeded.isNotEmpty() && prefetchSucceeded) {
+        if (succeeded.isNotEmpty()) {
             paymentSession.commitIntentUpdate(sdkAuthorization)
         } else if (sdkAuthorization.isNotEmpty()) {
             paymentSession.clearUnappliedPrefetch(sdkAuthorization)
-        }
-
-        if (!prefetchSucceeded) {
-            return ElementsUpdateResult.TotalFailure(
-                cause = IllegalStateException("Unable to load the updated payment intent").apply {
-                    initCause(Throwable("PREFETCH_FAILED"))
-                }
-            )
         }
 
         return when {

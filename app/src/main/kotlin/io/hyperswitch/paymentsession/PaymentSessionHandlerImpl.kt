@@ -110,8 +110,7 @@ internal class PaymentSessionHandlerImpl(
         }
         try {
             val terminalCallback = { result: PaymentResult ->
-                onTerminalResult(sdkAuthorization, result)
-                resultHandler(result)
+                resultHandler(settle(result))
             }
             val registered = HeadlessConfirmationRegistry.tryRegister(
                 sdkAuthorization = sdkAuthorization,
@@ -127,11 +126,14 @@ internal class PaymentSessionHandlerImpl(
             })
         } catch (ex: Exception) {
             HeadlessConfirmationRegistry.remove(sdkAuthorization)
-            val result = PaymentResult.Failed(Throwable("Not Initialised").apply {
-                initCause(Throwable("Not Initialised"))
-            })
-            onTerminalResult(sdkAuthorization, result)
-            resultHandler(result)
+            /* The codegen confirm callback is single-shot; a re-invoke (retried confirm
+               on a settled handler) lands here. */
+            val result = PaymentResult.Failed(
+                Throwable("Confirm channel already used; request a new handler to retry").apply {
+                    initCause(Throwable("CONFIRM_CHANNEL_EXHAUSTED"))
+                }
+            )
+            resultHandler(settle(result))
         }
     }
 
@@ -143,16 +145,13 @@ internal class PaymentSessionHandlerImpl(
             return alreadyInProgressResult()
         }
         val method = getCustomerLastUsedPaymentMethodData().getOrElse {
-            return PaymentResult.Failed(it).also {
-                onTerminalResult(sdkAuthorization, it)
-            }
+            return settle(PaymentResult.Failed(it))
         }
         val result = (cvcWidget as? CVCWidget)?.let {
             it.setSdkAuthorization(sdkAuthorization)
             it.confirmCVCWidget(sdkAuthorization, method.paymentToken, method.billing)
         } ?: PaymentResult.Failed(Throwable("View can't be cast as CVCWidget"))
-        onTerminalResult(sdkAuthorization, result)
-        return result
+        return settle(result)
     }
 
     override suspend fun confirmWithCustomerDefaultPaymentMethod(cvcWidget: View): PaymentResult {
@@ -161,16 +160,13 @@ internal class PaymentSessionHandlerImpl(
             return alreadyInProgressResult()
         }
         val method = getCustomerDefaultSavedPaymentMethodData().getOrElse {
-            return PaymentResult.Failed(it).also {
-                onTerminalResult(sdkAuthorization, it)
-            }
+            return settle(PaymentResult.Failed(it))
         }
         val result = (cvcWidget as? CVCWidget)?.let {
             it.setSdkAuthorization(sdkAuthorization)
             it.confirmCVCWidget(sdkAuthorization, method.paymentToken, method.billing)
         } ?: PaymentResult.Failed(Throwable("View can't be cast as CVCWidget"))
-        onTerminalResult(sdkAuthorization, result)
-        return result
+        return settle(result)
     }
 
     // ── CVCWidget callback overloads (Java-friendly, no Continuation needed) ─
@@ -202,8 +198,15 @@ internal class PaymentSessionHandlerImpl(
         val result = PaymentResult.Failed(Throwable(message).apply {
             initCause(Throwable("MISSING_PAYMENT_TOKEN"))
         })
+        resultHandler(settle(result))
+    }
+
+    /* A settled confirm frees the slot: only an in-flight duplicate is rejected —
+       a post-terminal retry must be able to start a fresh confirmation. */
+    private fun settle(result: PaymentResult): PaymentResult {
+        confirmationStarted.set(false)
         onTerminalResult(sdkAuthorization, result)
-        resultHandler(result)
+        return result
     }
 
     private fun alreadyInProgressResult(): PaymentResult =

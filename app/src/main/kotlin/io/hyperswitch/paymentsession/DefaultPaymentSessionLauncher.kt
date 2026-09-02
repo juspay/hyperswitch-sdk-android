@@ -39,14 +39,21 @@ class DefaultPaymentSessionLauncher(
      * Initializes the session and fetches everything the sheet and headless flows need. Callers
      * await this before presenting anything; a failure only means the flows fall back to fetching
      * for themselves.
+     *
+     * @throws IllegalStateException (SESSION_INIT_IN_PROGRESS via [Throwable.cause]) when the
+     * same sdkAuthorization is being fetched in another in-progress session: retry once it
+     * completes, or keep the session you already have.
      */
     override suspend fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
         super.initPaymentSession(sessionConfig)
-        // Await prefetch completion only; the payload lives in the JS PrefetchCache.
-        if (paymentSessionReactLauncher.fetchPrefetch(sessionConfig).isFailure) {
-            // A failed re-validation must not leave an earlier (e.g. cancelled) attempt's
-            // entry behind: the sheet would mount with minutes-old session tokens instead
-            // of fetching for itself.
+        // Await prefetch completion only; the payload lives in the JS PrefetchCache. A duplicate
+        // init throws out of fetchPrefetch (SESSION_INIT_IN_PROGRESS) — the in-flight caller
+        // owns the entry, so nothing here runs: no clear, no commit.
+        val data = paymentSessionReactLauncher.fetchPrefetch(sessionConfig)
+        /* A failed re-validation we OWN must not leave an earlier (e.g. cancelled) attempt's
+           entry behind: the sheet would mount with minutes-old session tokens instead of
+           fetching for itself. */
+        if (data.isFailure) {
             paymentSessionReactLauncher.clearPrefetch(sessionConfig.sdkAuthorization)
         }
         paymentSessionReactLauncher.commitSession(sessionConfig)
@@ -55,10 +62,14 @@ class DefaultPaymentSessionLauncher(
     /** Fetches the new intent's data without changing the active session. */
     suspend fun prepareIntentUpdate(
         sessionConfig: PaymentSessionConfiguration,
-    ): Result<ReadableMap> = paymentSessionReactLauncher.fetchPrefetch(
-        sessionConfig,
-        headlessType = "updateIntent",
-    )
+    ): Result<ReadableMap> = try {
+        paymentSessionReactLauncher.fetchPrefetch(
+            sessionConfig,
+            headlessType = "updateIntent",
+        )
+    } catch (error: Throwable) {
+        Result.failure(error)
+    }
 
     fun commitIntentUpdate(sessionConfig: PaymentSessionConfiguration) {
         this.sessionConfig = sessionConfig
@@ -159,6 +170,10 @@ class DefaultPaymentSessionLauncher(
         suspendCancellableCoroutine { continuation ->
             isPresented = false
             val authorization = sessionConfig?.sdkAuthorization.orEmpty()
+            if (authorization.isEmpty()) {
+                continuation.resumeWithException(missingSessionError())
+                return@suspendCancellableCoroutine
+            }
             val request = PendingHeadlessRequest(
                 callback = { handler ->
                     if (continuation.isActive) continuation.resume(handler)

@@ -41,14 +41,25 @@ class PaymentSessionReactLauncher(
 
     @Volatile override var sessionConfig: PaymentSessionConfiguration? = null
 
+    /** Thrown when the same sdkAuthorization is being fetched in another in-progress session:
+     *  the in-flight caller owns the entry — a duplicate must neither clear nor commit. */
+    internal class DuplicateSessionInitException(sdkAuthorization: String) : IllegalStateException(
+        "sdkAuthorization '$sdkAuthorization' is already in use by an in-progress session"
+    ) {
+        init {
+            initCause(Throwable("SESSION_INIT_IN_PROGRESS"))
+        }
+    }
+
     /**
      * Runs the prefetch headless task and waits for its result.
      *
      * A prefetch miss is not fatal: the sheet and headless flows fall back to making the API
      * calls themselves, so this reports the failure and returns rather than propagating it.
-     * The timeout matches the JS-side fallbacks so a wedged bridge can't stall the merchant.
+     * The timeout is the SDK-side last resort: JS has no budget of its own, so a wedged
+     * bridge must not stall the merchant.
      */
-    suspend fun fetchPrefetch(
+    internal suspend fun fetchPrefetch(
         taskSessionConfig: PaymentSessionConfiguration,
         headlessType: String = "prefetch",
     ): Result<ReadableMap> {
@@ -59,9 +70,7 @@ class PaymentSessionReactLauncher(
 
         val prefetch = CompletableDeferred<ReadableMap>()
         if (HyperHeadlessModule.inFlightPrefetches.putIfAbsent(sdkAuthorization, prefetch) != null) {
-            return Result.failure(
-                IllegalStateException("A prefetch is already running for this sdkAuthorization")
-            )
+            throw DuplicateSessionInitException(sdkAuthorization)
         }
         launchHeadlessTask(
             configuration = null,
@@ -303,7 +312,7 @@ class PaymentSessionReactLauncher(
         const val TAG = "HyperPrefetch"
         const val PREFETCH_CACHE_REMOVAL_EVENT = "clearPrefetchCache"
 
-        /** Matches the JS-side fallback budget so neither side waits on the other. */
+        /** SDK-side last-resort budget; JS has no budget of its own. */
         const val PREFETCH_TIMEOUT_MS = 30_000L
         const val PREFETCH_TASK_TIMEOUT_MS = PREFETCH_TIMEOUT_MS + 1_000L
         const val SAVED_METHODS_TASK_TIMEOUT_MS = 0L

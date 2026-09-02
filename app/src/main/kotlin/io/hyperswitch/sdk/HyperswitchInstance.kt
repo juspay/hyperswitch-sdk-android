@@ -28,19 +28,26 @@ class HyperswitchInstance internal constructor(
         return ps
     }
 
+    /** Callback flavor mirrors the suspend one: failures (e.g. SESSION_INIT_IN_PROGRESS when
+     *  the same sdkAuthorization is mid-fetch in another session) arrive as Result.failure. */
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun initPaymentSession(config: PaymentSessionConfiguration, onResult : (PaymentSession) -> Unit){
+    fun initPaymentSession(
+        config: PaymentSessionConfiguration,
+        onResult: (Result<PaymentSession>) -> Unit,
+    ) {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
-            val hsConfig = if (initDeferred.isCompleted) {
-                initDeferred.getCompleted()
-            } else {
-                initDeferred.await()
+            val result = runCatching {
+                val hsConfig = if (initDeferred.isCompleted) {
+                    initDeferred.getCompleted()
+                } else {
+                    initDeferred.await()
+                }
+                val ps = PaymentSession(activity, hsConfig, config)
+                ps.initPaymentSession(config)
+                ps
             }
-            val ps = PaymentSession(activity, hsConfig, config)
-            ps.initPaymentSession(config)
-            withContext(Dispatchers.Main) { onResult(ps) }
+            withContext(Dispatchers.Main) { onResult(result) }
         }
-
     }
 
     @JvmSynthetic
@@ -49,13 +56,18 @@ class HyperswitchInstance internal constructor(
         return Elements.create(activity, hsConfig, config)
     }
 
-    fun elements(config: PaymentSessionConfiguration, onResult: (Elements) -> Unit) {
+    fun elements(
+        config: PaymentSessionConfiguration,
+        onResult: (Result<Elements>) -> Unit,
+    ) {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
-            val hsConfig = initDeferred.await()
-            // Create off the main thread — Elements.create runs the prefetch and the React
-            // Native bootstrap; only the callback belongs on Main.
-            val elements = Elements.create(activity, hsConfig, config)
-            withContext(Dispatchers.Main) { onResult(elements) }
+            val result = runCatching {
+                val hsConfig = initDeferred.await()
+                /* Create off the main thread — Elements.create runs the prefetch and the
+                   React Native bootstrap; only the callback belongs on Main. */
+                Elements.create(activity, hsConfig, config)
+            }
+            withContext(Dispatchers.Main) { onResult(result) }
         }
     }
 }
