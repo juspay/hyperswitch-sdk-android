@@ -31,6 +31,26 @@ open class HyperswitchElement @JvmOverloads constructor(
 
     var type: String? = null
 
+    private var heightFloorPx: Int = 0
+
+    protected fun setHeightFloor(heightDp: Float) {
+        heightFloorPx = (heightDp * resources.displayMetrics.density).toInt()
+        minimumHeight = heightFloorPx
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        if (
+            heightFloorPx > 0 &&
+            MeasureSpec.getMode(heightMeasureSpec) != MeasureSpec.EXACTLY
+        ) {
+            internalView.measure(
+                MeasureSpec.makeMeasureSpec(measuredWidth, MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(measuredHeight, MeasureSpec.EXACTLY),
+            )
+        }
+    }
+
     init {
         addView(internalView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     }
