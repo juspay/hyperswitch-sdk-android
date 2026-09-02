@@ -21,12 +21,10 @@ class HyperHeadlessModule internal constructor(
         savedPaymentMethods: ReadableArray,
         callback: Callback
     ) {
-        /* Staleness (request filed for a superseded intent) is rejected by the
-           JS-side guards before a response reaches native; whatever arrives here
-           is delivered as-is. */
         val request = HeadlessRequestRegistry.take(sdkAuthorization) ?: return
         val handler = PaymentSessionHandlerImpl(
             sdkAuthorization = sdkAuthorization,
+            currentSdkAuthorization = request.currentSdkAuthorization,
             defaultMethodData = paymentIntentData,
             lastUsedMethodData = defaultPaymentMethod,
             allMethodsData = savedPaymentMethods,

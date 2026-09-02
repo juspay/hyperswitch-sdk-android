@@ -33,10 +33,10 @@ class HyperswitchInstance internal constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     fun initPaymentSession(
         config: PaymentSessionConfiguration,
-        onResult: (Result<PaymentSession>) -> Unit,
+        onResult: (InitResult<PaymentSession>) -> Unit,
     ) {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
-            val result = runCatching {
+            val result: InitResult<PaymentSession> = try {
                 val hsConfig = if (initDeferred.isCompleted) {
                     initDeferred.getCompleted()
                 } else {
@@ -44,7 +44,9 @@ class HyperswitchInstance internal constructor(
                 }
                 val ps = PaymentSession(activity, hsConfig, config)
                 ps.initPaymentSession(config)
-                ps
+                InitResult.Success(ps)
+            } catch (error: Throwable) {
+                InitResult.Failure(error)
             }
             withContext(Dispatchers.Main) { onResult(result) }
         }
@@ -58,14 +60,16 @@ class HyperswitchInstance internal constructor(
 
     fun elements(
         config: PaymentSessionConfiguration,
-        onResult: (Result<Elements>) -> Unit,
+        onResult: (InitResult<Elements>) -> Unit,
     ) {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
-            val result = runCatching {
+            val result: InitResult<Elements> = try {
                 val hsConfig = initDeferred.await()
                 /* Create off the main thread — Elements.create runs the prefetch and the
                    React Native bootstrap; only the callback belongs on Main. */
-                Elements.create(activity, hsConfig, config)
+                InitResult.Success(Elements.create(activity, hsConfig, config))
+            } catch (error: Throwable) {
+                InitResult.Failure(error)
             }
             withContext(Dispatchers.Main) { onResult(result) }
         }

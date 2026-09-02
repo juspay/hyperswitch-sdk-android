@@ -10,6 +10,9 @@ typealias HeadlessRequestCallback = (PaymentSessionHandler) -> Unit
 internal class PendingHeadlessRequest(
     val callback: HeadlessRequestCallback,
     val onTerminalResult: (String, PaymentResult) -> Unit,
+    /* Live look-up of the session's current authorization: the delivered handler compares
+       it against its launch key at confirm time (see PaymentSessionHandlerImpl). */
+    val currentSdkAuthorization: () -> String,
 ) {
     private var timeoutTask: Runnable? = null
     private var waiting = true

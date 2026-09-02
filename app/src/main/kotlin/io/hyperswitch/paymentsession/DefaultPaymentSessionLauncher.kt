@@ -132,6 +132,7 @@ class DefaultPaymentSessionLauncher(
             onTerminalResult = { resultAuthorization, result ->
                 clearAfterTerminalResult(resultAuthorization, result)
             },
+            currentSdkAuthorization = { paymentSessionReactLauncher.sessionConfig?.sdkAuthorization.orEmpty() },
         )
         if (!HeadlessRequestRegistry.tryRegister(
                 authorization,
@@ -181,6 +182,7 @@ class DefaultPaymentSessionLauncher(
                 onTerminalResult = { resultAuthorization, result ->
                     clearAfterTerminalResult(resultAuthorization, result)
                 },
+                currentSdkAuthorization = { paymentSessionReactLauncher.sessionConfig?.sdkAuthorization.orEmpty() },
             )
             if (!HeadlessRequestRegistry.tryRegister(
                     authorization,
