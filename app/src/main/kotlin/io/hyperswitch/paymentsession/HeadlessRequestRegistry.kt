@@ -5,18 +5,14 @@ import android.os.Looper
 import io.hyperswitch.paymentsheet.PaymentResult
 import java.util.concurrent.ConcurrentHashMap
 
-typealias SavedMethodsCallback = (PaymentSessionHandler) -> Unit
+typealias HeadlessRequestCallback = (PaymentSessionHandler) -> Unit
 
-internal class PendingSavedMethodsRequest(
-    val callback: SavedMethodsCallback,
+internal class PendingHeadlessRequest(
+    val callback: HeadlessRequestCallback,
     val onTerminalResult: (String, PaymentResult) -> Unit,
-    val currentSdkAuthorization: () -> String,
 ) {
     private var timeoutTask: Runnable? = null
     private var waiting = true
-
-    fun isCurrent(sdkAuthorization: String): Boolean =
-        currentSdkAuthorization() == sdkAuthorization
 
     @Synchronized
     fun scheduleTimeout(handler: Handler, delayMillis: Long, onTimeout: () -> Unit) {
@@ -36,14 +32,16 @@ internal class PendingSavedMethodsRequest(
     }
 }
 
-/** Holds only saved-method requests that are still waiting for JS to return their handler. */
-internal object SavedMethodsRequestRegistry {
-    private val requests = ConcurrentHashMap<String, PendingSavedMethodsRequest>()
+/* Request shelf of the headless surface: holds pending session-intent GET
+   requests still waiting for JS to return their handler. Sibling of
+   HeadlessConfirmationRegistry, which holds in-flight payment completions. */
+internal object HeadlessRequestRegistry {
+    private val requests = ConcurrentHashMap<String, PendingHeadlessRequest>()
     private val timeoutHandler = Handler(Looper.getMainLooper())
 
     fun tryRegister(
         sdkAuthorization: String,
-        request: PendingSavedMethodsRequest,
+        request: PendingHeadlessRequest,
         timeoutMillis: Long,
         onTimeout: () -> Unit,
     ): Boolean {
@@ -62,12 +60,12 @@ internal object SavedMethodsRequestRegistry {
         return true
     }
 
-    fun take(sdkAuthorization: String): PendingSavedMethodsRequest? =
+    fun take(sdkAuthorization: String): PendingHeadlessRequest? =
         requests.remove(sdkAuthorization)?.also { it.finish(timeoutHandler) }
 
     fun remove(
         sdkAuthorization: String,
-        request: PendingSavedMethodsRequest,
+        request: PendingHeadlessRequest,
     ): Boolean {
         val removed = requests.remove(sdkAuthorization, request)
         if (removed) request.finish(timeoutHandler)

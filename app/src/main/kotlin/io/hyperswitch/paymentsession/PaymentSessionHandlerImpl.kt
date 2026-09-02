@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 internal class PaymentSessionHandlerImpl(
     private val sdkAuthorization: String,
-    private val currentSdkAuthorization: () -> String,
     private val defaultMethodData: ReadableMap,
     private val lastUsedMethodData: ReadableMap,
     private val allMethodsData: ReadableArray,
@@ -36,7 +35,6 @@ internal class PaymentSessionHandlerImpl(
             }
             return PaymentSessionHandlerImpl(
                 sdkAuthorization = "",
-                currentSdkAuthorization = { "" },
                 defaultMethodData = errorMap,
                 lastUsedMethodData = errorMap,
                 allMethodsData = Arguments.createArray(),
@@ -46,12 +44,6 @@ internal class PaymentSessionHandlerImpl(
             )
         }
 
-        fun stale(): PaymentSessionHandlerImpl = failed(staleHandlerError())
-
-        private fun staleHandlerError(): Throwable =
-            Throwable("Saved payment methods handler belongs to the previous payment intent").apply {
-                initCause(Throwable("STALE_PAYMENT_SESSION_HANDLER"))
-            }
     }
 
     override fun getCustomerDefaultSavedPaymentMethodData(): Result<PaymentMethod> {
@@ -112,11 +104,6 @@ internal class PaymentSessionHandlerImpl(
             resultHandler(PaymentResult.Failed(error))
             return
         }
-        staleHandlerResult()?.let { result ->
-            onTerminalResult(sdkAuthorization, result)
-            resultHandler(result)
-            return
-        }
         if (!confirmationStarted.compareAndSet(false, true)) {
             resultHandler(alreadyInProgressResult())
             return
@@ -152,10 +139,6 @@ internal class PaymentSessionHandlerImpl(
 
     override suspend fun confirmWithCustomerLastUsedPaymentMethod(cvcWidget: View): PaymentResult {
         initializationError?.let { return PaymentResult.Failed(it) }
-        staleHandlerResult()?.let { result ->
-            onTerminalResult(sdkAuthorization, result)
-            return result
-        }
         if (!confirmationStarted.compareAndSet(false, true)) {
             return alreadyInProgressResult()
         }
@@ -174,10 +157,6 @@ internal class PaymentSessionHandlerImpl(
 
     override suspend fun confirmWithCustomerDefaultPaymentMethod(cvcWidget: View): PaymentResult {
         initializationError?.let { return PaymentResult.Failed(it) }
-        staleHandlerResult()?.let { result ->
-            onTerminalResult(sdkAuthorization, result)
-            return result
-        }
         if (!confirmationStarted.compareAndSet(false, true)) {
             return alreadyInProgressResult()
         }
@@ -216,11 +195,6 @@ internal class PaymentSessionHandlerImpl(
         message: String,
         resultHandler: (PaymentResult) -> Unit,
     ) {
-        staleHandlerResult()?.let { result ->
-            onTerminalResult(sdkAuthorization, result)
-            resultHandler(result)
-            return
-        }
         if (!confirmationStarted.compareAndSet(false, true)) {
             resultHandler(alreadyInProgressResult())
             return
@@ -231,17 +205,6 @@ internal class PaymentSessionHandlerImpl(
         onTerminalResult(sdkAuthorization, result)
         resultHandler(result)
     }
-
-    private fun staleHandlerResult(): PaymentResult.Failed? =
-        if (currentSdkAuthorization() == sdkAuthorization) {
-            null
-        } else {
-            PaymentResult.Failed(
-                Throwable("Saved payment methods handler belongs to the previous payment intent").apply {
-                    initCause(Throwable("STALE_PAYMENT_SESSION_HANDLER"))
-                }
-            )
-        }
 
     private fun alreadyInProgressResult(): PaymentResult =
         PaymentResult.Failed(

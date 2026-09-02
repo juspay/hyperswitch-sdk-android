@@ -6,7 +6,7 @@ import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.paymentsession.PaymentSessionHandlerImpl
 import io.hyperswitch.paymentsession.HeadlessConfirmationRegistry
-import io.hyperswitch.paymentsession.SavedMethodsRequestRegistry
+import io.hyperswitch.paymentsession.HeadlessRequestRegistry
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CompletableDeferred
 
@@ -21,14 +21,12 @@ class HyperHeadlessModule internal constructor(
         savedPaymentMethods: ReadableArray,
         callback: Callback
     ) {
-        val request = SavedMethodsRequestRegistry.take(sdkAuthorization) ?: return
-        if (!request.isCurrent(sdkAuthorization)) {
-            request.callback(PaymentSessionHandlerImpl.stale())
-            return
-        }
+        /* Staleness (request filed for a superseded intent) is rejected by the
+           JS-side guards before a response reaches native; whatever arrives here
+           is delivered as-is. */
+        val request = HeadlessRequestRegistry.take(sdkAuthorization) ?: return
         val handler = PaymentSessionHandlerImpl(
             sdkAuthorization = sdkAuthorization,
-            currentSdkAuthorization = request.currentSdkAuthorization,
             defaultMethodData = paymentIntentData,
             lastUsedMethodData = defaultPaymentMethod,
             allMethodsData = savedPaymentMethods,

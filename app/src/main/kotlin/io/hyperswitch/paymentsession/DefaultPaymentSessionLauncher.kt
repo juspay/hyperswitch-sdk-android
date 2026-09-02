@@ -116,14 +116,13 @@ class DefaultPaymentSessionLauncher(
             savedPaymentMethodCallback(PaymentSessionHandlerImpl.failed(missingSessionError()))
             return
         }
-        val request = PendingSavedMethodsRequest(
+        val request = PendingHeadlessRequest(
             callback = savedPaymentMethodCallback,
             onTerminalResult = { resultAuthorization, result ->
                 clearAfterTerminalResult(resultAuthorization, result)
             },
-            currentSdkAuthorization = { sessionConfig?.sdkAuthorization.orEmpty() },
         )
-        if (!SavedMethodsRequestRegistry.tryRegister(
+        if (!HeadlessRequestRegistry.tryRegister(
                 authorization,
                 request,
                 SAVED_METHODS_TIMEOUT_MS,
@@ -142,7 +141,7 @@ class DefaultPaymentSessionLauncher(
         try {
             paymentSessionReactLauncher.startHeadlessTask(configuration)
         } catch (error: Throwable) {
-            if (SavedMethodsRequestRegistry.remove(authorization, request)) {
+            if (HeadlessRequestRegistry.remove(authorization, request)) {
                 savedPaymentMethodCallback(PaymentSessionHandlerImpl.failed(error))
             }
         }
@@ -160,16 +159,15 @@ class DefaultPaymentSessionLauncher(
         suspendCancellableCoroutine { continuation ->
             isPresented = false
             val authorization = sessionConfig?.sdkAuthorization.orEmpty()
-            val request = PendingSavedMethodsRequest(
+            val request = PendingHeadlessRequest(
                 callback = { handler ->
                     if (continuation.isActive) continuation.resume(handler)
                 },
                 onTerminalResult = { resultAuthorization, result ->
                     clearAfterTerminalResult(resultAuthorization, result)
                 },
-                currentSdkAuthorization = { sessionConfig?.sdkAuthorization.orEmpty() },
             )
-            if (!SavedMethodsRequestRegistry.tryRegister(
+            if (!HeadlessRequestRegistry.tryRegister(
                     authorization,
                     request,
                     SAVED_METHODS_TIMEOUT_MS,
@@ -184,13 +182,13 @@ class DefaultPaymentSessionLauncher(
                 return@suspendCancellableCoroutine
             }
             continuation.invokeOnCancellation {
-                SavedMethodsRequestRegistry.remove(authorization, request)
+                HeadlessRequestRegistry.remove(authorization, request)
             }
             try {
                 paymentSessionReactLauncher.startHeadlessTask(configuration)
             } catch (error: Throwable) {
                 if (
-                    SavedMethodsRequestRegistry.remove(authorization, request) &&
+                    HeadlessRequestRegistry.remove(authorization, request) &&
                     continuation.isActive
                 ) {
                     continuation.resumeWithException(error)
