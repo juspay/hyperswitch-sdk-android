@@ -334,9 +334,9 @@ class HyperFragment : ReactFragment() {
         billing?.let { map.putString("billing", it) }
         val emitted = ReactNativeController.eventEmitter.emitEvent("triggerWidgetAction", map)
         if (!emitted) {
-            // JS runtime is gone; nothing will consume this widget action. Roll back the
-            // registration so a later confirm on the same authorization isn't stuck failing
-            // with ALREADY_IN_PROGRESS on a callback that can never fire.
+            /* JS runtime is gone; nothing will consume this widget action. Roll back the
+               registration so a later confirm on the same authorization isn't stuck failing
+               with ALREADY_IN_PROGRESS on a callback that can never fire. */
             HeadlessConfirmationRegistry.remove(sdkAuthorization)
             callback.invoke(PaymentResult.Failed(Throwable("React context is not available")))
             return

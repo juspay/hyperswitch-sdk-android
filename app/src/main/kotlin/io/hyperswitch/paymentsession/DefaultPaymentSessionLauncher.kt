@@ -112,6 +112,10 @@ class DefaultPaymentSessionLauncher(
     ) {
         isPresented = false
         val authorization = sessionConfig?.sdkAuthorization.orEmpty()
+        if (authorization.isEmpty()) {
+            savedPaymentMethodCallback(PaymentSessionHandlerImpl.failed(missingSessionError()))
+            return
+        }
         val request = PendingSavedMethodsRequest(
             callback = savedPaymentMethodCallback,
             onTerminalResult = { resultAuthorization, result ->
@@ -203,6 +207,11 @@ class DefaultPaymentSessionLauncher(
     private fun alreadyInProgressError(): IllegalStateException =
         IllegalStateException("Saved payment methods request already in progress").apply {
             initCause(Throwable("ALREADY_IN_PROGRESS"))
+        }
+
+    private fun missingSessionError(): IllegalStateException =
+        IllegalStateException("sdkAuthorization must not be empty").apply {
+            initCause(Throwable("MISSING_SESSION"))
         }
 
     private fun savedMethodsTimeoutError(): IllegalStateException =
