@@ -223,13 +223,18 @@ class Ctx(
             handler.confirmWithCustomerDefaultPaymentMethod(cvc) { continuation.resume(it) }
         }
 
+    suspend fun confirmLastUsed(handler: PaymentSessionHandler, cvc: String? = "123"): PaymentResult =
+        suspendCancellableCoroutine { continuation ->
+            handler.confirmWithCustomerLastUsedPaymentMethod(cvc) { continuation.resume(it) }
+        }
+
     suspend fun confirmToken(handler: PaymentSessionHandler, token: String, cvc: String? = "123"): PaymentResult =
         suspendCancellableCoroutine { continuation ->
             handler.confirmWithCustomerPaymentToken(token, cvc) { continuation.resume(it) }
         }
 
     suspend fun confirmWithCvcWidget(handler: PaymentSessionHandler): PaymentResult =
-        handler.confirmWithCustomerDefaultPaymentMethod(ui.cvcContainer())
+        handler.confirmWithCustomerLastUsedPaymentMethod(ui.cvcContainer())
 
     suspend fun presentSheet(session: SessionRef): PaymentResult =
         session.elements.getPaymentSession().presentPaymentSheet(configuration)

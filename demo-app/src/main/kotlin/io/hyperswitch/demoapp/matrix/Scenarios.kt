@@ -149,7 +149,7 @@ object Scenarios {
         Scenario("H2", "Confirm by token, then cache cleared") {
             val a = session("A")
             val handler = handlers["A"] ?: fail("run H1 first")
-            val result = confirmDefault(handler)
+            val result = confirmLastUsed(handler)
             check(isTerminal(result), "terminal result (${describe(result)})")
             settle(); expect(a, confirm = 1)
             headlessGet(a)
@@ -157,7 +157,7 @@ object Scenarios {
         },
         Scenario("H3", "Retry on a used handler") {
             val handler = handlers["A"] ?: fail("run H1 first")
-            val result = confirmDefault(handler)
+            val result = confirmLastUsed(handler)
             check(codeOf(result) == "HANDLER_ALREADY_USED", "HANDLER_ALREADY_USED (got ${describe(result)})")
         },
         Scenario("H4", "Stale handler after update") {
@@ -167,7 +167,7 @@ object Scenarios {
             val outcome = updateIntent(g, 4065, "G'")
             check(outcome.result is ElementsUpdateResult.Success, "updateIntent Success")
             settle()
-            val result = confirmDefault(handler)
+            val result = confirmLastUsed(handler)
             check(codeOf(result) == "STALE_PAYMENT_SESSION_HANDLER", "STALE_PAYMENT_SESSION_HANDLER (got ${describe(result)})")
             settle(); expect(g)
         },
@@ -200,14 +200,14 @@ object Scenarios {
             settle()
             backend.addFault("/confirm", s.auth, "delay", 8_000)
             val firstResult = coroutineScope {
-                val first = async { confirmDefault(h1) }
+                val first = async { confirmLastUsed(h1) }
                 sleep(1_000)
-                val second = confirmDefault(h2)
+                val second = confirmLastUsed(h2)
                 check(codeOf(second) == "ALREADY_IN_PROGRESS", "h2 first attempt ALREADY_IN_PROGRESS (got ${describe(second)})")
                 first.await()
             }
             check(isTerminal(firstResult), "h1 terminal (${describe(firstResult)})")
-            val third = confirmDefault(h2)
+            val third = confirmLastUsed(h2)
             check(isTerminal(third), "h2 second attempt terminal, not ALREADY_IN_PROGRESS (${describe(third)})")
             settle(); expect(s, confirm = 2)
         },
@@ -234,7 +234,7 @@ object Scenarios {
             val (hu, hv) = coroutineScope { listOf(async { headlessGet(u) }, async { headlessGet(v) }).awaitAll() }
             val handlerU = hu.getOrElse { fail("U get failed: ${codeOf(it)}") }
             val handlerV = hv.getOrElse { fail("V get failed: ${codeOf(it)}") }
-            val (ru, rv) = coroutineScope { listOf(async { confirmDefault(handlerU) }, async { confirmDefault(handlerV) }).awaitAll() }
+            val (ru, rv) = coroutineScope { listOf(async { confirmLastUsed(handlerU) }, async { confirmLastUsed(handlerV) }).awaitAll() }
             check(isTerminal(ru) && isTerminal(rv), "both confirms terminal (${describe(ru)}, ${describe(rv)})")
             settle(); expect(u, confirm = 1); expect(v, confirm = 1)
         },
