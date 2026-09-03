@@ -359,6 +359,12 @@ class HyperFragment : ReactFragment() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        /* The OS can recreate this fragment from saved state before the host app ran its
+           own SDK initialization (e.g. process death with a payment sheet open).
+           ReactFragment reads native feature flags, which requires SoLoader first —
+           and onCreateView needs the ReactHost regardless. initialize() is
+           synchronized and idempotent, so this is a no-op on the normal path. */
+        activity?.application?.let(ReactNativeController::initialize)
         super.onCreate(savedInstanceState)
         registerEventBus()
     }
