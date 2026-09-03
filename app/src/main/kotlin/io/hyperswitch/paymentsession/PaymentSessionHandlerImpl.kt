@@ -118,6 +118,9 @@ internal class PaymentSessionHandlerImpl(
                 callback = terminalCallback,
             )
             if (!registered) {
+                /* Another confirm for this authorization is in flight. This handler never
+                   started, so it must stay usable once that one settles. */
+                confirmationStarted.set(false)
                 resultHandler(alreadyInProgressResult())
                 return
             }

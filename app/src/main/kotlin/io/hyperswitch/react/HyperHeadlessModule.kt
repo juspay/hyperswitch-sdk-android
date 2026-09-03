@@ -25,8 +25,7 @@ class HyperHeadlessModule internal constructor(
         val request = HeadlessRequestRegistry.take(sdkAuthorization) ?: run {
             Log.w(
                 "HyperHeadlessModule",
-                "getPaymentSession: no pending saved-methods request for authorization " +
-                    "${sdkAuthorization.take(12)}…; dropping late response"
+                "getPaymentSession: no pending saved-methods request for this authorization; dropping late response"
             )
             return
         }

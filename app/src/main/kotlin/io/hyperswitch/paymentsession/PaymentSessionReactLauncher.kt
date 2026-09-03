@@ -26,6 +26,7 @@ import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
 import io.hyperswitch.react.HyperFragment
 import io.hyperswitch.react.HyperHeadlessModule
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -79,7 +80,16 @@ class PaymentSessionReactLauncher(
 
         // The deferred only signals completion: JS cached the payload in its own module
         // state (shared VM) before calling completePrefetch, and resolves it from there.
-        val data = withTimeoutOrNull(PREFETCH_TIMEOUT_MS) { prefetch.await() }
+        val data = try {
+            withTimeoutOrNull(PREFETCH_TIMEOUT_MS) { prefetch.await() }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Throwable) {
+            /* routeLaunchFailure completed the deferred exceptionally: report it the same way
+               a timeout is reported so initPaymentSession has one failure channel. */
+            HyperHeadlessModule.inFlightPrefetches.remove(sdkAuthorization, prefetch)
+            return Result.failure(error)
+        }
         if (data == null) {
             // Remove only this exact deferred so a newer prefetch cannot be cleared by this one.
             HyperHeadlessModule.inFlightPrefetches.remove(sdkAuthorization, prefetch)
