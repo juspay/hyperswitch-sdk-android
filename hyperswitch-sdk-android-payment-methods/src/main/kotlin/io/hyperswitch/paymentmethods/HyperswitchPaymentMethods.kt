@@ -17,6 +17,12 @@ import io.hyperswitch.sdk.HyperswitchInstance
 /**
  * Creates a payment-method session for the given `sdkAuthorization`.
  *
+ * Every call returns a **new** [PaymentMethodSession] that constructs its own
+ * [io.hyperswitch.paymentmethods.PaymentMethodSessionReactHostProvider] — i.e. every
+ * `initPaymentMethodSession` call results in a **new ReactHost instance**
+ * (`session1.hostInstanceId != session2.hostInstanceId`; the underlying ReactHost
+ * objects are distinct too), never a shared/cached one.
+ *
  * @param sdkAuthorization session authorisation token issued by the merchant backend.
  * @param configuration session config object (`vault_type`, `vault_data`, extra props).
  */

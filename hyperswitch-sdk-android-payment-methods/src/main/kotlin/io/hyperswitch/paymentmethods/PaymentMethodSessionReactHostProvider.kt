@@ -20,18 +20,25 @@ import io.hyperswitch.react.HyperEventEmitter
 import io.hyperswitch.react.HyperPackage
 import io.hyperswitch.react.PackageList
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Owns the React Native runtime for a single [PaymentMethodSession].
  *
- * Every instance creates a **fresh** [ReactHost] via [ReactHostImpl] directly — deliberately
- * bypassing `DefaultReactHost.getDefaultReactHost()` (which statically caches the first host).
- * This guarantees every payment-method session runs on its own RN host, isolated from the main
- * payment SDK host and from other sessions.
+ * Every `PaymentMethodSession` constructs its own provider instance, and every provider
+ * builds a **fresh** [ReactHost] via [ReactHostImpl] directly — the host is never created
+ * through `DefaultReactHost.getDefaultReactHost()`, which statically caches the first host
+ * and would return the same instance for every caller. [ReactHostImpl] itself holds no
+ * static state, so N sessions in one process yield N fully independent runtimes (own
+ * Hermes runtime, own JS thread, own [ComponentFactory], own [HyperEventEmitter]/
+ * [PaymentSessionRouter] TurboModule wiring).
  */
 internal class PaymentMethodSessionReactHostProvider(
     private val application: Application,
 ) {
+
+    /** Monotonic id identifying this provider's host — distinct for every session. */
+    val hostInstanceId: Int = hostCounter.incrementAndGet()
 
     /** Event emitter scoped to this session's host. */
     val eventEmitter = HyperEventEmitter()
@@ -69,13 +76,19 @@ internal class PaymentMethodSessionReactHostProvider(
         val componentFactory = ComponentFactory()
         DefaultComponentsRegistry.register(componentFactory)
 
-        return ReactHostImpl(
+        val host = ReactHostImpl(
             application,
             delegate,
             componentFactory,
             false /* allowPackagerServerAccess */,
             io.hyperswitch.paymentmethods.BuildConfig.DEBUG,
         )
+        Log.i(
+            TAG,
+            "Created dedicated React host instance #$hostInstanceId " +
+                    "(@${Integer.toHexString(System.identityHashCode(host))}) for this payment-method session",
+        )
+        return host
     }
 
     companion object {
@@ -87,6 +100,9 @@ internal class PaymentMethodSessionReactHostProvider(
         private const val MAIN_BUNDLE_ASSET = "hyperswitch.bundle"
 
         private val runtimeReady = AtomicBoolean(false)
+
+        /** Process-wide counter — every session's provider gets a fresh, unique id. */
+        private val hostCounter = AtomicInteger(0)
 
         /**
          * One-time, process-wide native runtime setup (SoLoader / display metrics /
