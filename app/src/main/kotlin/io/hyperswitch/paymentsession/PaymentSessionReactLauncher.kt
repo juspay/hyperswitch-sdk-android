@@ -25,7 +25,6 @@ import io.hyperswitch.react.ReactNativeController
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
 import io.hyperswitch.react.HyperFragment
-import io.hyperswitch.react.HyperHeadlessModule
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeoutOrNull
@@ -69,9 +68,8 @@ class PaymentSessionReactLauncher(
         }
 
         val prefetch = CompletableDeferred<ReadableMap>()
-        if (HyperHeadlessModule.inFlightPrefetches.putIfAbsent(sdkAuthorization, prefetch) != null) {
-            throw DuplicateSessionInitException(sdkAuthorization)
-        }
+        val entry = HeadlessRegistry.tryRegister(HeadlessRegistry.Kind.PREFETCH, sdkAuthorization, prefetch)
+            ?: throw DuplicateSessionInitException(sdkAuthorization)
         launchHeadlessTask(
             configuration = null,
             headlessType = headlessType,
@@ -87,12 +85,12 @@ class PaymentSessionReactLauncher(
         } catch (error: Throwable) {
             /* routeLaunchFailure completed the deferred exceptionally: report it the same way
                a timeout is reported so initPaymentSession has one failure channel. */
-            HyperHeadlessModule.inFlightPrefetches.remove(sdkAuthorization, prefetch)
+            HeadlessRegistry.remove(HeadlessRegistry.Kind.PREFETCH, sdkAuthorization, entry)
             return Result.failure(error)
         }
         if (data == null) {
-            // Remove only this exact deferred so a newer prefetch cannot be cleared by this one.
-            HyperHeadlessModule.inFlightPrefetches.remove(sdkAuthorization, prefetch)
+            // Remove only this exact entry so a newer prefetch cannot be cleared by this one.
+            HeadlessRegistry.remove(HeadlessRegistry.Kind.PREFETCH, sdkAuthorization, entry)
             Log.w(TAG, "Prefetch timed out after ${PREFETCH_TIMEOUT_MS}ms; falling back to on-demand API calls")
             return Result.failure(IllegalStateException("Prefetch timed out"))
         }
@@ -190,9 +188,9 @@ class PaymentSessionReactLauncher(
     private fun routeLaunchFailure(sdkAuthorization: String, error: Throwable) {
         Log.e(TAG, "Headless task launch failed", error)
         if (sdkAuthorization.isEmpty()) return
-        HyperHeadlessModule.inFlightPrefetches.remove(sdkAuthorization)
+        HeadlessRegistry.take<CompletableDeferred<ReadableMap>>(HeadlessRegistry.Kind.PREFETCH, sdkAuthorization)
             ?.completeExceptionally(error)
-        HeadlessRequestRegistry.take(sdkAuthorization)
+        HeadlessRegistry.take<PendingHeadlessRequest>(HeadlessRegistry.Kind.REQUEST, sdkAuthorization)
             ?.callback(PaymentSessionHandlerImpl.failed(error))
     }
 

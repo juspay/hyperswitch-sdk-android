@@ -5,10 +5,11 @@ import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
+import io.hyperswitch.paymentsession.ConfirmationCallback
+import io.hyperswitch.paymentsession.HeadlessRegistry
 import io.hyperswitch.paymentsession.PaymentSessionHandlerImpl
-import io.hyperswitch.paymentsession.HeadlessConfirmationRegistry
-import io.hyperswitch.paymentsession.HeadlessRequestRegistry
-import java.util.concurrent.ConcurrentHashMap
+import io.hyperswitch.paymentsession.PendingHeadlessRequest
+import io.hyperswitch.paymentsession.toPaymentResult
 import kotlinx.coroutines.CompletableDeferred
 
 class HyperHeadlessModule internal constructor(
@@ -22,7 +23,10 @@ class HyperHeadlessModule internal constructor(
         savedPaymentMethods: ReadableArray,
         callback: Callback
     ) {
-        val request = HeadlessRequestRegistry.take(sdkAuthorization) ?: run {
+        val request = HeadlessRegistry.take<PendingHeadlessRequest>(
+            HeadlessRegistry.Kind.REQUEST,
+            sdkAuthorization,
+        ) ?: run {
             Log.w(
                 "HyperHeadlessModule",
                 "getPaymentSession: no pending saved-methods request for this authorization; dropping late response"
@@ -41,19 +45,18 @@ class HyperHeadlessModule internal constructor(
         request.callback(handler)
     }
 
-    // Keyed by sdkAuthorization; the confirmation registry is the single completion channel.
+    // Keyed by sdkAuthorization; the confirm waiter is the single completion channel.
     override fun exitHeadless(sdkAuthorization: String, result: ReadableMap) {
-        HeadlessConfirmationRegistry.complete(sdkAuthorization, result)
+        Log.i("HyperHeadlessModule", "exitHeadless debug: auth=${sdkAuthorization.take(12)}…")
+        val waiter = HeadlessRegistry.take<ConfirmationCallback>(HeadlessRegistry.Kind.CONFIRM, sdkAuthorization)
+        Log.i("HyperHeadlessModule", "exitHeadless debug: waiter=${waiter != null}")
+        waiter?.invoke(result.toPaymentResult())
     }
 
     // Completion signal for one payment's prefetch; the payload lives only in the JS PrefetchCache.
     override fun completePrefetch(data: ReadableMap) {
         val sdkAuthorization = data.getString("sdkAuthorization") ?: return
-        inFlightPrefetches.remove(sdkAuthorization)?.complete(data)
-    }
-
-    companion object {
-        internal val inFlightPrefetches =
-            ConcurrentHashMap<String, CompletableDeferred<ReadableMap>>()
+        HeadlessRegistry.take<CompletableDeferred<ReadableMap>>(HeadlessRegistry.Kind.PREFETCH, sdkAuthorization)
+            ?.complete(data)
     }
 }

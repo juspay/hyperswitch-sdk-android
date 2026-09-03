@@ -133,26 +133,22 @@ class DefaultPaymentSessionLauncher(
             },
             currentSdkAuthorization = { paymentSessionReactLauncher.sessionConfig?.sdkAuthorization.orEmpty() },
         )
-        if (!HeadlessRequestRegistry.tryRegister(
-                authorization,
-                request,
-                SAVED_METHODS_TIMEOUT_MS,
-                onTimeout = {
-                    savedPaymentMethodCallback(
-                        PaymentSessionHandlerImpl.failed(savedMethodsTimeoutError())
-                    )
-                },
-            )
+        val entry = HeadlessRegistry.tryRegister(
+            HeadlessRegistry.Kind.REQUEST,
+            authorization,
+            request,
+            SAVED_METHODS_TIMEOUT_MS,
         ) {
-            savedPaymentMethodCallback(
-                PaymentSessionHandlerImpl.failed(alreadyInProgressError())
-            )
+            savedPaymentMethodCallback(PaymentSessionHandlerImpl.failed(savedMethodsTimeoutError()))
+        }
+        if (entry == null) {
+            savedPaymentMethodCallback(PaymentSessionHandlerImpl.failed(alreadyInProgressError()))
             return
         }
         try {
             paymentSessionReactLauncher.startHeadlessTask(configuration)
         } catch (error: Throwable) {
-            if (HeadlessRequestRegistry.remove(authorization, request)) {
+            if (HeadlessRegistry.remove(HeadlessRegistry.Kind.REQUEST, authorization, entry)) {
                 savedPaymentMethodCallback(PaymentSessionHandlerImpl.failed(error))
             }
         }
@@ -182,28 +178,28 @@ class DefaultPaymentSessionLauncher(
                 },
                 currentSdkAuthorization = { paymentSessionReactLauncher.sessionConfig?.sdkAuthorization.orEmpty() },
             )
-            if (!HeadlessRequestRegistry.tryRegister(
-                    authorization,
-                    request,
-                    SAVED_METHODS_TIMEOUT_MS,
-                    onTimeout = {
-                        if (continuation.isActive) {
-                            continuation.resumeWithException(savedMethodsTimeoutError())
-                        }
-                    },
-                )
+            val entry = HeadlessRegistry.tryRegister(
+                HeadlessRegistry.Kind.REQUEST,
+                authorization,
+                request,
+                SAVED_METHODS_TIMEOUT_MS,
             ) {
+                if (continuation.isActive) {
+                    continuation.resumeWithException(savedMethodsTimeoutError())
+                }
+            }
+            if (entry == null) {
                 continuation.resumeWithException(alreadyInProgressError())
                 return@suspendCancellableCoroutine
             }
             continuation.invokeOnCancellation {
-                HeadlessRequestRegistry.remove(authorization, request)
+                HeadlessRegistry.remove(HeadlessRegistry.Kind.REQUEST, authorization, entry)
             }
             try {
                 paymentSessionReactLauncher.startHeadlessTask(configuration)
             } catch (error: Throwable) {
                 if (
-                    HeadlessRequestRegistry.remove(authorization, request) &&
+                    HeadlessRegistry.remove(HeadlessRegistry.Kind.REQUEST, authorization, entry) &&
                     continuation.isActive
                 ) {
                     continuation.resumeWithException(error)

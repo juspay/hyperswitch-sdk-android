@@ -109,27 +109,23 @@ internal class PaymentSessionHandlerImpl(
         }
         staleHandlerResult()?.let { return resultHandler(settle(it)) }
         beginConfirmation()?.let { resultHandler(it); return }
+        val terminalCallback: ConfirmationCallback = { result -> resultHandler(settle(result)) }
+        val entry = HeadlessRegistry.tryRegister(HeadlessRegistry.Kind.CONFIRM, sdkAuthorization, terminalCallback)
+        android.util.Log.i("PaymentSessionHandlerImpl", "confirm debug: registered=${entry != null} auth=${sdkAuthorization.take(12)}…")
+        if (entry == null) {
+            /* Another confirm for this authorization is in flight. This handler never
+               started, so it must stay usable once that one settles. */
+            confirmationStarted.set(false)
+            resultHandler(alreadyInProgressResult())
+            return
+        }
         try {
-            val terminalCallback = { result: PaymentResult ->
-                resultHandler(settle(result))
-            }
-            val registered = HeadlessConfirmationRegistry.tryRegister(
-                sdkAuthorization = sdkAuthorization,
-                callback = terminalCallback,
-            )
-            if (!registered) {
-                /* Another confirm for this authorization is in flight. This handler never
-                   started, so it must stay usable once that one settles. */
-                confirmationStarted.set(false)
-                resultHandler(alreadyInProgressResult())
-                return
-            }
             jsCallback.invoke(Arguments.createMap().apply {
                 putString("paymentToken", paymentToken)
                 putString("cvc", cvc)
             })
         } catch (ex: Exception) {
-            HeadlessConfirmationRegistry.remove(sdkAuthorization)
+            HeadlessRegistry.remove(HeadlessRegistry.Kind.CONFIRM, sdkAuthorization, entry)
             /* The codegen confirm callback is single-shot; a re-invoke lands here. */
             resultHandler(settle(handlerAlreadyUsedResult()))
         }
