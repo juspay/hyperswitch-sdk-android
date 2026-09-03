@@ -36,6 +36,10 @@ class PaymentMethodSession internal constructor(
 
     private val hostProvider = PaymentMethodSessionReactHostProvider(application)
 
+    /** Unique id of this session's dedicated React host — distinct for every session. */
+    val hostInstanceId: Int
+        get() = hostProvider.hostInstanceId
+
     /** This session's dedicated React host — created on first use, never shared. */
     internal val reactHost: ReactHost
         get() = hostProvider.reactHost
