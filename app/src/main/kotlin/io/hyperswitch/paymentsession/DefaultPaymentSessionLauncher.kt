@@ -121,7 +121,6 @@ class DefaultPaymentSessionLauncher(
         configuration: SavedPaymentMethodsConfiguration?,
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
     ) {
-        isPresented = false
         val authorization = sessionConfig?.sdkAuthorization.orEmpty()
         if (authorization.isEmpty()) {
             savedPaymentMethodCallback(PaymentSessionHandlerImpl.failed(missingSessionError()))
@@ -169,7 +168,6 @@ class DefaultPaymentSessionLauncher(
         configuration: SavedPaymentMethodsConfiguration?,
     ): PaymentSessionHandler =
         suspendCancellableCoroutine { continuation ->
-            isPresented = false
             val authorization = sessionConfig?.sdkAuthorization.orEmpty()
             if (authorization.isEmpty()) {
                 continuation.resumeWithException(missingSessionError())
@@ -215,7 +213,6 @@ class DefaultPaymentSessionLauncher(
 
 
     companion object {
-        var isPresented: Boolean = false
         private const val SAVED_METHODS_TIMEOUT_MS = 30_000L
     }
 

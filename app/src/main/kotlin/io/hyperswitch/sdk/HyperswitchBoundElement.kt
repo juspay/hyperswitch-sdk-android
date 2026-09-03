@@ -101,7 +101,9 @@ class HyperswitchBoundElement internal constructor(
         return element.updateIntentComplete(sdkAuthorization)
     }
 
+    /** Unmounts the React root and disposes the result listener. Bind again for a new session. */
     fun destroy() {
         element.onPaymentResult(PaymentResultListener { /* disposed - no-op */ })
+        element.destroy()
     }
 }

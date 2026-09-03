@@ -16,7 +16,6 @@ import com.facebook.react.bridge.UiThreadUtil
 import com.facebook.react.common.assets.ReactFontManager
 import com.facebook.react.jstasks.HeadlessJsTaskConfig
 import com.facebook.react.jstasks.HeadlessJsTaskContext
-import com.facebook.react.modules.core.DeviceEventManagerModule
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.facebook.react.uimanager.PixelUtil
 import io.hyperswitch.BuildConfig
@@ -99,21 +98,16 @@ class PaymentSessionReactLauncher(
         emitPrefetchCacheRemoval(sdkAuthorization)
     }
 
+    /* Codegen event channel only: JS subscribes through NativeHyperModule.clearPrefetchCache,
+       which never sees RCTDeviceEventEmitter traffic. Same path iOS uses. */
     private fun emitPrefetchCacheRemoval(sdkAuthorization: String) {
         if (sdkAuthorization.isEmpty()) return
-        val emit = { context: ReactContext ->
-            context
-                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                .emit(
-                    PREFETCH_CACHE_REMOVAL_EVENT,
-                    Arguments.createMap().apply {
-                        putString("sdkAuthorization", sdkAuthorization)
-                    }
-                )
-        }
-        activity.runOnUiThread {
-            currentReactContext()?.let(emit)
-        }
+        ReactNativeController.eventEmitter.emitEvent(
+            PREFETCH_CACHE_REMOVAL_EVENT,
+            Arguments.createMap().apply {
+                putString("sdkAuthorization", sdkAuthorization)
+            },
+        )
     }
 
     @SuppressLint("VisibleForTests")

@@ -34,9 +34,8 @@ class HyperHeadlessModule internal constructor(
         request.callback(handler)
     }
 
-    /* rootTag is part of the wire contract for iOS's CVC-widget lookup; Android's
-       confirmation registry is keyed by sdkAuthorization and ignores it. */
-    override fun exitHeadless(sdkAuthorization: String, rootTag: Double, result: ReadableMap) {
+    // Keyed by sdkAuthorization; the confirmation registry is the single completion channel.
+    override fun exitHeadless(sdkAuthorization: String, result: ReadableMap) {
         HeadlessConfirmationRegistry.complete(sdkAuthorization, result)
     }
 

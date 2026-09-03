@@ -122,6 +122,15 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         val cvcWidget = findViewById<CVCWidget>(R.id.cvcWidget)
 
         lifecycleScope.launch {
+            // A reload is a new session: destroy the previous bindings before binding again.
+            paymentElementBound?.let { bound ->
+                elements?.unbind(bound)
+                bound.destroy()
+            }
+            cvcWidgetBound?.let { bound ->
+                elements?.unbind(bound)
+                bound.destroy()
+            }
             // All bindings share one Elements session — initialise once, bind sequentially.
             elements = hyperswitchInstance?.elements(sessionConfig)
             paymentSessionHandler = elements?.getPaymentSession()?.getCustomerSavedPaymentMethods()

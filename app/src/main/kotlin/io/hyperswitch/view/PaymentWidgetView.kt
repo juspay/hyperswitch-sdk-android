@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.os.Bundle
 import android.util.AttributeSet
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -322,6 +323,15 @@ class PaymentWidgetView : FrameLayout {
     }
 
     fun setSdkAuthorization(sdkAuthorization: String) {
+        if (widgetShown && this.sdkAuthorization != sdkAuthorization) {
+            Log.w(
+                "PaymentWidgetView",
+                "setSdkAuthorization ignored: this view is already mounted for another " +
+                    "authorization. Use Elements.updateIntent to switch intents, or destroy " +
+                    "the bound element and bind again for a new session.",
+            )
+            return
+        }
         this.sdkAuthorization = sdkAuthorization
         // Auto-show widget if already attached to window.
         // Use post() to guarantee execution on the main thread — callers may

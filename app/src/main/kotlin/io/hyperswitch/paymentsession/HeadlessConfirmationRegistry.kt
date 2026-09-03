@@ -1,80 +1,33 @@
 package io.hyperswitch.paymentsession
 
-import android.os.Handler
-import android.os.Looper
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.paymentsheet.PaymentResult
 import java.util.concurrent.ConcurrentHashMap
 
 typealias ConfirmationCallback = (PaymentResult) -> Unit
 
-private class ConfirmationEntry(
-    val callback: ConfirmationCallback,
-) {
-    private var timeoutTask: Runnable? = null
-    private var done = false
-
-    @Synchronized
-    fun scheduleTimeout(handler: Handler, delayMillis: Long, onTimeout: () -> Unit) {
-        if (done) return
-        Runnable(onTimeout).also { task ->
-            timeoutTask = task
-            handler.postDelayed(task, delayMillis)
-        }
-    }
-
-    @Synchronized
-    fun finish(handler: Handler) {
-        if (done) return
-        done = true
-        timeoutTask?.let(handler::removeCallbacks)
-        timeoutTask = null
-    }
-}
-
-/* Holds only confirmations currently running through the headless runtime. Registrations
-   are time-boxed like the prefetch and saved-methods requests: a wedged runtime must not
-   lock the authorization's slot forever — the entry settles as a failure after 30s. */
+/* Holds only confirmations currently running through the headless runtime. There is
+   deliberately no timeout: a confirm can wait on a 3DS challenge or a wallet sheet for
+   minutes, and a late real result must reach the merchant. A dead runtime is handled by
+   the emit-failure rollback in HyperFragment.confirmCvcPayment and the catch branch in
+   PaymentSessionHandlerImpl.confirmWithCustomerPaymentToken. */
 internal object HeadlessConfirmationRegistry {
-    private const val CONFIRMATION_TIMEOUT_MS = 30_000L
-
-    private val callbacks = ConcurrentHashMap<String, ConfirmationEntry>()
-    private val timeoutHandler = Handler(Looper.getMainLooper())
+    private val callbacks = ConcurrentHashMap<String, ConfirmationCallback>()
 
     fun tryRegister(
         sdkAuthorization: String,
         callback: ConfirmationCallback,
-    ): Boolean {
-        val entry = ConfirmationEntry(callback)
-        if (
-            sdkAuthorization.isEmpty() ||
-            callbacks.putIfAbsent(sdkAuthorization, entry) != null
-        ) {
-            return false
-        }
-        entry.scheduleTimeout(timeoutHandler, CONFIRMATION_TIMEOUT_MS) {
-            if (callbacks.remove(sdkAuthorization) != null) {
-                callback(
-                    PaymentResult.Failed(
-                        Throwable("Confirmation did not complete in time").apply {
-                            initCause(Throwable("CONFIRM_RESULT_TIMEOUT"))
-                        }
-                    )
-                )
-            }
-        }
-        return true
-    }
+    ): Boolean = sdkAuthorization.isNotEmpty() &&
+        callbacks.putIfAbsent(sdkAuthorization, callback) == null
 
     fun complete(sdkAuthorization: String, result: ReadableMap): Boolean {
-        val entry = callbacks.remove(sdkAuthorization) ?: return false
-        entry.finish(timeoutHandler)
-        entry.callback(parseResult(result))
+        val callback = callbacks.remove(sdkAuthorization) ?: return false
+        callback(parseResult(result))
         return true
     }
 
     fun remove(sdkAuthorization: String) {
-        callbacks.remove(sdkAuthorization)?.finish(timeoutHandler)
+        callbacks.remove(sdkAuthorization)
     }
 
     // `result` is the codegen PaymentExitResult object: {status, type?, code?, message?}.

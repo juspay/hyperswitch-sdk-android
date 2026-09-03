@@ -1,12 +1,14 @@
 package io.hyperswitch.sdk
 
 import android.app.Activity
+import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsession.PaymentSessionHandler
+import io.hyperswitch.paymentsession.PaymentSessionReactLauncher
 import io.hyperswitch.paymentsession.SavedPaymentMethodsConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.view.HyperswitchElement
@@ -106,9 +108,13 @@ class Elements internal constructor(
                     IllegalArgumentException("sdkAuthorization must not be empty")
                 )
             }
-            paymentSession.prepareIntentUpdate(newSdkAuthorization).getOrElse {
-                paymentSession.clearUnappliedPrefetch(newSdkAuthorization)
-                return ElementsUpdateResult.TotalFailure(it)
+            paymentSession.prepareIntentUpdate(newSdkAuthorization).getOrElse { error ->
+                /* A duplicate means another in-progress session owns this authorization's
+                   entry and its cache write; clearing here would race that write. */
+                if (error !is PaymentSessionReactLauncher.DuplicateSessionInitException) {
+                    paymentSession.clearUnappliedPrefetch(newSdkAuthorization)
+                }
+                return ElementsUpdateResult.TotalFailure(error)
             }
             paymentSession.commitIntentUpdate(newSdkAuthorization)
             return ElementsUpdateResult.Success
@@ -147,18 +153,30 @@ class Elements internal constructor(
         // Fetch once for the Elements session. The payload stays in the JS PrefetchCache and
         // every bound widget resolves it from there by sdkAuthorization — none of them
         // should independently repeat the intent API calls.
-        val prefetchSucceeded = if (sdkAuthorization.isNotEmpty()) {
-            paymentSession.prepareIntentUpdate(sdkAuthorization).isSuccess
+        val prefetch: Result<ReadableMap> = if (sdkAuthorization.isNotEmpty()) {
+            paymentSession.prepareIntentUpdate(sdkAuthorization)
         } else {
-            false
+            Result.failure(IllegalArgumentException("sdkAuthorization must not be empty"))
         }
+        val prefetchSucceeded = prefetch.isSuccess
+        /* A duplicate means another in-progress session owns this authorization's entry and
+           its cache write; clearing here would race that write. */
+        val ownsEntry =
+            prefetch.exceptionOrNull() !is PaymentSessionReactLauncher.DuplicateSessionInitException
 
-        /* A failed prefetch must reach the caller WITHOUT broadcasting to widgets:
-           the complete-phase broadcast would switch the JS widgets to the new intent
-           while the native session stays on the old authorization — split-brain state. */
+        /* A failed prefetch must reach the caller WITHOUT switching the widgets to the new
+           intent — the native session stays on the old authorization. The widgets have shown
+           their update overlay since init, so they still need a completion: an empty
+           authorization is the JS abort signal (UpdateIntentHook resets loading and replies
+           invalid_sdk_authorization without switching). Their replies are not used. */
         if (!prefetchSucceeded) {
-            if (sdkAuthorization.isNotEmpty()) {
+            if (sdkAuthorization.isNotEmpty() && ownsEntry) {
                 paymentSession.clearUnappliedPrefetch(sdkAuthorization)
+            }
+            coroutineScope {
+                initSucceeded.map { hsElement ->
+                    async { hsElement.updateIntentComplete("") }
+                }.awaitAll()
             }
             return ElementsUpdateResult.TotalFailure(
                 cause = IllegalStateException("Unable to load the updated payment intent").apply {

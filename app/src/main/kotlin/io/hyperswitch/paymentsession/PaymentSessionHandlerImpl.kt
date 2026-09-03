@@ -27,6 +27,7 @@ internal class PaymentSessionHandlerImpl(
 ) : PaymentSessionHandler {
 
     private val confirmationStarted = AtomicBoolean(false)
+    private val settled = AtomicBoolean(false)
 
     internal companion object {
         fun failed(error: Throwable): PaymentSessionHandlerImpl {
@@ -107,10 +108,7 @@ internal class PaymentSessionHandlerImpl(
             return
         }
         staleHandlerResult()?.let { return resultHandler(settle(it)) }
-        if (!confirmationStarted.compareAndSet(false, true)) {
-            resultHandler(alreadyInProgressResult())
-            return
-        }
+        beginConfirmation()?.let { resultHandler(it); return }
         try {
             val terminalCallback = { result: PaymentResult ->
                 resultHandler(settle(result))
@@ -129,16 +127,8 @@ internal class PaymentSessionHandlerImpl(
             })
         } catch (ex: Exception) {
             HeadlessConfirmationRegistry.remove(sdkAuthorization)
-            /* The codegen confirm callback is single-shot; a re-invoke (retried confirm
-               on a settled handler) lands here. Same code as iOS's post-terminal branch. */
-            val result = PaymentResult.Failed(
-                Throwable(
-                    "This saved payment methods handler has already completed; request a new handler"
-                ).apply {
-                    initCause(Throwable("HANDLER_ALREADY_USED"))
-                }
-            )
-            resultHandler(settle(result))
+            /* The codegen confirm callback is single-shot; a re-invoke lands here. */
+            resultHandler(settle(handlerAlreadyUsedResult()))
         }
     }
 
@@ -147,9 +137,7 @@ internal class PaymentSessionHandlerImpl(
     override suspend fun confirmWithCustomerLastUsedPaymentMethod(cvcWidget: View): PaymentResult {
         initializationError?.let { return PaymentResult.Failed(it) }
         staleHandlerResult()?.let { return settle(it) }
-        if (!confirmationStarted.compareAndSet(false, true)) {
-            return alreadyInProgressResult()
-        }
+        beginConfirmation()?.let { return it }
         val method = getCustomerLastUsedPaymentMethodData().getOrElse {
             return settle(PaymentResult.Failed(it))
         }
@@ -163,9 +151,7 @@ internal class PaymentSessionHandlerImpl(
     override suspend fun confirmWithCustomerDefaultPaymentMethod(cvcWidget: View): PaymentResult {
         initializationError?.let { return PaymentResult.Failed(it) }
         staleHandlerResult()?.let { return settle(it) }
-        if (!confirmationStarted.compareAndSet(false, true)) {
-            return alreadyInProgressResult()
-        }
+        beginConfirmation()?.let { return it }
         val method = getCustomerDefaultSavedPaymentMethodData().getOrElse {
             return settle(PaymentResult.Failed(it))
         }
@@ -198,23 +184,38 @@ internal class PaymentSessionHandlerImpl(
         message: String,
         resultHandler: (PaymentResult) -> Unit,
     ) {
-        if (!confirmationStarted.compareAndSet(false, true)) {
-            resultHandler(alreadyInProgressResult())
-            return
-        }
+        beginConfirmation()?.let { resultHandler(it); return }
         val result = PaymentResult.Failed(Throwable(message).apply {
             initCause(Throwable("MISSING_PAYMENT_TOKEN"))
         })
         resultHandler(settle(result))
     }
 
-    /* A settled confirm frees the slot: only an in-flight duplicate is rejected —
-       a post-terminal retry must be able to start a fresh confirmation. */
+    /* Confirm channels are single-shot on both platforms: the codegen callback is consumed by
+       the first confirm and the registry entry by its result. A post-terminal retry on the same
+       handler is HANDLER_ALREADY_USED; only an in-flight duplicate is ALREADY_IN_PROGRESS.
+       Request a new handler through getCustomerSavedPaymentMethods to confirm again. */
+    private fun beginConfirmation(): PaymentResult? =
+        when {
+            confirmationStarted.compareAndSet(false, true) -> null
+            settled.get() -> handlerAlreadyUsedResult()
+            else -> alreadyInProgressResult()
+        }
+
     private fun settle(result: PaymentResult): PaymentResult {
-        confirmationStarted.set(false)
+        settled.set(true)
         onTerminalResult(sdkAuthorization, result)
         return result
     }
+
+    private fun handlerAlreadyUsedResult(): PaymentResult =
+        PaymentResult.Failed(
+            Throwable(
+                "This saved payment methods handler has already completed; request a new handler"
+            ).apply {
+                initCause(Throwable("HANDLER_ALREADY_USED"))
+            }
+        )
 
     /* Headless confirms cannot be JS-guarded: the headless root's nativeProp is frozen at
        launch (its clientSecret is used verbatim at confirm time), so only native — which owns
