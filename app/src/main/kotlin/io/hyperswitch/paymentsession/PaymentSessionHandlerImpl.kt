@@ -111,7 +111,6 @@ internal class PaymentSessionHandlerImpl(
         beginConfirmation()?.let { resultHandler(it); return }
         val terminalCallback: ConfirmationCallback = { result -> resultHandler(settle(result)) }
         val entry = HeadlessRegistry.tryRegister(HeadlessRegistry.Kind.CONFIRM, sdkAuthorization, terminalCallback)
-        android.util.Log.i("PaymentSessionHandlerImpl", "confirm debug: registered=${entry != null} auth=${sdkAuthorization.take(12)}…")
         if (entry == null) {
             /* Another confirm for this authorization is in flight. This handler never
                started, so it must stay usable once that one settles. */

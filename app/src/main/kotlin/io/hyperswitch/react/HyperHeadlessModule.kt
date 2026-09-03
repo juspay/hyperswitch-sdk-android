@@ -47,10 +47,8 @@ class HyperHeadlessModule internal constructor(
 
     // Keyed by sdkAuthorization; the confirm waiter is the single completion channel.
     override fun exitHeadless(sdkAuthorization: String, result: ReadableMap) {
-        Log.i("HyperHeadlessModule", "exitHeadless debug: auth=${sdkAuthorization.take(12)}…")
-        val waiter = HeadlessRegistry.take<ConfirmationCallback>(HeadlessRegistry.Kind.CONFIRM, sdkAuthorization)
-        Log.i("HyperHeadlessModule", "exitHeadless debug: waiter=${waiter != null}")
-        waiter?.invoke(result.toPaymentResult())
+        HeadlessRegistry.take<ConfirmationCallback>(HeadlessRegistry.Kind.CONFIRM, sdkAuthorization)
+            ?.invoke(result.toPaymentResult())
     }
 
     // Completion signal for one payment's prefetch; the payload lives only in the JS PrefetchCache.
