@@ -1,5 +1,6 @@
 package io.hyperswitch.react
 
+import android.util.Log
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReadableArray
@@ -21,7 +22,14 @@ class HyperHeadlessModule internal constructor(
         savedPaymentMethods: ReadableArray,
         callback: Callback
     ) {
-        val request = HeadlessRequestRegistry.take(sdkAuthorization) ?: return
+        val request = HeadlessRequestRegistry.take(sdkAuthorization) ?: run {
+            Log.w(
+                "HyperHeadlessModule",
+                "getPaymentSession: no pending saved-methods request for authorization " +
+                    "${sdkAuthorization.take(12)}…; dropping late response"
+            )
+            return
+        }
         val handler = PaymentSessionHandlerImpl(
             sdkAuthorization = sdkAuthorization,
             currentSdkAuthorization = request.currentSdkAuthorization,

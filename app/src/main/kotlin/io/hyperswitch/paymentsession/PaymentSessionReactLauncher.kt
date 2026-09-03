@@ -147,23 +147,43 @@ class PaymentSessionReactLauncher(
         headlessType: String,
         taskSessionConfig: PaymentSessionConfiguration?,
     ) {
+        val sdkAuthorization = taskSessionConfig?.sdkAuthorization.orEmpty()
         activity.runOnUiThread {
-            val context = currentReactContext()
-            if (context == null) {
-                val reactHost = checkNotNull(reactHost)
-                reactHost.addReactInstanceEventListener(
-                    object : ReactInstanceEventListener {
-                        override fun onReactContextInitialized(context: ReactContext) {
-                            invokeStartTask(context, configuration, headlessType, taskSessionConfig)
-                            reactHost.removeReactInstanceEventListener(this)
+            try {
+                val context = currentReactContext()
+                if (context == null) {
+                    val reactHost = checkNotNull(reactHost)
+                    reactHost.addReactInstanceEventListener(
+                        object : ReactInstanceEventListener {
+                            override fun onReactContextInitialized(context: ReactContext) {
+                                try {
+                                    invokeStartTask(context, configuration, headlessType, taskSessionConfig)
+                                } catch (error: Throwable) {
+                                    routeLaunchFailure(sdkAuthorization, error)
+                                }
+                                reactHost.removeReactInstanceEventListener(this)
+                            }
                         }
-                    }
-                )
-                reactHost.start()
-            } else {
-                invokeStartTask(context, configuration, headlessType, taskSessionConfig)
+                    )
+                    reactHost.start()
+                } else {
+                    invokeStartTask(context, configuration, headlessType, taskSessionConfig)
+                }
+            } catch (error: Throwable) {
+                routeLaunchFailure(sdkAuthorization, error)
             }
         }
+    }
+
+    /* Anything thrown inside the posted runnable escapes the callers' try/catch around
+       startHeadlessTask — fail the registered request instead of crashing the app. */
+    private fun routeLaunchFailure(sdkAuthorization: String, error: Throwable) {
+        Log.e(TAG, "Headless task launch failed", error)
+        if (sdkAuthorization.isEmpty()) return
+        HyperHeadlessModule.inFlightPrefetches.remove(sdkAuthorization)
+            ?.completeExceptionally(error)
+        HeadlessRequestRegistry.take(sdkAuthorization)
+            ?.callback(PaymentSessionHandlerImpl.failed(error))
     }
 
     private fun getSubscribedEventsSafely(): List<String> =
