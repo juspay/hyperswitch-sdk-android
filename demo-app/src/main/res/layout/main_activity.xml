@@ -103,6 +103,13 @@
             android:layout_marginTop="24dp"
             android:text="@string/btn_launch_widget" />
 
+        <Button
+            style="@style/HsButtonOutline"
+            android:id="@+id/launchMatrix"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Headless matrix" />
+
     </LinearLayout>
 
 </ScrollView>
