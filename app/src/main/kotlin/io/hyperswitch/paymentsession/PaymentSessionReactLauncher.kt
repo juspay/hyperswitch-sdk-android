@@ -85,12 +85,14 @@ class PaymentSessionReactLauncher(
         } catch (error: Throwable) {
             /* routeLaunchFailure completed the deferred exceptionally: report it the same way
                a timeout is reported so initPaymentSession has one failure channel. */
-            HeadlessRegistry.remove(HeadlessRegistry.Kind.PREFETCH, sdkAuthorization, entry)
             return Result.failure(error)
+        } finally {
+            /* Every exit — success, timeout, failure, or a cancelled parent coroutine —
+               must free the waiter. remove() only clears this exact entry, so a new
+               registration can never be clobbered by a cancelling waiter. */
+            HeadlessRegistry.remove(HeadlessRegistry.Kind.PREFETCH, sdkAuthorization, entry)
         }
         if (data == null) {
-            // Remove only this exact entry so a newer prefetch cannot be cleared by this one.
-            HeadlessRegistry.remove(HeadlessRegistry.Kind.PREFETCH, sdkAuthorization, entry)
             Log.w(TAG, "Prefetch timed out after ${PREFETCH_TIMEOUT_MS}ms; falling back to on-demand API calls")
             return Result.failure(IllegalStateException("Prefetch timed out"))
         }

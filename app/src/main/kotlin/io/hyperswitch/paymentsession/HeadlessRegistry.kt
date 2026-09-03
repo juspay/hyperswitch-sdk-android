@@ -4,7 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.paymentsheet.PaymentResult
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicReference
 
 typealias HeadlessRequestCallback = (PaymentSessionHandler) -> Unit
 typealias ConfirmationCallback = (PaymentResult) -> Unit
@@ -18,15 +18,15 @@ internal class PendingHeadlessRequest(
     val currentSdkAuthorization: () -> String,
 )
 
-/* One correlation table for every headless round trip. Native registers a waiter under
-   (kind, sdkAuthorization) before it launches JS; JS calls back into the singleton
-   TurboModule and the module takes the waiter by the same key. An in-flight waiter of a kind
-   is rejected, a timeout is optional, and a rollback removes only the entry it registered.
+/* One correlation registry for every headless round trip. Native registers a waiter
+   before it launches JS; JS calls back into the singleton TurboModule and the module
+   takes the waiter. A waiter of a kind already in flight is rejected, a timeout is
+   optional, and a rollback removes only the entry it registered.
 
-   INTERIM(1 session): routing by authorization commented out — a single slot per Kind while
-   only one session is supported; tryRegister/take/remove keep their sdkAuthorization
-   parameters so callers are untouched. The auth-keyed correlation returns with the
-   multisession work (stash "headless-roottag-ios-wip", docs/plans/headless-roottag-ios.md).
+   INTERIM(1 session): routing by authorization is commented out. While only one session
+   is supported there is no map — one slot per waiter kind, and each slot stores the
+   authorization it was registered with; take() consumes a slot only for a matching
+   authorization. The auth-keyed correlation returns when multisession lands.
 
    Waiters: PREFETCH holds a CompletableDeferred<ReadableMap>, REQUEST a
    PendingHeadlessRequest, CONFIRM a ConfirmationCallback. Confirms have no timeout on
@@ -38,7 +38,11 @@ internal object HeadlessRegistry {
 
     enum class Kind { PREFETCH, REQUEST, CONFIRM }
 
-    class Entry<T : Any>(val waiter: T) {
+    /* INTERIM(1 session): why the slot stores an authorization. Slots block duplicate
+       launches, but the 30s timeout abandons a waiter without stopping the JS task behind
+       it — a late reply can reach a slot a newer waiter owns, and only this tag lets take()
+       drop it. */
+    class Entry<T : Any>(val waiter: T, val sdkAuthorization: String) {
         private var timeoutTask: Runnable? = null
         private var done = false
 
@@ -60,14 +64,24 @@ internal object HeadlessRegistry {
         }
     }
 
-    // INTERIM(1 session): auth-keyed entries commented out; one slot per Kind below.
-/*
+    /* INTERIM(1 session): the auth-keyed correlation map, commented out — the single
+       per-kind slots below replace it for now.
+
     private data class Key(val kind: Kind, val sdkAuthorization: String)
 
     private val entries = ConcurrentHashMap<Key, Entry<*>>()
-*/
-    private val entries = ConcurrentHashMap<Kind, Entry<*>>()
+    */
     private val timeoutHandler = Handler(Looper.getMainLooper())
+
+    private val prefetchWaiter = AtomicReference<Entry<*>>()
+    private val requestWaiter = AtomicReference<Entry<*>>()
+    private val confirmWaiter = AtomicReference<Entry<*>>()
+
+    private fun slot(kind: Kind) = when (kind) {
+        Kind.PREFETCH -> prefetchWaiter
+        Kind.REQUEST -> requestWaiter
+        Kind.CONFIRM -> confirmWaiter
+    }
 
     /** Registers [waiter]; null when the authorization is empty or a waiter of this kind is already in flight. */
     fun <T : Any> tryRegister(
@@ -79,13 +93,13 @@ internal object HeadlessRegistry {
     ): Entry<T>? {
         if (sdkAuthorization.isEmpty()) return null
         // INTERIM(1 session): val key = Key(kind, sdkAuthorization)
-        val entry = Entry(waiter)
+        val entry = Entry(waiter, sdkAuthorization)
         // INTERIM(1 session): if (entries.putIfAbsent(key, entry) != null) return null
-        if (entries.putIfAbsent(kind, entry) != null) return null
+        if (!slot(kind).compareAndSet(null, entry)) return null
         if (timeoutMillis != null) {
             entry.scheduleTimeout(timeoutHandler, timeoutMillis) {
                 // INTERIM(1 session): if (entries.remove(key, entry)) {
-                if (entries.remove(kind, entry)) {
+                if (slot(kind).compareAndSet(entry, null)) {
                     entry.finish(timeoutHandler)
                     onTimeout()
                 }
@@ -98,15 +112,18 @@ internal object HeadlessRegistry {
     @Suppress("UNCHECKED_CAST")
     fun <T : Any> take(kind: Kind, sdkAuthorization: String): T? {
         // INTERIM(1 session): val entry = entries.remove(Key(kind, sdkAuthorization)) ?: return null
-        val entry = entries.remove(kind) ?: return null
+        val entry = slot(kind).get() ?: return null
+        // Stale-reply guard: a foreign authorization is a straggler from an abandoned task; dropped.
+        if (entry.sdkAuthorization != sdkAuthorization) return null
+        slot(kind).compareAndSet(entry, null)
         entry.finish(timeoutHandler)
         return entry.waiter as? T
     }
 
-    /** Rolls back exactly [entry]; a newer registration under the same key is left alone. */
+    /** Rolls back exactly [entry]; a newer registration in the same slot is left alone. */
     fun remove(kind: Kind, sdkAuthorization: String, entry: Entry<*>): Boolean {
         // INTERIM(1 session): val removed = entries.remove(Key(kind, sdkAuthorization), entry)
-        val removed = entries.remove(kind, entry)
+        val removed = slot(kind).compareAndSet(entry, null)
         if (removed) entry.finish(timeoutHandler)
         return removed
     }
