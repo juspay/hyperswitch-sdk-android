@@ -1,7 +1,6 @@
 package io.hyperswitch.paymentmethods
 
 import android.app.Application
-import android.content.Context
 import android.util.Log
 import com.facebook.react.ReactHost
 import com.facebook.react.bridge.JSBundleLoader
@@ -83,6 +82,10 @@ internal class PaymentMethodSessionReactHostProvider(
         private const val TAG = "PMSessionReactHost"
         private const val JS_MAIN_MODULE_PATH = "index"
 
+        /** Dedicated bundle for payment-method session hosts — never the main bundle. */
+        private const val PAYMENT_METHODS_BUNDLE_ASSET = "hyperswitch-payment-methods.bundle"
+        private const val MAIN_BUNDLE_ASSET = "hyperswitch.bundle"
+
         private val runtimeReady = AtomicBoolean(false)
 
         /**
@@ -107,29 +110,26 @@ internal class PaymentMethodSessionReactHostProvider(
         }
 
         /**
-         * Resolves the JS bundle path the same way the main SDK does — Hyper Airborne OTA
-         * when available, falling back to the bundled asset.
+         * Resolves the JS bundle path for this session's dedicated host:
+         * the separate [PAYMENT_METHODS_BUNDLE_ASSET] asset shipped by this library.
+         * Falls back to the main SDK bundle when the dedicated asset has not been
+         * generated/packaged yet, so integrations degrade gracefully.
          */
         private fun resolveBundlePath(application: Application): String {
-            try {
-                val airborneUrl = application.getString(io.hyperswitch.R.string.hyperOTAEndPoint)
-                if (airborneUrl != "hyperOTA_END_POINT_") {
-                    val airborneClass = Class.forName("io.hyperswitch.airborne.AirborneOTA")
-                    val constructor = airborneClass.getConstructor(
-                        Context::class.java,
-                        String::class.java,
-                        String::class.java,
-                    )
-                    val instance = constructor.newInstance(
-                        application.applicationContext,
-                        io.hyperswitch.BuildConfig.VERSION_NAME,
-                        airborneUrl,
-                    )
-                    return airborneClass.getMethod("getBundlePath").invoke(instance) as String
-                }
-            } catch (_: Exception) {
+            val hasPaymentMethodsBundle = runCatching {
+                application.assets.list("")?.contains(PAYMENT_METHODS_BUNDLE_ASSET) == true
+            }.getOrDefault(false)
+
+            return if (hasPaymentMethodsBundle) {
+                "assets://$PAYMENT_METHODS_BUNDLE_ASSET"
+            } else {
+                Log.w(
+                    TAG,
+                    "$PAYMENT_METHODS_BUNDLE_ASSET not found in app assets — " +
+                            "run `yarn bundle:android:payment-methods`; falling back to $MAIN_BUNDLE_ASSET",
+                )
+                "assets://$MAIN_BUNDLE_ASSET"
             }
-            return "assets://hyperswitch.bundle"
         }
     }
 }
