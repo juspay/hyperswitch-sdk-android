@@ -8,7 +8,6 @@ import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsession.PaymentSessionHandler
-import io.hyperswitch.paymentsession.PaymentSessionReactLauncher
 import io.hyperswitch.paymentsession.SavedPaymentMethodsConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.view.HyperswitchElement
@@ -115,11 +114,7 @@ class Elements internal constructor(
                 )
             }
             paymentSession.prepareIntentUpdate(newSdkAuthorization).getOrElse { error ->
-                /* A duplicate means another in-progress session owns this authorization's
-                   entry and its cache write; clearing here would race that write. */
-                if (error !is PaymentSessionReactLauncher.DuplicateSessionInitException) {
-                    paymentSession.clearUnappliedPrefetch(newSdkAuthorization)
-                }
+                paymentSession.clearUnappliedPrefetch(newSdkAuthorization)
                 return ElementsUpdateResult.TotalFailure(error)
             }
             paymentSession.commitIntentUpdate(newSdkAuthorization)
@@ -167,10 +162,6 @@ class Elements internal constructor(
             Result.failure(IllegalArgumentException("sdkAuthorization must not be empty"))
         }
         val prefetchSucceeded = prefetch.isSuccess
-        /* A duplicate means another in-progress session owns this authorization's entry and
-           its cache write; clearing here would race that write. */
-        val ownsEntry =
-            prefetch.exceptionOrNull() !is PaymentSessionReactLauncher.DuplicateSessionInitException
 
         /* A failed prefetch must reach the caller WITHOUT switching the widgets to the new
            intent — the native session stays on the old authorization. The widgets have shown
@@ -178,7 +169,7 @@ class Elements internal constructor(
            authorization is the JS abort signal (UpdateIntentHook resets loading and replies
            invalid_sdk_authorization without switching). Their replies are not used. */
         if (!prefetchSucceeded) {
-            if (sdkAuthorization.isNotEmpty() && ownsEntry) {
+            if (sdkAuthorization.isNotEmpty()) {
                 paymentSession.clearUnappliedPrefetch(sdkAuthorization)
             }
             coroutineScope {

@@ -40,16 +40,6 @@ class PaymentSessionReactLauncher(
 
     @Volatile override var sessionConfig: PaymentSessionConfiguration? = null
 
-    /** Thrown when the same sdkAuthorization is being fetched in another in-progress session:
-     *  the in-flight caller owns the entry — a duplicate must neither clear nor commit. */
-    internal class DuplicateSessionInitException(sdkAuthorization: String) : IllegalStateException(
-        "sdkAuthorization '$sdkAuthorization' is already in use by an in-progress session"
-    ) {
-        init {
-            initCause(Throwable("SESSION_INIT_IN_PROGRESS"))
-        }
-    }
-
     /**
      * Runs the prefetch headless task and waits for its result.
      *
@@ -69,7 +59,11 @@ class PaymentSessionReactLauncher(
 
         val prefetch = CompletableDeferred<ReadableMap>()
         if (!ReactNativeController.sessionRouter.tryRegisterPrefetchCallback(prefetch)) {
-            throw DuplicateSessionInitException(sdkAuthorization)
+            return Result.failure(
+                IllegalStateException(
+                    "sdkAuthorization '$sdkAuthorization' is already in use by an in-progress session"
+                ).apply { initCause(Throwable("SESSION_INIT_IN_PROGRESS")) }
+            )
         }
         launchHeadlessTask(
             configuration = null,

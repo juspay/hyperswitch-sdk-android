@@ -99,16 +99,10 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                         )
 
                         lifecycleScope.launch {
-                            paymentSession = try {
-                                hyperswitchInstance?.initPaymentSession(
-                                    PaymentSessionConfiguration(sdkAuthorization = sdkAuthorization)
-                                )
-                            } catch (error: Exception) {
-                                Log.e(TAG, "initPaymentSession failed", error)
-                                setStatus("Could not initialise payment session")
-                                null
-                            }
-                            if (paymentSession != null) onSessionReady()
+                            paymentSession = hyperswitchInstance?.initPaymentSession(
+                                PaymentSessionConfiguration(sdkAuthorization = sdkAuthorization)
+                            )
+                            onSessionReady()
                         }
                     } catch (e: JSONException) {
                         Log.e(TAG, "Failed to parse backend response", e)

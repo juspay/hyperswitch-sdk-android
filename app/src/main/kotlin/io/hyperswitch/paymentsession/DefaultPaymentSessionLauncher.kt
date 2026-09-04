@@ -38,16 +38,11 @@ class DefaultPaymentSessionLauncher(
      * Initializes the session and fetches everything the sheet and headless flows need. Callers
      * await this before presenting anything; a failure only means the flows fall back to fetching
      * for themselves.
-     *
-     * @throws IllegalStateException (SESSION_INIT_IN_PROGRESS via [Throwable.cause]) when the
-     * same sdkAuthorization is being fetched in another in-progress session: retry once it
-     * completes, or keep the session you already have.
      */
     override suspend fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
         super.initPaymentSession(sessionConfig)
-        // Await prefetch completion only; the payload lives in the JS PrefetchCache. A duplicate
-        // init throws out of fetchPrefetch (SESSION_INIT_IN_PROGRESS) — the in-flight caller
-        // owns the entry, so nothing here runs: no clear, no commit.
+        // Await prefetch completion only; the payload lives in the JS PrefetchCache. A prefetch
+        // miss is not fatal — the flows fetch for themselves.
         val data = paymentSessionReactLauncher.fetchPrefetch(sessionConfig)
         /* A failed re-validation we OWN must not leave an earlier (e.g. cancelled) attempt's
            entry behind: the sheet would mount with minutes-old session tokens instead of
