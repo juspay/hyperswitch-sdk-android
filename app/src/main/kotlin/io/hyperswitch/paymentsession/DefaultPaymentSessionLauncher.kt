@@ -41,6 +41,10 @@ class DefaultPaymentSessionLauncher(
      */
     override suspend fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
         super.initPaymentSession(sessionConfig)
+        /* One task per session: a re-init ends the previous session's task before the new
+           prefetch starts one. A terminal payment result does NOT end the task —
+           getCustomerSavedPaymentMethods may still follow. */
+        paymentSessionReactLauncher.finishHeadlessTask()
         // Await prefetch completion only; the payload lives in the JS PrefetchCache. A prefetch
         // miss is not fatal — the flows fetch for themselves.
         val data = paymentSessionReactLauncher.fetchPrefetch(sessionConfig)
