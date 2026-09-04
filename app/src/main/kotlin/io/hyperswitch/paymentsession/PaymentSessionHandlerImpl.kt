@@ -8,10 +8,11 @@ import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.utils.ConversionUtils
 import io.hyperswitch.view.CVCWidget
+import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 internal class PaymentSessionHandlerImpl(
     private val sdkAuthorization: String,
@@ -23,10 +24,8 @@ internal class PaymentSessionHandlerImpl(
     private val initializationError: Throwable? = null,
 ) : PaymentSessionHandler {
 
-    private val confirmationStarted = AtomicBoolean(false)
-    private val settled = AtomicBoolean(false)
-
     internal companion object {
+        /** Returned by a failed session launch so the failure reaches the merchant instead of hanging. */
         fun failed(error: Throwable, sessionRouter: PaymentSessionRouter): PaymentSessionHandlerImpl {
             val errorMap = Arguments.createMap().apply {
                 putString("code", error.cause?.message ?: "UNKNOWN_ERROR")
@@ -42,7 +41,6 @@ internal class PaymentSessionHandlerImpl(
                 initializationError = error,
             )
         }
-
     }
 
     override fun getCustomerDefaultSavedPaymentMethodData(): Result<PaymentMethod> {
@@ -75,6 +73,8 @@ internal class PaymentSessionHandlerImpl(
         }
         val paymentToken = defaultMethodData.getString("payment_token")
         if (paymentToken == null) {
+            /* No default method exists (JS sends an error payload, not a method): main's
+               `?.let` had no else, so resultHandler was never called. */
             deliverDirectFailure("Saved payment method has no payment token", resultHandler)
         } else {
             confirmWithCustomerPaymentToken(paymentToken, cvc, resultHandler)
@@ -103,55 +103,74 @@ internal class PaymentSessionHandlerImpl(
             resultHandler(PaymentResult.Failed(error))
             return
         }
-        beginConfirmation()?.let { resultHandler(it); return }
-        val registered = sessionRouter.tryRegisterExitCallback(-1) { result ->
-            resultHandler(settle(result))
-        }
-        if (!registered) {
-            /* Another confirm is in flight. This handler never started, so it must stay
-               usable once that one settles. */
-            confirmationStarted.set(false)
-            resultHandler(alreadyInProgressResult())
-            return
-        }
         try {
+            val registered = sessionRouter.tryRegisterExitCallback(-1) { result ->
+                resultHandler(emitRemovalOnTerminal(result))
+            }
+            if (!registered) {
+                resultHandler(PaymentResult.Failed(
+                    Throwable("Payment confirmation already in progress for this handler").apply {
+                        initCause(Throwable("ALREADY_IN_PROGRESS"))
+                    }
+                ))
+                return
+            }
             jsCallback.invoke(Arguments.createMap().apply {
                 putString("paymentToken", paymentToken)
                 putString("cvc", cvc)
             })
         } catch (ex: Exception) {
             sessionRouter.clearExitCallback(-1)
-            /* The codegen confirm callback is single-shot; a re-invoke lands here. */
-            resultHandler(settle(handlerAlreadyUsedResult()))
+            resultHandler(emitRemovalOnTerminal(PaymentResult.Failed(Throwable("Not Initialised").apply {
+                initCause(Throwable("Not Initialised"))
+            })))
         }
+    }
+
+    /* A terminal (non-Canceled) result ends this handler's cache entry: the intent's prefetched
+       pieces must not outlive the payment they were fetched for. */
+    private fun emitRemovalOnTerminal(result: PaymentResult): PaymentResult {
+        if (result !is PaymentResult.Canceled) {
+            emitPrefetchCacheRemoval(sdkAuthorization)
+        }
+        return result
+    }
+
+    private fun deliverDirectFailure(
+        message: String,
+        resultHandler: (PaymentResult) -> Unit,
+    ) {
+        resultHandler(emitRemovalOnTerminal(PaymentResult.Failed(Throwable(message).apply {
+            initCause(Throwable("MISSING_PAYMENT_TOKEN"))
+        })))
     }
 
     // ── CVCWidget suspend overloads ───────────────────────────────────────────
 
     override suspend fun confirmWithCustomerLastUsedPaymentMethod(cvcWidget: View): PaymentResult {
         initializationError?.let { return PaymentResult.Failed(it) }
-        beginConfirmation()?.let { return it }
-        val method = getCustomerLastUsedPaymentMethodData().getOrElse {
-            return settle(PaymentResult.Failed(it))
-        }
-        val result = (cvcWidget as? CVCWidget)?.let {
+        val method = getCustomerLastUsedPaymentMethodData()
+            .getOrElse { return emitRemovalOnTerminal(PaymentResult.Failed(it)) }
+        (cvcWidget as? CVCWidget)?.let {
             it.setSdkAuthorization(sdkAuthorization)
-            it.confirmCVCWidget(sdkAuthorization, method.paymentToken, method.billing)
-        } ?: PaymentResult.Failed(Throwable("View can't be cast as CVCWidget"))
-        return settle(result)
+            return emitRemovalOnTerminal(
+                it.confirmCVCWidget(sdkAuthorization, method.paymentToken, method.billing)
+            )
+        }
+        return emitRemovalOnTerminal(PaymentResult.Failed(Throwable("View can't be cast as CVCWidget")))
     }
 
     override suspend fun confirmWithCustomerDefaultPaymentMethod(cvcWidget: View): PaymentResult {
         initializationError?.let { return PaymentResult.Failed(it) }
-        beginConfirmation()?.let { return it }
-        val method = getCustomerDefaultSavedPaymentMethodData().getOrElse {
-            return settle(PaymentResult.Failed(it))
-        }
-        val result = (cvcWidget as? CVCWidget)?.let {
+        val method = getCustomerDefaultSavedPaymentMethodData()
+            .getOrElse { return emitRemovalOnTerminal(PaymentResult.Failed(it)) }
+        (cvcWidget as? CVCWidget)?.let {
             it.setSdkAuthorization(sdkAuthorization)
-            it.confirmCVCWidget(sdkAuthorization, method.paymentToken, method.billing)
-        } ?: PaymentResult.Failed(Throwable("View can't be cast as CVCWidget"))
-        return settle(result)
+            return emitRemovalOnTerminal(
+                it.confirmCVCWidget(sdkAuthorization, method.paymentToken, method.billing)
+            )
+        }
+        return emitRemovalOnTerminal(PaymentResult.Failed(Throwable("View can't be cast as CVCWidget")))
     }
 
     // ── CVCWidget callback overloads (Java-friendly, no Continuation needed) ─
@@ -171,52 +190,6 @@ internal class PaymentSessionHandlerImpl(
             resultHandler(confirmWithCustomerDefaultPaymentMethod(cvcWidget))
         }
     }
-
-    private fun deliverDirectFailure(
-        message: String,
-        resultHandler: (PaymentResult) -> Unit,
-    ) {
-        beginConfirmation()?.let { resultHandler(it); return }
-        val result = PaymentResult.Failed(Throwable(message).apply {
-            initCause(Throwable("MISSING_PAYMENT_TOKEN"))
-        })
-        resultHandler(settle(result))
-    }
-
-    /* Confirm channels are single-shot on both platforms: the codegen callback is consumed by
-       the first confirm and the router's -1 slot by its result. A post-terminal retry on the same
-       handler is HANDLER_ALREADY_USED; only an in-flight duplicate is ALREADY_IN_PROGRESS.
-       Request a new handler through getCustomerSavedPaymentMethods to confirm again. */
-    private fun beginConfirmation(): PaymentResult? =
-        when {
-            confirmationStarted.compareAndSet(false, true) -> null
-            settled.get() -> handlerAlreadyUsedResult()
-            else -> alreadyInProgressResult()
-        }
-
-    private fun settle(result: PaymentResult): PaymentResult {
-        settled.set(true)
-        if (result !is PaymentResult.Canceled) {
-            emitPrefetchCacheRemoval(sdkAuthorization)
-        }
-        return result
-    }
-
-    private fun handlerAlreadyUsedResult(): PaymentResult =
-        PaymentResult.Failed(
-            Throwable(
-                "This saved payment methods handler has already completed; request a new handler"
-            ).apply {
-                initCause(Throwable("HANDLER_ALREADY_USED"))
-            }
-        )
-
-    private fun alreadyInProgressResult(): PaymentResult =
-        PaymentResult.Failed(
-            Throwable("Payment confirmation already in progress for this handler").apply {
-                initCause(Throwable("ALREADY_IN_PROGRESS"))
-            }
-        )
 
     // ── Parsing ──────────────────────────────────────────────────────────────
 
