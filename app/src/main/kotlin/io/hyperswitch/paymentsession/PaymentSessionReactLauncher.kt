@@ -222,14 +222,20 @@ class PaymentSessionReactLauncher(
         startHeadlessJsTask(reactContext, props)
     }
 
-    /* Callers are always on the UI thread (runOnUiThread block / onReactContextInitialized):
-       assign inline — a posted hop would defer headlessTaskId for a main-loop iteration. */
     private fun startHeadlessJsTask(reactContext: ReactContext, props: WritableMap) {
         val taskProps = Arguments.createMap().apply { putMap("props", props) }
         /* Timeout 0 is RN's explicit no-timeout mode: the task outlives its first request by
            design (it can wait for merchant/user input). The 30s budget lives in fetchPrefetch. */
         val taskConfig = HeadlessJsTaskConfig("HyperHeadless", taskProps, 0, true, null)
-        headlessTaskId = HeadlessJsTaskContext.getInstance(reactContext).startTask(taskConfig)
+        val taskContext = HeadlessJsTaskContext.getInstance(reactContext)
+        /* startTask asserts on the UI thread (debug-only, so a wrong thread is silent in release).
+           The runOnUiThread caller is already on it; the onReactContextInitialized caller is not
+           guaranteed to be. Keep the inline fast path, hop only when needed. */
+        if (UiThreadUtil.isOnUiThread()) {
+            headlessTaskId = taskContext.startTask(taskConfig)
+        } else {
+            UiThreadUtil.runOnUiThread { headlessTaskId = taskContext.startTask(taskConfig) }
+        }
     }
 
     /** Ends the session's task. finishTask ends it on its own: the task's JS promise never
