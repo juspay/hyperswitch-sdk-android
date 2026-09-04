@@ -20,6 +20,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeout
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
@@ -34,6 +35,11 @@ class Elements internal constructor(
     private val hsElements: CopyOnWriteArrayList<HyperswitchBoundElement> = CopyOnWriteArrayList()
 
     internal companion object {
+        /* A hung element ack (dead bridge, stuck fragment) must cost a bounded wait — never a
+           wedged updateIntentInProgress. Mirrors iOS: acks time out at 30s and the round
+           proceeds with the ones that arrived. */
+        private const val ELEMENT_ACK_TIMEOUT_MS = 30_000L
+
         internal suspend fun create(
             activity: Activity,
             config: HyperswitchBaseConfiguration?,
@@ -123,9 +129,11 @@ class Elements internal constructor(
             targets.map { hsElement ->
                 async {
                     hsElement to runCatching<Unit> {
-                        suspendCancellableCoroutine { continuation ->
-                            hsElement.updateIntentInit {
-                                if (continuation.isActive) continuation.resume(Unit)
+                        withTimeout(ELEMENT_ACK_TIMEOUT_MS) {
+                            suspendCancellableCoroutine { continuation ->
+                                hsElement.updateIntentInit {
+                                    if (continuation.isActive) continuation.resume(Unit)
+                                }
                             }
                         }
                     }
@@ -175,7 +183,13 @@ class Elements internal constructor(
             }
             coroutineScope {
                 initSucceeded.map { hsElement ->
-                    async { hsElement.updateIntentComplete("") }
+                    async {
+                        runCatching {
+                            withTimeout(ELEMENT_ACK_TIMEOUT_MS) {
+                                hsElement.updateIntentComplete("")
+                            }
+                        }
+                    }
                 }.awaitAll()
             }
             return ElementsUpdateResult.TotalFailure(
@@ -189,7 +203,11 @@ class Elements internal constructor(
             coroutineScope {
                 initSucceeded.map { hsElement ->
                     async {
-                        hsElement to hsElement.updateIntentComplete(sdkAuthorization)
+                        hsElement to runCatching {
+                            withTimeout(ELEMENT_ACK_TIMEOUT_MS) {
+                                hsElement.updateIntentComplete(sdkAuthorization)
+                            }
+                        }.getOrElse { error -> ElementUpdateIntentResult.Failure(error) }
                     }
                 }.awaitAll()
             }
