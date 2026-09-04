@@ -45,28 +45,36 @@ internal fun ReadableMap.toExitResultJson(): String {
 
 class HyperModule internal constructor(
     private val rct: ReactApplicationContext,
-    private val eventEmitter: HyperEventEmitter,
+    private val runtime: HyperReactRuntime,
 ) : io.hyperswitch.react.codegen.NativeHyperModuleSpec(rct) {
+
+    private val eventEmitter: HyperEventEmitter get() = runtime.eventEmitter
+
     companion object {
+        // Reached by reflection from the api module's UnififedPaymentLauncher; legacy flows only.
+        @Volatile
+        private var legacyEmitter: HyperEventEmitter? = null
+
         @JvmStatic
         fun confirmStatic(tag: String, map: MutableMap<String, String?>) {
-            ReactNativeController.eventEmitter.confirm(tag, map)
+            legacyEmitter?.confirm(tag, map)
         }
 
         @JvmStatic
         fun confirmCardStatic(map: MutableMap<String, String?>) {
-            ReactNativeController.eventEmitter.confirmCard(map)
+            legacyEmitter?.confirmCard(map)
         }
 
         @JvmStatic
         fun confirmECStatic(map: MutableMap<String, String?>) {
-            ReactNativeController.eventEmitter.confirmEC(map)
+            legacyEmitter?.confirmEC(map)
         }
     }
 
     override fun initialize() {
         super.initialize()
         eventEmitter.attach(this)
+        legacyEmitter = eventEmitter
     }
 
     // Using invalidate instead of deprecated onCatalystInstanceDestroy
@@ -83,8 +91,6 @@ class HyperModule internal constructor(
             "triggerWidgetAction" -> emitTriggerWidgetAction(payload)
             "updateIntentInit" -> emitUpdateIntentInit(payload)
             "updateIntentComplete" -> emitUpdateIntentComplete(payload)
-            "clearPrefetchCache" -> emitClearPrefetchCache(payload)
-            "headlessRequest" -> emitHeadlessRequest(payload)
             else -> Log.w("HyperModule", "emitEvent: unknown event tag $tag")
         }
     }
@@ -161,15 +167,19 @@ class HyperModule internal constructor(
     // Method to exit the payment sheet
     override fun exitPaymentsheet(rootTag: Double, result: ReadableMap, reset: Boolean) {
         val paymentResult = result.toExitResultJson()
-        val isFragment = PaymentSheetCallbackManager.executeCallback(paymentResult)
+        // Dismiss first: the merchant's callback may create the next session,
+        // which boots a host on the main thread.
         (currentActivity as? FragmentActivity)?.let {
-            if (isFragment) it.supportFragmentManager.findFragmentByTag("paymentSheet")
-                ?.let { fragment ->
+            if (PaymentSheetCallbackManager.isFragmentPresentation()) {
+                it.supportFragmentManager.findFragmentByTag("paymentSheet")?.let { fragment ->
                     it.supportFragmentManager.beginTransaction().hide(fragment)
                         .commitAllowingStateLoss()
                 }
-            else it.finish()
+            } else {
+                it.finish()
+            }
         }
+        PaymentSheetCallbackManager.executeCallback(paymentResult)
     }
 
     // Method to exit the widget
@@ -207,19 +217,11 @@ class HyperModule internal constructor(
     }
 
     override fun onUpdateIntentEvent(rootTag: Double, eventType: String, result: ReadableMap) {
-        val type = eventType
-        val paymentResult = result.toExitResultJson()
-        findViewWithRootTag(rootTag.toInt(), { fragment ->
-            if (fragment == null) {
-                Log.w("HyperModule", "onUpdateIntentEvent: no fragment found for rootTag=$rootTag")
-                return@findViewWithRootTag
-            }
-            if (type == "UPDATE_INTENT_INIT_RETURNED") {
-                fragment.notifyResult(CallbackType.UPDATE_INTENT_INIT, paymentResult)
-            } else if (type == "UPDATE_INTENT_COMPLETE_RETURNED") {
-                fragment.notifyResult(CallbackType.UPDATE_INTENT_COMPLETE, paymentResult)
-            }
-        })
+        if (rootTag.toInt() != HyperReactRuntime.PREFETCH_SURFACE_TAG) {
+            Log.w("HyperModule", "onUpdateIntentEvent: unexpected rootTag=$rootTag for $eventType")
+            return
+        }
+        runtime.onPrefetchUpdateIntentReply?.invoke(eventType, result.toExitResultJson())
     }
 
     override fun emitPaymentEvent(rootTag: Double, eventType: String, payload: ReadableMap) {

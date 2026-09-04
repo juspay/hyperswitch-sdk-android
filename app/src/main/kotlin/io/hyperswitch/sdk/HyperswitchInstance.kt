@@ -25,6 +25,7 @@ class HyperswitchInstance internal constructor(
         }
         val ps = PaymentSession(activity, hsConfig, config)
         ps.initPaymentSession(config)
+        ps.awaitReady()
         return ps
     }
 
@@ -38,6 +39,7 @@ class HyperswitchInstance internal constructor(
             }
             val ps = PaymentSession(activity, hsConfig, config)
             ps.initPaymentSession(config)
+            ps.awaitReady()
             withContext(Dispatchers.Main) { onResult(ps) }
         }
 
@@ -46,15 +48,13 @@ class HyperswitchInstance internal constructor(
     @JvmSynthetic
     suspend fun elements(config: PaymentSessionConfiguration): Elements {
         val hsConfig = initDeferred.await()
-        return Elements.create(activity, hsConfig, config)
+        return Elements(activity, hsConfig, config).also { it.getPaymentSession().awaitReady() }
     }
 
     fun elements(config: PaymentSessionConfiguration, onResult: (Elements) -> Unit) {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             val hsConfig = initDeferred.await()
-            /* Create off the main thread — Elements.create runs the prefetch and the
-               React Native bootstrap; only the callback belongs on Main. */
-            val elements = Elements.create(activity, hsConfig, config)
+            val elements = Elements(activity, hsConfig, config).also { it.getPaymentSession().awaitReady() }
             withContext(Dispatchers.Main) { onResult(elements) }
         }
     }
