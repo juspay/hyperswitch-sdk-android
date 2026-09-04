@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.Context
 import android.os.Bundle
 import android.util.AttributeSet
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -239,7 +238,7 @@ class PaymentWidgetView : FrameLayout {
     }
 
     fun getLaunchOptions(): Bundle {
-        val bundle = this.launchOptions.getBundle(
+        return this.launchOptions.getBundle(
             configuration = resolveConfiguration(),
             type = widgetType,
             from = when (widgetConfig) {
@@ -250,7 +249,6 @@ class PaymentWidgetView : FrameLayout {
             sessionConfig = if (this.sdkAuthorization.isNotEmpty()) PaymentSessionConfiguration(this.sdkAuthorization) else null,
             subscribedEvents = this.subscribedEvents,
         )
-        return bundle
     }
 
     fun confirmPayment(callback: (PaymentResult) -> Unit) {
@@ -323,15 +321,6 @@ class PaymentWidgetView : FrameLayout {
     }
 
     fun setSdkAuthorization(sdkAuthorization: String) {
-        if (widgetShown && this.sdkAuthorization != sdkAuthorization) {
-            Log.w(
-                "PaymentWidgetView",
-                "setSdkAuthorization ignored: this view is already mounted for another " +
-                    "authorization. Use Elements.updateIntent to switch intents, or destroy " +
-                    "the bound element and bind again for a new session.",
-            )
-            return
-        }
         this.sdkAuthorization = sdkAuthorization
         // Auto-show widget if already attached to window.
         // Use post() to guarantee execution on the main thread — callers may
