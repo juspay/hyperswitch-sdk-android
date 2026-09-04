@@ -328,7 +328,15 @@ class HyperFragment : ReactFragment() {
         map.putString("sdkAuthorization", sdkAuthorization)
         map.putString("paymentToken", paymentToken)
         billing?.let { map.putString("billing", it) }
-        ReactNativeController.eventEmitter.emitEvent("triggerWidgetAction", map)
+        val emitted = ReactNativeController.eventEmitter.emitEvent("triggerWidgetAction", map)
+        if (!emitted) {
+            /* JS runtime is gone; nothing will consume this widget action. Roll back the
+               registration so a later confirm isn't stuck failing with ALREADY_IN_PROGRESS
+               on a callback that can never fire. */
+            ReactNativeController.sessionRouter.clearExitCallback(rootTag)
+            callback.invoke(PaymentResult.Failed(Throwable("React context is not available")))
+            return
+        }
     }
 
 
@@ -347,6 +355,12 @@ class HyperFragment : ReactFragment() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        /* The OS can recreate this fragment from saved state before the host app ran its
+           own SDK initialization (e.g. process death with a payment sheet open).
+           ReactFragment reads native feature flags, which requires SoLoader first —
+           and onCreateView needs the ReactHost regardless. initialize() is
+           synchronized and idempotent, so this is a no-op on the normal path. */
+        activity?.application?.let(ReactNativeController::initialize)
         super.onCreate(savedInstanceState)
         registerEventBus()
     }

@@ -269,10 +269,16 @@ class PaymentWidgetView : FrameLayout {
         callback: (ElementUpdateIntentResult) -> Unit
     ) {
         if (isEligibleForUpdateIntent()) {
-            sdkAuthorization?.takeIf { it.isNotEmpty() }?.let {
-                this.sdkAuthorization = it
+            this.fragment?.updatePaymentIntentComplete(
+                sdkAuthorization,
+            ) { result ->
+                if (result is ElementUpdateIntentResult.Success) {
+                    sdkAuthorization.takeIf { it.isNotEmpty() }?.let {
+                        this.sdkAuthorization = it
+                    }
+                }
+                callback(result)
             }
-            this.fragment?.updatePaymentIntentComplete(sdkAuthorization, callback)
                 ?: callback(
                     ElementUpdateIntentResult.Failure(
                         Throwable("Fragment not attached").apply {

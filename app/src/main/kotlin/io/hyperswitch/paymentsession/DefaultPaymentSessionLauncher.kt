@@ -1,6 +1,7 @@
 package io.hyperswitch.paymentsession
 
 import android.app.Activity
+import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
@@ -16,7 +17,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 class DefaultPaymentSessionLauncher(
     activity: Activity,
     hsConfig: HyperswitchBaseConfiguration?,
-    private var paymentSessionReactLauncher: SDKInterface = PaymentSessionReactLauncher(activity, hsConfig)
+    private val paymentSessionReactLauncher: PaymentSessionReactLauncher =
+        PaymentSessionReactLauncher(activity, hsConfig)
 ) : BasePaymentSessionLauncher(activity, hsConfig) {
 
     init {
@@ -32,9 +34,48 @@ class DefaultPaymentSessionLauncher(
         paymentSessionReactLauncher.initializeReactNativeInstance()
     }
 
-    override fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
+    /**
+     * Initializes the session and fetches everything the sheet and headless flows need. Callers
+     * await this before presenting anything; a failure only means the flows fall back to fetching
+     * for themselves.
+     */
+    override suspend fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
         super.initPaymentSession(sessionConfig)
-        paymentSessionReactLauncher.sessionConfig = sessionConfig
+        /* One task per session: a re-init ends the previous session's task before the new
+           prefetch starts one. A terminal payment result does NOT end the task —
+           getCustomerSavedPaymentMethods may still follow. */
+        paymentSessionReactLauncher.finishHeadlessTask()
+        // Await prefetch completion only; the payload lives in the JS PrefetchCache. A prefetch
+        // miss is not fatal — the flows fetch for themselves.
+        val data = paymentSessionReactLauncher.fetchPrefetch(sessionConfig)
+        /* A failed re-validation we OWN must not leave an earlier (e.g. cancelled) attempt's
+           entry behind: the sheet would mount with minutes-old session tokens instead of
+           fetching for itself. */
+        if (data.isFailure) {
+            paymentSessionReactLauncher.clearPrefetch(sessionConfig.sdkAuthorization)
+        }
+        paymentSessionReactLauncher.commitSession(sessionConfig)
+    }
+
+    /** Fetches the new intent's data without changing the active session. */
+    suspend fun prepareIntentUpdate(
+        sessionConfig: PaymentSessionConfiguration,
+    ): Result<ReadableMap> = try {
+        paymentSessionReactLauncher.fetchPrefetch(
+            sessionConfig,
+            headlessType = "updateIntent",
+        )
+    } catch (error: Throwable) {
+        Result.failure(error)
+    }
+
+    fun commitIntentUpdate(sessionConfig: PaymentSessionConfiguration) {
+        this.sessionConfig = sessionConfig
+        paymentSessionReactLauncher.commitSession(sessionConfig)
+    }
+
+    fun clearPrefetch(sdkAuthorization: String) {
+        paymentSessionReactLauncher.clearPrefetch(sdkAuthorization)
     }
 
     private fun applySubscription(subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?) {
@@ -53,7 +94,11 @@ class DefaultPaymentSessionLauncher(
         applySubscription(subscribe)
         val isFragment =
             paymentSessionReactLauncher.presentSheet(sessionConfig, configuration)
-        PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
+        val authorization = sessionConfig?.sdkAuthorization.orEmpty()
+        PaymentSheetCallbackManager.setCallback({ result ->
+            clearAfterTerminalResult(authorization, result)
+            resultCallback(result)
+        }, isFragment)
     }
 
     override fun presentPaymentSheet(
@@ -63,7 +108,11 @@ class DefaultPaymentSessionLauncher(
     ) {
         applySubscription(subscribe)
         val isFragment = paymentSessionReactLauncher.presentSheet(configurationMap)
-        PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
+        val authorization = sessionConfig?.sdkAuthorization.orEmpty()
+        PaymentSheetCallbackManager.setCallback({ result ->
+            clearAfterTerminalResult(authorization, result)
+            resultCallback(result)
+        }, isFragment)
     }
 
     override fun getCustomerSavedPaymentMethods(
@@ -71,7 +120,7 @@ class DefaultPaymentSessionLauncher(
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
     ) {
         ReactNativeController.sessionRouter.setSessionCallback(sessionConfig?.sdkAuthorization, savedPaymentMethodCallback)
-        paymentSessionReactLauncher.recreateReactContext(configuration)
+        paymentSessionReactLauncher.startHeadlessTask(configuration)
     }
 
     override fun getCustomerSavedPaymentMethods(
@@ -90,7 +139,15 @@ class DefaultPaymentSessionLauncher(
             continuation.invokeOnCancellation {
                 ReactNativeController.sessionRouter.setSessionCallback(sessionConfig?.sdkAuthorization, null)
             }
-            paymentSessionReactLauncher.recreateReactContext(configuration)
+            paymentSessionReactLauncher.startHeadlessTask(configuration)
         }
 
+    internal fun clearAfterTerminalResult(
+        sdkAuthorization: String,
+        result: PaymentResult,
+    ) {
+        if (result !is PaymentResult.Canceled) {
+            clearPrefetch(sdkAuthorization)
+        }
+    }
 }

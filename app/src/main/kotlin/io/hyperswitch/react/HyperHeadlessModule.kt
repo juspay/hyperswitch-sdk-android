@@ -33,4 +33,9 @@ class HyperHeadlessModule internal constructor(
     override fun exitHeadless(rootTag: Double, result: ReadableMap) {
         sessionRouter.executeExitCallback(rootTag.toInt(), result.toExitResultJson())
     }
+
+    // Completion signal for one payment's prefetch; the payload lives only in the JS PrefetchCache.
+    override fun completePrefetch(rootTag: Double, data: ReadableMap) {
+        sessionRouter.completePrefetchCallback(data)
+    }
 }

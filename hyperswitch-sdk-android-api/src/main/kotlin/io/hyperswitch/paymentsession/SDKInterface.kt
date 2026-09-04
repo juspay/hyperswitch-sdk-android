@@ -18,7 +18,10 @@ interface ReactNativeLifecycle {
     var sessionConfig: PaymentSessionConfiguration?
 
     fun initializeReactNativeInstance()
-    fun recreateReactContext(configuration: SavedPaymentMethodsConfiguration? = null)
+    fun startHeadlessTask(
+        configuration: SavedPaymentMethodsConfiguration? = null,
+        headlessType: String = "savedPM"
+    )
 }
 
 /** Combined interface implemented by the full SDK's React Native backend. */

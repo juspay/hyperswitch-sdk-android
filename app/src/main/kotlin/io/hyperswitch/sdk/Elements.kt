@@ -1,6 +1,7 @@
 package io.hyperswitch.sdk
 
 import android.app.Activity
+import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.model.ElementsUpdateResult
@@ -24,21 +25,24 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 
 class Elements internal constructor(
-    activity: Activity,
-    config: HyperswitchBaseConfiguration?,
-    sessionConfiguration: PaymentSessionConfiguration
+    private val paymentSession: PaymentSession
 ) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-    // Fix 1: thread-safe list
     private val hsElements: CopyOnWriteArrayList<HyperswitchBoundElement> = CopyOnWriteArrayList()
 
-    private val paymentSession = PaymentSession(
-        activity,
-        config = config,
-        sessionConfig = sessionConfiguration
-    ).also { it.initPaymentSession(sessionConfiguration) }
+    internal companion object {
+        internal suspend fun create(
+            activity: Activity,
+            config: HyperswitchBaseConfiguration?,
+            sessionConfiguration: PaymentSessionConfiguration
+        ): Elements {
+            val ps = PaymentSession(activity, config, sessionConfiguration)
+            ps.initPaymentSession(sessionConfiguration)
+            return Elements(ps)
+        }
+    }
 
     fun bind(
         element: HyperswitchElement,
@@ -95,7 +99,21 @@ class Elements internal constructor(
         targets: List<HyperswitchBoundElement>,
         completion: suspend () -> PaymentSessionConfiguration
     ): ElementsUpdateResult {
-        if (targets.isEmpty()) return ElementsUpdateResult.Success
+        if (targets.isEmpty()) {
+            val newSdkAuthorization = runCatching { completion().sdkAuthorization }
+                .getOrElse { return ElementsUpdateResult.TotalFailure(it) }
+            if (newSdkAuthorization.isEmpty()) {
+                return ElementsUpdateResult.TotalFailure(
+                    IllegalArgumentException("sdkAuthorization must not be empty")
+                )
+            }
+            paymentSession.prepareIntentUpdate(newSdkAuthorization).getOrElse { error ->
+                paymentSession.clearUnappliedPrefetch(newSdkAuthorization)
+                return ElementsUpdateResult.TotalFailure(error)
+            }
+            paymentSession.commitIntentUpdate(newSdkAuthorization)
+            return ElementsUpdateResult.Success
+        }
         val initResults: List<Pair<HyperswitchBoundElement, Result<Unit>>> = coroutineScope {
             targets.map { hsElement ->
                 async {
@@ -127,11 +145,48 @@ class Elements internal constructor(
             ""
         }
 
+        // Fetch once for the Elements session. The payload stays in the JS PrefetchCache and
+        // every bound widget resolves it from there by sdkAuthorization — none of them
+        // should independently repeat the intent API calls.
+        val prefetch: Result<ReadableMap> = if (sdkAuthorization.isNotEmpty()) {
+            paymentSession.prepareIntentUpdate(sdkAuthorization)
+        } else {
+            Result.failure(IllegalArgumentException("sdkAuthorization must not be empty"))
+        }
+        val prefetchSucceeded = prefetch.isSuccess
+
+        /* A failed prefetch must reach the caller WITHOUT switching the widgets to the new
+           intent — the native session stays on the old authorization. The widgets have shown
+           their update overlay since init, so they still need a completion: an empty
+           authorization is the JS abort signal (UpdateIntentHook resets loading and replies
+           invalid_sdk_authorization without switching). Their replies are not used. */
+        if (!prefetchSucceeded) {
+            if (sdkAuthorization.isNotEmpty()) {
+                paymentSession.clearUnappliedPrefetch(sdkAuthorization)
+            }
+            coroutineScope {
+                initSucceeded.map { hsElement ->
+                    async {
+                        runCatching {
+                            hsElement.updateIntentComplete("")
+                        }
+                    }
+                }.awaitAll()
+            }
+            return ElementsUpdateResult.TotalFailure(
+                cause = IllegalStateException("Unable to load the updated payment intent").apply {
+                    initCause(Throwable("PREFETCH_FAILED"))
+                }
+            )
+        }
+
         val completeResults: List<Pair<HyperswitchBoundElement, ElementUpdateIntentResult>> =
             coroutineScope {
                 initSucceeded.map { hsElement ->
                     async {
-                        hsElement to hsElement.updateIntentComplete(sdkAuthorization)
+                        hsElement to runCatching {
+                            hsElement.updateIntentComplete(sdkAuthorization)
+                        }.getOrElse { error -> ElementUpdateIntentResult.Failure(error) }
                     }
                 }.awaitAll()
             }
@@ -159,9 +214,12 @@ class Elements internal constructor(
             }
         }
 
-        if(sdkAuthorization.isNotEmpty()) {
-            paymentSession.updateSdkAuthorization(sdkAuthorization)
+        if (succeeded.isNotEmpty()) {
+            paymentSession.commitIntentUpdate(sdkAuthorization)
+        } else if (sdkAuthorization.isNotEmpty()) {
+            paymentSession.clearUnappliedPrefetch(sdkAuthorization)
         }
+
         return when {
             failed.isEmpty() -> ElementsUpdateResult.Success
             succeeded.isEmpty() -> ElementsUpdateResult.TotalFailure(

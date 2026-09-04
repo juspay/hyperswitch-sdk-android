@@ -1,6 +1,8 @@
 package io.hyperswitch.paymentsession
 
+import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.paymentsheet.PaymentResult
+import kotlinx.coroutines.CompletableDeferred
 import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicReference
@@ -56,5 +58,28 @@ class PaymentSessionRouter {
 
             else -> PaymentResult.Completed(status ?: "default")
         }
+    }
+
+    /* Prefetch completion — the one addition over main. A single in-flight prefetch:
+       fetchPrefetch registers a deferred before launching the JS headless task and
+       completePrefetch(rootTag, data) resolves it; the payload itself lives only in the
+       JS PrefetchCache. */
+    private val prefetchCallbackRef = AtomicReference<CompletableDeferred<ReadableMap>?>()
+
+    fun tryRegisterPrefetchCallback(deferred: CompletableDeferred<ReadableMap>): Boolean =
+        prefetchCallbackRef.compareAndSet(null, deferred)
+
+    fun completePrefetchCallback(data: ReadableMap): Boolean {
+        val deferred = prefetchCallbackRef.getAndSet(null) ?: return false
+        return deferred.complete(data)
+    }
+
+    fun failPrefetchCallback(error: Throwable): Boolean {
+        val deferred = prefetchCallbackRef.getAndSet(null) ?: return false
+        return deferred.completeExceptionally(error)
+    }
+
+    fun clearPrefetchCallback(deferred: CompletableDeferred<ReadableMap>) {
+        prefetchCallbackRef.compareAndSet(deferred, null)
     }
 }

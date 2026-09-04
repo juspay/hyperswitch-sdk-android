@@ -15,21 +15,46 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 internal class PaymentSessionHandlerImpl(
-    private var sdkAuthorization: String,
+    private val sdkAuthorization: String,
     private val defaultMethodData: ReadableMap,
     private val lastUsedMethodData: ReadableMap,
     private val allMethodsData: ReadableArray,
     private val jsCallback: Callback,
     private val sessionRouter: PaymentSessionRouter,
+    private val initializationError: Throwable? = null,
 ) : PaymentSessionHandler {
 
-    override fun getCustomerDefaultSavedPaymentMethodData(): Result<PaymentMethod> =
-        parsePaymentMethod(defaultMethodData)
+    internal companion object {
+        /** Returned by a failed session launch so the failure reaches the merchant instead of hanging. */
+        fun failed(error: Throwable, sessionRouter: PaymentSessionRouter): PaymentSessionHandlerImpl {
+            val errorMap = Arguments.createMap().apply {
+                putString("code", error.cause?.message ?: "UNKNOWN_ERROR")
+                putString("message", error.message ?: "Unable to load saved payment methods")
+            }
+            return PaymentSessionHandlerImpl(
+                sdkAuthorization = "",
+                defaultMethodData = errorMap,
+                lastUsedMethodData = errorMap,
+                allMethodsData = Arguments.createArray(),
+                jsCallback = Callback {},
+                sessionRouter = sessionRouter,
+                initializationError = error,
+            )
+        }
+    }
 
-    override fun getCustomerLastUsedPaymentMethodData(): Result<PaymentMethod> =
-        parsePaymentMethod(lastUsedMethodData)
+    override fun getCustomerDefaultSavedPaymentMethodData(): Result<PaymentMethod> {
+        initializationError?.let { return Result.failure(it) }
+        return parsePaymentMethod(defaultMethodData)
+    }
+
+    override fun getCustomerLastUsedPaymentMethodData(): Result<PaymentMethod> {
+        initializationError?.let { return Result.failure(it) }
+        return parsePaymentMethod(lastUsedMethodData)
+    }
 
     override fun getCustomerSavedPaymentMethodData(): Result<List<PaymentMethod>> {
+        initializationError?.let { return Result.failure(it) }
         val list = mutableListOf<PaymentMethod>()
         for (i in 0 until allMethodsData.size()) {
             allMethodsData.getMap(i)?.let { map ->
@@ -42,26 +67,46 @@ internal class PaymentSessionHandlerImpl(
     override fun confirmWithCustomerDefaultPaymentMethod(
         cvc: String?, resultHandler: (PaymentResult) -> Unit
     ) {
-        defaultMethodData.getString("payment_token")
-            ?.let { confirmWithCustomerPaymentToken(it, cvc, resultHandler) }
+        initializationError?.let { error ->
+            resultHandler(PaymentResult.Failed(error))
+            return
+        }
+        val paymentToken = defaultMethodData.getString("payment_token")
+        if (paymentToken == null) {
+            /* No default method exists (JS sends an error payload, not a method): main's
+               `?.let` had no else, so resultHandler was never called. */
+            deliverDirectFailure("Saved payment method has no payment token", resultHandler)
+        } else {
+            confirmWithCustomerPaymentToken(paymentToken, cvc, resultHandler)
+        }
     }
 
     override fun confirmWithCustomerLastUsedPaymentMethod(
         cvc: String?, resultHandler: (PaymentResult) -> Unit
     ) {
-        lastUsedMethodData.getString("payment_token")
-            ?.let { confirmWithCustomerPaymentToken(it, cvc, resultHandler) }
-    }
-
-    override fun updateSdkAuthorization(sdkAuthorization: String){
-        this.sdkAuthorization = sdkAuthorization
+        initializationError?.let { error ->
+            resultHandler(PaymentResult.Failed(error))
+            return
+        }
+        val paymentToken = lastUsedMethodData.getString("payment_token")
+        if (paymentToken == null) {
+            deliverDirectFailure("Saved payment method has no payment token", resultHandler)
+        } else {
+            confirmWithCustomerPaymentToken(paymentToken, cvc, resultHandler)
+        }
     }
 
     override fun confirmWithCustomerPaymentToken(
         paymentToken: String, cvc: String?, resultHandler: (PaymentResult) -> Unit
     ) {
+        initializationError?.let { error ->
+            resultHandler(PaymentResult.Failed(error))
+            return
+        }
         try {
-            val registered = sessionRouter.tryRegisterExitCallback(-1, resultHandler)
+            val registered = sessionRouter.tryRegisterExitCallback(-1) { result ->
+                resultHandler(emitRemovalOnTerminal(result))
+            }
             if (!registered) {
                 resultHandler(PaymentResult.Failed(
                     Throwable("Payment confirmation already in progress for this handler").apply {
@@ -76,32 +121,56 @@ internal class PaymentSessionHandlerImpl(
             })
         } catch (ex: Exception) {
             sessionRouter.clearExitCallback(-1)
-            resultHandler(PaymentResult.Failed(Throwable("Not Initialised").apply {
+            resultHandler(emitRemovalOnTerminal(PaymentResult.Failed(Throwable("Not Initialised").apply {
                 initCause(Throwable("Not Initialised"))
-            }))
+            })))
         }
+    }
+
+    /* A terminal (non-Canceled) result ends this handler's cache entry: the intent's prefetched
+       pieces must not outlive the payment they were fetched for. */
+    private fun emitRemovalOnTerminal(result: PaymentResult): PaymentResult {
+        if (result !is PaymentResult.Canceled) {
+            emitPrefetchCacheRemoval(sdkAuthorization)
+        }
+        return result
+    }
+
+    private fun deliverDirectFailure(
+        message: String,
+        resultHandler: (PaymentResult) -> Unit,
+    ) {
+        resultHandler(emitRemovalOnTerminal(PaymentResult.Failed(Throwable(message).apply {
+            initCause(Throwable("MISSING_PAYMENT_TOKEN"))
+        })))
     }
 
     // ── CVCWidget suspend overloads ───────────────────────────────────────────
 
     override suspend fun confirmWithCustomerLastUsedPaymentMethod(cvcWidget: View): PaymentResult {
+        initializationError?.let { return PaymentResult.Failed(it) }
         val method = getCustomerLastUsedPaymentMethodData()
-            .getOrElse { return PaymentResult.Failed(it) }
+            .getOrElse { return emitRemovalOnTerminal(PaymentResult.Failed(it)) }
         (cvcWidget as? CVCWidget)?.let {
             it.setSdkAuthorization(sdkAuthorization)
-            return it.confirmCVCWidget(sdkAuthorization, method.paymentToken, method.billing)
+            return emitRemovalOnTerminal(
+                it.confirmCVCWidget(sdkAuthorization, method.paymentToken, method.billing)
+            )
         }
-        return PaymentResult.Failed(Throwable("View can't be cast as CVCWidget"))
+        return emitRemovalOnTerminal(PaymentResult.Failed(Throwable("View can't be cast as CVCWidget")))
     }
 
     override suspend fun confirmWithCustomerDefaultPaymentMethod(cvcWidget: View): PaymentResult {
+        initializationError?.let { return PaymentResult.Failed(it) }
         val method = getCustomerDefaultSavedPaymentMethodData()
-            .getOrElse { return PaymentResult.Failed(it) }
+            .getOrElse { return emitRemovalOnTerminal(PaymentResult.Failed(it)) }
         (cvcWidget as? CVCWidget)?.let {
             it.setSdkAuthorization(sdkAuthorization)
-            return it.confirmCVCWidget(sdkAuthorization, method.paymentToken, method.billing)
+            return emitRemovalOnTerminal(
+                it.confirmCVCWidget(sdkAuthorization, method.paymentToken, method.billing)
+            )
         }
-        return PaymentResult.Failed(Throwable("View can't be cast as CVCWidget"))
+        return emitRemovalOnTerminal(PaymentResult.Failed(Throwable("View can't be cast as CVCWidget")))
     }
 
     // ── CVCWidget callback overloads (Java-friendly, no Continuation needed) ─

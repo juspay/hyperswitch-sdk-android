@@ -83,6 +83,8 @@ class HyperModule internal constructor(
             "triggerWidgetAction" -> emitTriggerWidgetAction(payload)
             "updateIntentInit" -> emitUpdateIntentInit(payload)
             "updateIntentComplete" -> emitUpdateIntentComplete(payload)
+            "clearPrefetchCache" -> emitClearPrefetchCache(payload)
+            "headlessRequest" -> emitHeadlessRequest(payload)
             else -> Log.w("HyperModule", "emitEvent: unknown event tag $tag")
         }
     }

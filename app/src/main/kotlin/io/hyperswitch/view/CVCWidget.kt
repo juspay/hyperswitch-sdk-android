@@ -10,5 +10,6 @@ open class CVCWidget @JvmOverloads constructor(
 ) : HyperswitchElement(context, attrs, defStyleAttr) {
     init {
         type = "cvcWidget"
+        setHeightFloor(54f)
     }
 }
