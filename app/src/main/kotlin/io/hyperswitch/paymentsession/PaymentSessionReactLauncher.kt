@@ -207,37 +207,40 @@ class PaymentSessionReactLauncher(
     }
 
     /* One task per session: after the first startTask everything is an event into the live
-       JS closure. emitEvent returns false when the module is detached, so a dead runtime
-       self-heals into a cold start — the same path a savedPM request takes on main. */
+       JS closure. Liveness comes from RN, not emitEvent: emitEvent returns true for any
+       attached HyperModule, and after a ReactHost restart the module re-attaches long before
+       the new runtime subscribes — the event would fall on the floor and the merchant's
+       callback would hang. HeadlessJsTaskContext is per-ReactContext, so a stale id from the
+       old runtime reports not-running and a dead runtime self-heals into a cold start —
+       the same path a savedPM request takes on main. */
     private fun dispatch(reactContext: ReactContext, props: WritableMap) {
-        if (headlessTaskId != null &&
-            ReactNativeController.eventEmitter.emitEvent(HEADLESS_REQUEST_EVENT, props)
-        ) return
+        val live = headlessTaskId?.let {
+            HeadlessJsTaskContext.getInstance(reactContext).isTaskRunning(it)
+        } == true
+        if (live && ReactNativeController.eventEmitter.emitEvent(HEADLESS_REQUEST_EVENT, props)) return
         headlessTaskId = null
         startHeadlessJsTask(reactContext, props)
     }
 
-    /* Timeout 0 is RN's explicit no-timeout mode: the task outlives its first request by design
-       (it can wait for merchant/user input). The 30s budget lives in fetchPrefetch, not here. */
+    /* Callers are always on the UI thread (runOnUiThread block / onReactContextInitialized):
+       assign inline — a posted hop would defer headlessTaskId for a main-loop iteration. */
     private fun startHeadlessJsTask(reactContext: ReactContext, props: WritableMap) {
         val taskProps = Arguments.createMap().apply { putMap("props", props) }
+        /* Timeout 0 is RN's explicit no-timeout mode: the task outlives its first request by
+           design (it can wait for merchant/user input). The 30s budget lives in fetchPrefetch. */
         val taskConfig = HeadlessJsTaskConfig("HyperHeadless", taskProps, 0, true, null)
-
-        val headlessJsTaskContext = HeadlessJsTaskContext.getInstance(reactContext)
-        UiThreadUtil.runOnUiThread {
-            headlessTaskId = headlessJsTaskContext.startTask(taskConfig)
-        }
+        headlessTaskId = HeadlessJsTaskContext.getInstance(reactContext).startTask(taskConfig)
     }
 
-    /** Ends the session's task: JS tears down its subscription, then RN releases the task slot. */
+    /** Ends the session's task. finishTask ends it on its own: the task's JS promise never
+        resolves, which is inert (AppRegistry only forwards settlement to notifyTaskFinished).
+        No shutdown event: emitting one would race the next session's startTask through two
+        cross-thread enqueues onto the JS queue, and the subscription is runtime-lifetime
+        module state, not per-task state. */
     internal fun finishHeadlessTask() {
         val taskId = headlessTaskId ?: return
         headlessTaskId = null
         val reactContext = currentReactContext() ?: return
-        ReactNativeController.eventEmitter.emitEvent(
-            HEADLESS_REQUEST_EVENT,
-            Arguments.createMap().apply { putString("headlessType", "shutdown") },
-        )
         UiThreadUtil.runOnUiThread {
             runCatching { HeadlessJsTaskContext.getInstance(reactContext).finishTask(taskId) }
         }
