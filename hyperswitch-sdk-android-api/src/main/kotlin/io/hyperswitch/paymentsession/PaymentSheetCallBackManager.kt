@@ -19,6 +19,8 @@ object PaymentSheetCallbackManager {
         return callback.get()
     }
 
+    fun isFragmentPresentation(): Boolean = isFragment
+
     fun executeCallback(data: String): Boolean {
         val jsonObject = JSONObject(data)
         val result = when (val status = jsonObject.getString("status")) {

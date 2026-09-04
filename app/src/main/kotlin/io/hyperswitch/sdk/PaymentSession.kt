@@ -6,42 +6,41 @@ import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher
 import io.hyperswitch.paymentsession.PaymentSessionHandler
+import io.hyperswitch.paymentsession.PaymentSessionLauncher
 import io.hyperswitch.paymentsession.SavedPaymentMethodsConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
-import com.facebook.react.bridge.ReadableMap
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
+import io.hyperswitch.react.HyperReactRuntime
 
 /**
- * A class that manages a full-SDK payment session.
+ * A class that manages payment sessions using a [io.hyperswitch.paymentsession.PaymentSessionLauncher].
  *
  * This class provides methods for initializing a payment session, presenting a payment sheet,
  * and retrieving customer saved payment methods.
  */
 class PaymentSession internal constructor(
-    private val paymentSessionLauncher: DefaultPaymentSessionLauncher,
+    private val paymentSessionLauncher: PaymentSessionLauncher,
     private val publishableKey: String? = null,
-    sessionConfig: PaymentSessionConfiguration
+    sessionConfig: PaymentSessionConfiguration? = null
 ) {
     private var sessionConfig = sessionConfig
 
-    internal constructor(activity: Activity, config: HyperswitchBaseConfiguration?, sessionConfig: PaymentSessionConfiguration) : this(
+    constructor(activity: Activity, config: HyperswitchBaseConfiguration?, sessionConfig: PaymentSessionConfiguration) : this(
         DefaultPaymentSessionLauncher(activity, config),
         publishableKey = config?.publishableKey,
         sessionConfig = sessionConfig
     )
 
+    private var paymentSessionHandler: PaymentSessionHandler? = null
+
     /**
-     * Initializes the payment session and prefetches the data the payment flows need.
+     * Initializes the payment session with the given payment intent client secret.
      *
-     * Suspends until the prefetch settles, so the merchant can treat a returned session as ready
-     * to present. A prefetch failure is not fatal — it is reported and the flows fall back to
-     * fetching for themselves.
-     *
-     * @param sessionConfig The session configuration including the SDK authorization.
+     * @param sdkAuthorization The client secret of the payment intent.
      */
-    internal suspend fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
+    fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
         this.sessionConfig = sessionConfig
         paymentSessionLauncher.initPaymentSession(sessionConfig)
     }
@@ -70,28 +69,38 @@ class PaymentSession internal constructor(
         paymentSessionLauncher.presentPaymentSheet(configuration, subscribe, resultCallback)
     }
 
-    /** Fetches the new intent's data without mutating the active session. */
-    internal suspend fun prepareIntentUpdate(sdkAuthorization: String): Result<ReadableMap> =
-        paymentSessionLauncher.prepareIntentUpdate(PaymentSessionConfiguration(sdkAuthorization))
-
-    internal fun commitIntentUpdate(sdkAuthorization: String) {
-        val previousAuthorization = sessionConfig.sdkAuthorization
-        val newConfig = PaymentSessionConfiguration(sdkAuthorization)
-        sessionConfig = newConfig
-        paymentSessionLauncher.commitIntentUpdate(newConfig)
-        if (previousAuthorization != sdkAuthorization) {
-            paymentSessionLauncher.clearPrefetch(previousAuthorization)
-        }
+    fun updateSdkAuthorization(sdkAuthorization: String) {
+        this.sessionConfig = PaymentSessionConfiguration(sdkAuthorization)
+        paymentSessionHandler?.updateSdkAuthorization(sdkAuthorization)
     }
 
-    internal fun clearUnappliedPrefetch(sdkAuthorization: String) {
-        if (sdkAuthorization != sessionConfig.sdkAuthorization) {
-            paymentSessionLauncher.clearPrefetch(sdkAuthorization)
-        }
+    /** Resolves once the session's runtime is ready to present. */
+    @JvmSynthetic
+    internal suspend fun awaitReady() {
+        (paymentSessionLauncher as? DefaultPaymentSessionLauncher)?.awaitReady()
     }
 
-    internal fun handlePaymentResult(result: PaymentResult) {
-        paymentSessionLauncher.clearAfterTerminalResult(sessionConfig.sdkAuthorization, result)
+    /** This session's React runtime. Widgets bound to the session render on its host. */
+    internal val reactRuntime: HyperReactRuntime?
+        get() = (paymentSessionLauncher as? DefaultPaymentSessionLauncher)?.reactRuntime
+
+    /** Replaces the session's intent via the session's prefetch surface. */
+    fun updateIntent(
+        authorizationProvider: (onAuthorization: (String) -> Unit) -> Unit,
+        onResult: (Result<String>) -> Unit
+    ) {
+        val launcher = paymentSessionLauncher as? DefaultPaymentSessionLauncher
+        if (launcher == null) {
+            authorizationProvider { auth ->
+                updateSdkAuthorization(auth)
+                onResult(Result.success(auth))
+            }
+            return
+        }
+        launcher.updateIntent(authorizationProvider) { result ->
+            result.onSuccess { updateSdkAuthorization(it) }
+            onResult(result)
+        }
     }
 
     fun presentPaymentSheet(
@@ -105,8 +114,11 @@ class PaymentSession internal constructor(
     @JvmSynthetic
     suspend fun getCustomerSavedPaymentMethods(
         configuration: SavedPaymentMethodsConfiguration? = null,
-    ): PaymentSessionHandler =
-        paymentSessionLauncher.getCustomerSavedPaymentMethods(configuration)
+    ): PaymentSessionHandler {
+        return paymentSessionLauncher.getCustomerSavedPaymentMethods(configuration).also {
+            paymentSessionHandler = it
+        }
+    }
 
     /**
      * Retrieves the customer's saved payment methods.
@@ -118,10 +130,10 @@ class PaymentSession internal constructor(
         configuration: SavedPaymentMethodsConfiguration? = null,
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
     ) {
-        paymentSessionLauncher.getCustomerSavedPaymentMethods(
-            configuration,
-            savedPaymentMethodCallback,
-        )
+        paymentSessionLauncher.getCustomerSavedPaymentMethods(configuration) {
+            paymentSessionHandler = it
+            savedPaymentMethodCallback(it)
+        }
     }
 
     fun getPublishableKey(): String {
@@ -129,10 +141,10 @@ class PaymentSession internal constructor(
     }
 
     fun getHsConfig(): HyperswitchBaseConfiguration? {
-        return paymentSessionLauncher.getHsConfig()
+        return (paymentSessionLauncher as? io.hyperswitch.paymentsession.BasePaymentSessionLauncher)?.getHsConfig()
     }
 
     fun getSdkAuthorization(): String {
-        return sessionConfig.sdkAuthorization
+        return sessionConfig?.sdkAuthorization ?: ""
     }
 }

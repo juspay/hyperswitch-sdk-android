@@ -13,5 +13,5 @@ class DemoApplication : Application(), ReactApplication {
     }
 
     override val reactHost: ReactHost
-        get() = ReactNativeController.getReactHost()
+        get() = ReactNativeController.legacyRuntime.reactHost
 }
