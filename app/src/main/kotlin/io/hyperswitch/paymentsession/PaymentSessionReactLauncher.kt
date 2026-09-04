@@ -13,6 +13,7 @@ import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactContext
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.UiThreadUtil
+import com.facebook.react.bridge.WritableMap
 import com.facebook.react.common.assets.ReactFontManager
 import com.facebook.react.jstasks.HeadlessJsTaskConfig
 import com.facebook.react.jstasks.HeadlessJsTaskContext
@@ -39,6 +40,9 @@ class PaymentSessionReactLauncher(
     private val launchOptions = LaunchOptions(activity, BuildConfig.VERSION_NAME, hsConfig)
 
     @Volatile override var sessionConfig: PaymentSessionConfiguration? = null
+
+    /** The session's one long-running headless task; null when no task is expected to be live. */
+    @Volatile private var headlessTaskId: Int? = null
 
     /**
      * Runs the prefetch headless task and waits for its result.
@@ -149,7 +153,7 @@ class PaymentSessionReactLauncher(
                         object : ReactInstanceEventListener {
                             override fun onReactContextInitialized(context: ReactContext) {
                                 try {
-                                    invokeStartTask(context, configuration, headlessType, taskSessionConfig)
+                                    dispatch(context, buildHeadlessProps(context, configuration, headlessType, taskSessionConfig))
                                 } catch (error: Throwable) {
                                     routeLaunchFailure(error)
                                 }
@@ -159,7 +163,7 @@ class PaymentSessionReactLauncher(
                     )
                     reactHost.start()
                 } else {
-                    invokeStartTask(context, configuration, headlessType, taskSessionConfig)
+                    dispatch(context, buildHeadlessProps(context, configuration, headlessType, taskSessionConfig))
                 }
             } catch (error: Throwable) {
                 routeLaunchFailure(error)
@@ -180,12 +184,14 @@ class PaymentSessionReactLauncher(
     private fun getSubscribedEventsSafely(): List<String> =
         try { ReactNativeController.eventEmitter.getSubscribedEvents() } catch (_: Exception) { emptyList() }
 
-    private fun invokeStartTask(
+    /* Rebuilds the props map from LaunchOptions per request, so sdkParams, subscribedEvents and
+       configuration are always current — the headlessRequest event carries exactly this map. */
+    private fun buildHeadlessProps(
         reactContext: ReactContext,
         configuration: SavedPaymentMethodsConfiguration? = null,
         headlessType: String = "savedPM",
         taskSessionConfig: PaymentSessionConfiguration? = sessionConfig,
-    ) {
+    ): WritableMap {
         val subscribedEvents = getSubscribedEventsSafely()
         val bundle = launchOptions.getBundle(
             reactContext,
@@ -193,23 +199,47 @@ class PaymentSessionReactLauncher(
             null,
             subscribedEvents,
         )
-        bundle.getBundle("props")?.putString("headlessType", headlessType)
+        bundle.getBundle("props")!!.putString("headlessType", headlessType)
         configuration?.let { config ->
-            bundle.getBundle("props")?.putBundle("configuration", config.bundle)
+            bundle.getBundle("props")!!.putBundle("configuration", config.bundle)
         }
-        val taskTimeout = when (headlessType) {
-            "prefetch", "updateIntent" -> PREFETCH_TASK_TIMEOUT_MS
-            // Saved-method confirmation resumes through the callback held by this task and can
-            // legitimately wait for merchant/user input. Zero is RN's explicit no-timeout mode.
-            else -> SAVED_METHODS_TASK_TIMEOUT_MS
-        }
-        val taskConfig = HeadlessJsTaskConfig(
-            "HyperHeadless", Arguments.fromBundle(bundle), taskTimeout, true, null
-        )
+        return Arguments.fromBundle(bundle.getBundle("props")!!)
+    }
+
+    /* One task per session: after the first startTask everything is an event into the live
+       JS closure. emitEvent returns false when the module is detached, so a dead runtime
+       self-heals into a cold start — the same path a savedPM request takes on main. */
+    private fun dispatch(reactContext: ReactContext, props: WritableMap) {
+        if (headlessTaskId != null &&
+            ReactNativeController.eventEmitter.emitEvent(HEADLESS_REQUEST_EVENT, props)
+        ) return
+        headlessTaskId = null
+        startHeadlessJsTask(reactContext, props)
+    }
+
+    /* Timeout 0 is RN's explicit no-timeout mode: the task outlives its first request by design
+       (it can wait for merchant/user input). The 30s budget lives in fetchPrefetch, not here. */
+    private fun startHeadlessJsTask(reactContext: ReactContext, props: WritableMap) {
+        val taskProps = Arguments.createMap().apply { putMap("props", props) }
+        val taskConfig = HeadlessJsTaskConfig("HyperHeadless", taskProps, 0, true, null)
 
         val headlessJsTaskContext = HeadlessJsTaskContext.getInstance(reactContext)
         UiThreadUtil.runOnUiThread {
-            headlessJsTaskContext.startTask(taskConfig)
+            headlessTaskId = headlessJsTaskContext.startTask(taskConfig)
+        }
+    }
+
+    /** Ends the session's task: JS tears down its subscription, then RN releases the task slot. */
+    internal fun finishHeadlessTask() {
+        val taskId = headlessTaskId ?: return
+        headlessTaskId = null
+        val reactContext = currentReactContext() ?: return
+        ReactNativeController.eventEmitter.emitEvent(
+            HEADLESS_REQUEST_EVENT,
+            Arguments.createMap().apply { putString("headlessType", "shutdown") },
+        )
+        UiThreadUtil.runOnUiThread {
+            runCatching { HeadlessJsTaskContext.getInstance(reactContext).finishTask(taskId) }
         }
     }
 
@@ -318,8 +348,6 @@ class PaymentSessionReactLauncher(
 
         /** SDK-side last-resort budget; JS has no budget of its own. */
         const val PREFETCH_TIMEOUT_MS = 30_000L
-        const val PREFETCH_TASK_TIMEOUT_MS = PREFETCH_TIMEOUT_MS + 1_000L
-        const val SAVED_METHODS_TASK_TIMEOUT_MS = 0L
     }
 }
 
@@ -327,6 +355,7 @@ class PaymentSessionReactLauncher(
    which never sees RCTDeviceEventEmitter traffic. Same path iOS uses. Shared by the
    launcher's clearPrefetch and every PaymentSessionHandlerImpl terminal result. */
 private const val PREFETCH_CACHE_REMOVAL_EVENT = "clearPrefetchCache"
+private const val HEADLESS_REQUEST_EVENT = "headlessRequest"
 
 internal fun emitPrefetchCacheRemoval(sdkAuthorization: String) {
     if (sdkAuthorization.isEmpty()) return
