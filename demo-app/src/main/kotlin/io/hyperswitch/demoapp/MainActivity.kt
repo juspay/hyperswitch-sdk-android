@@ -72,10 +72,6 @@ class MainActivity : AppCompatActivity(), HyperInterface {
         findViewById<View>(R.id.launchWidgetLayout).setOnClickListener {
             startActivity(Intent(this, WidgetActivity::class.java))
         }
-
-        findViewById<View>(R.id.launchMatrix).setOnClickListener {
-            startActivity(Intent(this, io.hyperswitch.demoapp.matrix.MatrixActivity::class.java))
-        }
     }
 
     // ── Backend calls ──────────────────────────────────────────────────────────────────────────

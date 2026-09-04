@@ -68,8 +68,9 @@ class PaymentSessionReactLauncher(
         }
 
         val prefetch = CompletableDeferred<ReadableMap>()
-        val entry = HeadlessRegistry.tryRegister(HeadlessRegistry.Kind.PREFETCH, sdkAuthorization, prefetch)
-            ?: throw DuplicateSessionInitException(sdkAuthorization)
+        if (!ReactNativeController.sessionRouter.tryRegisterPrefetchCallback(prefetch)) {
+            throw DuplicateSessionInitException(sdkAuthorization)
+        }
         launchHeadlessTask(
             configuration = null,
             headlessType = headlessType,
@@ -88,9 +89,9 @@ class PaymentSessionReactLauncher(
             return Result.failure(error)
         } finally {
             /* Every exit — success, timeout, failure, or a cancelled parent coroutine —
-               must free the waiter. remove() only clears this exact entry, so a new
-               registration can never be clobbered by a cancelling waiter. */
-            HeadlessRegistry.remove(HeadlessRegistry.Kind.PREFETCH, sdkAuthorization, entry)
+               must free the waiter. clearPrefetchCallback only clears this exact deferred,
+               so a new registration can never be clobbered by a cancelling waiter. */
+            ReactNativeController.sessionRouter.clearPrefetchCallback(prefetch)
         }
         if (data == null) {
             Log.w(TAG, "Prefetch timed out after ${PREFETCH_TIMEOUT_MS}ms; falling back to on-demand API calls")
@@ -106,18 +107,6 @@ class PaymentSessionReactLauncher(
 
     fun clearPrefetch(sdkAuthorization: String) {
         emitPrefetchCacheRemoval(sdkAuthorization)
-    }
-
-    /* Codegen event channel only: JS subscribes through NativeHyperModule.clearPrefetchCache,
-       which never sees RCTDeviceEventEmitter traffic. Same path iOS uses. */
-    private fun emitPrefetchCacheRemoval(sdkAuthorization: String) {
-        if (sdkAuthorization.isEmpty()) return
-        ReactNativeController.eventEmitter.emitEvent(
-            PREFETCH_CACHE_REMOVAL_EVENT,
-            Arguments.createMap().apply {
-                putString("sdkAuthorization", sdkAuthorization)
-            },
-        )
     }
 
     @SuppressLint("VisibleForTests")
@@ -157,7 +146,6 @@ class PaymentSessionReactLauncher(
         headlessType: String,
         taskSessionConfig: PaymentSessionConfiguration?,
     ) {
-        val sdkAuthorization = taskSessionConfig?.sdkAuthorization.orEmpty()
         activity.runOnUiThread {
             try {
                 val context = currentReactContext()
@@ -169,7 +157,7 @@ class PaymentSessionReactLauncher(
                                 try {
                                     invokeStartTask(context, configuration, headlessType, taskSessionConfig)
                                 } catch (error: Throwable) {
-                                    routeLaunchFailure(sdkAuthorization, error)
+                                    routeLaunchFailure(error)
                                 }
                                 reactHost.removeReactInstanceEventListener(this)
                             }
@@ -180,20 +168,19 @@ class PaymentSessionReactLauncher(
                     invokeStartTask(context, configuration, headlessType, taskSessionConfig)
                 }
             } catch (error: Throwable) {
-                routeLaunchFailure(sdkAuthorization, error)
+                routeLaunchFailure(error)
             }
         }
     }
 
     /* Anything thrown inside the posted runnable escapes the callers' try/catch around
-       startHeadlessTask — fail the registered request instead of crashing the app. */
-    private fun routeLaunchFailure(sdkAuthorization: String, error: Throwable) {
+       startHeadlessTask — fail the registered waiter instead of crashing the app. */
+    private fun routeLaunchFailure(error: Throwable) {
         Log.e(TAG, "Headless task launch failed", error)
-        if (sdkAuthorization.isEmpty()) return
-        HeadlessRegistry.take<CompletableDeferred<ReadableMap>>(HeadlessRegistry.Kind.PREFETCH, sdkAuthorization)
-            ?.completeExceptionally(error)
-        HeadlessRegistry.take<PendingHeadlessRequest>(HeadlessRegistry.Kind.REQUEST, sdkAuthorization)
-            ?.callback(PaymentSessionHandlerImpl.failed(error))
+        ReactNativeController.sessionRouter.failPrefetchCallback(error)
+        ReactNativeController.sessionRouter.executeSessionCallback(
+            PaymentSessionHandlerImpl.failed(error, ReactNativeController.sessionRouter)
+        )
     }
 
     private fun getSubscribedEventsSafely(): List<String> =
@@ -334,11 +321,25 @@ class PaymentSessionReactLauncher(
 
     private companion object {
         const val TAG = "HyperPrefetch"
-        const val PREFETCH_CACHE_REMOVAL_EVENT = "clearPrefetchCache"
 
         /** SDK-side last-resort budget; JS has no budget of its own. */
         const val PREFETCH_TIMEOUT_MS = 30_000L
         const val PREFETCH_TASK_TIMEOUT_MS = PREFETCH_TIMEOUT_MS + 1_000L
         const val SAVED_METHODS_TASK_TIMEOUT_MS = 0L
     }
+}
+
+/* Codegen event channel only: JS subscribes through NativeHyperModule.clearPrefetchCache,
+   which never sees RCTDeviceEventEmitter traffic. Same path iOS uses. Shared by the
+   launcher's clearPrefetch and every PaymentSessionHandlerImpl terminal result. */
+private const val PREFETCH_CACHE_REMOVAL_EVENT = "clearPrefetchCache"
+
+internal fun emitPrefetchCacheRemoval(sdkAuthorization: String) {
+    if (sdkAuthorization.isEmpty()) return
+    ReactNativeController.eventEmitter.emitEvent(
+        PREFETCH_CACHE_REMOVAL_EVENT,
+        Arguments.createMap().apply {
+            putString("sdkAuthorization", sdkAuthorization)
+        },
+    )
 }

@@ -20,7 +20,6 @@ import io.hyperswitch.PaymentEvent
 import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.paymentsheet.PaymentResult
-import io.hyperswitch.paymentsession.HeadlessRegistry
 import io.hyperswitch.redirect.RedirectEvent
 import io.hyperswitch.utils.ConversionUtils
 import org.greenrobot.eventbus.EventBus
@@ -311,9 +310,9 @@ class HyperFragment : ReactFragment() {
             return
         }
 
-        // Try to register callback for this specific authorization - fails if already in progress
-        val entry = HeadlessRegistry.tryRegister(HeadlessRegistry.Kind.CONFIRM, sdkAuthorization, callback)
-        if (entry == null) {
+        // Try to register callback for this specific widget - fails if already in progress
+        val registered = ReactNativeController.sessionRouter.tryRegisterExitCallback(rootTag, callback)
+        if (!registered) {
             val paymentResult = PaymentResult.Failed(
                 Throwable("CVC payment already in progress for this widget").apply {
                     initCause(Throwable("ALREADY_IN_PROGRESS"))
@@ -332,9 +331,9 @@ class HyperFragment : ReactFragment() {
         val emitted = ReactNativeController.eventEmitter.emitEvent("triggerWidgetAction", map)
         if (!emitted) {
             /* JS runtime is gone; nothing will consume this widget action. Roll back the
-               registration so a later confirm on the same authorization isn't stuck failing
-               with ALREADY_IN_PROGRESS on a callback that can never fire. */
-            HeadlessRegistry.remove(HeadlessRegistry.Kind.CONFIRM, sdkAuthorization, entry)
+               registration so a later confirm isn't stuck failing with ALREADY_IN_PROGRESS
+               on a callback that can never fire. */
+            ReactNativeController.sessionRouter.clearExitCallback(rootTag)
             callback.invoke(PaymentResult.Failed(Throwable("React context is not available")))
             return
         }

@@ -12,7 +12,6 @@ import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.react.ReactNativeController
 import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 class DefaultPaymentSessionLauncher(
@@ -121,37 +120,8 @@ class DefaultPaymentSessionLauncher(
         configuration: SavedPaymentMethodsConfiguration?,
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
     ) {
-        val authorization = sessionConfig?.sdkAuthorization.orEmpty()
-        if (authorization.isEmpty()) {
-            savedPaymentMethodCallback(PaymentSessionHandlerImpl.failed(missingSessionError()))
-            return
-        }
-        val request = PendingHeadlessRequest(
-            callback = savedPaymentMethodCallback,
-            onTerminalResult = { resultAuthorization, result ->
-                clearAfterTerminalResult(resultAuthorization, result)
-            },
-            currentSdkAuthorization = { paymentSessionReactLauncher.sessionConfig?.sdkAuthorization.orEmpty() },
-        )
-        val entry = HeadlessRegistry.tryRegister(
-            HeadlessRegistry.Kind.REQUEST,
-            authorization,
-            request,
-            SAVED_METHODS_TIMEOUT_MS,
-        ) {
-            savedPaymentMethodCallback(PaymentSessionHandlerImpl.failed(savedMethodsTimeoutError()))
-        }
-        if (entry == null) {
-            savedPaymentMethodCallback(PaymentSessionHandlerImpl.failed(alreadyInProgressError()))
-            return
-        }
-        try {
-            paymentSessionReactLauncher.startHeadlessTask(configuration)
-        } catch (error: Throwable) {
-            if (HeadlessRegistry.remove(HeadlessRegistry.Kind.REQUEST, authorization, entry)) {
-                savedPaymentMethodCallback(PaymentSessionHandlerImpl.failed(error))
-            }
-        }
+        ReactNativeController.sessionRouter.setSessionCallback(sessionConfig?.sdkAuthorization, savedPaymentMethodCallback)
+        paymentSessionReactLauncher.startHeadlessTask(configuration)
     }
 
     override fun getCustomerSavedPaymentMethods(
@@ -164,67 +134,13 @@ class DefaultPaymentSessionLauncher(
         configuration: SavedPaymentMethodsConfiguration?,
     ): PaymentSessionHandler =
         suspendCancellableCoroutine { continuation ->
-            val authorization = sessionConfig?.sdkAuthorization.orEmpty()
-            if (authorization.isEmpty()) {
-                continuation.resumeWithException(missingSessionError())
-                return@suspendCancellableCoroutine
-            }
-            val request = PendingHeadlessRequest(
-                callback = { handler ->
-                    if (continuation.isActive) continuation.resume(handler)
-                },
-                onTerminalResult = { resultAuthorization, result ->
-                    clearAfterTerminalResult(resultAuthorization, result)
-                },
-                currentSdkAuthorization = { paymentSessionReactLauncher.sessionConfig?.sdkAuthorization.orEmpty() },
-            )
-            val entry = HeadlessRegistry.tryRegister(
-                HeadlessRegistry.Kind.REQUEST,
-                authorization,
-                request,
-                SAVED_METHODS_TIMEOUT_MS,
-            ) {
-                if (continuation.isActive) {
-                    continuation.resumeWithException(savedMethodsTimeoutError())
-                }
-            }
-            if (entry == null) {
-                continuation.resumeWithException(alreadyInProgressError())
-                return@suspendCancellableCoroutine
+            ReactNativeController.sessionRouter.setSessionCallback(sessionConfig?.sdkAuthorization) { handler ->
+                if (continuation.isActive) continuation.resume(handler)
             }
             continuation.invokeOnCancellation {
-                HeadlessRegistry.remove(HeadlessRegistry.Kind.REQUEST, authorization, entry)
+                ReactNativeController.sessionRouter.setSessionCallback(sessionConfig?.sdkAuthorization, null)
             }
-            try {
-                paymentSessionReactLauncher.startHeadlessTask(configuration)
-            } catch (error: Throwable) {
-                if (
-                    HeadlessRegistry.remove(HeadlessRegistry.Kind.REQUEST, authorization, entry) &&
-                    continuation.isActive
-                ) {
-                    continuation.resumeWithException(error)
-                }
-            }
-        }
-
-
-    companion object {
-        private const val SAVED_METHODS_TIMEOUT_MS = 30_000L
-    }
-
-    private fun alreadyInProgressError(): IllegalStateException =
-        IllegalStateException("Saved payment methods request already in progress").apply {
-            initCause(Throwable("ALREADY_IN_PROGRESS"))
-        }
-
-    private fun missingSessionError(): IllegalStateException =
-        IllegalStateException("sdkAuthorization must not be empty").apply {
-            initCause(Throwable("MISSING_SESSION"))
-        }
-
-    private fun savedMethodsTimeoutError(): IllegalStateException =
-        IllegalStateException("Saved payment methods request timed out").apply {
-            initCause(Throwable("HEADLESS_TIMEOUT"))
+            paymentSessionReactLauncher.startHeadlessTask(configuration)
         }
 
     internal fun clearAfterTerminalResult(

@@ -12,6 +12,7 @@ import com.facebook.soloader.SoLoader
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.R
 import io.hyperswitch.logs.CrashHandler
+import io.hyperswitch.paymentsession.PaymentSessionRouter
 import io.hyperswitch.logs.HSLog
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogCategory
@@ -33,6 +34,8 @@ import java.util.concurrent.atomic.AtomicReference
 object ReactNativeController {
 
     val eventEmitter = HyperEventEmitter()
+
+    val sessionRouter = PaymentSessionRouter()
 
     @Volatile
     private var reactHost = AtomicReference<ReactHost?>(null)
@@ -137,7 +140,7 @@ object ReactNativeController {
                     DefaultReactHost.getDefaultReactHost(
                         context = application.applicationContext,
                         packageList = PackageList(application).packages.apply {
-                            add(HyperPackage(eventEmitter))
+                            add(HyperPackage(eventEmitter, sessionRouter))
                         },
                         jsMainModulePath = "index",
                         jsBundleFilePath = getBundleFromAirborne(application),
