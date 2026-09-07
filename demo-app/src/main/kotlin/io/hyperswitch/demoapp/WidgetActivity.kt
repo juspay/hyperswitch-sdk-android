@@ -127,7 +127,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             paymentSessionHandler = elements?.getCustomerSavedPaymentMethods()
             paymentElementBound = elements?.bind(paymentElement, buildConfiguration())
             cvcWidgetBound      = elements?.bind(cvcWidget) {
-                on(CvcWidgetEvents.CvcStatus) {
+                on(CvcWidgetEvents.CvcStatusChange) {
                     println(it)
                 }
             }

@@ -9,11 +9,11 @@ package io.hyperswitch
  * Example usage:
  * ```
  * paymentSession.subscribe {
- *     on(PaymentEvents.PaymentMethodInfoCard) { event ->
+ *     on(PaymentEvents.CardDetailsChange) { event ->
  *         val cardInfo = event.data as PaymentEventData.CardInfo
  *         // Handle card field changes
  *     }
- *     on(PaymentEvents.PaymentMethodStatus) { event ->
+ *     on(PaymentEvents.PaymentMethodChange) { event ->
  *         val status = event.data as PaymentEventData.PaymentMethodStatusEvent
  *         // Handle payment method selection
  *     }
@@ -24,7 +24,7 @@ object PaymentEvents {
 
     /**
      * Card information event - emitted when card field values change.
-     * Event type: "PAYMENT_METHOD_INFO_CARD"
+     * Event type: "cardDetailsChange"
      * Payload: PaymentEventData.CardInfo
      *
      * Fields:
@@ -40,11 +40,11 @@ object PaymentEvents {
      * - isCardNumberValid: Boolean      Card number passes Luhn validation
      * - isExpiryValid: Boolean          Expiry date is valid
      */
-    object PaymentMethodInfoCard : EventType("PAYMENT_METHOD_INFO_CARD")
+    object CardDetailsChange : EventType("cardDetailsChange")
 
     /**
      * Payment method status event - emitted when user selects a payment method.
-     * Event type: "PAYMENT_METHOD_STATUS"
+     * Event type: "paymentMethodChange"
      * Payload: PaymentEventData.PaymentMethodStatus
      *
      * Fields:
@@ -53,21 +53,21 @@ object PaymentEvents {
      * - isSavedPaymentMethod: Boolean   Whether a saved payment method was selected
      * - isOneClickWallet: Boolean       Whether a one-click wallet was selected
      */
-    object PaymentMethodStatus : EventType("PAYMENT_METHOD_STATUS")
+    object PaymentMethodChange : EventType("paymentMethodChange")
 
     /**
      * Form status event - emitted when form completion status changes.
-     * Event type: "FORM_STATUS"
+     * Event type: "formStatusChange"
      * Payload: PaymentEventData.FormStatusEvent
      *
      * Fields:
      * - status: String                  "EMPTY" | "FILLING" | "COMPLETE"
      */
-    object FormStatus : EventType("FORM_STATUS")
+    object FormStatusChange : EventType("formStatusChange")
 
     /**
      * Address information event - emitted when billing address fields change.
-     * Event type: "PAYMENT_METHOD_INFO_BILLING_ADDRESS"
+     * Event type: "billingDetailsChange"
      * Payload: PaymentEventData.PaymentMethodInfoAddress
      *
      * Fields:
@@ -75,7 +75,7 @@ object PaymentEvents {
      * - state: String                   State/province
      * - postalCode: String              Postal/ZIP code
      */
-    object PaymentMethodInfoBillingAddress : EventType("PAYMENT_METHOD_INFO_BILLING_ADDRESS")
+    object BillingDetailsChange : EventType("billingDetailsChange")
 }
 
 /**

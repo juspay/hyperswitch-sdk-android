@@ -10,7 +10,7 @@ sealed class PaymentEventData() {
 
     /**
      * Card information event payload.
-     * Matches the canonical PAYMENT_METHOD_INFO_CARD structure exactly.
+     * Matches the canonical cardDetailsChange structure exactly.
      *
      * @property bin                  First 6 digits of the card number, or null if fewer than 6 entered
      * @property last4                Last 4 digits of the card number, or null if fewer than 4 entered
@@ -57,7 +57,7 @@ sealed class PaymentEventData() {
 
     /**
      * Payment method status event payload.
-     * Matches the canonical PAYMENT_METHOD_STATUS structure exactly.
+     * Matches the canonical paymentMethodChange structure exactly.
      *
      * @property paymentMethod        Payment method category (e.g., "card", "wallet", "bank_redirect")
      * @property paymentMethodType    Payment method sub-type (e.g., "sofort", "ideal")
@@ -113,7 +113,7 @@ sealed class PaymentEventData() {
 
     /**
      * Address information event payload.
-     * Matches the canonical PAYMENT_METHOD_INFO_BILLING_ADDRESS structure exactly.
+     * Matches the canonical billingDetailsChange structure exactly.
      *
      * @property country    Country code
      * @property state      State/province
@@ -170,11 +170,11 @@ sealed class PaymentEventData() {
          */
         fun fromEventType(eventType: String, payload: Map<String, Any>): PaymentEventData? =
             when (eventType) {
-                "PAYMENT_METHOD_INFO_CARD" -> CardInfo.fromMap(payload)
-                "PAYMENT_METHOD_STATUS" -> PaymentMethodStatus.fromMap(payload)
-                "FORM_STATUS" -> FormStatus.fromMap(payload)
-                "PAYMENT_METHOD_INFO_BILLING_ADDRESS" -> PaymentMethodInfoAddress.fromMap(payload)
-                "CVC_STATUS" -> CvcStatus.fromMap(payload)
+                "cardDetailsChange" -> CardInfo.fromMap(payload)
+                "paymentMethodChange" -> PaymentMethodStatus.fromMap(payload)
+                "formStatusChange" -> FormStatus.fromMap(payload)
+                "billingDetailsChange" -> PaymentMethodInfoAddress.fromMap(payload)
+                "cvcStatusChange" -> CvcStatus.fromMap(payload)
                 else -> null
             }
     }
