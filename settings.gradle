@@ -12,6 +12,7 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex -> ex.autol
 
 rootProject.name = 'io.hyperswitch'
 
+include ':hyperswitch-sdk-android-react-native'
 include ':app'
 include ':demo-app'
 include ':demo-app-lite'

@@ -15,9 +15,8 @@ import com.facebook.react.runtime.hermes.HermesInstance
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.react.uimanager.DisplayMetricsHolder
 import com.facebook.soloader.SoLoader
-import io.hyperswitch.paymentsession.PaymentSessionRouter
-import io.hyperswitch.react.HyperEventEmitter
 import io.hyperswitch.react.HyperPackage
+import io.hyperswitch.react.HyperReactRuntime
 import io.hyperswitch.react.PackageList
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -30,8 +29,8 @@ import java.util.concurrent.atomic.AtomicInteger
  * through `DefaultReactHost.getDefaultReactHost()`, which statically caches the first host
  * and would return the same instance for every caller. [ReactHostImpl] itself holds no
  * static state, so N sessions in one process yield N fully independent runtimes (own
- * Hermes runtime, own JS thread, own [ComponentFactory], own [HyperEventEmitter]/
- * [PaymentSessionRouter] TurboModule wiring).
+ * Hermes runtime, own JS thread, own [ComponentFactory], own
+ * [HyperReactRuntime.sessionRouter] TurboModule wiring).
  */
 internal class PaymentMethodSessionReactHostProvider(
     private val application: Application,
@@ -40,11 +39,12 @@ internal class PaymentMethodSessionReactHostProvider(
     /** Monotonic id identifying this provider's host — distinct for every session. */
     val hostInstanceId: Int = hostCounter.incrementAndGet()
 
-    /** Event emitter scoped to this session's host. */
-    val eventEmitter = HyperEventEmitter()
-
-    /** Session router scoped to this session's host. */
-    val sessionRouter = PaymentSessionRouter()
+    /**
+     * Backs the TurboModules registered on this session's host via [HyperPackage].
+     * Its own [HyperReactRuntime.reactHost] is never read — this session builds and
+     * owns a separate [ReactHostImpl] below (dedicated bundle, own lifecycle).
+     */
+    private val runtime = HyperReactRuntime(application)
 
     val reactHost: ReactHost by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         createReactHost()
@@ -55,7 +55,7 @@ internal class PaymentMethodSessionReactHostProvider(
         ensureRuntimeReady(application)
 
         val packages = PackageList(application).packages.apply {
-            add(HyperPackage(eventEmitter, sessionRouter))
+            add(HyperPackage(runtime))
         }
 
         val delegate = DefaultReactHostDelegate(
