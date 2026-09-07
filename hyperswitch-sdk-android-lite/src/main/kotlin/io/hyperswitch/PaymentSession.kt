@@ -18,15 +18,17 @@ import io.hyperswitch.paymentsheet.PaymentResult
 class PaymentSession internal constructor(private val paymentSessionLauncher: PaymentSessionLauncher) {
 
     constructor(activity: Activity, config: HyperswitchBaseConfiguration?, sessionConfig: PaymentSessionConfiguration) : this(
-        DefaultPaymentSessionLauncherLite(activity, config, sessionConfig)
-    )
+        DefaultPaymentSessionLauncherLite(activity, config)
+    ) {
+        initPaymentSession(sessionConfig)
+    }
 
     /**
      * Initializes the payment session with the given PaymentSessionConfiguration.
      *
      * @param sessionConfig The session configuration including the client secret.
      */
-    suspend fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
+    fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
         paymentSessionLauncher.initPaymentSession(sessionConfig)
     }
 

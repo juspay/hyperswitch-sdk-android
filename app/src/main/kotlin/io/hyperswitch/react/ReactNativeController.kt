@@ -2,151 +2,91 @@ package io.hyperswitch.react
 
 import android.app.Application
 import android.content.Context
-import io.hyperswitch.react.PackageList
 import com.facebook.react.ReactHost
+import com.facebook.react.bridge.JSBundleLoader
+import com.facebook.react.common.annotations.UnstableReactNativeAPI
+import com.facebook.react.defaults.DefaultComponentsRegistry
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint
-import com.facebook.react.defaults.DefaultReactHost
+import com.facebook.react.defaults.DefaultReactHostDelegate
+import com.facebook.react.defaults.DefaultTurboModuleManagerDelegate
+import com.facebook.react.fabric.ComponentFactory
+import com.facebook.react.runtime.ReactHostImpl
+import com.facebook.react.runtime.hermes.HermesInstance
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.react.uimanager.DisplayMetricsHolder
 import com.facebook.soloader.SoLoader
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.R
 import io.hyperswitch.logs.CrashHandler
-import io.hyperswitch.paymentsession.PaymentSessionRouter
 import io.hyperswitch.logs.HSLog
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogCategory
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicReference
 
-/**
- * ReactNativeController
- *
- * Entry point for initializing and accessing the Hyperswitch React Native runtime.
- * This object is responsible for:
- * - Initializing React Native (New Architecture / bridgeless)
- * - Loading JS bundles (OTA or bundled assets)
- * - Managing the ReactHost lifecycle
- * - Setting up crash handling and native dependencies
- *
- * This SDK is designed to be initialized once per application lifecycle.
- */
+/** Process-wide RN setup plus a per-session ReactHost factory. */
 object ReactNativeController {
 
-    val eventEmitter = HyperEventEmitter()
-
-    val sessionRouter = PaymentSessionRouter()
+    private val isInitialized = AtomicBoolean(false)
 
     @Volatile
-    private var reactHost = AtomicReference<ReactHost?>(null)
+    private var application: Application? = null
 
+    /** Host for entry points with no session: legacy flows, HyperActivity after process death. */
+    val legacyRuntime: HyperReactRuntime by lazy {
+        HyperReactRuntime(checkNotNull(application) {
+            "ReactNativeController.initialize() must run before the legacy runtime is used"
+        })
+    }
+
+    // One-shot handoff for HyperActivity (Intent-started); cleared on read.
     @Volatile
-    private var isInitialized = AtomicBoolean(false)
+    private var pendingActivityRuntime: HyperReactRuntime? = null
 
-    /**
-     * Resolves the JavaScript bundle path using Hyper Airborne OTA if available.
-     *
-     * Behavior:
-     * - Determines SDK environment using the publishable key
-     * - Reads OTA endpoint from resources based on environment
-     * - Dynamically loads AirborneOTA via reflection (optional dependency)
-     * - Fetches the OTA-downloaded bundle path
-     * - Falls back to bundled assets if OTA is disabled, unavailable, or fails
-     *
-     * @param application Application context
-     * @return Path to the JS bundle (OTA or bundled asset)
-     */
+    fun offerActivityRuntime(runtime: HyperReactRuntime) {
+        pendingActivityRuntime = runtime
+    }
+
+    fun takeActivityRuntime(): HyperReactRuntime? =
+        pendingActivityRuntime.also { pendingActivityRuntime = null }
+
+    fun getIsInitialized(): Boolean = isInitialized.get()
+
+    /** OTA bundle path if configured, else the bundled asset. */
     private fun getBundleFromAirborne(application: Application): String {
         try {
-//            val environment = SDKEnvironment.PROD
-            // TODO: change this to ENV check based on the Configuration.
-            val airborneUrl = application.getString(
-                R.string.hyperOTAEndPoint
-            )
-
-            // Ensure OTA endpoint is valid
+            val airborneUrl = application.getString(R.string.hyperOTAEndPoint)
             if (airborneUrl != "hyperOTA_END_POINT_") {
-                val airborneClass =
-                    Class.forName("io.hyperswitch.airborne.AirborneOTA")
-
+                val airborneClass = Class.forName("io.hyperswitch.airborne.AirborneOTA")
                 val constructor = airborneClass.getConstructor(
                     Context::class.java,
                     String::class.java,
                     String::class.java
                 )
-
                 val instance = constructor.newInstance(
                     application.applicationContext,
                     BuildConfig.VERSION_NAME,
                     airborneUrl
                 )
-
-                val getBundlePath =
-                    airborneClass.getMethod("getBundlePath")
+                val getBundlePath = airborneClass.getMethod("getBundlePath")
                 return getBundlePath.invoke(instance) as String
             }
         } catch (_: Exception) {}
         return "assets://hyperswitch.bundle"
     }
 
-    /**
-     * Returns whether the SDK has already been initialized.
-     *
-     * @return true if initialized, false otherwise
-     */
-    fun getIsInitialized(): Boolean {
-        return isInitialized.get()
-    }
-
-    /**
-     * Returns the initialized ReactHost instance.
-     *
-     * @throws IllegalStateException if SDK is not initialized
-     * @return ReactHost
-     */
-    fun getReactHost(): ReactHost {
-        return checkNotNull(reactHost.get()) {
-            "ReactNative not initialized. Call ReactNativeController.initialize()"
-        }
-    }
-
-    /**
-     * Initializes the ReactNativeController.
-     *
-     * This method:
-     * - Ensures single initialization (thread-safe)
-     * - Registers a global crash handler
-     * - Initializes SoLoader
-     * - Loads New Architecture entry point if enabled
-     * - Creates the ReactHost instance
-     * @param application Application instance
-     */
+    /** One-time, process-wide. Safe to call repeatedly. */
     fun initialize(application: Application) {
         try {
             synchronized(this) {
                 if (isInitialized.get()) return
+                this.application = application
 
                 Thread.setDefaultUncaughtExceptionHandler(
                     CrashHandler(application, BuildConfig.VERSION_NAME)
                 )
-
                 SoLoader.init(application, OpenSourceMergedSoMapping)
-
                 DisplayMetricsHolder.initDisplayMetricsIfNotInitialized(application.applicationContext)
-
                 DefaultNewArchitectureEntryPoint.load()
-
-                reactHost.set(
-                    DefaultReactHost.getDefaultReactHost(
-                        context = application.applicationContext,
-                        packageList = PackageList(application).packages.apply {
-                            add(HyperPackage(eventEmitter, sessionRouter))
-                        },
-                        jsMainModulePath = "index",
-                        jsBundleFilePath = getBundleFromAirborne(application),
-                        useDevSupport = BuildConfig.DEBUG,
-                    )
-                )
 
                 isInitialized.set(true)
             }
@@ -159,5 +99,37 @@ object ReactNativeController {
                     .build()
             )
         }
+    }
+
+    /** Same construction as DefaultReactHost.getDefaultReactHost, minus its process-wide memoization. */
+    @OptIn(UnstableReactNativeAPI::class)
+    internal fun createReactHost(application: Application, runtime: HyperReactRuntime): ReactHost {
+        initialize(application)
+
+        val bundlePath = getBundleFromAirborne(application)
+        val bundleLoader = if (bundlePath.startsWith("assets://")) {
+            JSBundleLoader.createAssetLoader(application, bundlePath, true)
+        } else {
+            JSBundleLoader.createFileLoader(bundlePath)
+        }
+
+        val delegate = DefaultReactHostDelegate(
+            jsMainModulePath = "index",
+            jsBundleLoader = bundleLoader,
+            reactPackages = PackageList(application).packages.apply { add(HyperPackage(runtime)) },
+            jsRuntimeFactory = HermesInstance(),
+            turboModuleManagerDelegateBuilder = DefaultTurboModuleManagerDelegate.Builder(),
+        )
+
+        val componentFactory = ComponentFactory()
+        DefaultComponentsRegistry.register(componentFactory)
+
+        return ReactHostImpl(
+            application,
+            delegate,
+            componentFactory,
+            true, /* allowPackagerServerAccess */
+            BuildConfig.DEBUG,
+        )
     }
 }

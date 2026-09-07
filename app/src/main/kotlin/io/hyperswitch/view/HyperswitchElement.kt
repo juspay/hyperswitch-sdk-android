@@ -5,7 +5,6 @@ import android.util.AttributeSet
 import android.widget.FrameLayout
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.PaymentEventListener
-import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.paymentsheet.PaymentRequestData
 import io.hyperswitch.paymentsheet.PaymentResult
@@ -31,6 +30,10 @@ open class HyperswitchElement @JvmOverloads constructor(
 
     var type: String? = null
 
+    init {
+        addView(internalView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+    }
+
     private var heightFloorPx: Int = 0
 
     protected fun setHeightFloor(heightDp: Float) {
@@ -40,10 +43,7 @@ open class HyperswitchElement @JvmOverloads constructor(
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-        if (
-            heightFloorPx > 0 &&
-            MeasureSpec.getMode(heightMeasureSpec) != MeasureSpec.EXACTLY
-        ) {
+        if (heightFloorPx > 0 && MeasureSpec.getMode(heightMeasureSpec) != MeasureSpec.EXACTLY) {
             internalView.measure(
                 MeasureSpec.makeMeasureSpec(measuredWidth, MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(measuredHeight, MeasureSpec.EXACTLY),
@@ -51,14 +51,15 @@ open class HyperswitchElement @JvmOverloads constructor(
         }
     }
 
-    init {
-        addView(internalView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
-    }
-
     /**
      * Initializes the widget with a full [HyperswitchBaseConfiguration].
      * Registers an internal result handler that cleans up on completion.
      */
+    /** Renders this element on the given session's React host. */
+    fun attachRuntime(runtime: io.hyperswitch.react.HyperReactRuntime) {
+        internalView.attachRuntime(runtime)
+    }
+
     fun initWidget(config: HyperswitchBaseConfiguration) {
         internalView.initWidget(config)
         type?.let { internalView.setWidgetType(it) }
@@ -168,27 +169,6 @@ open class HyperswitchElement @JvmOverloads constructor(
 
     fun setOnEventCallback(listener: PaymentEventListener) {
         internalView.onEvent(listener)
-    }
-
-    fun updateIntentInit(onInitComplete: () -> Unit) {
-        internalView.updatePaymentIntentInit(
-            onInitComplete
-        )
-    }
-
-    @JvmSynthetic
-    suspend fun updateIntentComplete(
-        sdkAuthorization: String,
-    ): ElementUpdateIntentResult {
-        return suspendCancellableCoroutine { continuation ->
-            internalView.updatePaymentIntentComplete(
-                sdkAuthorization,
-            ) { result ->
-                if (continuation.isActive) {
-                    continuation.resume(result)
-                }
-            }
-        }
     }
 
     fun destroy() {

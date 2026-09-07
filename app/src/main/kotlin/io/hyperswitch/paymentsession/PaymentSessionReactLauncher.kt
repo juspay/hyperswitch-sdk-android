@@ -4,119 +4,63 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.activity.addCallback
 import androidx.fragment.app.FragmentActivity
-import com.facebook.react.ReactHost
 import com.facebook.react.ReactInstanceEventListener
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactContext
-import com.facebook.react.bridge.ReadableMap
-import com.facebook.react.bridge.UiThreadUtil
-import com.facebook.react.bridge.WritableMap
 import com.facebook.react.common.assets.ReactFontManager
-import com.facebook.react.jstasks.HeadlessJsTaskConfig
-import com.facebook.react.jstasks.HeadlessJsTaskContext
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.facebook.react.uimanager.PixelUtil
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
-import io.hyperswitch.react.ReactNativeController
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperActivity
 import io.hyperswitch.react.HyperFragment
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.withTimeoutOrNull
+import io.hyperswitch.react.HyperReactRuntime
+import io.hyperswitch.react.ReactNativeController
+import kotlinx.coroutines.suspendCancellableCoroutine
+import org.json.JSONObject
+import kotlin.coroutines.resume
 
 class PaymentSessionReactLauncher(
     private val activity: Activity,
     hsConfig: HyperswitchBaseConfiguration? = null,
 ) : SDKInterface {
 
-    private var reactHost: ReactHost? = null
-    private var reactContext: ReactContext? = null
+    override var sessionConfig: PaymentSessionConfiguration? = null
+
+    /** This session's own React host, emitter and router. Created in [initializeReactNativeInstance]. */
+    internal lateinit var runtime: HyperReactRuntime
+        private set
+
+    private var prefetchSurface: HeadlessSurface? = null
+    private var savedPaymentMethodsSurface: HeadlessSurface? = null
     private val launchOptions = LaunchOptions(activity, BuildConfig.VERSION_NAME, hsConfig)
+    private val mainHandler = Handler(Looper.getMainLooper())
 
-    @Volatile override var sessionConfig: PaymentSessionConfiguration? = null
-
-    /** The session's one long-running headless task; null when no task is expected to be live. */
-    @Volatile private var headlessTaskId: Int? = null
-
-    /**
-     * Runs the prefetch headless task and waits for its result.
-     *
-     * A prefetch miss is not fatal: the sheet and headless flows fall back to making the API
-     * calls themselves, so this reports the failure and returns rather than propagating it.
-     * The timeout is the SDK-side last resort: JS has no budget of its own, so a wedged
-     * bridge must not stall the merchant.
-     */
-    internal suspend fun fetchPrefetch(
-        taskSessionConfig: PaymentSessionConfiguration,
-        headlessType: String = "prefetch",
-    ): Result<ReadableMap> {
-        val sdkAuthorization = taskSessionConfig.sdkAuthorization
-        if (sdkAuthorization.isEmpty()) {
-            return Result.failure(IllegalArgumentException("sdkAuthorization must not be empty"))
-        }
-
-        val prefetch = CompletableDeferred<ReadableMap>()
-        if (!ReactNativeController.sessionRouter.tryRegisterPrefetchCallback(prefetch)) {
-            return Result.failure(
-                IllegalStateException(
-                    "sdkAuthorization '$sdkAuthorization' is already in use by an in-progress session"
-                ).apply { initCause(Throwable("SESSION_INIT_IN_PROGRESS")) }
-            )
-        }
-        launchHeadlessTask(
-            configuration = null,
-            headlessType = headlessType,
-            taskSessionConfig = taskSessionConfig,
-        )
-
-        // The deferred only signals completion: JS cached the payload in its own module
-        // state (shared VM) before calling completePrefetch, and resolves it from there.
-        val data = try {
-            withTimeoutOrNull(PREFETCH_TIMEOUT_MS) { prefetch.await() }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Throwable) {
-            /* routeLaunchFailure completed the deferred exceptionally: report it the same way
-               a timeout is reported so initPaymentSession has one failure channel. */
-            return Result.failure(error)
-        } finally {
-            /* Every exit — success, timeout, failure, or a cancelled parent coroutine —
-               must free the waiter. clearPrefetchCallback only clears this exact deferred,
-               so a new registration can never be clobbered by a cancelling waiter. */
-            ReactNativeController.sessionRouter.clearPrefetchCallback(prefetch)
-        }
-        if (data == null) {
-            Log.w(TAG, "Prefetch timed out after ${PREFETCH_TIMEOUT_MS}ms; falling back to on-demand API calls")
-            return Result.failure(IllegalStateException("Prefetch timed out"))
-        }
-
-        return Result.success(data)
+    /** One updateIntent in flight; identity-checked on finish so a stale timeout cannot end a later attempt. */
+    private class UpdateIntentAttempt(val onResult: (Result<String>) -> Unit) {
+        var authorization: String? = null
+        var timeout: Runnable? = null
     }
 
-    fun commitSession(committedSessionConfig: PaymentSessionConfiguration) {
-        sessionConfig = committedSessionConfig
-    }
-
-    fun clearPrefetch(sdkAuthorization: String) {
-        emitPrefetchCacheRemoval(sdkAuthorization)
-    }
+    private var updateIntentAttempt: UpdateIntentAttempt? = null
 
     @SuppressLint("VisibleForTests")
     override fun initializeReactNativeInstance() {
-        reactContext = try {
-            // This allows merchants to use their own Application class without extending MainApplication
-            if (!ReactNativeController.getIsInitialized()){
-                ReactNativeController.initialize(activity.application)
+        try {
+            // Allows merchants to use their own Application class without extending MainApplication.
+            ReactNativeController.initialize(activity.application)
+            runtime = HyperReactRuntime(activity.application).also { rt ->
+                rt.onPrefetchUpdateIntentReply = { type, resultJson ->
+                    mainHandler.post { handleUpdateIntentReply(type, resultJson) }
+                }
             }
-            reactHost = ReactNativeController.getReactHost()
-
-            checkNotNull(reactHost) { "ReactHost is not initialized" }.currentReactContext
         } catch (ex: IllegalStateException) {
             throw IllegalStateException(
                 "HyperSDK not initialized. Please call HyperSDK.initialize() in your Application.onCreate()",
@@ -130,121 +74,170 @@ class PaymentSessionReactLauncher(
         }
     }
 
-    private fun currentReactContext(): ReactContext? = reactHost?.currentReactContext
+    // ── Prefetch surface ──────────────────────────────────────────────────────
 
-    override fun startHeadlessTask(
-        configuration: SavedPaymentMethodsConfiguration?,
-        headlessType: String
-    ) {
-        launchHeadlessTask(configuration, headlessType, sessionConfig)
+    /** Viewless prefetch surface; prerenderSurface starts the instance itself if needed. */
+    override fun prefetch() {
+        val config = sessionConfig ?: return
+
+        activity.runOnUiThread {
+            if (prefetchSurface != null) return@runOnUiThread
+            val props = bottomInsetToDIPFromPixel(
+                launchOptions.getBundle(
+                    activity.applicationContext,
+                    config,
+                    null,
+                    getSubscribedEventsSafely(),
+                )
+            )
+            props.getBundle("props")?.apply {
+                // getBundle hardcodes type=payment.
+                putString("type", "prefetch")
+                putInt("prefetchTag", HyperReactRuntime.PREFETCH_SURFACE_TAG)
+            }
+            prefetchSurface = HeadlessSurface(activity.applicationContext, runtime.reactHost)
+                .also { it.start(props) }
+        }
     }
 
-    private fun launchHeadlessTask(
-        configuration: SavedPaymentMethodsConfiguration?,
-        headlessType: String,
-        taskSessionConfig: PaymentSessionConfiguration?,
-    ) {
-        activity.runOnUiThread {
-            try {
-                val context = currentReactContext()
-                if (context == null) {
-                    val reactHost = checkNotNull(reactHost)
-                    reactHost.addReactInstanceEventListener(
-                        object : ReactInstanceEventListener {
-                            override fun onReactContextInitialized(context: ReactContext) {
-                                try {
-                                    dispatch(context, buildHeadlessProps(context, configuration, headlessType, taskSessionConfig))
-                                } catch (error: Throwable) {
-                                    routeLaunchFailure(error)
-                                }
-                                reactHost.removeReactInstanceEventListener(this)
-                            }
-                        }
-                    )
-                    reactHost.start()
-                } else {
-                    dispatch(context, buildHeadlessProps(context, configuration, headlessType, taskSessionConfig))
+    /** Resolves once this session's JS realm is initialised. Awaits the realm, never the data. */
+    override suspend fun awaitReady() {
+        val host = runtime.reactHost
+        if (host.currentReactContext != null) return
+        suspendCancellableCoroutine { continuation ->
+            val listener = object : ReactInstanceEventListener {
+                override fun onReactContextInitialized(context: ReactContext) {
+                    host.removeReactInstanceEventListener(this)
+                    if (continuation.isActive) continuation.resume(Unit)
                 }
-            } catch (error: Throwable) {
-                routeLaunchFailure(error)
+            }
+            host.addReactInstanceEventListener(listener)
+            continuation.invokeOnCancellation { host.removeReactInstanceEventListener(listener) }
+            host.start()
+        }
+    }
+
+    override fun disposePrefetch() {
+        activity.runOnUiThread {
+            prefetchSurface?.stop()
+            prefetchSurface = null
+        }
+    }
+
+    // ── Update intent ─────────────────────────────────────────────────────────
+
+    /**
+     * Tells the prefetch surface an update has begun (overlay), asks the merchant for the
+     * new authorization, then has the surface refetch and fan out in JS. Only the refetch
+     * leg is timed out; the merchant's provider is their own. Config commits on success.
+     */
+    override fun updateIntent(
+        authorizationProvider: (onAuthorization: (String) -> Unit) -> Unit,
+        onResult: (Result<String>) -> Unit
+    ) {
+        mainHandler.post {
+            if (updateIntentAttempt != null) {
+                onResult(Result.failure(failure("ALREADY_IN_PROGRESS", "updateIntent already in progress")))
+                return@post
+            }
+            val attempt = UpdateIntentAttempt(onResult)
+            updateIntentAttempt = attempt
+            prefetch()
+            emitToPrefetchSurface("updateIntentInit", null)
+
+            authorizationProvider { auth ->
+                mainHandler.post { refetch(auth, attempt) }
             }
         }
     }
 
-    /* Anything thrown inside the posted runnable escapes the callers' try/catch around
-       startHeadlessTask — fail the registered waiter instead of crashing the app. */
-    private fun routeLaunchFailure(error: Throwable) {
-        Log.e(TAG, "Headless task launch failed", error)
-        ReactNativeController.sessionRouter.failPrefetchCallback(error)
-        ReactNativeController.sessionRouter.executeSessionCallback(
-            PaymentSessionHandlerImpl.failed(error, ReactNativeController.sessionRouter)
-        )
+    private fun refetch(auth: String, attempt: UpdateIntentAttempt) {
+        if (updateIntentAttempt !== attempt) return
+        if (auth.isEmpty()) {
+            finish(attempt, Result.failure(failure("INVALID_SDK_AUTHORIZATION", "No sdkAuthorization was provided")))
+            return
+        }
+        attempt.authorization = auth
+
+        val timeout = Runnable {
+            finish(attempt, Result.failure(failure("UPDATE_INTENT_TIMEOUT", "The updated payment intent was not acknowledged in time.")))
+        }
+        attempt.timeout = timeout
+        mainHandler.postDelayed(timeout, UPDATE_INTENT_TIMEOUT_MS)
+
+        emitToPrefetchSurface("updateIntentComplete", auth)
+    }
+
+    private fun handleUpdateIntentReply(type: String, resultJson: String) {
+        if (type != "UPDATE_INTENT_COMPLETE_RETURNED") return
+        val attempt = updateIntentAttempt ?: return
+        val auth = attempt.authorization ?: ""
+        val result = parseUpdateIntentResult(resultJson, auth)
+        if (result.isSuccess) {
+            sessionConfig = PaymentSessionConfiguration(auth)
+        }
+        finish(attempt, result)
+    }
+
+    private fun finish(attempt: UpdateIntentAttempt, result: Result<String>) {
+        if (updateIntentAttempt !== attempt) return
+        attempt.timeout?.let { mainHandler.removeCallbacks(it) }
+        updateIntentAttempt = null
+        attempt.onResult(result)
+    }
+
+    private fun emitToPrefetchSurface(name: String, sdkAuthorization: String?) {
+        val payload = Arguments.createMap().apply {
+            putInt("rootTag", HyperReactRuntime.PREFETCH_SURFACE_TAG)
+            sdkAuthorization?.let { putString("sdkAuthorization", it) }
+        }
+        if (!runtime.eventEmitter.emitEvent(name, payload)) {
+            Log.w("PaymentSessionReactLauncher", "emitToPrefetchSurface: HyperModule not attached, dropped $name")
+        }
+    }
+
+    private fun parseUpdateIntentResult(json: String, auth: String): Result<String> = try {
+        val obj = JSONObject(json)
+        when (val status = obj.optString("status")) {
+            "failed", "error", "cancelled" -> Result.failure(
+                failure(
+                    obj.optString("code").ifEmpty { "UNKNOWN_ERROR" },
+                    obj.optString("message").ifEmpty { status },
+                )
+            )
+            else -> Result.success(auth)
+        }
+    } catch (e: Exception) {
+        Result.failure(failure("UNKNOWN_ERROR", "Invalid update intent result"))
+    }
+
+    private fun failure(code: String, message: String): Throwable =
+        Throwable(message).apply { initCause(Throwable(code)) }
+
+    // ── Saved payment methods ─────────────────────────────────────────────────
+
+    /** Starts a HyperHeadless surface in saved-payment-methods mode; a new call replaces the previous one. */
+    override fun recreateReactContext(configuration: SavedPaymentMethodsConfiguration?) {
+        activity.runOnUiThread {
+            val bundle = launchOptions.getBundle(
+                activity.applicationContext,
+                sessionConfig,
+                null,
+                getSubscribedEventsSafely(),
+            )
+            configuration?.let { config ->
+                bundle.getBundle("props")?.putBundle("configuration", config.bundle)
+            }
+            savedPaymentMethodsSurface?.stop()
+            savedPaymentMethodsSurface = HeadlessSurface(activity.applicationContext, runtime.reactHost)
+                .also { it.start(bundle) }
+        }
     }
 
     private fun getSubscribedEventsSafely(): List<String> =
-        try { ReactNativeController.eventEmitter.getSubscribedEvents() } catch (_: Exception) { emptyList() }
+        try { runtime.eventEmitter.getSubscribedEvents() } catch (_: Exception) { emptyList() }
 
-    /* Rebuilds the props map from LaunchOptions per request, so sdkParams, subscribedEvents and
-       configuration are always current — the headlessRequest event carries exactly this map. */
-    private fun buildHeadlessProps(
-        reactContext: ReactContext,
-        configuration: SavedPaymentMethodsConfiguration? = null,
-        headlessType: String = "savedPM",
-        taskSessionConfig: PaymentSessionConfiguration? = sessionConfig,
-    ): WritableMap {
-        val subscribedEvents = getSubscribedEventsSafely()
-        val bundle = launchOptions.getBundle(
-            reactContext,
-            taskSessionConfig,
-            null,
-            subscribedEvents,
-        )
-        bundle.getBundle("props")!!.putString("headlessType", headlessType)
-        configuration?.let { config ->
-            bundle.getBundle("props")!!.putBundle("configuration", config.bundle)
-        }
-        return Arguments.fromBundle(bundle.getBundle("props")!!)
-    }
-
-    /* One task per session: after the first startTask everything is an event into the live
-       JS closure. Liveness comes from RN, not emitEvent: emitEvent returns true for any
-       attached HyperModule, and after a ReactHost restart the module re-attaches long before
-       the new runtime subscribes — the event would fall on the floor and the merchant's
-       callback would hang. HeadlessJsTaskContext is per-ReactContext, so a stale id from the
-       old runtime reports not-running and a dead runtime self-heals into a cold start —
-       the same path a savedPM request takes on main. */
-    private fun dispatch(reactContext: ReactContext, props: WritableMap) {
-        val live = headlessTaskId?.let {
-            HeadlessJsTaskContext.getInstance(reactContext).isTaskRunning(it)
-        } == true
-        if (live && ReactNativeController.eventEmitter.emitEvent(HEADLESS_REQUEST_EVENT, props)) return
-        headlessTaskId = null
-        startHeadlessJsTask(reactContext, props)
-    }
-
-    /* Callers are always on the UI thread (runOnUiThread block / onReactContextInitialized):
-       assign inline — a posted hop would defer headlessTaskId for a main-loop iteration. */
-    private fun startHeadlessJsTask(reactContext: ReactContext, props: WritableMap) {
-        val taskProps = Arguments.createMap().apply { putMap("props", props) }
-        /* Timeout 0 is RN's explicit no-timeout mode: the task outlives its first request by
-           design (it can wait for merchant/user input). The 30s budget lives in fetchPrefetch. */
-        val taskConfig = HeadlessJsTaskConfig("HyperHeadless", taskProps, 0, true, null)
-        headlessTaskId = HeadlessJsTaskContext.getInstance(reactContext).startTask(taskConfig)
-    }
-
-    /** Ends the session's task. finishTask ends it on its own: the task's JS promise never
-        resolves, which is inert (AppRegistry only forwards settlement to notifyTaskFinished).
-        No shutdown event: emitting one would race the next session's startTask through two
-        cross-thread enqueues onto the JS queue, and the subscription is runtime-lifetime
-        module state, not per-task state. */
-    internal fun finishHeadlessTask() {
-        val taskId = headlessTaskId ?: return
-        headlessTaskId = null
-        val reactContext = currentReactContext() ?: return
-        UiThreadUtil.runOnUiThread {
-            runCatching { HeadlessJsTaskContext.getInstance(reactContext).finishTask(taskId) }
-        }
-    }
+    // ── Sheet ─────────────────────────────────────────────────────────────────
 
     override fun presentSheet(
         sessionConfig: PaymentSessionConfiguration?,
@@ -258,8 +251,14 @@ class PaymentSessionReactLauncher(
 
     override fun presentSheet(configurationMap: Map<String, Any?>): Boolean {
         val subscribedEvents = getSubscribedEventsSafely()
-        val bundle = launchOptions.getBundleWithHyperParams(configurationMap, subscribedEvents)
-        return presentSheet(bottomInsetToDIPFromPixel(bundle))
+        return presentSheet(
+            bottomInsetToDIPFromPixel(
+                launchOptions.getBundleWithHyperParams(
+                    configurationMap,
+                    subscribedEvents
+                )
+            )
+        )
     }
 
     private fun presentSheet(bundle: Bundle): Boolean {
@@ -267,12 +266,12 @@ class PaymentSessionReactLauncher(
             val newReactNativeFragmentSheet =
                 HyperFragment.Builder().setComponentName("hyperSwitch").setLaunchOptions(bundle)
                     .setFabricEnabled(true).build()
+                    .also { it.runtime = runtime }
 
             val activity2 = activity as FragmentActivity
 
             activity2.onBackPressedDispatcher.addCallback {
                 newReactNativeFragmentSheet.onBackPressed()
-                // activity2.onBackPressedDispatcher.onBackPressed()
             }
 
             activity2.supportFragmentManager.beginTransaction()
@@ -281,6 +280,8 @@ class PaymentSessionReactLauncher(
 
             return true
         } else {
+            // Intents can't carry objects; HyperActivity takes this in onCreate.
+            ReactNativeController.offerActivityRuntime(runtime)
             activity.startActivity(
                 Intent(
                     activity.applicationContext,
@@ -347,25 +348,6 @@ class PaymentSessionReactLauncher(
     }
 
     private companion object {
-        const val TAG = "HyperPrefetch"
-
-        /** SDK-side last-resort budget; JS has no budget of its own. */
-        const val PREFETCH_TIMEOUT_MS = 30_000L
+        const val UPDATE_INTENT_TIMEOUT_MS = 30_000L
     }
-}
-
-/* Codegen event channel only: JS subscribes through NativeHyperModule.clearPrefetchCache,
-   which never sees RCTDeviceEventEmitter traffic. Same path iOS uses. Shared by the
-   launcher's clearPrefetch and every PaymentSessionHandlerImpl terminal result. */
-private const val PREFETCH_CACHE_REMOVAL_EVENT = "clearPrefetchCache"
-private const val HEADLESS_REQUEST_EVENT = "headlessRequest"
-
-internal fun emitPrefetchCacheRemoval(sdkAuthorization: String) {
-    if (sdkAuthorization.isEmpty()) return
-    ReactNativeController.eventEmitter.emitEvent(
-        PREFETCH_CACHE_REMOVAL_EVENT,
-        Arguments.createMap().apply {
-            putString("sdkAuthorization", sdkAuthorization)
-        },
-    )
 }

@@ -15,7 +15,6 @@ import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.PaymentEventListener
-import io.hyperswitch.model.ElementUpdateIntentResult
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsession.LaunchOptions
@@ -24,6 +23,7 @@ import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperFragment
 import io.hyperswitch.react.HyperFragmentManager
+import io.hyperswitch.react.HyperReactRuntime
 import io.hyperswitch.react.ReactNativeController
 
 import kotlin.math.abs
@@ -64,6 +64,13 @@ class PaymentWidgetView : FrameLayout {
     private var hsConfig: HyperswitchBaseConfiguration? = null
 
     private var resultListener: PaymentResultListener? = null
+
+    /** The owning session's runtime; null when the widget was not bound through Elements. */
+    private var runtime: HyperReactRuntime? = null
+
+    fun attachRuntime(runtime: HyperReactRuntime) {
+        this.runtime = runtime
+    }
 
     private var confirmPaymentClickListener: ConfirmPaymentClickListener? = null
     private var subscribedEvents: List<String> = emptyList()
@@ -256,61 +263,6 @@ class PaymentWidgetView : FrameLayout {
     }
 
 
-    fun updatePaymentIntentInit(callback: () -> Unit) {
-        if (isEligibleForUpdateIntent()) {
-            this.fragment?.updatePaymentIntentInit(callback)
-        } else {
-            callback()
-        }
-    }
-
-    fun updatePaymentIntentComplete(
-        sdkAuthorization: String,
-        callback: (ElementUpdateIntentResult) -> Unit
-    ) {
-        if (isEligibleForUpdateIntent()) {
-            this.fragment?.updatePaymentIntentComplete(
-                sdkAuthorization,
-            ) { result ->
-                if (result is ElementUpdateIntentResult.Success) {
-                    sdkAuthorization.takeIf { it.isNotEmpty() }?.let {
-                        this.sdkAuthorization = it
-                    }
-                }
-                callback(result)
-            }
-                ?: callback(
-                    ElementUpdateIntentResult.Failure(
-                        Throwable("Fragment not attached").apply {
-                            initCause(Throwable("FRAGMENT_NOT_ATTACHED"))
-                        }
-                    ))
-        } else {
-            callback(ElementUpdateIntentResult.Success)
-        }
-    }
-
-    private fun isEligibleForUpdateIntent(): Boolean {
-        when (widgetType) {
-            "payment",
-            "tabSheet",
-            "buttonSheet",
-            "widgetPaymentSheet",
-            "widgetTabSheet",
-            "widgetButtonSheet",
-            "hostedCheckout",
-            "google_pay",
-            "paypal",
-            "card",
-            "paymentMethodsManagement",
-            "headless",
-            "expressCheckout" -> return true
-
-            "cvcWidget" -> return false
-            else -> return false
-        }
-    }
-
     fun confirmCvcPayment(
         sdkAuthorization: String,
         paymentToken: String,
@@ -343,6 +295,7 @@ class PaymentWidgetView : FrameLayout {
         this.setFragment(
             HyperFragment.Builder().setComponentName("hyperSwitch")
                 .setLaunchOptions(this.getLaunchOptions()).build()
+                .also { it.runtime = runtime }
         )
 
         val frameLayout = FrameLayout(activity).apply {

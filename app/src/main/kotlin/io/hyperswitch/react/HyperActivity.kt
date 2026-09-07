@@ -8,31 +8,26 @@ import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnable
 import com.facebook.react.defaults.DefaultReactActivityDelegate
 import com.proyecto26.inappbrowser.ChromeTabsDismissedEvent
 import com.proyecto26.inappbrowser.ChromeTabsManagerActivity
-import io.hyperswitch.react.ReactNativeController
 import io.hyperswitch.redirect.RedirectEvent
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 
+/** Fallback presentation for hosts that are not a FragmentActivity. */
 class HyperActivity : ReactActivity() {
 
-    /**
-     * Returns the name of the main component registered from JavaScript. This is used to schedule
-     * rendering of the component.
-     */
+    // Handed over via ReactNativeController (Intents can't carry objects); legacy host after process death.
+    private val runtime: HyperReactRuntime by lazy {
+        ReactNativeController.takeActivityRuntime() ?: ReactNativeController.legacyRuntime
+    }
+
     override fun getMainComponentName(): String = "hyperSwitch"
 
-    /**
-     * Returns the instance of the [ReactActivityDelegate]. We use [DefaultReactActivityDelegate]
-     * which allows you to enable New Architecture with a single boolean flags [fabricEnabled]
-     */
     override fun createReactActivityDelegate(): ReactActivityDelegate {
         return object : DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled) {
             override fun getLaunchOptions(): Bundle =
                 intent.getBundleExtra("configuration") ?: Bundle()
 
-            override fun getReactHost(): ReactHost {
-                return ReactNativeController.getReactHost()
-            }
+            override fun getReactHost(): ReactHost = runtime.reactHost
         }
     }
 
@@ -70,5 +65,4 @@ class HyperActivity : ReactActivity() {
             EventBus.getDefault().unregister(this)
         }
     }
-
 }
