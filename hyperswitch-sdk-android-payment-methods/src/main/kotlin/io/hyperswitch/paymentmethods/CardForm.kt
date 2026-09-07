@@ -3,6 +3,8 @@ package io.hyperswitch.paymentmethods
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.interfaces.fabric.ReactSurface
 import io.hyperswitch.paymentmethods.widget.BaseRNViewInput
 import java.util.concurrent.CopyOnWriteArrayList
@@ -87,6 +89,33 @@ class CardForm internal constructor(
     /** All inputs currently bound to this card form. */
     fun getBoundInputs(): List<BaseRNViewInput> = boundInputs.toList()
 
+    /**
+     * Asks the JS side of this session's host to tokenize this card form.
+     *
+     * The event is addressed at this card form's (empty) surface — the JS-side
+     * card-form controller picks it up and performs tokenisation for all bound
+     * fields via `cardForm.tokenize()`. The result travels back through the
+     * `PaymentMethodsEventEmitter.returnTokeniseResult` spec method and is
+     * delivered to [onComplete]; one tokenise may be in flight per form at a time.
+     */
+    fun tokenise(onComplete: (ReadableMap?) -> Unit) {
+        val emitter = session.reactHost.currentReactContext
+            ?.getNativeModule(PaymentMethodsEventEmitterModule::class.java)
+        if (emitter == null) {
+            Log.w(TAG, "tokenise() ignored — emitter module is not available yet")
+            onComplete(null)
+            return
+        }
+        val rootTag = formSurface?.surfaceID ?: -1
+        emitter.registerTokeniseCallback(rootTag, onComplete)
+        val payload = Arguments.createMap().apply {
+            putInt("rootTag", rootTag)
+            putString("sdk_auth", session.sdkAuthorization)
+            session.configuration.vaultType?.let { putString("vault_type", it) }
+        }
+        emitter.sendEvent(PaymentMethodsEventEmitterModule.EVENT_TOKENISE, payload)
+    }
+
     /** Stops every bound input's React view and the card form's empty surface. */
     fun release() {
         boundInputs.forEach { it.stopInternalView() }
@@ -99,7 +128,7 @@ class CardForm internal constructor(
 
     internal companion object {
         private const val TAG = "CardForm"
-        private const val COMPONENT_NAME = "hyperSwitch"
+        private const val COMPONENT_NAME = "HyperswitchPaymentMethods"
 
         /** surface `type` for the empty card-form controller view. */
         private const val TYPE = "cardForm"

@@ -19,7 +19,9 @@ class HyperReactRuntime internal constructor(application: Application) : Default
 
     val eventEmitter = HyperEventEmitter()
 
-    val reactHost: ReactHost = ReactNativeController.createReactHost(application, this)
+    val reactHost: ReactHost by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        ReactNativeController.createReactHost(application, this)
+    }
 
     /**
      * Makes the host follow [activity]'s lifecycle, the way a React Native app's own Activity

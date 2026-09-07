@@ -24,6 +24,6 @@ android {
 }
 
 dependencies {
-    api project(':app')
+    api project(':hyperswitch-sdk-android-react-native')
     implementation libs.kotlin.coroutinesAndroid
 }

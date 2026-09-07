@@ -145,6 +145,6 @@ abstract class BaseRNViewInput @JvmOverloads constructor(
 
     private companion object {
         private const val TAG = "BaseRNViewInput"
-        private const val COMPONENT_NAME = "hyperSwitch"
+        private const val COMPONENT_NAME = "HyperswitchPaymentMethods"
     }
 }

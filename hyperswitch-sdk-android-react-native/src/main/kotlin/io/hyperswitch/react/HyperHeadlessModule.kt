@@ -42,4 +42,11 @@ class HyperHeadlessModule internal constructor(
     private companion object {
         const val TAG = "HyperHeadlessModule"
     }
+
+    override fun completePrefetch(
+        rootTag: Double,
+        data: ReadableMap?
+    ) {
+        TODO("Not yet implemented")
+    }
 }
