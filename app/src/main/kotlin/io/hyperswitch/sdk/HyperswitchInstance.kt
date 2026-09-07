@@ -16,14 +16,16 @@ class HyperswitchInstance internal constructor(
     private val initDeferred: Deferred<HyperswitchBaseConfiguration?>,
 ) {
     @OptIn(ExperimentalCoroutinesApi::class)
+    @JvmSynthetic
     suspend fun initPaymentSession(config: PaymentSessionConfiguration): PaymentSession {
         val hsConfig = if (initDeferred.isCompleted) {
             initDeferred.getCompleted()
         } else {
             initDeferred.await()
         }
-        val ps = PaymentSession(activity, hsConfig?.publishableKey, sessionConfig = config)
-        ps.initPaymentSession(config.sdkAuthorization)
+        val ps = PaymentSession(activity, hsConfig, config)
+        ps.initPaymentSession(config)
+        ps.awaitReady()
         return ps
     }
 
@@ -35,22 +37,25 @@ class HyperswitchInstance internal constructor(
             } else {
                 initDeferred.await()
             }
-            val ps = PaymentSession(activity, hsConfig?.publishableKey, sessionConfig = config)
-            ps.initPaymentSession(config.sdkAuthorization)
+            val ps = PaymentSession(activity, hsConfig, config)
+            ps.initPaymentSession(config)
+            ps.awaitReady()
             withContext(Dispatchers.Main) { onResult(ps) }
         }
 
     }
 
+    @JvmSynthetic
     suspend fun elements(config: PaymentSessionConfiguration): Elements {
         val hsConfig = initDeferred.await()
-        return Elements(activity, hsConfig, config)
+        return Elements(activity, hsConfig, config).also { it.getPaymentSession().awaitReady() }
     }
 
     fun elements(config: PaymentSessionConfiguration, onResult: (Elements) -> Unit) {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             val hsConfig = initDeferred.await()
-            withContext(Dispatchers.Main) { onResult(Elements(activity, hsConfig, config)) }
+            val elements = Elements(activity, hsConfig, config).also { it.getPaymentSession().awaitReady() }
+            withContext(Dispatchers.Main) { onResult(elements) }
         }
     }
 }

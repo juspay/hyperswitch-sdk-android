@@ -1,29 +1,22 @@
 package io.hyperswitch.lite
 
 import android.app.Activity
-import android.os.Bundle
+import android.util.Log
 import io.hyperswitch.PaymentEventSubscriptionBuilder
+import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.paymentsession.BasePaymentSessionLauncher
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
-import io.hyperswitch.paymentsession.SDKInterface
+import io.hyperswitch.paymentsession.PresentationInterface
+import io.hyperswitch.paymentsession.SavedPaymentMethodsConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
 
 open class DefaultPaymentSessionLauncherLite(
     activity: Activity,
-    publishableKey: String?,
-    customBackendUrl: String?,
-    customLogUrl: String?,
-    customParams: Bundle?,
-    private val webViewUtils: SDKInterface = WebViewUtils(activity)
-) : BasePaymentSessionLauncher(
-    activity,
-    publishableKey,
-    customBackendUrl,
-    customLogUrl,
-    customParams
-) {
+    hsConfig: HyperswitchBaseConfiguration?,
+    private val webViewUtils: PresentationInterface = WebViewUtils(activity)
+) : BasePaymentSessionLauncher(activity, hsConfig) {
 
     override fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration?,
@@ -31,7 +24,7 @@ open class DefaultPaymentSessionLauncherLite(
         resultCallback: (PaymentResult) -> Unit
     ) {
         PaymentSheetCallbackManager.setCallback(resultCallback)
-        webViewUtils.presentSheet(sdkAuthorization ?: "", configuration)
+        webViewUtils.presentSheet(sessionConfig, configuration)
     }
 
     override fun presentPaymentSheet(
@@ -44,11 +37,20 @@ open class DefaultPaymentSessionLauncherLite(
     }
 
     override fun getCustomerSavedPaymentMethods(
-        savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)
+        configuration: SavedPaymentMethodsConfiguration?,
+        savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
     ) {
+        Log.w(TAG, "getCustomerSavedPaymentMethods is not supported in the lite SDK")
     }
 
-    override suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler {
-        TODO("Not yet implemented")
+    override suspend fun getCustomerSavedPaymentMethods(
+        configuration: SavedPaymentMethodsConfiguration?,
+    ): PaymentSessionHandler =
+        throw UnsupportedOperationException(
+            "getCustomerSavedPaymentMethods is not supported in the lite SDK"
+        )
+
+    companion object {
+        private const val TAG = "PaymentSessionLauncherLite"
     }
 }

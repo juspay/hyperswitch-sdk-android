@@ -137,14 +137,16 @@ sealed class PaymentEventData() {
     /**
      * CVC status event payload.
      *
-     * @property isCvcFocused Whether the CVC field is currently focused
-     * @property isCvcBlur    Whether the CVC field has lost focus
-     * @property isCvcEmpty   Whether the CVC field is empty
+     * @property isCvcFocused   Whether the CVC field is currently focused
+     * @property isCvcBlur      Whether the CVC field has lost focus
+     * @property isCvcEmpty     Whether the CVC field is empty
+     * @property isCvcComplete  Whether the CVC passes length validation for the given brand
      */
     data class CvcStatus(
         val isCvcFocused: Boolean,
         val isCvcBlur: Boolean,
         val isCvcEmpty: Boolean,
+        val isCvcComplete: Boolean,
     ) : PaymentEventData() {
 
         companion object {
@@ -155,6 +157,7 @@ sealed class PaymentEventData() {
                     isCvcFocused = (nested["isCvcFocused"] as? Boolean) ?: false,
                     isCvcBlur = (nested["isCvcBlur"] as? Boolean) ?: false,
                     isCvcEmpty = (nested["isCvcEmpty"] as? Boolean) ?: true,
+                    isCvcComplete = (nested["isCvcComplete"] as? Boolean) ?: false,
                 )
             }
         }

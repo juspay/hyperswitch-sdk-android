@@ -2,22 +2,20 @@ package io.hyperswitch.sdk
 
 import android.app.Activity
 import io.hyperswitch.PaymentEventSubscriptionBuilder
-import android.util.Log
 import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsession.PaymentSessionHandler
+import io.hyperswitch.paymentsession.SavedPaymentMethodsConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.view.HyperswitchElement
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 
 class Elements internal constructor(
@@ -35,7 +33,7 @@ class Elements internal constructor(
         activity,
         config = config,
         sessionConfig = sessionConfiguration
-    ).also { it.initPaymentSession(sessionConfiguration.sdkAuthorization) }
+    ).also { it.initPaymentSession(sessionConfiguration) }
 
     fun bind(
         element: HyperswitchElement,
@@ -57,89 +55,73 @@ class Elements internal constructor(
         return hsElement
     }
 
-    suspend fun updateIntent(completion: suspend () -> PaymentSessionConfiguration): ElementsUpdateResult =
-        computeUpdateIntent(hsElements.toList(), completion)
+    fun unbind(boundElement: HyperswitchBoundElement) {
+        hsElements.remove(boundElement)
+    }
+
+    private val updateIntentInProgress = AtomicBoolean(false)
+
+    @JvmSynthetic
+    suspend fun updateIntent(completion: suspend () -> PaymentSessionConfiguration): ElementsUpdateResult {
+        if (!updateIntentInProgress.compareAndSet(false, true)) {
+            return ElementsUpdateResult.TotalFailure(
+                IllegalStateException("updateIntent already in progress").apply {
+                    initCause(Throwable("ALREADY_IN_PROGRESS"))
+                }
+            )
+        }
+        try {
+            return computeUpdateIntent(completion)
+        } finally {
+            updateIntentInProgress.set(false)
+        }
+    }
 
     fun updateIntent(
         completion: suspend () -> PaymentSessionConfiguration,
         onResult: (ElementsUpdateResult) -> Unit
     ) {
         scope.launch {
-            onResult(computeUpdateIntent(hsElements.toList(), completion))
+            onResult(updateIntent(completion))
         }
     }
 
+    // One round trip through the session's prefetch surface; elements are switched in JS.
     private suspend fun computeUpdateIntent(
-        targets: List<HyperswitchBoundElement>,
         completion: suspend () -> PaymentSessionConfiguration
     ): ElementsUpdateResult {
-        if (targets.isEmpty()) return ElementsUpdateResult.Success
-
-        val initResults: List<Pair<HyperswitchBoundElement, Result<Unit>>> = coroutineScope {
-            targets.map { hsElement ->
-                async {
-                    hsElement to runCatching<Unit> {
-                        suspendCancellableCoroutine { continuation ->
-                            hsElement.updateIntentInit {
-                                if (continuation.isActive) continuation.resume(Unit)
-                            }
-                        }
+        val result: Result<String> = suspendCancellableCoroutine { continuation ->
+            paymentSession.updateIntent(
+                authorizationProvider = { onAuthorization ->
+                    scope.launch {
+                        val auth = try { completion().sdkAuthorization } catch (_: Exception) { "" }
+                        onAuthorization(auth)
                     }
-                }
-            }.awaitAll()
-        }
-
-        val initSucceeded = initResults.filter { (_, r) -> r.isSuccess }.map { (e, _) -> e }
-        val initFailed = initResults
-            .filter { (_, r) -> r.isFailure }
-            .associate { (e, r) -> e to (r.exceptionOrNull() ?: IllegalStateException("Init failed")) }
-
-        if (initSucceeded.isEmpty()) {
-            return ElementsUpdateResult.TotalFailure(
-                cause = IllegalStateException("All ${targets.size} elements failed at init")
+                },
+                onResult = { r -> if (continuation.isActive) continuation.resume(r) }
             )
         }
+        return result.fold(
+            onSuccess = { ElementsUpdateResult.Success },
+            onFailure = { ElementsUpdateResult.TotalFailure(it) },
+        )
+    }
 
-        // Phase 2: single token fetch — if this throws, propagate as TotalFailure.
-        val sdkAuthorization = runCatching { completion() }
-            .getOrElse { tokenError ->
-                return ElementsUpdateResult.TotalFailure(cause = tokenError)
-            }.sdkAuthorization
+    fun getPaymentSession(): PaymentSession = this.paymentSession
 
-        // Phase 3: fan-out completes only for init-succeeded elements.
-        val completeResults: List<Pair<HyperswitchBoundElement, Result<Unit>>> = coroutineScope {
-            initSucceeded.map { hsElement ->
-                async {
-                    hsElement to runCatching<Unit> {
-                        hsElement.updateIntentComplete(sdkAuthorization)
-                    }
-                }
-            }.awaitAll()
-        }
-
-        val succeeded = completeResults.filter { (_, r) -> r.isSuccess }.map { (e, _) -> e }
-
-        val failed: Map<HyperswitchBoundElement, Throwable> = buildMap {
-            putAll(initFailed)
-            completeResults
-                .filter { (_, r) -> r.isFailure }
-                .forEach { (e, r) -> put(e, r.exceptionOrNull() ?: IllegalStateException("Complete failed")) }
-        }
-
-        return when {
-            failed.isEmpty() -> ElementsUpdateResult.Success
-            succeeded.isEmpty() -> ElementsUpdateResult.TotalFailure(
-                cause = IllegalStateException("All ${targets.size} elements failed to update")
-            )
-            else -> ElementsUpdateResult.PartialFailure(succeeded = succeeded, failed = failed)
+    fun getCustomerSavedPaymentMethods(
+        configuration: SavedPaymentMethodsConfiguration? = null,
+        savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
+    ) {
+        paymentSession.getCustomerSavedPaymentMethods(configuration) { handler ->
+            savedPaymentMethodCallback(handler)
         }
     }
 
-    fun getCustomerSavedPaymentMethods(savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit)) {
-        paymentSession.getCustomerSavedPaymentMethods(savedPaymentMethodCallback)
-    }
-
-    suspend fun getCustomerSavedPaymentMethods(): PaymentSessionHandler {
-        return paymentSession.getCustomerSavedPaymentMethods()
+    @JvmSynthetic
+    suspend fun getCustomerSavedPaymentMethods(
+        configuration: SavedPaymentMethodsConfiguration? = null,
+    ): PaymentSessionHandler {
+        return paymentSession.getCustomerSavedPaymentMethods(configuration)
     }
 }

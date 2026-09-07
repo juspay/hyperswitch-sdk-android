@@ -1,7 +1,6 @@
 package io.hyperswitch.authentication
 
 import android.app.Activity
-import android.os.Bundle
 import io.hyperswitch.click_to_pay.ClickToPaySession
 import io.hyperswitch.click_to_pay.models.ClickToPayException
 import io.hyperswitch.logs.EventName
@@ -78,31 +77,6 @@ class AuthenticationSession(
     )
 
     /**
-     * Creates an authentication session with full configuration options.
-     *
-     * @param activity The Android activity context
-     * @param publishableKey The publishable API key for authentication
-     * @param customBackendUrl Optional custom backend URL for API calls
-     * @param customLogUrl Optional custom URL for logging
-     * @param customParams Optional additional parameters as a Bundle
-     */
-    constructor(
-        activity: Activity,
-        publishableKey: String,
-        customBackendUrl: String? = null,
-        customLogUrl: String? = null,
-        customParams: Bundle? = null,
-    ) : this(
-        DefaultAuthenticationSessionLauncher(
-            activity = activity,
-            publishableKey = publishableKey,
-            customBackendUrl = customBackendUrl,
-            customLogUrl = customLogUrl,
-            customParams = customParams
-        )
-    )
-
-    /**
      * Initializes the authentication session with payment credentials.
      *
      * This method must be called before initiating Click to Pay sessions.
@@ -115,6 +89,7 @@ class AuthenticationSession(
      * @throws Exception if initialization fails
      */
     @Throws(Exception::class)
+    @JvmSynthetic
     suspend fun initAuthenticationSession(
         clientSecret: String,
         profileId: String,
@@ -152,6 +127,7 @@ class AuthenticationSession(
      * @throws ClickToPayException if session initialization fails
      */
     @Throws(ClickToPayException::class)
+    @JvmSynthetic
     suspend fun initClickToPaySession(): ClickToPaySession {
         return initClickToPaySession(true)
     }
@@ -164,6 +140,7 @@ class AuthenticationSession(
      * @throws ClickToPayException if session initialization fails
      */
     @Throws(ClickToPayException::class)
+    @JvmSynthetic
     suspend fun initClickToPaySession(
         request3DSAuthentication: Boolean
     ): ClickToPaySession {
@@ -179,6 +156,7 @@ class AuthenticationSession(
      * @return ClickToPaySession instance for managing Click to Pay operations if present
      */
     @Throws(ClickToPayException::class)
+    @JvmSynthetic
     suspend fun getActiveClickToPaySession(activity: Activity): ClickToPaySession {
         return authenticationSessionLauncher.getActiveClickToPaySession(activity)
     }

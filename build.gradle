@@ -53,6 +53,7 @@ def runtimeDepsOptional = [
         'react-native-hyperswitch-kount',
         'react-native-hyperswitch-paypal',
         'juspay-tech_react-native-hyperswitch-netcetera-3ds',
+        'juspay-tech_react-native-hyperswitch-paypal',
         'juspay-tech_react-native-hyperswitch-samsung-pay',
         'juspay-tech_react-native-hyperswitch-scancard',
         'react-native-klarna-inapp-sdk',

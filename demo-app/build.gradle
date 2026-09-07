@@ -36,6 +36,11 @@ android {
         jniLibs {
             useLegacyPackaging = true
         }
+        pickFirst "lib/**/libc++_shared.so"
+        pickFirst "lib/**/libfbjni.so"
+        pickFirst "lib/**/libjsi.so"
+        pickFirst "lib/**/libreactnative.so"
+        pickFirst "lib/**/libhermes.so"
         exclude "lib/**/libfabricjni.so"
         exclude "lib/**/libreact_codegen_rncore.so"
         exclude "lib/**/librninstance.so"

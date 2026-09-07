@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.os.Parcelable
 import android.webkit.WebSettings
 import androidx.fragment.app.FragmentActivity
-import com.facebook.react.ReactFragment
 import io.hyperswitch.BuildConfig
 import java.util.Locale
 class Utils {
@@ -35,21 +34,23 @@ class Utils {
           // Check if React Native fragment exists or if request has changed
           if (reactNativeFragmentSheet == null || areBundlesNotEqual(request, lastRequest, context)) {
             lastRequest = request
-            val newReactNativeFragmentSheet = ReactFragment.Builder()
+            val newReactNativeFragmentSheet = HyperFragment.Builder()
               .setComponentName("hyperSwitch")
               .setLaunchOptions(getLaunchOptions(request, message, context))
               .setFabricEnabled(BuildConfig.IS_NEW_ARCHITECTURE_ENABLED)
               .build()
+              .also { it.runtime = ReactNativeController.legacyRuntime }
             transaction.replace(android.R.id.content, newReactNativeFragmentSheet, "paymentSheet").commitAllowingStateLoss()
           } else {
             transaction.show(reactNativeFragmentSheet).commitAllowingStateLoss()
           }
         } else {
-          val reactNativeFragmentCard = ReactFragment.Builder()
+          val reactNativeFragmentCard = HyperFragment.Builder()
             .setComponentName("hyperSwitch")
             .setLaunchOptions(getLaunchOptions(request, message, context))
             .setFabricEnabled(BuildConfig.IS_NEW_ARCHITECTURE_ENABLED)
             .build()
+            .also { it.runtime = ReactNativeController.legacyRuntime }
           transaction.add(id ?: android.R.id.content, reactNativeFragmentCard, "cardForm").commitAllowingStateLoss()
         }
       }
@@ -124,7 +125,7 @@ class Utils {
 
     // Handle back press for React fragment
     fun onBackPressed(context: FragmentActivity): Boolean {
-      val reactNativeFragmentSheet = context.supportFragmentManager.findFragmentByTag("paymentSheet") as? ReactFragment
+      val reactNativeFragmentSheet = context.supportFragmentManager.findFragmentByTag("paymentSheet") as? HyperFragment
       return if (reactNativeFragmentSheet == null || reactNativeFragmentSheet.isHidden) {
         false
       } else {
@@ -157,10 +158,21 @@ class Utils {
           is LongArray -> bundle.putLongArray(key, value)
           is CharArray -> bundle.putCharArray(key, value)
           is Map<*, *> -> bundle.putBundle(key, @Suppress("UNCHECKED_CAST") convertMapToBundle(value as Map<String, Any?>))
+          is List<*> -> bundle.putSerializable(key, convertListToSerializable(value))
         }
       }
 
       return bundle
+    }
+
+    private fun convertListToSerializable(list: List<*>): ArrayList<Any?> {
+      return ArrayList(list.map { item ->
+        when (item) {
+          is Map<*, *> -> @Suppress("UNCHECKED_CAST") convertMapToBundle(item as Map<String, Any?>)
+          is List<*> -> convertListToSerializable(item)
+          else -> item
+        }
+      })
     }
 
     // Get current time in milliseconds

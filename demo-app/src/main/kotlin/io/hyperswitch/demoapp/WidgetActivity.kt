@@ -5,12 +5,12 @@ import android.util.Log
 import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.graphics.toColorInt
 import androidx.lifecycle.lifecycleScope
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.CvcWidgetEvents
+import io.hyperswitch.model.CustomEndpointConfiguration
 import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
@@ -68,7 +68,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                         val profileId       = json.optString("profileId")
                         sdkAuthorization    = json.getString("sdkAuthorization")
                         paymentId           = json.optString("paymentId")
-
+                        setStatus("Payment intent fetched")
                         runOnUiThread { initialiseWidgets(publishableKey, profileId) }
                     } catch (e: JSONException) {
                         Log.e(TAG, "Failed to parse server response", e)
@@ -122,11 +122,28 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
         val cvcWidget = findViewById<CVCWidget>(R.id.cvcWidget)
 
         lifecycleScope.launch {
+            // A reload is a new session: destroy the previous bindings before binding again.
+            paymentElementBound?.let { bound ->
+                elements?.unbind(bound)
+                bound.destroy()
+            }
+            cvcWidgetBound?.let { bound ->
+                elements?.unbind(bound)
+                bound.destroy()
+            }
             // All bindings share one Elements session — initialise once, bind sequentially.
             elements = hyperswitchInstance?.elements(sessionConfig)
-            paymentSessionHandler = elements?.getCustomerSavedPaymentMethods()
+            paymentSessionHandler = elements?.getPaymentSession()?.getCustomerSavedPaymentMethods()
             paymentElementBound = elements?.bind(paymentElement, buildConfiguration())
-            cvcWidgetBound      = elements?.bind(cvcWidget) {
+            paymentElementBound?.onPaymentResult(::handleResult)
+            paymentElementBound?.onPaymentConfirmButtonClick { data, onConfirmPaymentCallback ->
+                if (data != null && data.paymentMethodType == "google_pay"){
+                    onConfirmPaymentCallback(true)
+                    return@onPaymentConfirmButtonClick
+                }
+                throw Exception("Failed to work out payment method type")
+            }
+            cvcWidgetBound = elements?.bind(cvcWidget) {
                 on(CvcWidgetEvents.CvcStatusChange) {
                     println(it)
                 }
@@ -137,42 +154,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
 
     // ── Configuration ──────────────────────────────────────────────────────────────────────────
 
-    private fun buildConfiguration(): PaymentSheet.Configuration {
-        val address = PaymentSheet.Address.Builder()
-            .city("city").country("US").line1("US").line2("line2")
-            .postalCode("560060").state("California").build()
-
-        val billingDetails = PaymentSheet.BillingDetails.Builder()
-            .address(address).email("email.com").name("John Doe").phone("1234123443").build()
-
-        val appearance = PaymentSheet.Appearance(
-            typography = PaymentSheet.Typography(sizeScaleFactor = 1f, fontResId = R.font.montserrat),
-            primaryButton = PaymentSheet.PrimaryButton(shape = PaymentSheet.PrimaryButtonShape(32f, 0f)),
-            colorsLight = PaymentSheet.Colors(
-                primary = "#8DBD00".toColorInt(),
-                surface = "#F5F8F9".toColorInt(),
-            ),
-            colorsDark = PaymentSheet.Colors(
-                primary = "#8DBD00".toColorInt(),
-                surface = "#F5F8F9".toColorInt(),
-            ),
-            theme = PaymentSheet.Theme.Light,
-        )
-
-        return PaymentSheet.Configuration.Builder("Example, Inc.")
-            .appearance(appearance)
-            .defaultBillingDetails(billingDetails)
-            .primaryButtonLabel("Purchase ($2.00)")
-            .paymentSheetHeaderLabel("Select payment method")
-            .savedPaymentSheetHeaderLabel("Payment methods")
-            .allowsPaymentMethodsRequiringShippingAddress(false)
-            .allowsDelayedPaymentMethods(true)
-            .displaySavedPaymentMethodsCheckbox(true)
-            .displaySavedPaymentMethods(true)
-            .disableBranding(true)
-            .showVersionInfo(true)
-            .build()
-    }
+    private fun buildConfiguration(): PaymentSheet.Configuration = buildDemoConfiguration()
 
     // ── Button wiring ──────────────────────────────────────────────────────────────────────────
 
@@ -204,7 +186,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                     ?: return@launch
                 when (result) {
                     is ElementsUpdateResult.Success ->
-                        Log.i(TAG, "Intent updated — all elements ready")
+                        setStatus("Intent updated — all elements ready")
 
                     is ElementsUpdateResult.TotalFailure ->
                         setStatus("Update failed: ${result.cause.message}")

@@ -15,11 +15,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 internal class PaymentSessionHandlerImpl(
-    private val sdkAuthorization: String,
+    private var sdkAuthorization: String,
     private val defaultMethodData: ReadableMap,
     private val lastUsedMethodData: ReadableMap,
     private val allMethodsData: ReadableArray,
     private val jsCallback: Callback,
+    private val sessionRouter: PaymentSessionRouter,
 ) : PaymentSessionHandler {
 
     override fun getCustomerDefaultSavedPaymentMethodData(): Result<PaymentMethod> =
@@ -52,16 +53,29 @@ internal class PaymentSessionHandlerImpl(
             ?.let { confirmWithCustomerPaymentToken(it, cvc, resultHandler) }
     }
 
+    override fun updateSdkAuthorization(sdkAuthorization: String){
+        this.sdkAuthorization = sdkAuthorization
+    }
+
     override fun confirmWithCustomerPaymentToken(
         paymentToken: String, cvc: String?, resultHandler: (PaymentResult) -> Unit
     ) {
         try {
-            ExitHeadlessCallBackManager.setCallback(resultHandler)
+            val registered = sessionRouter.tryRegisterExitCallback(-1, resultHandler)
+            if (!registered) {
+                resultHandler(PaymentResult.Failed(
+                    Throwable("Payment confirmation already in progress for this handler").apply {
+                        initCause(Throwable("ALREADY_IN_PROGRESS"))
+                    }
+                ))
+                return
+            }
             jsCallback.invoke(Arguments.createMap().apply {
                 putString("paymentToken", paymentToken)
                 putString("cvc", cvc)
             })
         } catch (ex: Exception) {
+            sessionRouter.clearExitCallback(-1)
             resultHandler(PaymentResult.Failed(Throwable("Not Initialised").apply {
                 initCause(Throwable("Not Initialised"))
             }))

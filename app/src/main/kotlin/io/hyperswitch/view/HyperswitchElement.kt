@@ -5,7 +5,8 @@ import android.util.AttributeSet
 import android.widget.FrameLayout
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.PaymentEventListener
-import io.hyperswitch.model.ElementUpdateIntentResult
+import io.hyperswitch.model.HyperswitchBaseConfiguration
+import io.hyperswitch.paymentsheet.PaymentRequestData
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 import kotlinx.coroutines.CoroutineScope
@@ -33,12 +34,34 @@ open class HyperswitchElement @JvmOverloads constructor(
         addView(internalView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     }
 
+    private var heightFloorPx: Int = 0
+
+    protected fun setHeightFloor(heightDp: Float) {
+        heightFloorPx = (heightDp * resources.displayMetrics.density).toInt()
+        minimumHeight = heightFloorPx
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        if (heightFloorPx > 0 && MeasureSpec.getMode(heightMeasureSpec) != MeasureSpec.EXACTLY) {
+            internalView.measure(
+                MeasureSpec.makeMeasureSpec(measuredWidth, MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(measuredHeight, MeasureSpec.EXACTLY),
+            )
+        }
+    }
+
     /**
-     * Initializes the widget with the given publishable key.
+     * Initializes the widget with a full [HyperswitchBaseConfiguration].
      * Registers an internal result handler that cleans up on completion.
      */
-    fun initWidget(publishableKey: String) {
-        internalView.initWidget(publishableKey)
+    /** Renders this element on the given session's React host. */
+    fun attachRuntime(runtime: io.hyperswitch.react.HyperReactRuntime) {
+        internalView.attachRuntime(runtime)
+    }
+
+    fun initWidget(config: HyperswitchBaseConfiguration) {
+        internalView.initWidget(config)
         type?.let { internalView.setWidgetType(it) }
         internalView.onPaymentResult(PaymentResultListener { result ->
             if (result is PaymentResult.Completed) {
@@ -61,6 +84,7 @@ open class HyperswitchElement @JvmOverloads constructor(
     /**
      * Suspending variant — resumes with the result and cleans up on completion.
      */
+    @JvmSynthetic
     suspend fun confirmPayment(): PaymentResult =
         suspendCancellableCoroutine { continuation ->
             internalView.confirmPayment { result ->
@@ -76,6 +100,11 @@ open class HyperswitchElement @JvmOverloads constructor(
      */
     fun confirmPayment(callback: (PaymentResult) -> Unit) {
         internalView.confirmPayment(callback)
+    }
+
+
+    fun onPaymentConfirmButtonClick(callback: (data: PaymentRequestData?, onConfirmPaymentCallback: (Boolean) -> Unit) -> Unit){
+        internalView.onPaymentConfirmButtonClick(callback)
     }
 
     /**
@@ -100,6 +129,7 @@ open class HyperswitchElement @JvmOverloads constructor(
     /**
      * Suspending CVC confirmation.
      */
+    @JvmSynthetic
     suspend fun confirmCVCWidget(
         sdkAuthorization: String,
         paymentToken: String,
@@ -141,21 +171,7 @@ open class HyperswitchElement @JvmOverloads constructor(
         internalView.onEvent(listener)
     }
 
-    fun updateIntentInit(onInitComplete: () -> Unit) {
-        internalView.updatePaymentIntentInit(
-            onInitComplete
-        )
-    }
-
-    suspend fun updateIntentComplete(
-        sdkAuthorization: String
-    ): ElementUpdateIntentResult {
-        return suspendCancellableCoroutine { continuation ->
-            internalView.updatePaymentIntentComplete(sdkAuthorization) { result ->
-                if (continuation.isActive) {
-                    continuation.resume(result)
-                }
-            }
-        }
+    fun destroy() {
+        internalView.removeWidget()
     }
 }

@@ -2,11 +2,22 @@ package io.hyperswitch.react
 
 import com.facebook.react.uimanager.SimpleViewManager
 import com.facebook.react.uimanager.ThemedReactContext
+import com.facebook.react.uimanager.ViewManagerDelegate
 import com.facebook.react.uimanager.annotations.ReactProp
+import com.facebook.react.viewmanagers.GooglePayButtonManagerDelegate
+import com.facebook.react.viewmanagers.GooglePayButtonManagerInterface
 import com.google.android.gms.wallet.button.ButtonConstants
 import io.hyperswitch.view.GooglePayButtonView
 
-class GooglePayButtonManager : SimpleViewManager<GooglePayButtonView>() {
+class GooglePayButtonManager :
+    SimpleViewManager<GooglePayButtonView>(),
+    GooglePayButtonManagerInterface<GooglePayButtonView> {
+
+    private val delegate: ViewManagerDelegate<GooglePayButtonView> =
+        GooglePayButtonManagerDelegate(this)
+
+    override fun getDelegate(): ViewManagerDelegate<GooglePayButtonView> = delegate
+
     override fun getName() = REACT_CLASS
 
     override fun createViewInstance(context: ThemedReactContext) = GooglePayButtonView(context)
@@ -17,13 +28,13 @@ class GooglePayButtonManager : SimpleViewManager<GooglePayButtonView>() {
     }
 
     @ReactProp(name = "allowedPaymentMethods")
-    fun allowedPaymentMethods(view: GooglePayButtonView, allowedPaymentMethods: String) {
-        view.allowedPaymentMethods = allowedPaymentMethods
+    override fun setAllowedPaymentMethods(view: GooglePayButtonView, value: String?) {
+        view.allowedPaymentMethods = value ?: return
     }
 
     @ReactProp(name = "buttonType")
-    fun buttonType(view: GooglePayButtonView, type: String?) {
-        view.type = when (type) {
+    override fun setButtonType(view: GooglePayButtonView, value: String?) {
+        view.type = when (value) {
             "BUY" -> ButtonConstants.ButtonType.BUY
             "BOOK" -> ButtonConstants.ButtonType.BOOK
             "CHECKOUT" -> ButtonConstants.ButtonType.CHECKOUT
@@ -36,16 +47,16 @@ class GooglePayButtonManager : SimpleViewManager<GooglePayButtonView>() {
     }
 
     @ReactProp(name = "buttonStyle")
-    fun buttonStyle(view: GooglePayButtonView, theme: String?) {
-        view.theme = when (theme) {
+    override fun setButtonStyle(view: GooglePayButtonView, value: String?) {
+        view.theme = when (value) {
             "light" -> ButtonConstants.ButtonTheme.LIGHT
             else -> ButtonConstants.ButtonTheme.DARK
         }
     }
 
     @ReactProp(name = "borderRadius")
-    fun borderRadius(view: GooglePayButtonView, radius: Int) {
-        view.cornerRadius = radius
+    override fun setBorderRadius(view: GooglePayButtonView, value: Float) {
+        view.cornerRadius = value.toInt()
     }
 
     companion object {

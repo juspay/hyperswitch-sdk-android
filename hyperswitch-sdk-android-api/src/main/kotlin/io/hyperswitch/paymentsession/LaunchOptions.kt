@@ -4,21 +4,22 @@ import android.app.Activity
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.view.WindowInsets
 import android.webkit.WebSettings
 import androidx.annotation.RequiresApi
-import io.hyperswitch.PaymentConfiguration
+import io.hyperswitch.model.HyperswitchBaseConfiguration
+import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import org.json.JSONObject
 
 class LaunchOptions(
     private val context: Context? = null,
-    private val sdkVersion: String
+    private val sdkVersion: String,
+    private val hsConfig: HyperswitchBaseConfiguration? = null,
 ) {
 
-    private fun getHyperParams(): Bundle =
+    private fun getSdkParams(): Bundle =
         Bundle().apply {
             putString("appId", context?.packageName)
             putString("country", context?.resources?.configuration?.locales?.get(0)?.country)
@@ -29,6 +30,8 @@ class LaunchOptions(
             putString("os_type", "android")
             putString("os_version", Build.VERSION.RELEASE)
             putString("deviceBrand", Build.BRAND)
+            putString("sessionId", "")
+            putBoolean("confirm", false)
             val edgeInsets = getBottomInset(context)
             if(edgeInsets!=null) {
                 putFloat("topInset", edgeInsets.top)
@@ -38,8 +41,8 @@ class LaunchOptions(
             }
         }
 
-    private fun getHyperParamsMap(map: Map<*, *>): Map<*, *> =
-        (map["hyperParams"] as? Map<*, *> ?: mutableMapOf<String, Any?>()).apply {
+    private fun getSdkParamsMap(map: Map<*, *>): Map<*, *> =
+        (map["sdkParams"] as? Map<*, *> ?: mutableMapOf<String, Any?>()).apply {
             plus(Pair("appId", context?.packageName))
             plus(Pair("country", context?.resources?.configuration?.locales?.get(0)?.country))
             plus(Pair("user-agent", getUserAgent(context)))
@@ -49,6 +52,8 @@ class LaunchOptions(
             plus(Pair("os_type", "android"))
             plus(Pair("os_version", Build.VERSION.RELEASE))
             plus(Pair("deviceBrand",Build.BRAND))
+            plus(Pair("sessionId", ""))
+            plus(Pair("confirm", false))
             val edgeInsets = getBottomInset(context)
             if(edgeInsets!=null) {
                 plus(Pair("topInset", edgeInsets.top))
@@ -59,101 +64,82 @@ class LaunchOptions(
         }
 
     fun getBundle(
-        sdkAuthorization: String,
+        sessionConfig: PaymentSessionConfiguration? = null,
         configuration: PaymentSheet.Configuration? = null,
         subscribedEvents: List<String> = emptyList()
     ): Bundle =
-        context?.let { getBundle(it, sdkAuthorization, configuration, subscribedEvents) } ?: Bundle()
+        context?.let { getBundle(it, sessionConfig, configuration, subscribedEvents) } ?: Bundle()
 
     fun getBundle(
         context: Context,
-        sdkAuthorization: String,
+        sessionConfig: PaymentSessionConfiguration? = null,
         configuration: PaymentSheet.Configuration? = null,
         subscribedEvents: List<String> = emptyList()
     ): Bundle = Bundle().apply {
         putBundle("props", Bundle().apply {
             putString("type", "payment")
-            putString(
-                "publishableKey",
-                PaymentConfiguration.getInstance(context).publishableKey
-            )
-            putString("sdkAuthorization", sdkAuthorization)
-            putString(
-                "customBackendUrl",
-                PaymentConfiguration.getInstance(context).customBackendUrl
-            )
-            putString("customLogUrl", PaymentConfiguration.getInstance(context).customLogUrl)
+            hsConfig?.let { putBundle("hyperswitchConfig", it.toBundle()) }
+            sessionConfig?.let { putBundle("paymentSessionConfig", it.toBundle()) }
             putString("theme", configuration?.appearance?.theme?.name)
-            putBundle("customParams", PaymentConfiguration.getInstance(context).customParams)
-            putBundle("configuration", configuration?.bundle)
-            putBundle("hyperParams", getHyperParams())
-            putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
+            val configBundle = configuration?.bundle ?: Bundle()
+            if (subscribedEvents.isNotEmpty()) {
+                configBundle.putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
+            }
+            putBundle("configuration", configBundle)
+            putBundle("sdkParams", getSdkParams())
         })
     }
 
     fun getBundle(
-        publishableKey: String? = null,
         configuration: Bundle? = null,
-        customBackendUrl: String? = null,
-        customLogUrl: String? = null,
-        customParams: Map<String, Any>? = null,
         type: String? = "payment",
-        widgetId: String? = null,
-        sdkAuthorization : String? = null,
+        from: String? = "nativeWidget",
+        sessionConfig: PaymentSessionConfiguration? = null,
         subscribedEvents: List<String> = emptyList(),
     ): Bundle = Bundle().apply {
         putBundle("props", Bundle().apply {
             putString("type", type)
-            putString("from", "rn")
-            putString("publishableKey", publishableKey ?: "")
-            putString("sdkAuthorization", sdkAuthorization?:"")
-            // Work on a copy so we don't mutate the caller's Bundle
+            putString("from", from)
+            hsConfig?.let { putBundle("hyperswitchConfig", it.toBundle()) }
+            sessionConfig?.let { putBundle("paymentSessionConfig", it.toBundle()) }
             val configCopy = configuration?.let { Bundle(it) }
             if (configCopy?.containsKey("hideConfirmButton") == false) {
                 configCopy.putBoolean("hideConfirmButton", true)
             }
-            putBundle("configuration", configCopy)
-            customBackendUrl?.let { url -> putString("customBackendUrl", url) }
-            customLogUrl?.let { url -> putString("customLogUrl", url) }
-
             if (subscribedEvents.isNotEmpty()) {
-                putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
+                configCopy?.putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
             } else if (configCopy?.containsKey("subscribedEvents") == true) {
-                val subscribedEventsArray = configCopy["subscribedEvents"] as? List<*>
-                if (subscribedEventsArray != null) {
-                    putSerializable("subscribedEvents", ArrayList(subscribedEventsArray))
-                }
+                // already in configCopy — leave it there
             }
-            customParams?.let { params ->
-                putBundle(
-                    "customParams", toBundle(params)
-                )
-            }
-            putBundle("hyperParams", getHyperParams())
-            putString("widgetId", widgetId)
+            putBundle("configuration", configCopy)
+            val theme = configCopy?.getBundle("appearance")?.getString("theme")
+            putString("theme", theme)
+            val backendUrl = hsConfig?.customConfig?.overrideEndpoints?.customBackendEndpoint
+            val logUrl = hsConfig?.customConfig?.overrideEndpoints?.customLoggingEndpoint
+            backendUrl?.let { putString("customBackendUrl", it) }
+            logUrl?.let { putString("customLogUrl", it) }
+            putBundle("sdkParams", getSdkParams())
         })
     }
 
-
-
     fun getBundleWithHyperParams(readableMap: Map<*, *>, subscribedEvents: List<String> = emptyList()): Bundle = Bundle().apply {
         putBundle("props", toBundle(readableMap).apply {
-            putBundle("hyperParams", getHyperParams())
+            putBundle("sdkParams", getSdkParams())
             putStringArrayList("subscribedEvents", ArrayList(subscribedEvents))
         })
     }
 
     fun getJson(
-        paymentIntentClientSecret: String,
+        sessionConfig: PaymentSessionConfiguration? = null,
         configuration: PaymentSheet.Configuration?
-    ): JSONObject = toJson(getBundle(paymentIntentClientSecret, configuration))
+    ): JSONObject = toJson(getBundle(sessionConfig, configuration))
 
     fun getJson(configurationMap: Map<*, *>): JSONObject =
         toJson(getMapWithHyperParams(configurationMap))
 
     private fun getMapWithHyperParams(map: Map<*, *>): Map<*, *> = mapOf(
         "props" to map.apply {
-            plus(Pair("hyperParams", getHyperParamsMap(map)))
+            plus(Pair("sdkParams", getSdkParamsMap(map)))
         }
     )
 
@@ -224,11 +210,31 @@ class LaunchOptions(
                 value is Number -> map[key] = value as? Int ?: value.toDouble()
                 value is Boolean -> map[key] = value
                 value is Bundle -> map[key] = fromBundle(value)
-                value is List<*> -> map[key] = value
+                value is List<*> -> map[key] = fromList(value)
                 else -> throw IllegalArgumentException("Could not convert ${value.javaClass}")
             }
         }
         return map
+    }
+
+    private fun fromList(list: List<*>): List<Any?> {
+        return list.map { item ->
+            when (item) {
+                is Bundle -> fromBundle(item)
+                is List<*> -> fromList(item)
+                else -> item
+            }
+        }
+    }
+
+    private fun toSerializableArrayList(list: List<*>): ArrayList<Any?> {
+        return ArrayList(list.map { item ->
+            when (item) {
+                is Map<*, *> -> toBundle(item)
+                is List<*> -> toSerializableArrayList(item)
+                else -> item
+            }
+        })
     }
 
     fun toBundle(readableMap: Map<*, *>): Bundle {
@@ -242,6 +248,7 @@ class LaunchOptions(
                 is String -> bundle.putString(keyString, value)
                 is Map<*, *> -> bundle.putBundle(keyString, toBundle(value))
                 is Array<*> -> bundle.putSerializable(keyString, value)
+                is List<*> -> bundle.putSerializable(keyString, toSerializableArrayList(value))
                 else -> throw IllegalArgumentException("Could not convert object with key: $keyString.")
             }
         }

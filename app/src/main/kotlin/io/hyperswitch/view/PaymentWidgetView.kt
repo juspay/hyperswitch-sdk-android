@@ -4,8 +4,6 @@ import android.app.Application
 import android.content.Context
 import android.os.Bundle
 import android.util.AttributeSet
-import android.util.Log
-import android.view.Choreographer
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -16,14 +14,16 @@ import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.BuildConfig
-import io.hyperswitch.PaymentConfiguration
 import io.hyperswitch.PaymentEventListener
-import io.hyperswitch.model.ElementUpdateIntentResult
+import io.hyperswitch.model.HyperswitchBaseConfiguration
+import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsession.LaunchOptions
+import io.hyperswitch.paymentsheet.PaymentRequestData
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperFragment
 import io.hyperswitch.react.HyperFragmentManager
+import io.hyperswitch.react.HyperReactRuntime
 import io.hyperswitch.react.ReactNativeController
 
 import kotlin.math.abs
@@ -45,26 +45,38 @@ fun interface PaymentResultListener {
     fun onPaymentResult(result: PaymentResult)
 }
 
+fun interface ConfirmPaymentClickListener {
+    fun onConfirmPaymentCallback(data: String, onConfirmPaymentCallback: (Boolean) -> Unit)
+}
+
+
 /**
  * Extension function to convert PaymentSheet.Configuration to Map<String, Any>.
  * TODO: Fill in the actual mapping implementation.
  */
-fun PaymentSheet.Configuration.toMap(): Map<String, Any> = emptyMap()
 
 class PaymentWidgetView : FrameLayout {
     private var widgetConfig: PaymentWidgetConfig? = null
     private lateinit var launchOptions: LaunchOptions
     private var fragment: HyperFragment? = null
     private lateinit var mContext: Context
-    private var publishableKey: String? = null
-    private var profileId: String? = null
     private var sdkAuthorization: String = ""
+    private var hsConfig: HyperswitchBaseConfiguration? = null
 
     private var resultListener: PaymentResultListener? = null
+
+    /** The owning session's runtime; null when the widget was not bound through Elements. */
+    private var runtime: HyperReactRuntime? = null
+
+    fun attachRuntime(runtime: HyperReactRuntime) {
+        this.runtime = runtime
+    }
+
+    private var confirmPaymentClickListener: ConfirmPaymentClickListener? = null
     private var subscribedEvents: List<String> = emptyList()
 
     private var onEventCallback: PaymentEventListener? = null
-    private var activeChoreographerCallback: Choreographer.FrameCallback? = null
+    private var activeLayoutChangeListener: View.OnLayoutChangeListener? = null
     private var widgetShown = false
 
     constructor(context: Context) : super(context) {
@@ -86,14 +98,16 @@ class PaymentWidgetView : FrameLayout {
 //        initWidget( ?: "")
         // Auto-show widget if SDK authorization is already set
         if (!isSdkAuthorizationEmpty()) {
-            showWidgetInternal()
+            post { showWidgetInternal() }
         }
     }
 
     private fun init(context: Context) {
+        if (id == NO_ID) {
+            id = generateViewId()
+        }
         this.mContext = context
-        launchOptions = LaunchOptions(context.applicationContext, BuildConfig.VERSION_NAME)
-        this.publishableKey = PaymentConfiguration.publishableKey()
+        launchOptions = LaunchOptions(context.applicationContext, BuildConfig.VERSION_NAME, hsConfig)
     }
 
     fun setFragment(fragment: HyperFragment) {
@@ -106,33 +120,12 @@ class PaymentWidgetView : FrameLayout {
 
     private var widgetType: String? = null
 
-    fun initWidget(publishableKey: String) {
-        initWidget(publishableKey, this.profileId ?: "")
+    fun initWidget(config: HyperswitchBaseConfiguration) {
+        this.hsConfig = config
+        this.widgetType = this.widgetType ?: "widgetPaymentSheet"
+        launchOptions = LaunchOptions(mContext.applicationContext, BuildConfig.VERSION_NAME, config)
+        ReactNativeController.initialize(mContext.applicationContext as Application)
     }
-
-    fun initWidget(
-        publishableKey: String, profileId: String
-    ) {
-        initWidget(
-            mContext.applicationContext as Application,
-            this.widgetType ?: "widgetPaymentSheet",
-            publishableKey,
-            profileId
-        )
-    }
-
-    fun initWidget(
-        application: Application,
-        type: String,
-        publishableKey: String,
-        profileId: String,
-    ) {
-        this.widgetType = type
-        this.publishableKey = publishableKey
-        this.profileId = profileId
-        ReactNativeController.initialize(application)
-    }
-
 
     fun isSdkAuthorizationEmpty(): Boolean {
         return this.sdkAuthorization.isEmpty()
@@ -160,7 +153,12 @@ class PaymentWidgetView : FrameLayout {
                 c.configuration.bundle
             }
 
-            is PaymentWidgetConfig.ReactNative -> this.launchOptions.toBundle(c.configuration as Map<*, *>)
+            is PaymentWidgetConfig.ReactNative -> {
+                val configMap =
+                    io.hyperswitch.utils.ConversionUtils.readableMapToMap(c.configuration as com.facebook.react.bridge.ReadableMap)
+                this.launchOptions.toBundle(configMap)
+            }
+
             null -> null
         }
     }
@@ -200,6 +198,43 @@ class PaymentWidgetView : FrameLayout {
         resultListener?.onPaymentResult(result)
     }
 
+    fun onPaymentConfirmButtonClick(
+        callback: (
+            data: PaymentRequestData?,
+            onConfirmPaymentCallback: (Boolean) -> Unit
+        ) -> Unit
+    ) {
+        confirmPaymentClickListener = ConfirmPaymentClickListener { data, onConfirmPaymentCallback ->
+            callback(PaymentRequestData.parse(data), onConfirmPaymentCallback)
+        }
+    }
+
+    fun onPaymentConfirmButtonClickWithMap(
+        callback: (
+            data: Map<String, Any?>,
+            onConfirmPaymentCallback: (Boolean) -> Unit
+        ) -> Unit
+    ) {
+        confirmPaymentClickListener = ConfirmPaymentClickListener { data, onConfirmPaymentCallback ->
+            callback(PaymentRequestData.toMap(data), onConfirmPaymentCallback)
+        }
+    }
+
+    fun onPaymentConfirmButtonClick(listener: ConfirmPaymentClickListener) {
+        confirmPaymentClickListener = listener
+    }
+
+    private fun dispatchConfirmTriggered(
+        data: String,
+        onConfirmPaymentCallback: (Boolean) -> Unit
+    ) {
+        if(confirmPaymentClickListener == null){
+            onConfirmPaymentCallback(true)
+        }else {
+            confirmPaymentClickListener?.onConfirmPaymentCallback(data, onConfirmPaymentCallback)
+        }
+    }
+
     fun onEvent(listener: PaymentEventListener) {
         this.onEventCallback = listener
         this.fragment?.setOnEventCallback(listener)
@@ -209,31 +244,24 @@ class PaymentWidgetView : FrameLayout {
         this.subscribedEvents = events
     }
 
-    fun getLaunchOptions(): Bundle =
-        this.launchOptions.getBundle(
-            publishableKey = this.publishableKey,
+    fun getLaunchOptions(): Bundle {
+        return this.launchOptions.getBundle(
             configuration = resolveConfiguration(),
-            customBackendUrl = PaymentConfiguration.customBackendUrl,
-            customLogUrl = PaymentConfiguration.customLogUrl,
-            customParams = PaymentConfiguration.customParams as Map<String, Any>?,
             type = widgetType,
-//            widgetId = this.widgetId,
-            sdkAuthorization = this.sdkAuthorization,
+            from = when (widgetConfig) {
+                is PaymentWidgetConfig.Native -> "nativeWidget"
+                is PaymentWidgetConfig.ReactNative -> "rn"
+                null -> "nativeWidget"
+            },
+            sessionConfig = if (this.sdkAuthorization.isNotEmpty()) PaymentSessionConfiguration(this.sdkAuthorization) else null,
             subscribedEvents = this.subscribedEvents,
         )
+    }
 
     fun confirmPayment(callback: (PaymentResult) -> Unit) {
         this.fragment?.confirmPayment(callback)
     }
 
-
-    fun updatePaymentIntentInit(callback: () -> Unit) {
-        this.fragment?.updatePaymentIntentInit(callback)
-    }
-
-    fun updatePaymentIntentComplete(sdkAuthorization: String, callback: (ElementUpdateIntentResult) -> Unit) {
-        this.fragment?.updatePaymentIntentComplete(sdkAuthorization, callback)
-    }
 
     fun confirmCvcPayment(
         sdkAuthorization: String,
@@ -267,19 +295,22 @@ class PaymentWidgetView : FrameLayout {
         this.setFragment(
             HyperFragment.Builder().setComponentName("hyperSwitch")
                 .setLaunchOptions(this.getLaunchOptions()).build()
+                .also { it.runtime = runtime }
         )
 
         val frameLayout = FrameLayout(activity).apply {
             layoutParams = LayoutParams(MATCH_PARENT, MATCH_PARENT)
         }
         this.addView(frameLayout, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        val containerWidth = this.width
+        val containerHeight = this.height
         frameLayout.post {
             frameLayout.measure(
-                View.MeasureSpec.makeMeasureSpec(this.width, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(this.height, View.MeasureSpec.EXACTLY)
+                View.MeasureSpec.makeMeasureSpec(containerWidth, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(containerHeight, View.MeasureSpec.EXACTLY)
             )
             frameLayout.layout(0, 0, frameLayout.measuredWidth, frameLayout.measuredHeight)
-            setupLayout(frameLayout)
+            setupLayout(frameLayout, containerWidth, containerHeight)
             HyperFragmentManager.addOrReplace(
                 activity = activity,
                 container = frameLayout,
@@ -290,37 +321,40 @@ class PaymentWidgetView : FrameLayout {
 
             frameLayout.post { this.getFragment()?.view?.requestLayout() }
         }
-        this.fragment?.setOnPaymentResult { result -> dispatchResult(result) }
+        this.fragment?.setOnPaymentResult(::dispatchResult)
+        this.fragment?.setOnPaymentConfirmButtonClick(::dispatchConfirmTriggered)
         onEventCallback?.let { this.fragment?.setOnEventCallback(it) }
         this.fragment?.setOnExit {
             removeWidget()
         }
     }
 
-    private fun setupLayout(view: View) {
-        val callback = object : Choreographer.FrameCallback {
-            override fun doFrame(frameTimeNanos: Long) {
-                try {
-                    if (view.isAttachedToWindow) {
-                        manuallyLayoutChildren(view)
-                        view.viewTreeObserver.dispatchOnGlobalLayout()
-                        Choreographer.getInstance().postFrameCallback(this)
-                    } else {
-                        activeChoreographerCallback = null
-                    }
-                } catch (_: Exception) {
+    private fun setupLayout(view: View, width: Int, height: Int) {
+        // Do an initial one-shot layout pass.
+        manuallyLayoutChildren(view, width, height)
 
-                }
+        // Re-layout only when the view's dimensions actually change, not every frame.
+        // This prevents the continuous forced layout() calls that destabilise focus
+        // in the embedded React Native TextInput (e.g. CVCWidget).
+        val listener = View.OnLayoutChangeListener { v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+            val newW = right - left
+            val newH = bottom - top
+            val oldW = oldRight - oldLeft
+            val oldH = oldBottom - oldTop
+            if (newW != oldW || newH != oldH) {
+                manuallyLayoutChildren(v, newW, newH)
             }
         }
-        activeChoreographerCallback = callback
-        Choreographer.getInstance().postFrameCallback(callback)
+        view.addOnLayoutChangeListener(listener)
+        activeLayoutChangeListener = listener
     }
 
     fun stopLayout() {
-        activeChoreographerCallback?.let {
-            Choreographer.getInstance().removeFrameCallback(it)
-            activeChoreographerCallback = null
+        activeLayoutChangeListener?.let { listener ->
+            // We don't hold a reference to the view here, so we rely on removeWidget()
+            // calling removeAllViews() which detaches the listener automatically.
+            // Nulling the reference is sufficient to prevent leaks.
+            activeLayoutChangeListener = null
         }
     }
 
@@ -331,19 +365,21 @@ class PaymentWidgetView : FrameLayout {
             val activity = context as? FragmentActivity ?: return
             val tag = "HyperPaymentSheet_${this.id}"
             HyperFragmentManager.remove(activity, tag)
-            removeAllViews()
+            post {
+                removeAllViews()
+            }
             widgetShown = false
         } catch (_: Exception) {
             // Handle the errors
         }
     }
 
-    private fun manuallyLayoutChildren(view: View) {
+    private fun manuallyLayoutChildren(view: View, width: Int, height: Int) {
         view.measure(
-            View.MeasureSpec.makeMeasureSpec(view.width, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(view.height, View.MeasureSpec.EXACTLY)
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
         )
-        view.layout(0, 0, view.width, view.height)
+        view.layout(0, 0, width, height)
     }
 
     private var startY = 0f
@@ -368,8 +404,10 @@ class PaymentWidgetView : FrameLayout {
             MotionEvent.ACTION_DOWN -> {
                 startY = ev.y
                 startX = ev.x
-                // Tell parent RN ScrollView to back off - let fragment handle it initially
-                parent?.requestDisallowInterceptTouchEvent(true)
+                // Do not disallow parent interception on DOWN — this was originally written
+                // for a parent RN ScrollView, but in native embedding (e.g. WidgetActivity)
+                // it prevents the outer Android ScrollView from ever scrolling.
+                // Direction-based gating on MOVE below is sufficient.
             }
 
             MotionEvent.ACTION_MOVE -> {

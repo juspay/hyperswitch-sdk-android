@@ -30,11 +30,12 @@ data class AddressDetails(
     val bundle: Bundle
         get() {
             return Bundle().apply {
-                putString("name", name)
                 putBundle("address", address?.bundle)
-                putString("phoneNumber", phoneNumber)
-                if (isCheckboxSelected != null) {
-                    putBoolean("isCheckboxSelected", isCheckboxSelected)
+                if (phoneNumber != null) {
+                    putBundle("phone", Bundle().apply {
+                        putString("number", phoneNumber)
+                        putString("code", null)
+                    })
                 }
             }
         }

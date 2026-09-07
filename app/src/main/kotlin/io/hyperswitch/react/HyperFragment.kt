@@ -6,21 +6,18 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.LayoutInflater
 import com.facebook.react.ReactFragment
 import com.facebook.react.ReactHost
-import com.facebook.react.ReactNativeHost
-import com.facebook.react.ReactRootView
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReadableMap
-import com.facebook.react.modules.core.DeviceEventManagerModule
+import com.facebook.react.interfaces.fabric.ReactSurface
 import com.facebook.react.views.scroll.ReactHorizontalScrollView
 import com.facebook.react.views.scroll.ReactScrollView
 import com.proyecto26.inappbrowser.ChromeTabsDismissedEvent
 import com.proyecto26.inappbrowser.ChromeTabsManagerActivity
 import io.hyperswitch.PaymentEvent
 import io.hyperswitch.PaymentEventListener
-import io.hyperswitch.model.ElementUpdateIntentResult
-import io.hyperswitch.paymentsession.ExitHeadlessCallBackManager
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.redirect.RedirectEvent
 import io.hyperswitch.utils.ConversionUtils
@@ -41,15 +38,15 @@ enum class CallbackType {
     PAYMENT_RESULT,
     CONFIRM_ACTION,
     CONFIRM_CVC_ACTION,
-    UPDATE_INTENT_INIT,
-    UPDATE_INTENT_COMPLETE
+    PAYMENT_CONFIRM_BUTTON_CLICK
 }
 
 
 sealed class HyperCallback {
     class Payment(val fn: ((PaymentResult) -> Unit)) : HyperCallback()
-    class UpdateIntentInit(val fn: (() -> Unit)?) : HyperCallback()
-    class UpdateIntentComplete(val fn: ((ElementUpdateIntentResult) -> Unit)) : HyperCallback()
+    class ConfirmButtonTriggered(
+        val callback: (data: String, onPaymentResultCallback: (Boolean) -> Unit) -> Unit,
+    ) : HyperCallback()
 }
 
 class HyperFragment : ReactFragment() {
@@ -59,6 +56,21 @@ class HyperFragment : ReactFragment() {
      * Keyed by [CallbackType] so each slot is independently replaceable.
      */
     private val callbacks = ConcurrentHashMap<CallbackType, HyperCallback>()
+
+    // Set by whoever builds the fragment; legacy host if recreated after process death.
+    internal var runtime: HyperReactRuntime? = null
+    private val rt: HyperReactRuntime
+        get() = runtime ?: ReactNativeController.legacyRuntime
+
+    private var hyperSurface: ReactSurface? = null
+
+    private val surfaceId: Int
+        get() = currentSurfaceId()
+
+    fun currentSurfaceId(): Int {
+        val id = hyperSurface?.surfaceID ?: return -1
+        return if (id > 0) id else -1
+    }
 
     /** Per-widget listener set by HyperswitchBoundElement.subscribe(). Null for PaymentSheet. */
     private var paymentEventListener: PaymentEventListener? = null
@@ -73,57 +85,14 @@ class HyperFragment : ReactFragment() {
         callbacks[CallbackType.PAYMENT_RESULT] = HyperCallback.Payment(callback)
     }
 
+    fun setOnPaymentConfirmButtonClick(callback: (data: String, onPaymentResultCallback: ((Boolean) -> Unit)) -> Unit) {
+        callbacks[CallbackType.PAYMENT_CONFIRM_BUTTON_CLICK] = HyperCallback.ConfirmButtonTriggered(
+            callback
+        )
+    }
+
     fun setOnEventCallback(listener: PaymentEventListener) {
         this.paymentEventListener = listener
-    }
-
-    fun updatePaymentIntentInit(callback: (() -> Unit)?) {
-        val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
-        if (rootTag == -1) {
-            callback?.invoke()
-            return
-        }
-        callbacks[CallbackType.UPDATE_INTENT_INIT] = HyperCallback.UpdateIntentInit(callback)
-        reactNativeHost.reactInstanceManager.currentReactContext
-            ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            ?.emit("updateIntentInit", Arguments.createMap().apply {
-                putInt("rootTag", rootTag)
-            })
-    }
-
-    fun updatePaymentIntentComplete(
-        sdkAuthorization: String,
-        callback: ((ElementUpdateIntentResult) -> Unit)
-    ) {
-        val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
-        if (rootTag == -1) {
-            callback.invoke(
-                ElementUpdateIntentResult.Failure(
-                    Throwable("React context not ready").apply {
-                        initCause(Throwable("REACT_CONTEXT_NOT_READY"))
-                    }
-                )
-            )
-            return
-        }
-        if (callbacks[CallbackType.UPDATE_INTENT_COMPLETE] != null) {
-            callback.invoke(
-                ElementUpdateIntentResult.Failure(
-                    Throwable("Update intent complete already in progress").apply {
-                        initCause(Throwable("ALREADY_IN_PROGRESS"))
-                    }
-                )
-            )
-            return
-        }
-        callbacks[CallbackType.UPDATE_INTENT_COMPLETE] =
-            HyperCallback.UpdateIntentComplete(callback)
-        reactNativeHost.reactInstanceManager.currentReactContext
-            ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            ?.emit("updateIntentComplete", Arguments.createMap().apply {
-                putString("sdkAuthorization", sdkAuthorization)
-                putInt("rootTag", rootTag)
-            })
     }
 
     fun confirmPayment(callback: ((PaymentResult) -> Unit)) {
@@ -133,32 +102,21 @@ class HyperFragment : ReactFragment() {
             )
             return
         }
-        val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
+        val rootTag = surfaceId
         if (rootTag == -1) {
             callback.invoke(
                 PaymentResult.Failed(Throwable("React Context not ready"))
             )
             return
         }
-        if (callbacks[CallbackType.UPDATE_INTENT_COMPLETE] != null) {
-            callback.invoke(
-                PaymentResult.Failed(Throwable("Payment Intent update is in progress"))
-            )
-            return
-        }
         callbacks[CallbackType.CONFIRM_ACTION] = HyperCallback.Payment(callback)
-        reactNativeHost.reactInstanceManager.currentReactContext
-            ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            ?.emit("triggerWidgetAction", Arguments.createMap().apply {
-                putString("actionType", EventName.CONFIRM_PAYMENT_ACTION.name)
-                putInt("rootTag", rootTag)
-            })
+        rt.eventEmitter.emitEvent("triggerWidgetAction", Arguments.createMap().apply {
+            putString("actionType", EventName.CONFIRM_PAYMENT_ACTION.name)
+            putInt("rootTag", rootTag)
+        })
     }
 
     /**
-     * Called directly on this instance by the native module after finding the
-     * fragment via [UIManagerModule] + [androidx.fragment.app.FragmentManager.findFragment].
-     *
      * PAYMENT_RESULT  → fires CONFIRM_ACTION if present, otherwise PAYMENT_RESULT.
      * CONFIRM_ACTION  → fires and removes CONFIRM_ACTION (one-shot resolve).
      */
@@ -193,13 +151,6 @@ class HyperFragment : ReactFragment() {
                     }
                 }
 
-                CallbackType.UPDATE_INTENT_INIT ->
-                    (callbacks.remove(CallbackType.UPDATE_INTENT_INIT) as? HyperCallback.UpdateIntentInit)?.fn?.invoke()
-                CallbackType.UPDATE_INTENT_COMPLETE ->
-                    (callbacks.remove(CallbackType.UPDATE_INTENT_COMPLETE) as? HyperCallback.UpdateIntentComplete)?.fn?.invoke(
-                        parseElementUpdateResult(result)
-                    )
-
                 CallbackType.CONFIRM_ACTION -> {
                     val parsed = parseResult(result)
                     (callbacks.remove(CallbackType.CONFIRM_ACTION) as? HyperCallback.Payment)?.fn?.invoke(
@@ -221,21 +172,16 @@ class HyperFragment : ReactFragment() {
         }
     }
 
-    private fun parseElementUpdateResult(data: String): ElementUpdateIntentResult {
-        val jsonObject = JSONObject(data)
-        return when (val status = jsonObject.getString("status")) {
-            "cancelled" -> ElementUpdateIntentResult.Cancelled
-            "failed" -> {
-                val message = jsonObject.getString("message")
-                val throwable = Throwable(message.ifEmpty { status })
-                throwable.initCause(Throwable(jsonObject.getString("code")))
-                ElementUpdateIntentResult.Failure(throwable)
-            }
-
-            else -> ElementUpdateIntentResult.Success
+    fun notifyConfirmButtonClicked(payload: String, callback: (Boolean) -> Unit) {
+        val confirmTriggeredCallback =
+            callbacks[CallbackType.PAYMENT_CONFIRM_BUTTON_CLICK] as HyperCallback.ConfirmButtonTriggered?
+        if(confirmTriggeredCallback == null){
+            callback.invoke(true)
+        }else {
+            confirmTriggeredCallback.callback.invoke(payload, callback)
         }
+        callbacks.remove(CallbackType.CONFIRM_ACTION)
     }
-
 
     private fun parseResult(data: String): PaymentResult {
         val jsonObject = JSONObject(data)
@@ -247,6 +193,7 @@ class HyperFragment : ReactFragment() {
                 throwable.initCause(Throwable(jsonObject.getString("code")))
                 PaymentResult.Failed(throwable)
             }
+
             else -> PaymentResult.Completed(status)
         }
         return result
@@ -263,7 +210,7 @@ class HyperFragment : ReactFragment() {
                 val event = PaymentEvent(type = eventType, payload = payload)
                 listener.onPaymentEvent(event)
             } else {
-                HyperEventEmitter.emitPaymentEvent(eventType, payload)
+                rt.eventEmitter.emitPaymentEvent(eventType, payload)
             }
         } catch (e: Exception) {
             Log.e("HyperFragment", "Error in notifyEvent", e)
@@ -277,23 +224,24 @@ class HyperFragment : ReactFragment() {
         billing: String?,
         callback: ((PaymentResult) -> Unit)
     ) {
-        if (ExitHeadlessCallBackManager.getCallback() != null) {
-            val paymentResult = PaymentResult.Failed(
-                Throwable("CVC payment already in progress").apply {
-                    initCause(Throwable("ALREADY_IN_PROGRESS"))
-                }
-            )
-            callback.invoke(paymentResult)
-            return
-        }
-        val rootTag = reactDelegate.reactRootView?.rootViewTag ?: -1
+        val rootTag = surfaceId
         if (rootTag == -1) {
             val paymentResult = PaymentResult.Failed(Throwable("cannot find the view"))
             callback.invoke(paymentResult)
             return
         }
 
-        ExitHeadlessCallBackManager.setCallback(callback)
+        // Try to register callback for this specific widget - fails if already in progress
+        val registered = rt.sessionRouter.tryRegisterExitCallback(rootTag, callback)
+        if (!registered) {
+            val paymentResult = PaymentResult.Failed(
+                Throwable("CVC payment already in progress for this widget").apply {
+                    initCause(Throwable("ALREADY_IN_PROGRESS"))
+                }
+            )
+            callback.invoke(paymentResult)
+            return
+        }
 
         val map = Arguments.createMap()
         map.putString("actionType", EventName.CONFIRM_CVC_PAYMENT.name)
@@ -301,9 +249,11 @@ class HyperFragment : ReactFragment() {
         map.putString("sdkAuthorization", sdkAuthorization)
         map.putString("paymentToken", paymentToken)
         billing?.let { map.putString("billing", it) }
-        reactNativeHost.reactInstanceManager.currentReactContext
-            ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-            ?.emit("triggerWidgetAction", map)
+        if (!rt.eventEmitter.emitEvent("triggerWidgetAction", map)) {
+            // JS runtime is gone: roll the registration back so a later confirm isn't stuck.
+            rt.sessionRouter.clearExitCallback(rootTag)
+            callback.invoke(PaymentResult.Failed(Throwable("React context is not available")))
+        }
     }
 
 
@@ -322,13 +272,30 @@ class HyperFragment : ReactFragment() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // The OS can recreate this fragment after process death before the host app
+        // initialised the SDK; initialize() is idempotent.
+        activity?.application?.let(ReactNativeController::initialize)
         super.onCreate(savedInstanceState)
         registerEventBus()
     }
 
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val componentName = arguments?.getString("arg_component_name") ?: "hyperSwitch"
+        val launchOptions = arguments?.getBundle("arg_launch_options")
+        val surface = rt.reactHost
+            .createSurface(requireActivity(), componentName, launchOptions)
+        hyperSurface = surface
+        reactDelegate.setReactSurface(surface)
+        return super.onCreateView(inflater, container, savedInstanceState)
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val reactRootView = view as? ReactRootView ?: return
+        val reactRootView = view as? ViewGroup ?: return
         var scrollFixScheduled = false
         reactRootView.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener {
             override fun onChildViewAdded(parent: View?, child: View?) {
@@ -346,13 +313,34 @@ class HyperFragment : ReactFragment() {
     }
 
     override fun onDestroyView() {
-        super.onDestroyView()
+        try {
+            super.onDestroyView()
+            hyperSurface?.stop()
+            hyperSurface = null
+            reactDelegate.setReactSurface(null)
+            callbacks.clear()
+            onExit = null
+            paymentEventListener = null
+        } catch (_: Exception) {
+        }
     }
 
     override fun onDestroy() {
-        super.onDestroy()
-        unRegisterEventBus()
-        callbacks.clear()
+        try {
+            super.onDestroy()
+            unRegisterEventBus()
+            callbacks.clear()
+            onExit = null
+            paymentEventListener = null
+        } catch (_: Exception) {
+        }
+    }
+
+    override fun onPause() {
+        try {
+            super.onPause()
+        } catch (_: Exception) {
+        }
     }
 
     // ── Scroll fix ────────────────────────────────────────────────────────────
@@ -404,8 +392,8 @@ class HyperFragment : ReactFragment() {
         startActivity(ChromeTabsManagerActivity.createDismissIntent(requireContext()))
     }
 
-    override fun getReactNativeHost(): ReactNativeHost = ReactNativeController.getReactNativeHost()
-    override fun getReactHost(): ReactHost = ReactNativeController.getReactHost()
+    override val reactHost: ReactHost
+        get() = rt.reactHost
 
     // ─── Builder ──────────────────────────────────────────────────────────────
 
@@ -420,9 +408,9 @@ class HyperFragment : ReactFragment() {
 
         fun build(): HyperFragment = HyperFragment().also { fragment ->
             fragment.arguments = Bundle().apply {
-                putString(ARG_COMPONENT_NAME, mComponentName)
-                putBundle(ARG_LAUNCH_OPTIONS, mLaunchOptions)
-                putBoolean(ARG_FABRIC_ENABLED, mFabricEnabled)
+                putString("arg_component_name", mComponentName)
+                putBundle("arg_launch_options", mLaunchOptions)
+                putBoolean("arg_fabric_enabled", mFabricEnabled)
             }
         }
     }

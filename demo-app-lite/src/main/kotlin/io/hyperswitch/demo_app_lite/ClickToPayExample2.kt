@@ -5,8 +5,7 @@ import android.os.Bundle
 import android.os.Handler as OSHandler
 import android.os.Looper
 import android.text.InputType
-import android.view.View.INVISIBLE
-import android.view.View.VISIBLE
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -25,14 +24,26 @@ import org.json.JSONObject
 class ClickToPayExample2 : AppCompatActivity() {
 
     private lateinit var resultText: TextView
-    private lateinit var btnStart: Button
-    private lateinit var signOut: Button
+    private lateinit var btnInit: Button
+    private lateinit var btnInitC2P: Button
+    private lateinit var btnGetActiveC2P: Button
+    private lateinit var btnUseExistingAuth: Button
+    private lateinit var btnCheckCustomer: Button
+    private lateinit var btnGetCards: Button
+    private lateinit var btnShowCards: Button
+    private lateinit var btnValidateOTP: Button
+    private lateinit var btnCheckout: Button
+    private lateinit var btnSignOut: Button
     private lateinit var btnClose: Button
+    private lateinit var btnNewActivity: Button
     private lateinit var frameCounter: TextView
     private lateinit var freezeStatus: TextView
     private lateinit var freezeLog: TextView
     private var recognizedCards: List<RecognizedCard>? = null
     private var clickToPaySession: ClickToPaySession? = null
+    private var credentials: Credentials? = null
+    private var authSession: AuthenticationSession? = null
+    private val serverURL = "http://10.0.2.2:5252"
 
     // Freeze detection
     private val mainHandler = OSHandler(Looper.getMainLooper())
@@ -41,7 +52,6 @@ class ClickToPayExample2 : AppCompatActivity() {
     private var freezeCount = 0
     private var maxFreezeDuration = 0L
     private val freezeEvents = mutableListOf<String>()
-    private val serverURL = "http://10.0.2.2:5252"
 
     private val freezeDetectionRunnable = object : Runnable {
         override fun run() {
@@ -51,7 +61,6 @@ class ClickToPayExample2 : AppCompatActivity() {
             val currentTime = System.currentTimeMillis()
             val timeSinceLastUpdate = currentTime - lastUpdateTime
 
-            // If more than 200ms has passed, UI might be freezing
             if (lastUpdateTime > 0 && timeSinceLastUpdate > 200) {
                 freezeCount++
                 if (timeSinceLastUpdate > maxFreezeDuration) {
@@ -61,7 +70,6 @@ class ClickToPayExample2 : AppCompatActivity() {
                 val freezeEvent = "Freeze #$freezeCount: ${timeSinceLastUpdate}ms"
                 freezeEvents.add(freezeEvent)
 
-                // Keep only last 5 freeze events
                 if (freezeEvents.size > 5) {
                     freezeEvents.removeAt(0)
                 }
@@ -76,7 +84,7 @@ class ClickToPayExample2 : AppCompatActivity() {
             }
 
             lastUpdateTime = currentTime
-            mainHandler.postDelayed(this, 100) // Update every 100ms
+            mainHandler.postDelayed(this, 100)
         }
     }
 
@@ -98,23 +106,49 @@ class ClickToPayExample2 : AppCompatActivity() {
         setContentView(R.layout.c2p_activity)
 
         resultText = findViewById(R.id.resultText)
-        btnStart = findViewById(R.id.btnStep1)
-        signOut = findViewById(R.id.signOut)
+        btnInit = findViewById(R.id.btnStep1)
+        btnInitC2P = findViewById(R.id.btnInitC2P)
+        btnGetActiveC2P = findViewById(R.id.btnGetActiveC2P)
+        btnUseExistingAuth = findViewById(R.id.btnUseExistingAuth)
+        btnCheckCustomer = findViewById(R.id.btnCheckCustomer)
+        btnGetCards = findViewById(R.id.btnGetCards)
+        btnShowCards = findViewById(R.id.btnShowCards)
+        btnValidateOTP = findViewById(R.id.btnValidateOTP)
+        btnCheckout = findViewById(R.id.btnCheckout)
+        btnSignOut = findViewById(R.id.signOut)
         btnClose = findViewById(R.id.btnClose)
+        btnNewActivity = findViewById(R.id.btnNewActivity)
         frameCounter = findViewById(R.id.frameCounter)
         freezeStatus = findViewById(R.id.freezeStatus)
         freezeLog = findViewById(R.id.freezeLog)
 
-        signOut.visibility = INVISIBLE
-        btnClose.visibility = INVISIBLE
-
-        btnStart.text = "Proceed with Session Check"
-        btnStart.setOnClickListener { startClickToPayFlow() }
+        btnInit.text = "1. Init Auth Session"
+        btnInit.setOnClickListener { restoreActiveSession() }
+        btnInitC2P.setOnClickListener { initC2PSession() }
+        btnGetActiveC2P.setOnClickListener { getActiveC2PSession() }
+        btnUseExistingAuth.setOnClickListener { useExistingAuthSession() }
+        btnCheckCustomer.setOnClickListener { checkCustomer() }
+        btnGetCards.setOnClickListener { getCards() }
+        btnShowCards.setOnClickListener { showCards() }
+        btnValidateOTP.setOnClickListener { validateOTP() }
+        btnCheckout.setOnClickListener { doCheckout() }
+        btnSignOut.setOnClickListener { signOut() }
         btnClose.setOnClickListener { closeSession() }
+        btnNewActivity.setOnClickListener { finish() }
 
-        updateResultText("Click 'Proceed with Session Check' to begin")
+        if (intent.hasExtra("publishableKey")) {
+            credentials = Credentials(
+                publishableKey = intent.getStringExtra("publishableKey") ?: "",
+                clientSecret = intent.getStringExtra("clientSecret") ?: "",
+                profileId = intent.getStringExtra("profileId") ?: "",
+                authenticationId = intent.getStringExtra("authenticationId") ?: "",
+                merchantId = intent.getStringExtra("merchantId") ?: ""
+            )
+            updateResultText("Credentials received from previous activity")
+        }
 
-        // Start freeze detection
+        updateResultText("Click individual buttons to test C2P operations")
+
         startFreezeDetection()
     }
 
@@ -131,12 +165,198 @@ class ClickToPayExample2 : AppCompatActivity() {
         super.onDestroy()
         stopFreezeDetection()
     }
-
-    private fun startClickToPayFlow() {
-        btnStart.isEnabled = false
-        updateResultText("Initializing Click to Pay...")
+    private fun restoreActiveSession() {
+        updateResultText("Restoring active Click to Pay session...")
         getAuthenticationCredentials()
     }
+
+    private fun useExistingAuthSession() {
+        lifecycleScope.launch {
+            try {
+                val creds = credentials ?: run {
+                    showError("No credentials available. Pass from Activity 1 or fetch first.")
+                    return@launch
+                }
+                val session = authSession
+                    ?: AuthenticationSession(this@ClickToPayExample2, creds.publishableKey).also {
+                        authSession = it
+                    }
+                session.initAuthenticationSession(
+                    creds.clientSecret,
+                    creds.profileId,
+                    creds.authenticationId,
+                    creds.merchantId
+                )
+            } catch (e: Exception) {
+                showError("${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun checkCustomer() {
+        lifecycleScope.launch {
+            try {
+                updateResultText("Checking customer presence...")
+                val customerPresent = clickToPaySession?.isCustomerPresent(CustomerPresenceRequest())
+                updateResultText("Customer present: ${customerPresent?.customerPresent}")
+            } catch (e: ClickToPayException) {
+                showError("Check customer failed: ${e.message}")
+            } catch (e: Exception) {
+                showError("Check customer error: ${e.message}")
+            }
+        }
+    }
+
+    private fun getCards() {
+        lifecycleScope.launch {
+            try {
+                updateResultText("Getting user type...")
+                val cardsStatus = clickToPaySession?.getUserType()
+                updateResultText("User type: ${cardsStatus?.statusCode}")
+
+                if (cardsStatus?.statusCode == StatusCode.RECOGNIZED_CARDS_PRESENT) {
+                    updateResultText("Getting recognized cards...")
+                    recognizedCards = clickToPaySession?.getRecognizedCards()
+                    updateResultText("Found ${recognizedCards?.size ?: 0} card(s)")
+                } else if (cardsStatus?.statusCode == StatusCode.TRIGGERED_CUSTOMER_AUTHENTICATION) {
+                    updateResultText("Customer authentication required. Use Validate OTP.")
+                }
+            } catch (e: ClickToPayException) {
+                showError("Get cards failed: ${e.message}")
+            } catch (e: Exception) {
+                showError("Get cards error: ${e.message}")
+            }
+        }
+    }
+
+    private fun showCards() {
+        val cards = recognizedCards
+        if (cards.isNullOrEmpty()) {
+            showError("No cards available. Call Get Cards first.")
+            return
+        }
+        clickToPaySession?.let {
+            AlertDialog.Builder(this)
+                .setTitle("Select Card")
+                .setItems(cards.map { "**** ${it.panLastFour}" }.toTypedArray()) { _, which ->
+                    updateResultText("Selected card: **** ${cards[which].panLastFour}")
+                }
+                .show()
+        } ?: showError("No active session")
+    }
+
+    private fun validateOTP() {
+        clickToPaySession?.let { session ->
+            val input = EditText(this).apply {
+                inputType = InputType.TYPE_CLASS_NUMBER
+                hint = "Enter OTP"
+            }
+            AlertDialog.Builder(this)
+                .setTitle("Verify Your Identity")
+                .setView(input)
+                .setPositiveButton("Verify") { _, _ ->
+                    lifecycleScope.launch {
+                        try {
+                            updateResultText("Verifying OTP...")
+                            recognizedCards = session.validateCustomerAuthentication(input.text.toString())
+                            updateResultText("OTP validated. ${recognizedCards?.size ?: 0} card(s) available")
+                        } catch (e: ClickToPayException) {
+                            showError("Invalid OTP: ${e.message}")
+                        }
+                    }
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        } ?: showError("No active session")
+    }
+
+    private fun doCheckout() {
+        val cards = recognizedCards
+        if (cards.isNullOrEmpty()) {
+            showError("No cards available. Call Get Cards first.")
+            return
+        }
+        clickToPaySession?.let { session ->
+            AlertDialog.Builder(this)
+                .setTitle("Select Card to Checkout")
+                .setItems(cards.map { "**** ${it.panLastFour}" }.toTypedArray()) { _, which ->
+                    checkout(session, cards[which])
+                }
+                .show()
+        } ?: showError("No active session")
+    }
+
+    private fun checkout(session: ClickToPaySession, card: RecognizedCard) {
+        lifecycleScope.launch {
+            try {
+                updateResultText("Processing payment...")
+                val response = session.checkoutWithCard(CheckoutRequest(card.srcDigitalCardId, false))
+
+                if (response.status == AuthenticationStatus.SUCCESS) {
+                    updateResultText(
+                        "✓ Payment Successful!\n\nCard: **** ${card.panLastFour}\n" +
+                                "Amount: ${response.amount} ${response.currency}\nStatus: ${response.transStatus}"
+                    )
+                    Toast.makeText(this@ClickToPayExample2, "Payment completed!", Toast.LENGTH_SHORT).show()
+                } else {
+                    showError("Payment failed")
+                }
+            } catch (e: ClickToPayException) {
+                when (e.type) {
+                    ClickToPayErrorType.CHANGE_CARD -> {
+                        Toast.makeText(this@ClickToPayExample2, "You should not change card", Toast.LENGTH_LONG).show()
+                        showCardSelection(session, "You cannot change card, Select card")
+                    }
+                    ClickToPayErrorType.SWITCH_CONSUMER -> {
+                        Toast.makeText(this@ClickToPayExample2, "You should not change user", Toast.LENGTH_LONG).show()
+                        showCardSelection(session, "You cannot change user, select card")
+                    }
+                    else -> showError("Checkout error: ${e.reason}")
+                }
+            }
+        }
+    }
+
+    private fun showCardSelection(session: ClickToPaySession, errorMessage: String? = "") {
+        val cards = recognizedCards ?: return
+        AlertDialog.Builder(this)
+            .setTitle(errorMessage ?: "Select Card")
+            .setItems(cards.map { "**** ${it.panLastFour}" }.toTypedArray()) { _, which ->
+                checkout(session, cards[which])
+            }
+            .show()
+    }
+
+    private fun signOut() {
+        lifecycleScope.launch {
+            try {
+                updateResultText("Signing out...")
+                val response = clickToPaySession?.signOut()
+                updateResultText("Sign out response: $response")
+            } catch (e: Exception) {
+                showError("Cannot signout: ${e.message}")
+            }
+        }
+    }
+
+    private fun closeSession() {
+        lifecycleScope.launch {
+            try {
+                updateResultText("Closing session...")
+                clickToPaySession?.close()
+                clickToPaySession = null
+                recognizedCards = null
+                credentials = null
+                updateResultText("✓ Session closed")
+                Toast.makeText(this@ClickToPayExample2, "Session closed", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                showError("Failed to close session: ${e.message}")
+            }
+        }
+    }
+
+    // --- Auth & Restore Active Session ---
 
     private fun getAuthenticationCredentials() {
         Fuel.post("$serverURL/create-authentication")
@@ -148,18 +368,18 @@ class ClickToPayExample2 : AppCompatActivity() {
                     try {
                         val result = value?.let { JSONObject(it) }
                         if (result != null) {
-                            val credentials = Credentials(
+                            credentials = Credentials(
                                 publishableKey = result.getString("publishableKey"),
                                 clientSecret = result.getString("clientSecret"),
                                 profileId = result.getString("profileId"),
                                 authenticationId = result.getString("authenticationId"),
                                 merchantId = result.getString("merchantId"),
                             )
-                            initClickToPay(credentials)
+                            initAuthentication()
                         } else {
                             updateResultText("Failed: Create Authentication Result is null")
                         }
-                    } catch (e: ClickToPayException) {
+                    } catch (e: Exception) {
                         updateResultText("Failed: ${e.message}")
                     }
                 }
@@ -170,171 +390,59 @@ class ClickToPayExample2 : AppCompatActivity() {
             })
     }
 
-    private fun initClickToPay(credentials: Credentials) {
+    private fun initAuthentication() {
         lifecycleScope.launch {
-            // Step 2 & 3: Initialize sessions (now non-blocking)
             try {
-                val authSession =
-                    AuthenticationSession(this@ClickToPayExample2, credentials.publishableKey)
-                authSession.initAuthenticationSession(
-                    credentials.clientSecret,
-                    credentials.profileId,
-                    credentials.authenticationId,
-                    credentials.merchantId
+                val creds = credentials ?: run {
+                    showError("No credentials. Restore first.")
+                    return@launch
+                }
+                val session = AuthenticationSession(this@ClickToPayExample2, creds.publishableKey)
+                this@ClickToPayExample2.authSession = session
+                session.initAuthenticationSession(
+                    creds.clientSecret,
+                    creds.profileId,
+                    creds.authenticationId,
+                    creds.merchantId
                 )
-                clickToPaySession = try {
-                    authSession.getActiveClickToPaySession(this@ClickToPayExample2)
-                } catch (e: Exception) {
-                    authSession.initClickToPaySession()
-                }
-                updateResultText("✓ Sessions restored\nChecking customer...")
-                signOut.visibility = VISIBLE
-                btnClose.visibility = VISIBLE
-                signOut.setOnClickListener {
-                    clickToPaySession?.let { signOut(it) }
-                }
-
-//                // Step 4: Check customer presence
-//                val customerPresent = clickToPaySession?.isCustomerPresent(CustomerPresenceRequest())
-//                if (customerPresent?.customerPresent != true) {
-//                    showError("Customer not found in Click to Pay")
-//                    return@launch
-//                }
-//                updateResultText("✓ Customer found\nRetrieving cards...")
-
-                // Step 5: Get cards
-                val cardsStatus = clickToPaySession?.getUserType()
-                when (cardsStatus?.statusCode) {
-                    StatusCode.RECOGNIZED_CARDS_PRESENT -> {
-                        recognizedCards = clickToPaySession?.getRecognizedCards()
-                        clickToPaySession?.let { showCardSelection(it) }
-                    }
-
-                    StatusCode.TRIGGERED_CUSTOMER_AUTHENTICATION -> {
-                        clickToPaySession?.let { showOTPDialog(it) }
-                    }
-
-                    else -> {
-                        showError("No cards found")
-                    }
-                }
+                updateResultText("✓ Auth session initialized")
             } catch (e: Exception) {
+                showError("${e.message}")
                 e.printStackTrace()
             }
         }
     }
 
-    private fun showOTPDialog(session: ClickToPaySession) {
-        val input = EditText(this).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER
-            hint = "Enter OTP"
-        }
-        AlertDialog.Builder(this)
-            .setTitle("Verify Your Identity")
-            .setView(input)
-            .setPositiveButton("Verify") { _, _ ->
-                lifecycleScope.launch {
-                    try {
-                        updateResultText("Verifying OTP...")
-                        recognizedCards =
-                            session.validateCustomerAuthentication(input.text.toString())
-                        showCardSelection(session)
-                    } catch (e: ClickToPayException) {
-                        showError("Invalid OTP: ${e.message}")
-                    }
-                }
-            }
-            .show()
-    }
-
-    private fun showCardSelection(session: ClickToPaySession, errorMessage: String? = "") {
-        val cards = recognizedCards ?: return
-        updateResultText("✓ Found ${cards.size} card(s)\nSelect a card to checkout")
-
-        AlertDialog.Builder(this)
-            .setTitle(errorMessage ?: "Select Card")
-            .setItems(cards.map { "**** ${it.panLastFour}" }.toTypedArray()) { _, which ->
-                checkout(session, cards[which])
-            }
-            .show()
-    }
-
-    private fun checkout(
-        session: io.hyperswitch.click_to_pay.ClickToPaySession,
-        card: RecognizedCard
-    ) {
+    private fun initC2PSession(){
         lifecycleScope.launch {
             try {
-                updateResultText("Processing payment...")
-                val response =
-                    session.checkoutWithCard(CheckoutRequest(card.srcDigitalCardId, false))
-
-                if (response?.status == AuthenticationStatus.SUCCESS) {
-
-                    when (val vault = response.vaultTokenData) {
-                        is PaymentData.CardData -> {
-                            println("Card number: ${vault.cardNumber}")
-                        }
-
-                        is PaymentData.NetworkTokenData -> {
-                            println("Network token: ${vault.networkToken}")
-                        }
-
-                        null -> {
-                            println("No vault token data")
-                        }
-                    }
-
-                    updateResultText(
-                        "✓ Payment Successful!\n\nCard: **** ${card.panLastFour}\n" +
-                                "Amount: ${response.amount} ${response.currency}\nStatus: ${response.transStatus}"
-                    )
-                    Toast.makeText(
-                        this@ClickToPayExample2,
-                        "Payment completed!",
-                        Toast.LENGTH_SHORT
-                    )
-                        .show()
-
-                } else {
-                    showError("Payment failed")
-                    signOut.visibility = INVISIBLE
+                val session = authSession ?: run {
+                    showError("No auth session. Call Init Auth Session first.")
+                    return@launch
                 }
-            } catch (e: ClickToPayException) {
-                if (e.type == ClickToPayErrorType.CHANGE_CARD) {
-                    Toast.makeText(
-                        this@ClickToPayExample2,
-                        "You should not change card",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    showCardSelection(session, "You cannot change card, Select card")
-                } else if (e.type == ClickToPayErrorType.SWITCH_CONSUMER) {
-                    Toast.makeText(
-                        this@ClickToPayExample2,
-                        "You should not change user",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    showCardSelection(session, "You cannot change user, select card")
-                } else {
-                    showError("Checkout error: ${e.reason}")
-                    signOut.visibility = INVISIBLE
-                }
-            } finally {
-                btnStart.isEnabled = true
-            }
-        }
-    }
-
-    private fun signOut(session: ClickToPaySession) {
-        lifecycleScope.launch {
-            try {
-                val response = session.signOut()
-                if (response.recognized == false) {
-                    signOut.visibility = INVISIBLE
-                    updateResultText(response.toString())
-                }
+                val start = System.currentTimeMillis()
+                clickToPaySession = session.initClickToPaySession()
+                updateResultText("✓ C2P session initialize success")
             } catch (e: Exception) {
-                showError("Cannot signout")
+                showError("${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun getActiveC2PSession() {
+        lifecycleScope.launch {
+            try {
+                val session = authSession ?: run {
+                    showError("No auth session. Call Init Auth Session first.")
+                    return@launch
+                }
+                val start = System.currentTimeMillis()
+                clickToPaySession = session.getActiveClickToPaySession(this@ClickToPayExample2)
+                updateResultText("✓ Active C2P session obtained")
+            } catch (e: Exception) {
+                showError("${e.message}")
+                e.printStackTrace()
             }
         }
     }
@@ -342,32 +450,6 @@ class ClickToPayExample2 : AppCompatActivity() {
     private fun showError(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
         updateResultText("Error: $message")
-    }
-
-    private fun closeSession() {
-        lifecycleScope.launch {
-            try {
-                clickToPaySession?.let { session ->
-                    updateResultText("Closing session...")
-                    session.close()
-                    clickToPaySession = null
-                    recognizedCards = null
-                    signOut.visibility = INVISIBLE
-                    btnClose.visibility = INVISIBLE
-                    btnStart.isEnabled = true
-                    updateResultText("✓ Session closed successfully\n\nClick 'Start Click to Pay Flow' to begin again")
-                    Toast.makeText(this@ClickToPayExample2, "Session closed", Toast.LENGTH_SHORT)
-                        .show()
-                } ?: run {
-                    updateResultText("No active session to close")
-                    Toast.makeText(this@ClickToPayExample2, "No active session", Toast.LENGTH_SHORT)
-                        .show()
-                }
-            } catch (e: Exception) {
-                showError("Failed to close session: ${e.message}")
-                e.printStackTrace()
-            }
-        }
     }
 
     private fun updateResultText(text: String) {

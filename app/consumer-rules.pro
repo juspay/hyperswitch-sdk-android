@@ -1,4 +1,7 @@
 -keep class com.reactnativehyperswitchscancard.**  { *; }
 -keep class com.reactnativehyperswitchnetcetera3ds.** { *; }
+-keep class com.juspaytech.reactnativehyperswitchpaypal.** { *; }
+-keep class com.proyecto26.inappbrowser.** { *; }
 -keep class io.sentry.react.** { *; }
+-keep class com.horcrux.svg.** { *; }
 -dontwarn com.horcrux.svg.**

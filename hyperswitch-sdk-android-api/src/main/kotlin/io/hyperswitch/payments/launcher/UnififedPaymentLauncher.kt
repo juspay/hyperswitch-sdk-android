@@ -34,7 +34,7 @@ class UnifiedPaymentLauncher private constructor(
         val map = mutableMapOf<String, String?>()
         val paymentConfiguration = PaymentConfiguration.getInstance(activity)
         map["publishableKey"] = paymentConfiguration.publishableKey
-        map["stripeAccountId"] = paymentConfiguration.stripeAccountId
+        map["profileId"] = paymentConfiguration.profileId
         map["clientSecret"] = params[0].toString()
         map["paymentMethodData"] = params[1].toString()
         map["paymentMethodType"] = PaymentMethod.CARD.apiValue

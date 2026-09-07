@@ -184,7 +184,40 @@ class PaymentSheet internal constructor(
         /**
          * Configuration for wallet visibility and button styling.
          */
-        val wallets: WalletConfiguration? = null
+        val wallets: WalletConfiguration? = null,
+
+        /** Whether to display the confirm/pay button. */
+        val displayPayButton: Boolean? = null,
+
+        /** Whether to keep the pay button always visible (sticky). */
+        val stickyPayButton: Boolean? = null,
+
+        /** Whether to preload the card element before the sheet is opened. */
+        val preloadCardElement: Boolean? = null,
+
+        /** Controls visibility of redirection info. */
+        val redirectionInfo: Visibility? = null,
+
+        /** Always send customer acceptance data when confirming. */
+        val alwaysSendCustomerAcceptance: Boolean? = null,
+
+        /** Automatically open the card scanner when the card form is shown. */
+        val opensCardScannerAutomatically: Boolean? = null,
+
+        /** Ordered list of payment method identifiers to display. */
+        val paymentMethodOrder: List<String>? = null,
+
+        /** Per-payment-method message overrides. */
+        val paymentMethodsConfig: List<PaymentMethodConfig>? = null,
+
+        /** Layout configuration for the payment method list. */
+        val paymentMethodLayout: PaymentMethodLayout? = null,
+
+        /** Whether to split card number, expiry, and CVC into separate input fields. */
+        val splitCardFields: Boolean? = null,
+
+        /** Whether to hide the card nickname input field regardless of the mandate/save-card state. */
+        val hideCardNicknameField: Boolean? = null,
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -192,7 +225,7 @@ class PaymentSheet internal constructor(
                     putString("merchantDisplayName", merchantDisplayName)
                     putBundle("customer", customer?.bundle)
                     putBundle("googlePay", googlePay?.bundle)
-                    putBundle("defaultBillingDetails", defaultBillingDetails?.bundle)
+                    putBundle("billingDetails", defaultBillingDetails?.bundle)
                     putBundle("shippingDetails", shippingDetails?.bundle)
                     putBoolean("allowsDelayedPaymentMethods", allowsDelayedPaymentMethods)
                     putBoolean(
@@ -215,7 +248,7 @@ class PaymentSheet internal constructor(
                     if (displaySavedPaymentMethods != null) {
                         putBoolean("displaySavedPaymentMethods", displaySavedPaymentMethods)
                     }
-                    putBundle("placeHolder", placeHolder?.bundle)
+                    putBundle("placeholder", placeHolder?.bundle)
                     if (hideConfirmButton != null){
                         putBoolean("hideConfirmButton", hideConfirmButton)
                     }
@@ -227,7 +260,22 @@ class PaymentSheet internal constructor(
                         putBoolean("defaultView", defaultView)
                     }
                     putBoolean("showVersionInfo", showVersionInfo)
-                    putBundle("wallets", wallets?.bundle)
+                    putBundle("walletButtonsConfiguration", wallets?.bundle)
+                    putString("locale", appearance?.locale)
+                    if (displayPayButton != null) putBoolean("displayPayButton", displayPayButton)
+                    if (stickyPayButton != null) putBoolean("stickyPayButton", stickyPayButton)
+                    if (preloadCardElement != null) putBoolean("preloadCardElement", preloadCardElement)
+                    putString("redirectionInfo", redirectionInfo?.value)
+                    if (alwaysSendCustomerAcceptance != null) putBoolean("alwaysSendCustomerAcceptance", alwaysSendCustomerAcceptance)
+                    if (opensCardScannerAutomatically != null) putBoolean("opensCardScannerAutomatically", opensCardScannerAutomatically)
+                    paymentMethodOrder?.let { putStringArrayList("paymentMethodOrder", ArrayList(it)) }
+                    paymentMethodsConfig?.let { configs ->
+                        val arr = ArrayList(configs.map { it.bundle })
+                        putParcelableArrayList("paymentMethodsConfig", arr)
+                    }
+                    putBundle("paymentMethodLayout", paymentMethodLayout?.bundle)
+                    if (splitCardFields != null) putBoolean("splitCardFields", splitCardFields)
+                    if (hideCardNicknameField != null) putBoolean("hideCardNicknameField", hideCardNicknameField)
                 }
             }
 
@@ -258,6 +306,17 @@ class PaymentSheet internal constructor(
             private var netceteraSDKApiKey: String? = null
             private var showVersionInfo : Boolean = false
             private var wallets: WalletConfiguration? = null
+            private var displayPayButton: Boolean? = null
+            private var stickyPayButton: Boolean? = null
+            private var preloadCardElement: Boolean? = null
+            private var redirectionInfo: Visibility? = null
+            private var alwaysSendCustomerAcceptance: Boolean? = null
+            private var opensCardScannerAutomatically: Boolean? = null
+            private var paymentMethodOrder: List<String>? = null
+            private var paymentMethodsConfig: List<PaymentMethodConfig>? = null
+            private var paymentMethodLayout: PaymentMethodLayout? = null
+            private var splitCardFields: Boolean? = null
+            private var hideCardNicknameField: Boolean? = null
             fun merchantDisplayName(merchantDisplayName: String) =
                 apply { this.merchantDisplayName = merchantDisplayName }
 
@@ -336,6 +395,39 @@ class PaymentSheet internal constructor(
             fun wallets(wallets: WalletConfiguration?) =
                 apply { this.wallets = wallets }
 
+            fun displayPayButton(displayPayButton: Boolean) =
+                apply { this.displayPayButton = displayPayButton }
+
+            fun stickyPayButton(stickyPayButton: Boolean) =
+                apply { this.stickyPayButton = stickyPayButton }
+
+            fun preloadCardElement(preloadCardElement: Boolean) =
+                apply { this.preloadCardElement = preloadCardElement }
+
+            fun redirectionInfo(redirectionInfo: Visibility) =
+                apply { this.redirectionInfo = redirectionInfo }
+
+            fun alwaysSendCustomerAcceptance(alwaysSendCustomerAcceptance: Boolean) =
+                apply { this.alwaysSendCustomerAcceptance = alwaysSendCustomerAcceptance }
+
+            fun opensCardScannerAutomatically(opensCardScannerAutomatically: Boolean) =
+                apply { this.opensCardScannerAutomatically = opensCardScannerAutomatically }
+
+            fun paymentMethodOrder(paymentMethodOrder: List<String>) =
+                apply { this.paymentMethodOrder = paymentMethodOrder }
+
+            fun paymentMethodsConfig(paymentMethodsConfig: List<PaymentMethodConfig>) =
+                apply { this.paymentMethodsConfig = paymentMethodsConfig }
+
+            fun paymentMethodLayout(paymentMethodLayout: PaymentMethodLayout) =
+                apply { this.paymentMethodLayout = paymentMethodLayout }
+
+            fun splitCardFields(splitCardFields: Boolean) =
+                apply { this.splitCardFields = splitCardFields }
+
+            fun hideCardNicknameField(hideCardNicknameField: Boolean) =
+                apply { this.hideCardNicknameField = hideCardNicknameField }
+
             fun build() = Configuration(
                 merchantDisplayName,
                 customer,
@@ -358,7 +450,18 @@ class PaymentSheet internal constructor(
                 disableBranding,
                 defaultView,
                 showVersionInfo,
-                wallets
+                wallets,
+                displayPayButton,
+                stickyPayButton,
+                preloadCardElement,
+                redirectionInfo,
+                alwaysSendCustomerAcceptance,
+                opensCardScannerAutomatically,
+                paymentMethodOrder,
+                paymentMethodsConfig,
+                paymentMethodLayout,
+                splitCardFields,
+                hideCardNicknameField,
             )
         }
     }
@@ -397,12 +500,13 @@ class PaymentSheet internal constructor(
         val bundle: Bundle
             get() {
                 return Bundle().apply {
-                    putBundle("colorsLight", colorsLight?.bundle)
-                    putBundle("colorsDark", colorsDark?.bundle)
+                    putBundle("colors", Bundle().apply {
+                        putBundle("light", colorsLight?.bundle)
+                        putBundle("dark", colorsDark?.bundle)
+                    })
                     putBundle("shapes", shapes?.bundle)
-                    putBundle("typography", typography?.bundle)
+                    putBundle("font", typography?.bundle)
                     putBundle("primaryButton", primaryButton?.bundle)
-                    putString("locale", locale)
                     putString("theme", theme?.name)
                 }
             }
@@ -507,24 +611,67 @@ class PaymentSheet internal constructor(
          * A color used to indicate Loader Foreground color in PaymentSheet.
          */
         @ColorInt
-        val loaderForeground: Int? = null
+        val loaderForeground: Int? = null,
+
+        /**
+         * The background color of the selected component.
+         */
+        @ColorInt
+        val selectedComponentBackground: Int? = null,
+
+        /**
+         * The border color of the selected component.
+         */
+        @ColorInt
+        val selectedComponentBorder: Int? = null,
+
+        /**
+         * The border width of the selected component (in dp).
+         */
+        val selectedComponentBorderWidth: Float? = null,
+
+        /**
+         * The divider color of the selected component.
+         */
+        @ColorInt
+        val selectedComponentDivider: Int? = null,
+
+        /**
+         * The text color of the selected component.
+         */
+        @ColorInt
+        val selectedComponentText: Int? = null,
+
+        /**
+         * The color used for the payment sheet overlay/scrim.
+         */
+        @ColorInt
+        val overlay: Int? = null,
     ) : Parcelable {
         val bundle: Bundle
             get() {
                 return Bundle().apply {
                     putString("primary", toHexColorString(primary))
-                    putString("surface", toHexColorString(surface))
-                    putString("component", toHexColorString(component))
+                    putString("background", toHexColorString(surface))
+                    putString("componentBackground", toHexColorString(component))
                     putString("componentBorder", toHexColorString(componentBorder))
                     putString("componentDivider", toHexColorString(componentDivider))
-                    putString("onComponent", toHexColorString(onComponent))
-                    putString("onSurface", toHexColorString(onSurface))
-                    putString("subtitle", toHexColorString(subtitle))
+                    putString("componentText", toHexColorString(onComponent))
+                    putString("primaryText", toHexColorString(onSurface))
+                    putString("secondaryText", toHexColorString(subtitle))
                     putString("placeholderText", toHexColorString(placeholderText))
-                    putString("appBarIcon", toHexColorString(appBarIcon))
+                    putString("icon", toHexColorString(appBarIcon))
                     putString("error", toHexColorString(error))
                     putString("loaderBackground", toHexColorString(loaderBackground))
                     putString("loaderForeground", toHexColorString(loaderForeground))
+                    putString("selectedComponentBackground", toHexColorString(selectedComponentBackground))
+                    putString("selectedComponentBorder", toHexColorString(selectedComponentBorder))
+                    if (selectedComponentBorderWidth != null) {
+                        putFloat("selectedComponentBorderWidth", selectedComponentBorderWidth)
+                    }
+                    putString("selectedComponentDivider", toHexColorString(selectedComponentDivider))
+                    putString("selectedComponentText", toHexColorString(selectedComponentText))
+                    putString("overlay", toHexColorString(overlay))
                 }
             }
 
@@ -619,18 +766,30 @@ class PaymentSheet internal constructor(
         /**
          * The shadow used for inputs, tabs, and other components in PaymentSheet.
          */
-        val shadow: Shadow?
+        val shadow: Shadow?,
+
+        /**
+         * The height of text input fields (in dp).
+         */
+        val inputHeight: Float? = null,
+
+        /**
+         * The gap/spacing between components (in dp).
+         */
+        val gap: Float? = null,
     ) : Parcelable {
         val bundle: Bundle
             get() {
                 return Bundle().apply {
                     if (cornerRadiusDp != null) {
-                        putFloat("cornerRadiusDp", cornerRadiusDp)
+                        putFloat("borderRadius", cornerRadiusDp)
                     }
                     if (borderStrokeWidthDp != null) {
-                        putFloat("borderStrokeWidthDp", borderStrokeWidthDp)
+                        putFloat("borderWidth", borderStrokeWidthDp)
                     }
                     putBundle("shadow", shadow?.bundle)
+                    if (inputHeight != null) putFloat("inputHeight", inputHeight)
+                    if (gap != null) putFloat("gap", gap)
                 }
             }
     }
@@ -658,7 +817,7 @@ class PaymentSheet internal constructor(
             get() {
                 return Bundle().apply {
                     if (sizeScaleFactor != null) {
-                        putFloat("sizeScaleFactor", sizeScaleFactor)
+                        putFloat("scale", sizeScaleFactor)
                     }
                     if (fontResId != null) {
                         putInt("fontResId", fontResId)
@@ -687,15 +846,22 @@ class PaymentSheet internal constructor(
         /**
          * Describes the typography of the primary button.
          */
-        val typography: PrimaryButtonTypography? = null
+        val typography: PrimaryButtonTypography? = null,
+        /**
+         * The height of the primary button in dp.
+         */
+        val heightDp: Float? = null
     ) : Parcelable {
         val bundle: Bundle
             get() {
                 return Bundle().apply {
-                    putBundle("colorsLight", colorsLight?.bundle)
-                    putBundle("colorsDark", colorsDark?.bundle)
-                    putBundle("shape", shape?.bundle)
+                    putBundle("colors", Bundle().apply {
+                        putBundle("light", colorsLight?.bundle)
+                        putBundle("dark", colorsDark?.bundle)
+                    })
+                    putBundle("shapes", shape?.bundle)
                     putBundle("typography", typography?.bundle)
+                    if (heightDp != null) putFloat("height", heightDp)
                 }
             }
     }
@@ -722,17 +888,17 @@ class PaymentSheet internal constructor(
         val bundle: Bundle
             get() {
                 return Bundle().apply {
-                    if (background != null) {
-                        putInt("background", background)
-                    }
-                    if (onBackground != null) {
-                        putInt("onBackground", onBackground)
-                    }
-                    if (border != null) {
-                        putInt("border", border)
-                    }
+                    putString("background", toHexColorString(background))
+                    putString("text", toHexColorString(onBackground))
+                    putString("border", toHexColorString(border))
                 }
             }
+
+        private fun toHexColorString(color: Int?): String? {
+            if (color == null) return null
+            val s = String.format("#%08X", (color))
+            return "#" + s.substring(3) + s.substring(1, 3)
+        }
 
         @RequiresApi(Build.VERSION_CODES.O)
         constructor(
@@ -768,10 +934,10 @@ class PaymentSheet internal constructor(
             get() {
                 return Bundle().apply {
                     if (cornerRadiusDp != null) {
-                        putFloat("cornerRadiusDp", cornerRadiusDp)
+                        putFloat("borderRadius", cornerRadiusDp)
                     }
                     if (borderStrokeWidthDp != null) {
-                        putFloat("borderStrokeWidthDp", borderStrokeWidthDp)
+                        putFloat("borderWidth", borderStrokeWidthDp)
                     }
                     putBundle("shadow", shadow?.bundle)
                 }
@@ -889,17 +1055,31 @@ class PaymentSheet internal constructor(
          */
         val name: String? = null,
         /**
-         * The customer's phone number without formatting e.g. 5551234567
+         * The customer's phone number country code (e.g. "+1").
          */
+        val phoneCode: String? = null,
+        /**
+         * The customer's phone number without formatting e.g. 5551234567.
+         */
+        val phoneNumber: String? = null,
+        /**
+         * @deprecated Use phoneNumber instead.
+         */
+        @Deprecated("Use phoneNumber instead")
         val phone: String? = null
     ) : Parcelable {
         val bundle: Bundle
             get() {
                 return Bundle().apply {
-                    putBundle("address", address?.bundle) // Assuming Address implements Parcelable
+                    putBundle("address", address?.bundle)
                     putString("email", email)
                     putString("name", name)
-                    putString("phone", phone)
+                    if (phoneNumber != null || phoneCode != null) {
+                        putBundle("phone", Bundle().apply {
+                            putString("number", phoneNumber)
+                            putString("code", phoneCode)
+                        })
+                    }
                 }
             }
 
@@ -910,7 +1090,8 @@ class PaymentSheet internal constructor(
             private var address: Address? = null
             private var email: String? = null
             private var name: String? = null
-            private var phone: String? = null
+            private var phoneCode: String? = null
+            private var phoneNumber: String? = null
 
             fun address(address: Address?) = apply { this.address = address }
             fun address(addressBuilder: Address.Builder) =
@@ -918,9 +1099,14 @@ class PaymentSheet internal constructor(
 
             fun email(email: String?) = apply { this.email = email }
             fun name(name: String?) = apply { this.name = name }
-            fun phone(phone: String?) = apply { this.phone = phone }
+            fun phoneCode(phoneCode: String?) = apply { this.phoneCode = phoneCode }
+            fun phoneNumber(phoneNumber: String?) = apply { this.phoneNumber = phoneNumber }
 
-            fun build() = BillingDetails(address, email, name, phone)
+            /** @deprecated Use phoneNumber/phoneCode instead. */
+            @Deprecated("Use phoneNumber/phoneCode instead")
+            fun phone(phone: String?) = apply { this.phoneNumber = phone }
+
+            fun build() = BillingDetails(address, email, name, phoneCode, phoneNumber)
         }
     }
 
@@ -986,25 +1172,43 @@ class PaymentSheet internal constructor(
     }
 
     /**
-     * Configuration for wallet button styling.
-     */
-    /**
      * Controls whether a wallet payment method is shown.
      */
-    enum class WalletShowType(val value: String) {
+    enum class Visibility(val value: String) {
         /** Show the wallet when available (default). */
-        Auto("auto"),
+        Auto("shown"),
         /** Never show the wallet. */
-        Never("never")
+        Never("hidden")
     }
 
     /**
-     * Wallet button theme.
+     * Visibility options for the card brand icon in payment inputs.
      */
-    enum class WalletTheme(val value: String) {
-        Dark("dark"),
-        Light("light"),
-        Outline("outline")
+    enum class CardBrandVisibility(val value: String) {
+        Hidden("hidden"),
+        Animated("animated"),
+        Standard("standard"),
+        HideGeneric("hideGeneric")
+    }
+
+    /**
+     * Layout type for the payment method list.
+     */
+    enum class LayoutType(val value: String) {
+        /** Accordion (expandable list) layout. */
+        Accordion("accordion"),
+        /** Tabs layout. */
+        Tabs("tabs")
+    }
+
+    /**
+     * Arrangement of payment methods in the tabs layout.
+     */
+    enum class PaymentMethodsArrangement(val value: String) {
+        /** Default (list) arrangement. */
+        Default("default"),
+        /** Grid arrangement. */
+        Grid("grid")
     }
 
     /**
@@ -1023,86 +1227,156 @@ class PaymentSheet internal constructor(
     }
 
     /**
-     * PayPal button type.
+     * Google Pay button style — maps to the system color scheme in which the button will appear.
+     * `Light` = use the light-themed button; `Dark` = use the dark-themed button.
      */
-    enum class PaypalButtonType(val value: String) {
-        Paypal("paypal"),
-        Checkout("checkout"),
-        Buynow("buynow"),
-        Pay("pay"),
-        Installment("installment")
+    enum class GooglePayButtonStyle(val value: String) {
+        Light("light"),
+        Dark("dark")
     }
 
     /**
-     * Samsung Pay button type.
+     * Apple Pay button type.
+     * Note: Apple Pay is not supported on Android. This type is kept for API compatibility
+     * with shared configuration code only; it has no effect at runtime.
      */
-    enum class SamsungPayButtonType(val value: String) {
-        Buy("buy")
+    @Deprecated("Apple Pay is not supported on Android")
+    enum class ApplePayButtonType(val value: String) {
+        Plain("plain"),
+        Buy("buy"),
+        SetUp("setUp"),
+        InStore("inStore"),
+        Donate("donate"),
+        Checkout("checkout"),
+        Book("book"),
+        Subscribe("subscribe"),
+        Reload("reload"),
+        AddMoney("addMoney"),
+        TopUp("topUp"),
+        Order("order"),
+        Rent("rent"),
+        Support("support"),
+        Contribute("contribute"),
+        Tip("tip")
     }
 
+    /**
+     * Apple Pay button style.
+     * Note: Apple Pay is not supported on Android. This type is kept for API compatibility only.
+     */
+    @Deprecated("Apple Pay is not supported on Android")
+    enum class ApplePayButtonStyle(val value: String) {
+        White("white"),
+        WhiteOutline("whiteOutline"),
+        Black("black")
+    }
+
+    /**
+     * Per-wallet configuration for Apple Pay.
+     * Note: Apple Pay is not supported on Android. This class is kept for API compatibility
+     * with shared (cross-platform) configuration code only; it is ignored at runtime.
+     */
+    @Deprecated("Apple Pay is not supported on Android")
     @Parcelize
-    data class WalletStyle @JvmOverloads constructor(
-        /** Apple Pay button type string (iOS only, ignored on Android). E.g. "plain", "buy", "setUp". */
-        val applePayType: String? = null,
-        /** Google Pay button type. */
-        val googlePayType: GooglePayButtonType? = null,
-        /** PayPal button type. */
-        val paypalType: PaypalButtonType? = null,
-        /** Samsung Pay button type. */
-        val samsungPayType: SamsungPayButtonType? = null,
-        /** Wallet button theme. */
-        val theme: WalletTheme? = null,
-        /** Wallet button height in dp. Default 48. */
-        val height: Int? = null,
-        /** Wallet button corner radius in dp. Default 2. */
-        val buttonRadius: Int? = null
+    data class ApplePayWalletConfig @JvmOverloads constructor(
+        val visibility: Visibility = Visibility.Auto,
+        @Suppress("DEPRECATION") val buttonType: ApplePayButtonType = ApplePayButtonType.Plain,
+        @Suppress("DEPRECATION") val buttonStyleLight: ApplePayButtonStyle = ApplePayButtonStyle.Black,
+        @Suppress("DEPRECATION") val buttonStyleDark: ApplePayButtonStyle = ApplePayButtonStyle.White,
+    ) : Parcelable
+
+    /**
+     * PayPal button type.
+     */
+    enum class PaypalButtonType(val value: String) {
+        Paypal("PAYPAL"),
+        Checkout("CHECKOUT"),
+        BuyNow("BUY_NOW"),
+        Pay("PAY")
+    }
+
+    /**
+     * PayPal button style.
+     */
+    enum class PayPalButtonStyle(val value: String) {
+        Gold("GOLD"),
+        Blue("BLUE"),
+        White("WHITE"),
+        Black("BLACK"),
+        Silver("SILVER")
+    }
+
+    /**
+     * PayPal button size.
+     */
+    enum class PayPalButtonSize(val value: String) {
+        Small("small"),
+        Medium("medium"),
+        Large("large")
+    }
+
+    /**
+     * Per-wallet configuration for Google Pay.
+     */
+    @Parcelize
+    data class GooglePayWalletConfig @JvmOverloads constructor(
+        val visibility: Visibility = Visibility.Auto,
+        val buttonType: GooglePayButtonType = GooglePayButtonType.PAY,
+        /** Button style used when the system is in light mode. */
+        val buttonStyleLight: GooglePayButtonStyle = GooglePayButtonStyle.Dark,
+        /** Button style used when the system is in dark mode. */
+        val buttonStyleDark: GooglePayButtonStyle = GooglePayButtonStyle.Dark,
     ) : Parcelable {
         val bundle: Bundle
-            get() {
-                return Bundle().apply {
-                    putString("applePayType", applePayType)
-                    putString("googlePayType", googlePayType?.value)
-                    putString("paypalType", paypalType?.value)
-                    putString("samsungPayType", samsungPayType?.value)
-                    putString("theme", theme?.value)
-                    if (height != null) putInt("height", height)
-                    if (buttonRadius != null) putInt("buttonRadius", buttonRadius)
-                }
+            get() = Bundle().apply {
+                putString("visibility", visibility.value)
+                putString("buttonType", buttonType.value)
+                putBundle("buttonStyle", Bundle().apply {
+                    putString("light", buttonStyleLight.value)
+                    putString("dark", buttonStyleDark.value)
+                })
             }
     }
 
     /**
-     * Configuration for wallet visibility and styling.
-     * Controls which wallets are shown and how their buttons appear.
+     * Per-wallet configuration for PayPal.
+     */
+    @Parcelize
+    data class PayPalWalletConfig @JvmOverloads constructor(
+        val visibility: Visibility = Visibility.Auto,
+        val buttonType: PaypalButtonType = PaypalButtonType.Paypal,
+        /** Button style used when the system is in light mode. */
+        val buttonStyleLight: PayPalButtonStyle = PayPalButtonStyle.Gold,
+        /** Button style used when the system is in dark mode. */
+        val buttonStyleDark: PayPalButtonStyle = PayPalButtonStyle.Blue,
+        val buttonSize: PayPalButtonSize = PayPalButtonSize.Medium,
+    ) : Parcelable {
+        val bundle: Bundle
+            get() = Bundle().apply {
+                putString("visibility", visibility.value)
+                putString("buttonType", buttonType.value)
+                putBundle("buttonStyle", Bundle().apply {
+                    putString("light", buttonStyleLight.value)
+                    putString("dark", buttonStyleDark.value)
+                })
+                putString("buttonSize", buttonSize.value)
+            }
+    }
+
+    /**
+     * Configuration for wallet button visibility and styling.
+     * Each wallet can be configured independently.
+     * Note: Apple Pay is not supported on Android and is excluded from this configuration.
      */
     @Parcelize
     data class WalletConfiguration @JvmOverloads constructor(
-        /** Apple Pay visibility. */
-        val applePay: WalletShowType? = null,
-        /** Google Pay visibility. */
-        val googlePay: WalletShowType? = null,
-        /** PayPal visibility. */
-        val payPal: WalletShowType? = null,
-        /** Klarna visibility. */
-        val klarna: WalletShowType? = null,
-        /** Paze visibility. */
-        val paze: WalletShowType? = null,
-        /** Samsung Pay visibility. */
-        val samsungPay: WalletShowType? = null,
-        /** Wallet button style configuration. */
-        val style: WalletStyle? = null
+        val googlePay: GooglePayWalletConfig? = null,
+        val payPal: PayPalWalletConfig? = null,
     ) : Parcelable {
         val bundle: Bundle
-            get() {
-                return Bundle().apply {
-                    putString("applePay", applePay?.value)
-                    putString("googlePay", googlePay?.value)
-                    putString("payPal", payPal?.value)
-                    putString("klarna", klarna?.value)
-                    putString("paze", paze?.value)
-                    putString("samsungPay", samsungPay?.value)
-                    putBundle("style", style?.bundle)
-                }
+            get() = Bundle().apply {
+                putBundle("googlePay", (googlePay ?: GooglePayWalletConfig()).bundle)
+                putBundle("payPal", (payPal ?: PayPalWalletConfig()).bundle)
             }
     }
 
@@ -1128,6 +1402,115 @@ class PaymentSheet internal constructor(
         FlatMinimal,
         Minimal,
         Default,
+        Brutal,
+        Glass,
+        Skeu,
+        Clay,
+        Charcoal,
+        Soft,
+    }
+
+    /**
+     * Configuration for a specific payment method message override.
+     */
+    @Parcelize
+    data class PaymentMethodConfig(
+        /** The payment method identifier, e.g. "card", "wallet". */
+        val paymentMethod: String,
+        /** Optional custom message to display for this payment method. */
+        val message: String? = null
+    ) : Parcelable {
+        val bundle: Bundle
+            get() = Bundle().apply {
+                putString("paymentMethod", paymentMethod)
+                putString("message", message)
+            }
+    }
+
+    /**
+     * Grouping behaviour for saved payment methods in the accordion layout.
+     */
+    @Parcelize
+    data class GroupingBehavior(
+        val displayInSeparateScreen: Boolean? = null,
+        val displayInSeparateSection: Boolean? = null,
+        val groupByPaymentMethods: Boolean? = null
+    ) : Parcelable {
+        val bundle: Bundle
+            get() = Bundle().apply {
+                if (displayInSeparateScreen != null) putBoolean("displayInSeparateScreen", displayInSeparateScreen)
+                if (displayInSeparateSection != null) putBoolean("displayInSeparateSection", displayInSeparateSection)
+                if (groupByPaymentMethods != null) putBoolean("groupByPaymentMethods", groupByPaymentMethods)
+            }
+    }
+
+    /**
+     * Customisation options for the saved payment methods section.
+     */
+    @Parcelize
+    data class SavedMethodCustomization(
+        val defaultCollapsed: Boolean? = null,
+        val hideCardExpiry: Boolean? = null,
+        val hideCVCError: Boolean? = null,
+        val cvcIcon: Visibility? = null,
+        val groupingBehavior: GroupingBehavior? = null,
+        val hiddenPaymentMethods: List<String>? = null,
+    ) : Parcelable {
+        val bundle: Bundle
+            get() = Bundle().apply {
+                if (defaultCollapsed != null) putBoolean("defaultCollapsed", defaultCollapsed)
+                if (hideCardExpiry != null) putBoolean("hideCardExpiry", hideCardExpiry)
+                if (hideCVCError != null) putBoolean("hideCVCError", hideCVCError)
+                putString("cvcIcon", cvcIcon?.value)
+                putBundle("groupingBehavior", groupingBehavior?.bundle)
+                hiddenPaymentMethods?.let {
+                    putStringArrayList("hiddenPaymentMethods", ArrayList(it))
+                }
+            }
+    }
+
+    /**
+     * Layout configuration for the payment method list.
+     */
+    @Parcelize
+    data class PaymentMethodLayout(
+        val type: LayoutType? = null,
+        val radios: Boolean? = null,
+        val maxAccordionItems: Int? = null,
+        val spacedAccordionItems: Boolean? = null,
+        val defaultCollapsed: Boolean? = null,
+        /** Whether to show one-click wallets at the top of the list (default: true). */
+        val showOneClickWalletsOnTop: Boolean? = null,
+        /** Arrangement of payment methods in the tabs layout. */
+        val paymentMethodsArrangementForTabs: PaymentMethodsArrangement? = null,
+        val savedMethodCustomization: SavedMethodCustomization? = null,
+        /** Controls visibility of the CVC icon in card inputs. */
+        val cvcIcon: Visibility? = null,
+        /** Controls visibility/style of the card brand icon in card inputs. */
+        val cardBrandIcon: CardBrandVisibility? = null,
+        /** Whether to show a checked icon on selected payment methods. */
+        val showCheckedIconForSelection: Boolean? = null,
+        /**
+         * Text shown on the separator between the wallet buttons and the remaining
+         * payment methods. Defaults to the localised "Or pay using".
+         */
+        val separatorText: String? = null,
+    ) : Parcelable {
+        val bundle: Bundle
+            get() = Bundle().apply {
+                putString("type", type?.value)
+                if (radios != null) putBoolean("radios", radios)
+                if (maxAccordionItems != null) putInt("maxAccordionItems", maxAccordionItems)
+                if (spacedAccordionItems != null) putBoolean("spacedAccordionItems", spacedAccordionItems)
+                if (defaultCollapsed != null) putBoolean("defaultCollapsed", defaultCollapsed)
+                if (showOneClickWalletsOnTop != null) putBoolean("showOneClickWalletsOnTop", showOneClickWalletsOnTop)
+                putString("paymentMethodsArrangementForTabs", paymentMethodsArrangementForTabs?.value)
+                putBundle("savedMethodCustomization", savedMethodCustomization?.bundle)
+                putString("cvcIcon", cvcIcon?.value)
+                putString("cardBrandIcon", cardBrandIcon?.value)
+                if (showCheckedIconForSelection != null) putBoolean("showCheckedIconForSelection", showCheckedIconForSelection)
+                putString("separatorText", separatorText)
+            }
     }
 
     /**
