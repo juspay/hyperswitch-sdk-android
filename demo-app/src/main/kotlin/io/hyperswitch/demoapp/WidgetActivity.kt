@@ -144,7 +144,7 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                 throw Exception("Failed to work out payment method type")
             }
             cvcWidgetBound = elements?.bind(cvcWidget) {
-                on(CvcWidgetEvents.CvcStatus) {
+                on(CvcWidgetEvents.CvcStatusChange) {
                     println(it)
                 }
             }

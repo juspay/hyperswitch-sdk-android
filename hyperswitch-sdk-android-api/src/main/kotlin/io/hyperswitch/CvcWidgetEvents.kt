@@ -4,7 +4,7 @@ object CvcWidgetEvents {
 
     /**
      * CVC status event - emitted when CVC field state changes.
-     * Event type: "CVC_STATUS"
+     * Event type: "cvcStatusChange"
      * Payload: PaymentEventData.CvcStatus
      *
      * Fields:
@@ -12,5 +12,5 @@ object CvcWidgetEvents {
      * - isCvcBlur: Boolean              Whether the CVC field has lost focus
      * - isCvcEmpty: Boolean             Whether the CVC field is empty
      */
-    object CvcStatus : EventType("CVC_STATUS")
+    object CvcStatusChange : EventType("cvcStatusChange")
 }
