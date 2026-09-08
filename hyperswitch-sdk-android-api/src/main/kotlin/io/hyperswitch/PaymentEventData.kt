@@ -13,6 +13,7 @@ sealed class PaymentEventData() {
      * Matches the canonical cardDetailsChange structure exactly.
      *
      * @property bin                  First 6 digits of the card number, or null if fewer than 6 entered
+     * @property extendedBin          First 8 digits of the card number, or null if fewer than 8 entered
      * @property last4                Last 4 digits of the card number, or null if fewer than 4 entered
      * @property brand                Card network brand (e.g. "Visa", "Mastercard"), or null if unknown
      * @property expiryMonth          Two-digit expiry month (e.g. "01"), or null if not entered
@@ -26,6 +27,7 @@ sealed class PaymentEventData() {
      */
     data class CardInfo(
         val bin: String?,
+        val extendedBin: String?,
         val last4: String?,
         val brand: String?,
         val expiryMonth: String?,
@@ -41,6 +43,7 @@ sealed class PaymentEventData() {
         companion object {
             fun fromMap(map: Map<String, Any>): CardInfo = CardInfo(
                 bin = map["bin"] as? String,
+                extendedBin = map["extendedBin"] as? String,
                 last4 = map["last4"] as? String,
                 brand = map["brand"] as? String,
                 expiryMonth = map["expiryMonth"] as? String,

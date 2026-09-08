@@ -29,6 +29,7 @@ object PaymentEvents {
      *
      * Fields:
      * - bin?: String                    First 6 digits of card number
+     * - extendedBin?: String            First 8 digits of card number
      * - last4?: String                  Last 4 digits of card number
      * - brand?: String                  Card brand (Visa, Mastercard, Amex)
      * - expiryMonth?: String            Two-digit expiry month
