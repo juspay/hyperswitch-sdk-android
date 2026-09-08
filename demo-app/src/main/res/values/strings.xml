@@ -15,8 +15,8 @@
     <!-- Payment methods screen -->
     <string name="title_payment_methods_demo">Payment Methods Demo</string>
     <string name="section_card_form">Card Form</string>
-    <string name="btn_tokenise_card">Tokenise Card</string>
     <string name="btn_reload_instance">Reload Instance</string>
+    <string name="btn_tokenise">Tokenise</string>
 
     <!-- Widget screen -->
     <string name="title_widget_demo">Widget Demo</string>

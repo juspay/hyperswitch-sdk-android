@@ -1,12 +1,12 @@
 package io.hyperswitch.paymentmethods
 
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import com.facebook.react.bridge.Arguments
-import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.interfaces.fabric.ReactSurface
 import io.hyperswitch.paymentmethods.widget.BaseRNViewInput
+import io.hyperswitch.paymentsheet.PaymentSheet
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -21,6 +21,7 @@ import java.util.concurrent.CopyOnWriteArrayList
  */
 class CardForm internal constructor(
     internal val session: PaymentMethodSession,
+    private val appearance: PaymentSheet.Appearance? = null,
 ) {
 
     private val boundInputs = CopyOnWriteArrayList<BaseRNViewInput>()
@@ -42,10 +43,13 @@ class CardForm internal constructor(
      */
     private fun startFormSurface() {
         runCatching {
+            val configuration = appearance?.let {
+                Bundle().apply { putBundle("appearance", it.bundle) }
+            }
             val surface = session.reactHost.createSurface(
                 session.activity,
                 COMPONENT_NAME,
-                session.buildLaunchOptions(TYPE, null),
+                session.buildLaunchOptions(TYPE, configuration),
             )
             surface.start()
             formSurface = surface
@@ -56,8 +60,22 @@ class CardForm internal constructor(
     }
 
     /**
-     * Binds a single input widget to this card form — starts its internal React view
-     * (see [BaseRNViewInput.startInternalView]).
+     * Asks the JS side of this session's host to tokenize this card form.
+     *
+     * The event is addressed at this card form's (empty) surface — the JS-side
+     * card-form controller picks it up and performs tokenization for all bound
+     * fields via `cardForm.tokenize()`. The result travels back through
+     * `PaymentMethodModule.returnTokenResult` and is delivered to [onComplete];
+     * one tokenise may be in flight per form at a time.
+     */
+    fun tokenise(onComplete: (TokeniseResult) -> Unit = {}) {
+        val rootTag = formSurface?.surfaceID ?: -1
+        session.registerTokeniseCallback(rootTag) { raw -> onComplete(TokeniseResult.from(raw)) }
+        session.emitTokenise(rootTag)
+    }
+
+    /**
+     * Binds a single input widget to this card form — starts its internal React view.
      */
     fun bind(input: BaseRNViewInput): BaseRNViewInput = bind(listOf(input)).first()
 
@@ -86,44 +104,24 @@ class CardForm internal constructor(
         }
     }
 
-    /** All inputs currently bound to this card form. */
-    fun getBoundInputs(): List<BaseRNViewInput> = boundInputs.toList()
-
     /**
-     * Asks the JS side of this session's host to tokenize this card form.
+     * Stops every bound input's React view and the card form's empty surface.
      *
-     * The event is addressed at this card form's (empty) surface — the JS-side
-     * card-form controller picks it up and performs tokenisation for all bound
-     * fields via `cardForm.tokenize()`. The result travels back through the
-     * `PaymentMethodsEventEmitter.returnTokeniseResult` spec method and is
-     * delivered to [onComplete]; one tokenise may be in flight per form at a time.
+     * Must run synchronously when already on the main thread: [PaymentMethodSession.release]
+     * is expected to follow this immediately and destroys the underlying [ReactHost][
+     * com.facebook.react.ReactHost], whose Fabric `Scheduler` asserts that every surface was
+     * already stopped — an unconditional `mainHandler.post` here would defer this surface's
+     * stop past that destroy, aborting the process (`Scheduler was destroyed with outstanding
+     * Surfaces`).
      */
-    fun tokenise(onComplete: (ReadableMap?) -> Unit) {
-        val emitter = session.reactHost.currentReactContext
-            ?.getNativeModule(PaymentMethodsEventEmitterModule::class.java)
-        if (emitter == null) {
-            Log.w(TAG, "tokenise() ignored — emitter module is not available yet")
-            onComplete(null)
-            return
-        }
-        val rootTag = formSurface?.surfaceID ?: -1
-        emitter.registerTokeniseCallback(rootTag, onComplete)
-        val payload = Arguments.createMap().apply {
-            putInt("rootTag", rootTag)
-            putString("sdk_auth", session.sdkAuthorization)
-            session.configuration.vaultType?.let { putString("vault_type", it) }
-        }
-        emitter.sendEvent(PaymentMethodsEventEmitterModule.EVENT_TOKENISE, payload)
-    }
-
-    /** Stops every bound input's React view and the card form's empty surface. */
     fun release() {
         boundInputs.forEach { it.stopInternalView() }
         boundInputs.clear()
-        mainHandler.post {
+        val stop = Runnable {
             formSurface?.let { runCatching { it.stop() } }
             formSurface = null
         }
+        if (Looper.myLooper() == Looper.getMainLooper()) stop.run() else mainHandler.post(stop)
     }
 
     internal companion object {

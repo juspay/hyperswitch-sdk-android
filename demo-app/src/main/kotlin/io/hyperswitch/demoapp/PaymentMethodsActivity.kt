@@ -9,8 +9,10 @@ import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.model.HyperswitchConfiguration
+import io.hyperswitch.model.HyperswitchEnvironment
 import io.hyperswitch.paymentmethods.CardForm
 import io.hyperswitch.paymentmethods.PaymentMethodSession
+import io.hyperswitch.paymentmethods.TokeniseResult
 import io.hyperswitch.paymentmethods.initPaymentMethodSession
 import io.hyperswitch.paymentmethods.widget.CardCVCInputField
 import io.hyperswitch.paymentmethods.widget.CardExpiryInputField
@@ -22,11 +24,6 @@ import io.hyperswitch.sdk.HyperswitchInstance
 import org.json.JSONException
 import org.json.JSONObject
 
-/**
- * Demonstrates the headless payment-methods SDK: a [PaymentMethodSession] with its own
- * dedicated React host, a [CardForm] bound to the on-screen input widgets, and
- * tokenisation of the entered card.
- */
 class PaymentMethodsActivity : AppCompatActivity(), HyperInterface {
 
     // ── State ──────────────────────────────────────────────────────────────────────────────────
@@ -42,8 +39,17 @@ class PaymentMethodsActivity : AppCompatActivity(), HyperInterface {
         setContentView(R.layout.payment_methods_activity)
 
         findViewById<View>(R.id.reloadInstanceButton).setOnClickListener { reloadInstance() }
+        findViewById<View>(R.id.tokeniseButton).setOnClickListener {
+            setStatus("Tokenising…")
+            cardForm?.tokenise { result ->
+                when (result) {
+                    is TokeniseResult.Success -> setStatus("Tokenise success: ${result.token}")
+                    is TokeniseResult.Failure -> setStatus("Tokenise failed: ${result.error.code} — ${result.error.message}")
+                }
+            }
+        }
 
-        fetchPaymentIntent()
+        fetchPaymentMethodSession()
     }
 
     override fun onDestroy() {
@@ -54,28 +60,20 @@ class PaymentMethodsActivity : AppCompatActivity(), HyperInterface {
 
     // ── Reload ─────────────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Tears down the current [PaymentMethodSession] (and its [CardForm]) and builds a fresh
-     * one from a newly fetched `sdkAuthorization` — a session's authorization can't be swapped
-     * in place, so "reloading" means a brand-new instance with its own dedicated React host.
-     */
     private fun reloadInstance() {
-        findViewById<View>(R.id.tokeniseButton).isEnabled = false
-
         cardForm?.release()
         paymentMethodSession?.release()
         cardForm = null
         paymentMethodSession = null
 
-        fetchPaymentIntent()
+        fetchPaymentMethodSession()
     }
 
     // ── Network ────────────────────────────────────────────────────────────────────────────────
+    private fun fetchPaymentMethodSession() {
+        setStatus("Creating payment method session…")
 
-    private fun fetchPaymentIntent() {
-        setStatus("Fetching payment intent…")
-
-        reset().get("$serverUrl/create-payment-intent")
+        reset().get("$serverUrl/create-payment-method-session")
             .responseString(object : Handler<String?> {
                 override fun success(value: String?) {
                     try {
@@ -99,7 +97,6 @@ class PaymentMethodsActivity : AppCompatActivity(), HyperInterface {
     }
 
     // ── Initialisation ─────────────────────────────────────────────────────────────────────────
-
     private fun initialisePaymentMethodSession(
         publishableKey: String,
         profileId: String,
@@ -110,11 +107,12 @@ class PaymentMethodsActivity : AppCompatActivity(), HyperInterface {
             config = HyperswitchConfiguration(
                 publishableKey = publishableKey,
                 profileId = profileId,
+                environment = HyperswitchEnvironment.SANDBOX,
             )
         )
 
         paymentMethodSession = hyperswitchInstance?.initPaymentMethodSession(sdkAuthorization)
-        cardForm = paymentMethodSession?.createCardForm()?.also { form ->
+        cardForm = paymentMethodSession?.createCardForm(buildAppearance())?.also { form ->
             form.bind(
                 listOf(
                     findViewById<CardNumberInputField>(R.id.cardNumberInput),
@@ -123,16 +121,6 @@ class PaymentMethodsActivity : AppCompatActivity(), HyperInterface {
                     findViewById<CardCVCInputField>(R.id.cardCVCInput),
                 )
             )
-        }
-
-        findViewById<View>(R.id.tokeniseButton).apply {
-            isEnabled = true
-            setOnClickListener {
-                setStatus("Tokenising…")
-                cardForm?.tokenise { result ->
-                    runOnUiThread { setStatus(if (result != null) "Tokenised: $result" else "Tokenisation failed") }
-                }
-            }
         }
 
         setStatus("Card form ready")
@@ -145,7 +133,6 @@ class PaymentMethodsActivity : AppCompatActivity(), HyperInterface {
     }
 
     // ── Constants ──────────────────────────────────────────────────────────────────────────────
-
     companion object {
         private const val TAG = "PaymentMethodsActivity"
         private const val PREFS_NAME = "HyperswitchPrefs"
