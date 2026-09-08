@@ -7,7 +7,9 @@ import android.os.Bundle
 import android.util.Log
 import android.webkit.WebSettings
 import com.facebook.react.ReactHost
+import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.model.HyperswitchBaseConfiguration
+import io.hyperswitch.paymentsheet.PaymentSheet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -58,11 +60,27 @@ class PaymentMethodSession internal constructor(
     /**
      * Creates a [CardForm] instance backed by an empty ("headless") RN view
      * on this session's React host.
+     *
+     * @param appearance forwarded to the JS side's `pms.createCardForm({ appearance })` —
+     * the same [PaymentSheet.Appearance] type used to theme the main payment sheet.
      */
-    fun createCardForm(): CardForm {
+    fun createCardForm(appearance: PaymentSheet.Appearance? = null): CardForm {
         runCatching { reactHost.onHostResume(activity) }
             .onFailure { Log.w(TAG, "Failed to resume React host: ${it.message}") }
-        return CardForm(this)
+        return CardForm(this, appearance)
+    }
+
+    /**
+     * Emits the "tokenise" native -> JS event on this session's dedicated host, notifying
+     * the cardForm empty-surface controller that a tokenise request was made.
+     */
+    internal fun emitTokenise(rootTag: Int) {
+        hostProvider.eventEmitter.emitTokenise(rootTag)
+    }
+
+    /** Holds [callback] until the JS side answers via `PaymentMethodModule.returnTokenResult`. */
+    internal fun registerTokeniseCallback(rootTag: Int, callback: (ReadableMap?) -> Unit) {
+        hostProvider.eventEmitter.registerTokeniseCallback(rootTag, callback)
     }
 
     /**

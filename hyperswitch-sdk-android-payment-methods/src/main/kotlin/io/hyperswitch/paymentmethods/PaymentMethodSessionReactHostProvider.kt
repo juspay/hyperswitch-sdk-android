@@ -46,6 +46,9 @@ internal class PaymentMethodSessionReactHostProvider(
      */
     private val runtime = HyperReactRuntime(application)
 
+    /** Emitter for this session's dedicated [PaymentMethodModule] — see [PaymentMethodPackage]. */
+    internal val eventEmitter = PaymentMethodEventEmitter()
+
     val reactHost: ReactHost by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         createReactHost()
     }
@@ -56,6 +59,7 @@ internal class PaymentMethodSessionReactHostProvider(
 
         val packages = PackageList(application).packages.apply {
             add(HyperPackage(runtime))
+            add(PaymentMethodPackage(eventEmitter))
         }
 
         val delegate = DefaultReactHostDelegate(
@@ -80,8 +84,8 @@ internal class PaymentMethodSessionReactHostProvider(
             application,
             delegate,
             componentFactory,
-            false /* allowPackagerServerAccess */,
-            io.hyperswitch.paymentmethods.BuildConfig.DEBUG,
+            BuildConfig.DEBUG /* allowPackagerServerAccess */,
+            BuildConfig.DEBUG,
         )
         Log.i(
             TAG,
@@ -93,11 +97,16 @@ internal class PaymentMethodSessionReactHostProvider(
 
     companion object {
         private const val TAG = "PMSessionReactHost"
-        private const val JS_MAIN_MODULE_PATH = "index"
+
+        /** Matches this bundle's actual entry file — see bundle:android:payment-methods
+         * (--entry-file payment-methods.js). Must not be "index": that's the main app's
+         * entry, and with allowPackagerServerAccess enabled, DevSupportManager uses this
+         * path to fetch/refresh from Metro — the wrong path pulls in the main bundle
+         * alongside this one, double-registering every shared native component. */
+        private const val JS_MAIN_MODULE_PATH = "payment-methods"
 
         /** Dedicated bundle for payment-method session hosts — never the main bundle. */
         private const val PAYMENT_METHODS_BUNDLE_ASSET = "hyperswitch-payment-methods.bundle"
-        private const val MAIN_BUNDLE_ASSET = "hyperswitch.bundle"
 
         private val runtimeReady = AtomicBoolean(false)
 
@@ -126,26 +135,29 @@ internal class PaymentMethodSessionReactHostProvider(
         }
 
         /**
-         * Resolves the JS bundle path for this session's dedicated host:
-         * the separate [PAYMENT_METHODS_BUNDLE_ASSET] asset shipped by this library.
-         * Falls back to the main SDK bundle when the dedicated asset has not been
-         * generated/packaged yet, so integrations degrade gracefully.
+         * Resolves the JS bundle path for this session's dedicated host: always the
+         * dedicated [PAYMENT_METHODS_BUNDLE_ASSET] asset shipped by this library.
+         *
+         * This never falls back to the main SDK bundle (`hyperswitch.bundle`) — that
+         * bundle's `index.js` only registers `"hyperSwitch"`/`"HyperHeadless"`, never
+         * the `"HyperswitchPaymentMethods"` component this session's surfaces need, so
+         * loading it would silently produce a host that can never render a card form.
+         * If the asset is genuinely missing, loading it anyway surfaces a clear
+         * "asset not found" failure instead of that confusing dead end.
          */
         private fun resolveBundlePath(application: Application): String {
             val hasPaymentMethodsBundle = runCatching {
                 application.assets.list("")?.contains(PAYMENT_METHODS_BUNDLE_ASSET) == true
             }.getOrDefault(false)
 
-            return if (hasPaymentMethodsBundle) {
-                "assets://$PAYMENT_METHODS_BUNDLE_ASSET"
-            } else {
+            if (!hasPaymentMethodsBundle) {
                 Log.w(
                     TAG,
                     "$PAYMENT_METHODS_BUNDLE_ASSET not found in app assets — " +
-                            "run `yarn bundle:android:payment-methods`; falling back to $MAIN_BUNDLE_ASSET",
+                            "run `yarn bundle:android:payment-methods`",
                 )
-                "assets://$MAIN_BUNDLE_ASSET"
             }
+            return "assets://$PAYMENT_METHODS_BUNDLE_ASSET"
         }
     }
 }

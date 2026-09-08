@@ -6,24 +6,20 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.module.model.ReactModuleInfo
 import com.facebook.react.module.model.ReactModuleInfoProvider
 
-/**
- * React package registering the payment-method session native modules
- * ([PaymentMethodsEventEmitterModule]) on this session's React host.
- */
-class PaymentMethodsPackage : BaseReactPackage() {
+/** Registers [PaymentMethodModule] on a payment-method session's dedicated React host. */
+internal class PaymentMethodPackage(
+    private val emitter: PaymentMethodEventEmitter,
+) : BaseReactPackage() {
 
     override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? =
-        when (name) {
-            PaymentMethodsEventEmitterModule.NAME -> PaymentMethodsEventEmitterModule(reactContext)
-            else -> null
-        }
+        if (name == PaymentMethodModule.NAME) PaymentMethodModule(reactContext, emitter) else null
 
     override fun getReactModuleInfoProvider(): ReactModuleInfoProvider =
         ReactModuleInfoProvider {
             mapOf(
-                PaymentMethodsEventEmitterModule.NAME to ReactModuleInfo(
-                    PaymentMethodsEventEmitterModule.NAME,
-                    PaymentMethodsEventEmitterModule.NAME,
+                PaymentMethodModule.NAME to ReactModuleInfo(
+                    PaymentMethodModule.NAME,
+                    PaymentMethodModule.NAME,
                     canOverrideExistingModule = false,
                     needsEagerInit = false,
                     isCxxModule = false,
