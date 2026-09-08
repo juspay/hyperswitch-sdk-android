@@ -42,6 +42,12 @@ abstract class BasePaymentSessionLauncher(
         resultCallback: (PaymentResult) -> Unit
     )
 
+    abstract override fun presentPaymentMethodManagement(
+        configuration: PaymentSheet.Configuration?,
+        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?,
+        resultCallback: (PaymentResult) -> Unit
+    )
+
     abstract override fun getCustomerSavedPaymentMethods(
         configuration: SavedPaymentMethodsConfiguration?,
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),

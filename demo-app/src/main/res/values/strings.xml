@@ -24,6 +24,13 @@
     <string name="section_cvc_widget">CVC Widget</string>
     <string name="section_saved_methods">Saved Methods</string>
 
+    <!-- Payment Methods Management (PMM) -->
+    <string name="section_pmm">Payment Methods Management</string>
+    <string name="btn_launch_pmm_sheet">Manage Payment Methods (Sheet)</string>
+    <string name="btn_launch_pmm_widget">PMM Widget Demo</string>
+    <string name="title_pmm_widget_demo">Payment Methods Management Widget</string>
+    <string name="action_save_card">Save card</string>
+
     <!-- Legacy / kept for compatibility -->
     <string name="ip_address">IP Address</string>
     <string name="reload_client_secret">Reload Client Secret</string>

@@ -66,18 +66,20 @@ class LaunchOptions(
     fun getBundle(
         sessionConfig: PaymentSessionConfiguration? = null,
         configuration: PaymentSheet.Configuration? = null,
-        subscribedEvents: List<String> = emptyList()
+        subscribedEvents: List<String> = emptyList(),
+        type: String = "payment"
     ): Bundle =
-        context?.let { getBundle(it, sessionConfig, configuration, subscribedEvents) } ?: Bundle()
+        context?.let { getBundle(it, sessionConfig, configuration, subscribedEvents, type) } ?: Bundle()
 
     fun getBundle(
         context: Context,
         sessionConfig: PaymentSessionConfiguration? = null,
         configuration: PaymentSheet.Configuration? = null,
-        subscribedEvents: List<String> = emptyList()
+        subscribedEvents: List<String> = emptyList(),
+        type: String = "payment"
     ): Bundle = Bundle().apply {
         putBundle("props", Bundle().apply {
-            putString("type", "payment")
+            putString("type", type)
             hsConfig?.let { putBundle("hyperswitchConfig", it.toBundle()) }
             sessionConfig?.let { putBundle("paymentSessionConfig", it.toBundle()) }
             putString("theme", configuration?.appearance?.theme?.name)

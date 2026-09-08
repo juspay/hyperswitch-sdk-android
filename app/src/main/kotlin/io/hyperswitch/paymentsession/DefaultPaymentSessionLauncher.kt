@@ -84,6 +84,19 @@ class DefaultPaymentSessionLauncher(
         PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
     }
 
+    override fun presentPaymentMethodManagement(
+        configuration: PaymentSheet.Configuration?,
+        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?,
+        resultCallback: (PaymentResult) -> Unit
+    ) {
+        applySubscription(subscribe)
+        val isFragment = paymentSessionReactLauncher.presentPaymentMethodManagementSheet(
+            sessionConfig,
+            configuration
+        )
+        PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
+    }
+
     override fun getCustomerSavedPaymentMethods(
         configuration: SavedPaymentMethodsConfiguration?,
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),

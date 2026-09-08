@@ -70,4 +70,15 @@ class WebViewUtils(
         transaction.attach(webFragment).commit()
         return true
     }
+
+    override fun presentPaymentMethodManagementSheet(
+        sessionConfig: PaymentSessionConfiguration?,
+        configuration: PaymentSheet.Configuration?,
+    ): Boolean {
+        android.util.Log.w(
+            "PaymentSessionLauncherLite",
+            "presentPaymentMethodManagementSheet is not supported in the lite SDK"
+        )
+        return false
+    }
 }

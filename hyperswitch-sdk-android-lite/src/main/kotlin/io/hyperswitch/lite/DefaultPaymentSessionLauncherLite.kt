@@ -36,6 +36,19 @@ open class DefaultPaymentSessionLauncherLite(
         webViewUtils.presentSheet(configurationMap)
     }
 
+    override fun presentPaymentMethodManagement(
+        configuration: PaymentSheet.Configuration?,
+        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?,
+        resultCallback: (PaymentResult) -> Unit
+    ) {
+        Log.w(TAG, "presentPaymentMethodManagement is not supported in the lite SDK")
+        resultCallback(
+            PaymentResult.Failed(
+                Throwable("presentPaymentMethodManagement is not supported in the lite SDK")
+            )
+        )
+    }
+
     override fun getCustomerSavedPaymentMethods(
         configuration: SavedPaymentMethodsConfiguration?,
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
