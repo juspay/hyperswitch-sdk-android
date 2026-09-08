@@ -103,7 +103,23 @@ class HyperModule internal constructor(
 
     override fun onAddPaymentMethod(data: String) {}
 
-    override fun exitPaymentMethodManagement(rootTag: Double, result: String, reset: Boolean) {}
+    override fun exitPaymentMethodManagement(rootTag: Double, result: String, reset: Boolean) {
+        findViewWithRootTag(rootTag.toInt()) { fragment ->
+            if (fragment != null && PaymentSheetCallbackManager.getCallback() == null) {
+                fragment.notifyResult(CallbackType.PAYMENT_RESULT, result)
+            } else {
+                val isFragment = PaymentSheetCallbackManager.executeCallback(result)
+                (currentActivity as? FragmentActivity)?.let {
+                    if (isFragment) it.supportFragmentManager.findFragmentByTag("paymentSheet")
+                        ?.let { sheetFragment ->
+                            it.supportFragmentManager.beginTransaction().hide(sheetFragment)
+                                .commitAllowingStateLoss()
+                        }
+                    else it.finish()
+                }
+            }
+        }
+    }
 
     override fun updateWidgetHeight(height: Double) {
         // Express checkout widget height adjustment is not yet implemented.

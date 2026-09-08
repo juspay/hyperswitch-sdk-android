@@ -249,6 +249,21 @@ class PaymentSessionReactLauncher(
         return presentSheet(bottomInsetToDIPFromPixel(bundle))
     }
 
+    override fun presentPaymentMethodManagementSheet(
+        sessionConfig: PaymentSessionConfiguration?,
+        configuration: PaymentSheet.Configuration?
+    ): Boolean {
+        val subscribedEvents = getSubscribedEventsSafely()
+        val bundle = launchOptions.getBundle(
+            sessionConfig,
+            configuration,
+            subscribedEvents,
+            "paymentMethodsManagement"
+        )
+        applyFonts(configuration, bundle)
+        return presentSheet(bottomInsetToDIPFromPixel(bundle))
+    }
+
     override fun presentSheet(configurationMap: Map<String, Any?>): Boolean {
         val subscribedEvents = getSubscribedEventsSafely()
         return presentSheet(

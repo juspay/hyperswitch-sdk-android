@@ -81,6 +81,14 @@ class HyperswitchBoundElement internal constructor(
         element.confirmPayment(onResult)
     }
 
+
+    @JvmSynthetic
+    suspend fun confirmTokenization(): PaymentResult = confirmPayment()
+
+    fun confirmTokenization(onResult: (PaymentResult) -> Unit) {
+        confirmPayment(onResult)
+    }
+
     fun destroy() {
         element.onPaymentResult(PaymentResultListener { /* disposed - no-op */ })
     }

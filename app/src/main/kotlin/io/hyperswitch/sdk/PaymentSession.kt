@@ -61,6 +61,27 @@ class PaymentSession internal constructor(
         paymentSessionLauncher.presentPaymentSheet(configuration = null, subscribe, resultCallback)
     }
 
+    fun presentPaymentMethodManagement(
+        configuration: PaymentSheet.Configuration,
+        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null,
+        resultCallback: (PaymentResult) -> Unit
+    ) {
+        paymentSessionLauncher.presentPaymentMethodManagement(configuration, subscribe, resultCallback)
+    }
+
+
+    @JvmSynthetic
+    suspend fun presentPaymentMethodManagement(
+        configuration: PaymentSheet.Configuration,
+        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null
+    ): PaymentResult {
+        return suspendCancellableCoroutine { continuation ->
+            paymentSessionLauncher.presentPaymentMethodManagement(configuration, subscribe) { result ->
+                continuation.resume(result)
+            }
+        }
+    }
+
     fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration,
         subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null,

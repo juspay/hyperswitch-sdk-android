@@ -11,6 +11,11 @@ interface PresentationInterface {
     ): Boolean
 
     fun presentSheet(configurationMap: Map<String, Any?>): Boolean
+
+    fun presentPaymentMethodManagementSheet(
+        sessionConfig: PaymentSessionConfiguration?,
+        configuration: PaymentSheet.Configuration?
+    ): Boolean
 }
 
 /** React Native lifecycle operations — only meaningful in the full SDK. */
