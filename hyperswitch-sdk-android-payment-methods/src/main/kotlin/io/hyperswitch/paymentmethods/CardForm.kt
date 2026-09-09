@@ -21,7 +21,8 @@ import java.util.concurrent.CopyOnWriteArrayList
  */
 class CardForm internal constructor(
     internal val session: PaymentMethodSession,
-    private val appearance: PaymentSheet.Appearance? = null,
+    private var appearance: PaymentSheet.Appearance? = null,
+    private var variables: AppearanceVariables? = null,
 ) {
 
     private val boundInputs = CopyOnWriteArrayList<BaseRNViewInput>()
@@ -43,9 +44,14 @@ class CardForm internal constructor(
      */
     private fun startFormSurface() {
         runCatching {
-            val configuration = appearance?.let {
-                Bundle().apply { putBundle("appearance", it.bundle) }
+            val appearanceBundle = Bundle().apply {
+                appearance?.let { putAll(it.bundle) }
+                variables?.toMap()?.takeIf { it.isNotEmpty() }
+                    ?.let { putBundle("variables", BundleUtils.toBundle(it)) }
             }
+            val configuration = if (!appearanceBundle.isEmpty) {
+                Bundle().apply { putBundle("appearance", appearanceBundle) }
+            } else null
             val surface = session.reactHost.createSurface(
                 session.activity,
                 COMPONENT_NAME,
@@ -72,6 +78,28 @@ class CardForm internal constructor(
         val rootTag = formSurface?.surfaceID ?: -1
         session.registerTokeniseCallback(rootTag) { raw -> onComplete(TokeniseResult.from(raw)) }
         session.emitTokenise(rootTag)
+    }
+
+    /**
+     * Updates this card form's vault/session-wide theming — the same [PaymentSheet.Appearance]
+     * and [AppearanceVariables] [PaymentMethodSession.createCardForm] takes, settable after the
+     * fact instead of only at creation. This is the vault-level counterpart to
+     * [io.hyperswitch.paymentmethods.widget.BaseRNViewInput.setOptions], which carries a single
+     * field's own [FieldStyles]/[FieldOptions] instead.
+     *
+     * The JS side has no live-update path for these props (see [HeadlessSurface][
+     * io.hyperswitch.paymentsession.HeadlessSurface] for the same convention elsewhere in this
+     * SDK), so this stops and restarts the empty form surface with the new values. Bound input
+     * widgets are unaffected — they're independent surfaces that keep running.
+     */
+    fun setOptions(appearance: PaymentSheet.Appearance? = null, variables: AppearanceVariables? = null) {
+        this.appearance = appearance
+        this.variables = variables
+        mainHandler.post {
+            formSurface?.let { runCatching { it.stop() } }
+            formSurface = null
+            startFormSurface()
+        }
     }
 
     /**
