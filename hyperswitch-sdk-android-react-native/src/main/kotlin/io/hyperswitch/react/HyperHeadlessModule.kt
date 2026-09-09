@@ -33,4 +33,11 @@ class HyperHeadlessModule internal constructor(
     override fun exitHeadless(rootTag: Double, result: ReadableMap) {
         sessionRouter.executeExitCallback(rootTag.toInt(), result.toExitResultJson())
     }
+
+    override fun completePrefetch(
+        rootTag: Double,
+        data: ReadableMap?
+    ) {
+        TODO("Not yet implemented")
+    }
 }

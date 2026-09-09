@@ -13,7 +13,9 @@ class HyperReactRuntime(application: Application) {
     @Volatile
     var onPrefetchUpdateIntentReply: ((type: String, resultJson: String) -> Unit)? = null
 
-    val reactHost: ReactHost = ReactNativeController.createReactHost(application, this)
+    val reactHost: ReactHost by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        ReactNativeController.createReactHost(application, this)
+    }
 
     fun destroy() {
         onPrefetchUpdateIntentReply = null

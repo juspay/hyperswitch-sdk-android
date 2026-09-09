@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Declarative XML styling for BaseRNViewInput subclasses (CardNumberInputField,
+        CardExpiryInputField, CardCVCInputField, CardHolderInputField).
+
+        `android:layout_height`/`layout_width` already control the widget's own size —
+        no custom attribute is needed for that, it's a plain FrameLayout.
+
+        Everything below maps onto the JS-side per-field `FieldStyles` (root/container/input/
+        placeholder/label/error/accessory) and `FieldOptions` (label, labelBehavior,
+        errorDisplay, unstyled, accessibilityLabel/Hint, cardBrandIcon, cvcIcon) contracts —
+        see FieldStyleTypes.kt, which mirrors both 1:1.
+    -->
+    <declare-styleable name="BaseRNViewInput">
+        <attr name="fieldPlaceholder" format="string" />
+
+        <!--
+            The JS-rendered input box's height (`styles.container.height`), distinct from
+            `android:layout_height` (the native widget's total height). Needed once the widget
+            has to fit something the box itself doesn't include (e.g. an "above" label sits
+            above the box). Falls back to `android:layout_height` when omitted, so the common
+            single-row case still only needs one height.
+        -->
+        <attr name="fieldInnerHeight" format="dimension" />
+
+        <!-- styles.root (ViewStyle) -->
+        <attr name="fieldRootBackgroundColor" format="color" />
+        <attr name="fieldRootBorderRadius" format="dimension" />
+        <attr name="fieldRootBorderWidth" format="dimension" />
+        <attr name="fieldRootBorderColor" format="color" />
+        <attr name="fieldRootPadding" format="dimension" />
+
+        <!-- styles.container (ViewStyle) -->
+        <attr name="fieldContainerBackgroundColor" format="color" />
+        <attr name="fieldContainerBorderRadius" format="dimension" />
+        <attr name="fieldContainerBorderWidth" format="dimension" />
+        <attr name="fieldContainerBorderColor" format="color" />
+        <attr name="fieldContainerPadding" format="dimension" />
+
+        <!-- styles.input (TextStyle) -->
+        <attr name="fieldInputTextColor" format="color" />
+        <attr name="fieldInputFontSize" format="dimension" />
+
+        <!-- styles.placeholder (TextStyle) -->
+        <attr name="fieldPlaceholderTextColor" format="color" />
+        <attr name="fieldPlaceholderFontSize" format="dimension" />
+
+        <!-- styles.label (TextStyle) -->
+        <attr name="fieldLabelTextColor" format="color" />
+        <attr name="fieldLabelFontSize" format="dimension" />
+
+        <!-- styles.error (TextStyle) -->
+        <attr name="fieldErrorTextColor" format="color" />
+        <attr name="fieldErrorFontSize" format="dimension" />
+
+        <!-- styles.accessory (ViewStyle) -->
+        <attr name="fieldAccessoryBackgroundColor" format="color" />
+        <attr name="fieldAccessoryBorderRadius" format="dimension" />
+        <attr name="fieldAccessoryBorderWidth" format="dimension" />
+        <attr name="fieldAccessoryBorderColor" format="color" />
+        <attr name="fieldAccessoryPadding" format="dimension" />
+
+        <!-- FieldOptions -->
+        <attr name="fieldLabel" format="string" />
+        <attr name="fieldLabelBehavior" format="enum">
+            <enum name="above" value="0" />
+            <enum name="floating" value="1" />
+            <enum name="never" value="2" />
+        </attr>
+        <attr name="fieldErrorDisplay" format="enum">
+            <enum name="none" value="0" />
+            <enum name="colorOnly" value="1" />
+            <enum name="inline" value="2" />
+        </attr>
+        <attr name="fieldUnstyled" format="boolean" />
+        <attr name="fieldAccessibilityLabel" format="string" />
+        <attr name="fieldAccessibilityHint" format="string" />
+        <attr name="fieldCardBrandIcon" format="enum">
+            <enum name="standard" value="0" />
+            <enum name="animated" value="1" />
+            <enum name="hidden" value="2" />
+            <enum name="hideGeneric" value="3" />
+        </attr>
+        <attr name="fieldCvcIcon" format="enum">
+            <enum name="hidden" value="0" />
+            <!-- "default" is a reserved Java keyword; XML enum name differs from the JS
+                 wire value ("default"), mapped explicitly in BaseRNViewInput.kt. -->
+            <enum name="defaultIcon" value="1" />
+        </attr>
+    </declare-styleable>
+</resources>

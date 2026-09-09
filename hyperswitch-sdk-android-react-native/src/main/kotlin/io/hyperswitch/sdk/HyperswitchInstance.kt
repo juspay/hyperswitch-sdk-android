@@ -15,6 +15,22 @@ class HyperswitchInstance internal constructor(
     private val activity: Activity,
     private val initDeferred: Deferred<HyperswitchBaseConfiguration?>,
 ) {
+
+    /**
+     * Activity captured at [Hyperswitch.init] — exposed so SDK extension modules
+     * (e.g. hyperswitch-sdk-android-payment-methods) can build their own RN hosts/views.
+     */
+    fun getActivity(): Activity = activity
+
+    /**
+     * Deferred base configuration resolved during [Hyperswitch.init] — exposed so SDK
+     * extension modules (e.g. hyperswitch-sdk-android-payment-methods) can forward the
+     * `hyperswitchConfig` payload to their surfaces.
+     */
+    val configurationDeferred: Deferred<HyperswitchBaseConfiguration?>
+        @JvmSynthetic
+        get() = initDeferred
+
     @OptIn(ExperimentalCoroutinesApi::class)
     @JvmSynthetic
     suspend fun initPaymentSession(config: PaymentSessionConfiguration): PaymentSession {

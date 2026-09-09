@@ -17,4 +17,7 @@
     <color name="text_secondary">#555555</color>
     <color name="text_caption">#888888</color>
     <color name="text_on_brand">#FFFFFF</color>
+
+    <!-- Status -->
+    <color name="color_error">#D32F2F</color>
 </resources>
