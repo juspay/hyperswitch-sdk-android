@@ -18,10 +18,6 @@
     <color name="text_caption">#888888</color>
     <color name="text_on_brand">#FFFFFF</color>
 
-    <!-- Brutal theme: sharp corners, thick black borders, flat high-contrast colors -->
-    <color name="brutal_black">#000000</color>
-    <color name="brutal_white">#FFFFFF</color>
-    <color name="brutal_yellow">#FFE500</color>
-    <color name="brutal_pink">#FF3EA5</color>
-    <color name="brutal_red">#FF0000</color>
+    <!-- Status -->
+    <color name="color_error">#D32F2F</color>
 </resources>

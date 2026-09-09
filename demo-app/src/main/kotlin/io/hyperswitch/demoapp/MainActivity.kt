@@ -76,10 +76,6 @@ class MainActivity : AppCompatActivity(), HyperInterface {
         findViewById<View>(R.id.launchPaymentMethodsLayout).setOnClickListener {
             startActivity(Intent(this, PaymentMethodsActivity::class.java))
         }
-
-        findViewById<View>(R.id.launchPaymentMethodsSplitLayout).setOnClickListener {
-            startActivity(Intent(this, PaymentMethodsInitActivity::class.java))
-        }
     }
 
     // ── Backend calls ──────────────────────────────────────────────────────────────────────────
