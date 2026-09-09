@@ -32,16 +32,6 @@
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             >
     </activity>
-
-        <activity android:name=".PaymentMethodsInitActivity"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-            >
-    </activity>
-
-        <activity android:name=".PaymentMethodsViewActivity"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-            >
-    </activity>
     </application>
 
 </manifest>

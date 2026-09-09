@@ -123,17 +123,16 @@ class PaymentMethodsActivity : AppCompatActivity(), HyperInterface {
 
         paymentMethodSession = hyperswitchInstance?.initPaymentMethodSession(sdkAuthorization)
         val variables = AppearanceVariables(
-            colorPrimary = "#000000",
-            colorText = "#000000",
-            colorDanger = "#FF0000",
-            colorTextPlaceholder = "#000000",
+            colorPrimary = "#0E7AFE",
+            colorText = "#1A1A1A",
+            colorDanger = "#D32F2F",
+            colorTextPlaceholder = "#888888",
             colorBackground = "#FFFFFF",
-            borderColor = "#000000",
-            borderRadius = 0f,
-            borderWidth = 3f,
-            fontFamily = "sans-serif-black",
+            borderColor = "#E2E8F0",
+            borderRadius = 12f,
+            borderWidth = 1f,
             fontScale = 1f,
-            inputFieldHeight = 56f,
+            inputFieldHeight = 52f,
             gap = 12f,
             placeholderTextSizeAdjust = 0f,
             errorTextSizeAdjust = 0f,
@@ -156,49 +155,47 @@ class PaymentMethodsActivity : AppCompatActivity(), HyperInterface {
     }
 
     /**
-     * Field-level brutal theme, set programmatically via
+     * Field-level styling, set programmatically via
      * [io.hyperswitch.paymentmethods.widget.BaseRNViewInput.setOptions] instead of `app:field*`
      * XML attributes — the per-field counterpart to [initialisePaymentMethodSession]'s
      * vault/session-wide [AppearanceVariables] above. Every value here is forwarded to JS as-is;
-     * this code makes no attempt to reconcile e.g. a field's box height against the label row
-     * `labelBehavior = ABOVE` adds above it — that's the RN side's call, not native's.
+     * this code makes no attempt to reconcile e.g. a field's box height against anything a
+     * label row might add above it — that's the RN side's call, not native's.
      */
     private fun configureCardFields() {
-        val black = ContextCompat.getColor(this, R.color.brutal_black)
-        val white = ContextCompat.getColor(this, R.color.brutal_white)
-        val yellow = ContextCompat.getColor(this, R.color.brutal_yellow)
-        val red = ContextCompat.getColor(this, R.color.brutal_red)
+        val text = ContextCompat.getColor(this, R.color.text_primary)
+        val placeholderText = ContextCompat.getColor(this, R.color.text_caption)
+        val labelText = ContextCompat.getColor(this, R.color.text_secondary)
+        val surface = ContextCompat.getColor(this, R.color.surface_card)
+        val border = ContextCompat.getColor(this, R.color.divider)
+        val error = ContextCompat.getColor(this, R.color.color_error)
 
-        fun rootStyle() = ViewStyleProps(backgroundColor = yellow, padding = 0f)
-        fun containerStyle(padding: Float, height: Float) = ViewStyleProps(
-            backgroundColor = white,
-            borderColor = black,
-            borderRadius = 0f,
-            borderWidth = 3f,
-            padding = padding,
-            height = height,
+        // No `padding` here: ViewStyleProps only has one padding value (all four sides), and the
+        // vault SDK sizes this box to a fixed `height` while centering its floating label inside
+        // that budget — a uniform padding eats into the vertical room the label needs once it
+        // animates to its focused/compact state and clips. The SDK's own default horizontal-only
+        // inset already looks right, so leave vertical spacing to `height` alone.
+        fun containerStyle() = ViewStyleProps(
+            backgroundColor = surface,
+            borderColor = border,
+            borderRadius = 12f,
+            borderWidth = 1f,
         )
-        fun accessoryStyle() = ViewStyleProps(
-            backgroundColor = white,
-            borderRadius = 0f,
-            borderWidth = 0f,
-            padding = 2f,
-        )
-        fun textStyle(fontSize: Float, color: Int = black) = TextStyleProps(color = color, fontSize = fontSize)
+        fun accessoryStyle() = ViewStyleProps(backgroundColor = surface, padding = 4f)
+        fun textStyle(fontSize: Float, color: Int = text) = TextStyleProps(color = color, fontSize = fontSize)
 
         findViewById<CardHolderInputField>(R.id.cardHolderInput).setOptions(
             styles = FieldStyles(
-                root = rootStyle(),
-                container = containerStyle(padding = 14f, height = 56f),
-                input = textStyle(17f),
-                placeholder = textStyle(17f),
-                label = textStyle(12f),
-                error = textStyle(12f, red),
+                container = containerStyle(),
+                input = textStyle(15f),
+                placeholder = textStyle(15f, placeholderText),
+                label = textStyle(12f, labelText),
+                error = textStyle(12f, error),
             ),
             options = FieldOptions(
                 label = "Cardholder name",
-                labelBehavior = LabelBehavior.ABOVE,
-                errorDisplay = ErrorDisplay.COLOR_ONLY,
+                labelBehavior = LabelBehavior.FLOATING,
+                errorDisplay = ErrorDisplay.INLINE,
                 unstyled = false,
                 accessibilityLabel = "Cardholder name input",
                 accessibilityHint = "Enter the name printed on the card",
@@ -208,12 +205,11 @@ class PaymentMethodsActivity : AppCompatActivity(), HyperInterface {
 
         findViewById<CardNumberInputField>(R.id.cardNumberInput).setOptions(
             styles = FieldStyles(
-                root = rootStyle(),
-                container = containerStyle(padding = 14f, height = 56f),
-                input = textStyle(17f),
-                placeholder = textStyle(17f),
-                label = textStyle(12f),
-                error = textStyle(12f, red),
+                container = containerStyle(),
+                input = textStyle(15f),
+                placeholder = textStyle(15f, placeholderText),
+                label = textStyle(12f, labelText),
+                error = textStyle(12f, error),
                 accessory = accessoryStyle(),
             ),
             options = FieldOptions(
@@ -230,17 +226,16 @@ class PaymentMethodsActivity : AppCompatActivity(), HyperInterface {
 
         findViewById<CardExpiryInputField>(R.id.cardExpiryInput).setOptions(
             styles = FieldStyles(
-                root = rootStyle(),
-                container = containerStyle(padding = 12f, height = 52f),
+                container = containerStyle(),
                 input = textStyle(15f),
-                placeholder = textStyle(15f),
-                label = textStyle(11f),
-                error = textStyle(11f, red),
+                placeholder = textStyle(15f, placeholderText),
+                label = textStyle(11f, labelText),
+                error = textStyle(11f, error),
             ),
             options = FieldOptions(
                 label = "Expiry",
-                labelBehavior = LabelBehavior.NEVER,
-                errorDisplay = ErrorDisplay.NONE,
+                labelBehavior = LabelBehavior.FLOATING,
+                errorDisplay = ErrorDisplay.INLINE,
                 unstyled = false,
                 accessibilityLabel = "Expiry date input",
                 accessibilityHint = "Enter the card expiry date",
@@ -250,18 +245,17 @@ class PaymentMethodsActivity : AppCompatActivity(), HyperInterface {
 
         findViewById<CardCVCInputField>(R.id.cardCVCInput).setOptions(
             styles = FieldStyles(
-                root = rootStyle(),
-                container = containerStyle(padding = 12f, height = 52f),
+                container = containerStyle(),
                 input = textStyle(15f),
-                placeholder = textStyle(15f),
-                label = textStyle(11f),
-                error = textStyle(11f, red),
+                placeholder = textStyle(15f, placeholderText),
+                label = textStyle(11f, labelText),
+                error = textStyle(11f, error),
                 accessory = accessoryStyle(),
             ),
             options = FieldOptions(
                 label = "CVC",
-                labelBehavior = LabelBehavior.NEVER,
-                errorDisplay = ErrorDisplay.NONE,
+                labelBehavior = LabelBehavior.FLOATING,
+                errorDisplay = ErrorDisplay.INLINE,
                 unstyled = false,
                 accessibilityLabel = "CVC input",
                 accessibilityHint = "Enter the 3 digit security code",
