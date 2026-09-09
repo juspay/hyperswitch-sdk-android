@@ -63,11 +63,17 @@ class PaymentMethodSession internal constructor(
      *
      * @param appearance forwarded to the JS side's `pms.createCardForm({ appearance })` —
      * the same [PaymentSheet.Appearance] type used to theme the main payment sheet.
+     * @param variables mirrors the JS `Appearance.variables` — flat theming primitives
+     * forwarded to the vault's own rendering. Only the `hyperswitch` vault adapter honors
+     * these today; other vault types ignore them.
      */
-    fun createCardForm(appearance: PaymentSheet.Appearance? = null): CardForm {
+    fun createCardForm(
+        appearance: PaymentSheet.Appearance? = null,
+        variables: AppearanceVariables? = null,
+    ): CardForm {
         runCatching { reactHost.onHostResume(activity) }
             .onFailure { Log.w(TAG, "Failed to resume React host: ${it.message}") }
-        return CardForm(this, appearance)
+        return CardForm(this, appearance, variables)
     }
 
     /**

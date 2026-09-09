@@ -5,14 +5,24 @@ import android.util.Log
 import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
 import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.model.HyperswitchEnvironment
+import io.hyperswitch.paymentmethods.AppearanceVariables
+import io.hyperswitch.paymentmethods.BrandIconMode
 import io.hyperswitch.paymentmethods.CardForm
+import io.hyperswitch.paymentmethods.CvcIconDisplay
+import io.hyperswitch.paymentmethods.ErrorDisplay
+import io.hyperswitch.paymentmethods.FieldOptions
+import io.hyperswitch.paymentmethods.FieldStyles
+import io.hyperswitch.paymentmethods.LabelBehavior
 import io.hyperswitch.paymentmethods.PaymentMethodSession
+import io.hyperswitch.paymentmethods.TextStyleProps
 import io.hyperswitch.paymentmethods.TokeniseResult
+import io.hyperswitch.paymentmethods.ViewStyleProps
 import io.hyperswitch.paymentmethods.initPaymentMethodSession
 import io.hyperswitch.paymentmethods.widget.CardCVCInputField
 import io.hyperswitch.paymentmethods.widget.CardExpiryInputField
@@ -112,7 +122,26 @@ class PaymentMethodsActivity : AppCompatActivity(), HyperInterface {
         )
 
         paymentMethodSession = hyperswitchInstance?.initPaymentMethodSession(sdkAuthorization)
-        cardForm = paymentMethodSession?.createCardForm(buildAppearance())?.also { form ->
+        val variables = AppearanceVariables(
+            colorPrimary = "#000000",
+            colorText = "#000000",
+            colorDanger = "#FF0000",
+            colorTextPlaceholder = "#000000",
+            colorBackground = "#FFFFFF",
+            borderColor = "#000000",
+            borderRadius = 0f,
+            borderWidth = 3f,
+            fontFamily = "sans-serif-black",
+            fontScale = 1f,
+            inputFieldHeight = 56f,
+            gap = 12f,
+            placeholderTextSizeAdjust = 0f,
+            errorTextSizeAdjust = 0f,
+            errorMessageSpacing = 6f,
+            cardBrandIcon = BrandIconMode.STANDARD,
+        )
+        configureCardFields()
+        cardForm = paymentMethodSession?.createCardForm(buildAppearance(), variables)?.also { form ->
             form.bind(
                 listOf(
                     findViewById<CardNumberInputField>(R.id.cardNumberInput),
@@ -124,6 +153,122 @@ class PaymentMethodsActivity : AppCompatActivity(), HyperInterface {
         }
 
         setStatus("Card form ready")
+    }
+
+    /**
+     * Field-level brutal theme, set programmatically via
+     * [io.hyperswitch.paymentmethods.widget.BaseRNViewInput.setOptions] instead of `app:field*`
+     * XML attributes — the per-field counterpart to [initialisePaymentMethodSession]'s
+     * vault/session-wide [AppearanceVariables] above. Every value here is forwarded to JS as-is;
+     * this code makes no attempt to reconcile e.g. a field's box height against the label row
+     * `labelBehavior = ABOVE` adds above it — that's the RN side's call, not native's.
+     */
+    private fun configureCardFields() {
+        val black = ContextCompat.getColor(this, R.color.brutal_black)
+        val white = ContextCompat.getColor(this, R.color.brutal_white)
+        val yellow = ContextCompat.getColor(this, R.color.brutal_yellow)
+        val red = ContextCompat.getColor(this, R.color.brutal_red)
+
+        fun rootStyle() = ViewStyleProps(backgroundColor = yellow, padding = 0f)
+        fun containerStyle(padding: Float, height: Float) = ViewStyleProps(
+            backgroundColor = white,
+            borderColor = black,
+            borderRadius = 0f,
+            borderWidth = 3f,
+            padding = padding,
+            height = height,
+        )
+        fun accessoryStyle() = ViewStyleProps(
+            backgroundColor = white,
+            borderRadius = 0f,
+            borderWidth = 0f,
+            padding = 2f,
+        )
+        fun textStyle(fontSize: Float, color: Int = black) = TextStyleProps(color = color, fontSize = fontSize)
+
+        findViewById<CardHolderInputField>(R.id.cardHolderInput).setOptions(
+            styles = FieldStyles(
+                root = rootStyle(),
+                container = containerStyle(padding = 14f, height = 56f),
+                input = textStyle(17f),
+                placeholder = textStyle(17f),
+                label = textStyle(12f),
+                error = textStyle(12f, red),
+            ),
+            options = FieldOptions(
+                label = "Cardholder name",
+                labelBehavior = LabelBehavior.ABOVE,
+                errorDisplay = ErrorDisplay.COLOR_ONLY,
+                unstyled = false,
+                accessibilityLabel = "Cardholder name input",
+                accessibilityHint = "Enter the name printed on the card",
+            ),
+            placeholder = "Cardholder name",
+        )
+
+        findViewById<CardNumberInputField>(R.id.cardNumberInput).setOptions(
+            styles = FieldStyles(
+                root = rootStyle(),
+                container = containerStyle(padding = 14f, height = 56f),
+                input = textStyle(17f),
+                placeholder = textStyle(17f),
+                label = textStyle(12f),
+                error = textStyle(12f, red),
+                accessory = accessoryStyle(),
+            ),
+            options = FieldOptions(
+                label = "Card number",
+                labelBehavior = LabelBehavior.FLOATING,
+                errorDisplay = ErrorDisplay.INLINE,
+                unstyled = false,
+                accessibilityLabel = "Card number input",
+                accessibilityHint = "Enter your 16 digit card number",
+                cardBrandIcon = BrandIconMode.STANDARD,
+            ),
+            placeholder = "Card number",
+        )
+
+        findViewById<CardExpiryInputField>(R.id.cardExpiryInput).setOptions(
+            styles = FieldStyles(
+                root = rootStyle(),
+                container = containerStyle(padding = 12f, height = 52f),
+                input = textStyle(15f),
+                placeholder = textStyle(15f),
+                label = textStyle(11f),
+                error = textStyle(11f, red),
+            ),
+            options = FieldOptions(
+                label = "Expiry",
+                labelBehavior = LabelBehavior.NEVER,
+                errorDisplay = ErrorDisplay.NONE,
+                unstyled = false,
+                accessibilityLabel = "Expiry date input",
+                accessibilityHint = "Enter the card expiry date",
+            ),
+            placeholder = "MM / YY",
+        )
+
+        findViewById<CardCVCInputField>(R.id.cardCVCInput).setOptions(
+            styles = FieldStyles(
+                root = rootStyle(),
+                container = containerStyle(padding = 12f, height = 52f),
+                input = textStyle(15f),
+                placeholder = textStyle(15f),
+                label = textStyle(11f),
+                error = textStyle(11f, red),
+                accessory = accessoryStyle(),
+            ),
+            options = FieldOptions(
+                label = "CVC",
+                labelBehavior = LabelBehavior.NEVER,
+                errorDisplay = ErrorDisplay.NONE,
+                unstyled = false,
+                accessibilityLabel = "CVC input",
+                accessibilityHint = "Enter the 3 digit security code",
+                cvcIcon = CvcIconDisplay.DEFAULT,
+            ),
+            placeholder = "CVC",
+        )
     }
 
     // ── UI helpers ─────────────────────────────────────────────────────────────────────────────

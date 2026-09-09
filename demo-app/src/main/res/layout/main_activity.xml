@@ -110,6 +110,12 @@
             android:layout_marginTop="10dp"
             android:text="@string/btn_launch_payment_methods" />
 
+        <Button
+            style="@style/HsButtonOutline"
+            android:id="@+id/launchPaymentMethodsSplitLayout"
+            android:layout_marginTop="10dp"
+            android:text="@string/btn_launch_payment_methods_split" />
+
     </LinearLayout>
 
 </ScrollView>
