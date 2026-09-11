@@ -1,27 +1,24 @@
 package io.hyperswitch.paymentsession
 
 import android.view.View
-import com.facebook.react.bridge.Arguments
-import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.utils.ConversionUtils
 import io.hyperswitch.view.CVCWidget
-import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 
 internal class PaymentSessionHandlerImpl(
-    private var sdkAuthorization: String,
+    private val attempt: HeadlessAttempt,
     private val defaultMethodData: ReadableMap,
     private val lastUsedMethodData: ReadableMap,
     private val allMethodsData: ReadableArray,
-    private val jsCallback: Callback,
-    private val sessionRouter: PaymentSessionRouter,
 ) : PaymentSessionHandler {
+
+    private val sdkAuthorization: String
+        get() = attempt.sdkAuthorization
 
     override fun getCustomerDefaultSavedPaymentMethodData(): Result<PaymentMethod> =
         parsePaymentMethod(defaultMethodData)
@@ -42,44 +39,34 @@ internal class PaymentSessionHandlerImpl(
     override fun confirmWithCustomerDefaultPaymentMethod(
         cvc: String?, resultHandler: (PaymentResult) -> Unit
     ) {
-        defaultMethodData.getString("payment_token")
-            ?.let { confirmWithCustomerPaymentToken(it, cvc, resultHandler) }
+        confirm(defaultMethodData.getString("payment_token"), cvc, resultHandler)
     }
 
     override fun confirmWithCustomerLastUsedPaymentMethod(
         cvc: String?, resultHandler: (PaymentResult) -> Unit
     ) {
-        lastUsedMethodData.getString("payment_token")
-            ?.let { confirmWithCustomerPaymentToken(it, cvc, resultHandler) }
+        confirm(lastUsedMethodData.getString("payment_token"), cvc, resultHandler)
     }
 
-    override fun updateSdkAuthorization(sdkAuthorization: String){
-        this.sdkAuthorization = sdkAuthorization
+    /** A method without a token (no saved method) fails at once instead of never answering. */
+    private fun confirm(token: String?, cvc: String?, resultHandler: (PaymentResult) -> Unit) {
+        if (token == null) {
+            resultHandler(PaymentResult.Failed(Throwable("The selected payment method has no payment token.").apply {
+                initCause(Throwable("NO_PAYMENT_TOKEN"))
+            }))
+            return
+        }
+        confirmWithCustomerPaymentToken(token, cvc, resultHandler)
+    }
+
+    override fun updateSdkAuthorization(sdkAuthorization: String) {
+        attempt.sdkAuthorization = sdkAuthorization
     }
 
     override fun confirmWithCustomerPaymentToken(
         paymentToken: String, cvc: String?, resultHandler: (PaymentResult) -> Unit
     ) {
-        try {
-            val registered = sessionRouter.tryRegisterExitCallback(-1, resultHandler)
-            if (!registered) {
-                resultHandler(PaymentResult.Failed(
-                    Throwable("Payment confirmation already in progress for this handler").apply {
-                        initCause(Throwable("ALREADY_IN_PROGRESS"))
-                    }
-                ))
-                return
-            }
-            jsCallback.invoke(Arguments.createMap().apply {
-                putString("paymentToken", paymentToken)
-                putString("cvc", cvc)
-            })
-        } catch (ex: Exception) {
-            sessionRouter.clearExitCallback(-1)
-            resultHandler(PaymentResult.Failed(Throwable("Not Initialised").apply {
-                initCause(Throwable("Not Initialised"))
-            }))
-        }
+        attempt.confirm(paymentToken, cvc, resultHandler)
     }
 
     // ── CVCWidget suspend overloads ───────────────────────────────────────────

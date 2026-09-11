@@ -143,9 +143,11 @@ class LaunchOptions(
         }
     )
 
-    // Get user agent
-    private fun getUserAgent(context: Context?): String? =
-        try {
+    // Get user agent. WebSettings.getDefaultUserAgent initialises the WebView provider on
+    // first use, so the value is computed once per process and reused by every surface.
+    private fun getUserAgent(context: Context?): String? {
+        cachedUserAgent?.let { return it }
+        val userAgent = try {
             if (context == null)
                 System.getProperty("http.agent")
             else
@@ -153,6 +155,9 @@ class LaunchOptions(
         } catch (_: RuntimeException) {
             System.getProperty("http.agent")
         }
+        if (context != null && userAgent != null) cachedUserAgent = userAgent
+        return userAgent
+    }
 
 
     @RequiresApi(Build.VERSION_CODES.R)
@@ -274,5 +279,8 @@ class LaunchOptions(
         return JSONObject(map)
     }
 }
+
+@Volatile
+private var cachedUserAgent: String? = null
 
 data class EdgeInsets(val top: Float, val right: Float, val bottom: Float, val left: Float)

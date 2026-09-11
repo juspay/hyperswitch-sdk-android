@@ -39,7 +39,6 @@ class Utils {
               .setLaunchOptions(getLaunchOptions(request, message, context))
               .setFabricEnabled(BuildConfig.IS_NEW_ARCHITECTURE_ENABLED)
               .build()
-              .also { it.runtime = ReactNativeController.legacyRuntime }
             transaction.replace(android.R.id.content, newReactNativeFragmentSheet, "paymentSheet").commitAllowingStateLoss()
           } else {
             transaction.show(reactNativeFragmentSheet).commitAllowingStateLoss()
@@ -50,7 +49,6 @@ class Utils {
             .setLaunchOptions(getLaunchOptions(request, message, context))
             .setFabricEnabled(BuildConfig.IS_NEW_ARCHITECTURE_ENABLED)
             .build()
-            .also { it.runtime = ReactNativeController.legacyRuntime }
           transaction.add(id ?: android.R.id.content, reactNativeFragmentCard, "cardForm").commitAllowingStateLoss()
         }
       }

@@ -28,7 +28,7 @@ class HyperswitchBoundElement internal constructor(
     }
 
     init {
-        paymentSession.reactRuntime?.let { element.attachRuntime(it) }
+        element.setSessionTag(paymentSession.sessionTag)
         val config = paymentSession.getHsConfig()
         if (config != null) {
             element.initWidget(config)

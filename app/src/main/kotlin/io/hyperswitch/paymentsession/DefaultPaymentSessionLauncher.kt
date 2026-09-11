@@ -1,15 +1,17 @@
 package io.hyperswitch.paymentsession
 
 import android.app.Activity
+import android.app.Application
+import android.os.Bundle
+import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
 import io.hyperswitch.logs.LogUtils.getLoggingUrl
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
-import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
-import io.hyperswitch.react.HyperReactRuntime
+import io.hyperswitch.paymentsheet.PaymentSheet
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
 
@@ -18,6 +20,8 @@ class DefaultPaymentSessionLauncher(
     hsConfig: HyperswitchBaseConfiguration?,
     private var paymentSessionReactLauncher: SDKInterface = PaymentSessionReactLauncher(activity, hsConfig)
 ) : BasePaymentSessionLauncher(activity, hsConfig) {
+
+    private var activityWatcher: Application.ActivityLifecycleCallbacks? = null
 
     init {
         val publishableKey = hsConfig?.publishableKey
@@ -30,11 +34,12 @@ class DefaultPaymentSessionLauncher(
             HyperLogManager.sendLogsFromFile(LogFileManager(activity))
         }
         paymentSessionReactLauncher.initializeReactNativeInstance()
+        closeWithActivity()
     }
 
-    /** This session's React runtime (host, emitter, router). Null on the WebView backend. */
-    internal val reactRuntime: HyperReactRuntime?
-        get() = (paymentSessionReactLauncher as? PaymentSessionReactLauncher)?.runtime
+    /** The session's identity in JS: the root tag of its prefetch surface. */
+    internal val sessionTag: Int?
+        get() = paymentSessionReactLauncher.sessionTag
 
     override fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
         super.initPaymentSession(sessionConfig)
@@ -55,12 +60,47 @@ class DefaultPaymentSessionLauncher(
         }
     }
 
-    private fun applySubscription(subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?) {
-        subscribe ?: return
+    /** Stops the session's surfaces. Also runs when the hosting Activity is destroyed. */
+    fun close() {
+        activityWatcher?.let { activity.application?.unregisterActivityLifecycleCallbacks(it) }
+        activityWatcher = null
+        paymentSessionReactLauncher.close()
+    }
+
+    /**
+     * Any Activity, not only lifecycle-aware ones (Flutter's FlutterActivity is a plain
+     * Activity): the Application reports the destruction of the one this session was
+     * created for, and the session closes with it.
+     */
+    private fun closeWithActivity() {
+        val application = activity.application ?: return
+        if (activity.isDestroyed) {
+            close()
+            return
+        }
+        val watcher = object : Application.ActivityLifecycleCallbacks {
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+            override fun onActivityStarted(activity: Activity) {}
+            override fun onActivityResumed(activity: Activity) {}
+            override fun onActivityPaused(activity: Activity) {}
+            override fun onActivityStopped(activity: Activity) {}
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+            override fun onActivityDestroyed(activity: Activity) {
+                if (activity === this@DefaultPaymentSessionLauncher.activity) close()
+            }
+        }
+        activityWatcher = watcher
+        application.registerActivityLifecycleCallbacks(watcher)
+    }
+
+    private fun buildSubscription(
+        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?
+    ): Pair<List<String>, PaymentEventListener?> {
+        subscribe ?: return emptyList<String>() to null
         val builder = PaymentEventSubscriptionBuilder()
         builder.subscribe()
         val (subscription, listener) = builder.build()
-        reactRuntime?.eventEmitter?.setEventListener(listener, subscription)
+        return subscription.getSubscribedEventStrings() to listener
     }
 
     override fun presentPaymentSheet(
@@ -68,10 +108,8 @@ class DefaultPaymentSessionLauncher(
         subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?,
         resultCallback: (PaymentResult) -> Unit
     ) {
-        applySubscription(subscribe)
-        val isFragment =
-            paymentSessionReactLauncher.presentSheet(sessionConfig, configuration)
-        PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
+        val (events, listener) = buildSubscription(subscribe)
+        paymentSessionReactLauncher.presentSheet(sessionConfig, configuration, events, listener, resultCallback)
     }
 
     override fun presentPaymentSheet(
@@ -79,18 +117,15 @@ class DefaultPaymentSessionLauncher(
         subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?,
         resultCallback: (PaymentResult) -> Unit
     ) {
-        applySubscription(subscribe)
-        val isFragment = paymentSessionReactLauncher.presentSheet(configurationMap)
-        PaymentSheetCallbackManager.setCallback(resultCallback, isFragment)
+        val (events, listener) = buildSubscription(subscribe)
+        paymentSessionReactLauncher.presentSheet(configurationMap, events, listener, resultCallback)
     }
 
     override fun getCustomerSavedPaymentMethods(
         configuration: SavedPaymentMethodsConfiguration?,
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
     ) {
-        checkNotNull(reactRuntime) { "React runtime not initialised" }
-            .sessionRouter.setSessionCallback(sessionConfig?.sdkAuthorization, savedPaymentMethodCallback)
-        paymentSessionReactLauncher.recreateReactContext(configuration)
+        paymentSessionReactLauncher.startSavedPaymentMethods(configuration, savedPaymentMethodCallback)
     }
 
     override fun getCustomerSavedPaymentMethods(
@@ -103,14 +138,8 @@ class DefaultPaymentSessionLauncher(
         configuration: SavedPaymentMethodsConfiguration?,
     ): PaymentSessionHandler =
         suspendCancellableCoroutine { continuation ->
-            val router = checkNotNull(reactRuntime) { "React runtime not initialised" }.sessionRouter
-            router.setSessionCallback(sessionConfig?.sdkAuthorization) { handler ->
+            paymentSessionReactLauncher.startSavedPaymentMethods(configuration) { handler ->
                 if (continuation.isActive) continuation.resume(handler)
             }
-            continuation.invokeOnCancellation {
-                router.setSessionCallback(sessionConfig?.sdkAuthorization, null)
-            }
-            paymentSessionReactLauncher.recreateReactContext(configuration)
         }
-
 }
