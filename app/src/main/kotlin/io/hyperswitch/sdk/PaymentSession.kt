@@ -12,7 +12,6 @@ import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
-import io.hyperswitch.react.HyperReactRuntime
 
 /**
  * A class that manages payment sessions using a [io.hyperswitch.paymentsession.PaymentSessionLauncher].
@@ -80,9 +79,17 @@ class PaymentSession internal constructor(
         (paymentSessionLauncher as? DefaultPaymentSessionLauncher)?.awaitReady()
     }
 
-    /** This session's React runtime. Widgets bound to the session render on its host. */
-    internal val reactRuntime: HyperReactRuntime?
-        get() = (paymentSessionLauncher as? DefaultPaymentSessionLauncher)?.reactRuntime
+    /** The session's identity in JS: the root tag of its prefetch surface on the shared host. */
+    internal val sessionTag: Int?
+        get() = (paymentSessionLauncher as? DefaultPaymentSessionLauncher)?.sessionTag
+
+    /**
+     * Stops this session's surfaces on the shared React host. Runs automatically when the
+     * hosting activity is destroyed; call it earlier to release a session you are done with.
+     */
+    fun close() {
+        (paymentSessionLauncher as? DefaultPaymentSessionLauncher)?.close()
+    }
 
     /** Replaces the session's intent via the session's prefetch surface. */
     fun updateIntent(

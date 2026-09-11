@@ -28,7 +28,12 @@ open class HyperswitchElement @JvmOverloads constructor(
 
     private val internalView: PaymentWidgetView = PaymentWidgetView(context, attrs, defStyleAttr)
 
+    /** JS surface type; reaches the inner view even when the element is never bound to a session. */
     var type: String? = null
+        set(value) {
+            field = value
+            internalView.setWidgetType(value)
+        }
 
     init {
         addView(internalView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
@@ -51,14 +56,15 @@ open class HyperswitchElement @JvmOverloads constructor(
         }
     }
 
+    /** Marks this element as part of a session so JS scopes session-wide events to it. */
+    fun setSessionTag(tag: Int?) {
+        internalView.setSessionTag(tag)
+    }
+
     /**
      * Initializes the widget with a full [HyperswitchBaseConfiguration].
      * Registers an internal result handler that cleans up on completion.
      */
-    /** Renders this element on the given session's React host. */
-    fun attachRuntime(runtime: io.hyperswitch.react.HyperReactRuntime) {
-        internalView.attachRuntime(runtime)
-    }
 
     fun initWidget(config: HyperswitchBaseConfiguration) {
         internalView.initWidget(config)
