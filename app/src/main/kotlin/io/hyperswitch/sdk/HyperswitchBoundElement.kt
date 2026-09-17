@@ -28,7 +28,7 @@ class HyperswitchBoundElement internal constructor(
     }
 
     init {
-        element.setSessionTag(paymentSession.sessionTag)
+        element.bind(paymentSession)
         val config = paymentSession.getHsConfig()
         if (config != null) {
             element.initWidget(config)

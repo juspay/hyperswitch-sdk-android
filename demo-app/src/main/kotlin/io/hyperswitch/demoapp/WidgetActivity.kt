@@ -109,19 +109,19 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
     // ── Initialisation ─────────────────────────────────────────────────────────────────────────
 
     private fun initialiseWidgets(publishableKey: String, profileId: String) {
+        hyperswitchInstance = Hyperswitch.init(
+            activity = this,
+            config = HyperswitchConfiguration(
+                publishableKey = publishableKey,
+                profileId = profileId,
+            )
+        )
+
         val sessionConfig = PaymentSessionConfiguration(sdkAuthorization)
         val paymentElement = findViewById<PaymentElement>(R.id.paymentElement)
         val cvcWidget = findViewById<CVCWidget>(R.id.cvcWidget)
 
         lifecycleScope.launch {
-            val instance = Hyperswitch.init(
-                activity = this@WidgetActivity,
-                config = HyperswitchConfiguration(
-                    publishableKey = publishableKey,
-                    profileId = profileId,
-                )
-            )
-            hyperswitchInstance = instance
             // A reload is a new session: destroy the previous bindings before binding again.
             paymentElementBound?.let { bound ->
                 elements?.unbind(bound)
@@ -131,8 +131,11 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
                 elements?.unbind(bound)
                 bound.destroy()
             }
+            // The session being replaced is closed, or its surfaces stay on the React host for
+            // as long as this activity lives.
+            elements?.close()
             // All bindings share one Elements session — initialise once, bind sequentially.
-            elements = instance.elements(sessionConfig)
+            elements = hyperswitchInstance?.elements(sessionConfig)
             paymentSessionHandler = elements?.getPaymentSession()?.getCustomerSavedPaymentMethods()
             paymentElementBound = elements?.bind(paymentElement, buildConfiguration())
             paymentElementBound?.onPaymentResult(::handleResult)

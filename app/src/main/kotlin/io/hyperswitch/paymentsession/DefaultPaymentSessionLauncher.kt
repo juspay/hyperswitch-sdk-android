@@ -41,6 +41,9 @@ class DefaultPaymentSessionLauncher(
     internal val sessionTag: Int?
         get() = paymentSessionReactLauncher.sessionTag
 
+    internal val isUpdatingIntent: Boolean
+        get() = (paymentSessionReactLauncher as? PaymentSessionReactLauncher)?.isUpdatingIntent ?: false
+
     override fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
         super.initPaymentSession(sessionConfig)
         paymentSessionReactLauncher.sessionConfig = sessionConfig

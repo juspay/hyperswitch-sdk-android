@@ -264,7 +264,10 @@ class PaymentWidgetView : FrameLayout {
     }
 
     fun confirmPayment(callback: (PaymentResult) -> Unit) {
-        this.fragment?.confirmPayment(callback)
+        val fragment = this.fragment ?: return callback(noRoot())
+        val sessionConfig = sdkAuthorization.takeIf { requiresSession && it.isNotEmpty() }
+            ?.let { PaymentSessionConfiguration(it).toBundle() }
+        fragment.confirmPayment(sessionConfig, callback)
     }
 
 
@@ -274,8 +277,13 @@ class PaymentWidgetView : FrameLayout {
         billing: String?,
         callback: (PaymentResult) -> Unit
     ) {
-        this.fragment?.confirmCvcPayment(sdkAuthorization, paymentToken, billing, callback)
+        val fragment = this.fragment ?: return callback(noRoot())
+        fragment.confirmCvcPayment(sdkAuthorization, paymentToken, billing, callback)
     }
+
+    private fun noRoot(): PaymentResult = PaymentResult.Failed(
+        Throwable("The widget has no React root").apply { initCause(Throwable("WIDGET_UNAVAILABLE")) }
+    )
 
     fun setSdkAuthorization(sdkAuthorization: String) {
         this.sdkAuthorization = sdkAuthorization

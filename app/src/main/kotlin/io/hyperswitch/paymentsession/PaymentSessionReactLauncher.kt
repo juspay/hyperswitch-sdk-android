@@ -8,6 +8,7 @@ import android.os.Looper
 import android.util.Log
 import androidx.activity.addCallback
 import androidx.fragment.app.FragmentActivity
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.common.assets.ReactFontManager
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.facebook.react.uimanager.PixelUtil
@@ -69,7 +70,12 @@ class PaymentSessionReactLauncher(
         var authorization: String? = null
     }
 
+    @Volatile
     private var updateIntentAttempt: UpdateIntentAttempt? = null
+
+    /** True between `updateIntent` being called and its result; confirms are refused meanwhile. */
+    val isUpdatingIntent: Boolean
+        get() = updateIntentAttempt != null
 
     override fun initializeReactNativeInstance() {
         try {
@@ -128,8 +134,9 @@ class PaymentSessionReactLauncher(
             }
             val config = sessionConfig ?: return@runOnMain
             failPendingUpdateIntent("SESSION_REINITIALISED", "initPaymentSession replaced the intent while updateIntent was in flight")
-            current.props.getBundle("props")?.putBundle("paymentSessionConfig", config.toBundle())
-            current.surface.updateProps(current.props)
+            updateIntentSequence += 1
+            pushUpdateIntent("complete", config)
+            savedPaymentMethods?.second?.sdkAuthorization = config.sdkAuthorization
         }
     }
 
@@ -279,7 +286,15 @@ class PaymentSessionReactLauncher(
     ) {
         runOnMain {
             if (closed) {
-                Log.w(TAG, "getCustomerSavedPaymentMethods called on a closed session")
+                val reason = "The payment session was closed"
+                val failure = Arguments.createMap().apply {
+                    putString("code", "SESSION_CLOSED")
+                    putString("message", reason)
+                }
+                val refused = HeadlessAttempt("", onHandler).apply {
+                    refuseConfirms(PaymentResult.Failed(Throwable(reason).apply { initCause(Throwable("SESSION_CLOSED")) }))
+                }
+                onHandler(PaymentSessionHandlerImpl(refused, failure, failure, Arguments.createArray()))
                 return@runOnMain
             }
             val bundle = launchOptions.getBundle(
@@ -294,7 +309,11 @@ class PaymentSessionReactLauncher(
                 configuration?.let { putBundle("configuration", it.bundle) }
             }
             stampSessionTag(bundle)
-            val attempt = HeadlessAttempt(sessionConfig?.sdkAuthorization ?: "", onHandler)
+            val attempt = HeadlessAttempt(
+                sessionConfig?.sdkAuthorization ?: "",
+                onHandler,
+                updating = { updateIntentAttempt != null },
+            )
             savedPaymentMethods?.let { (surface, previous) ->
                 previous.cancel()
                 surface.stop()

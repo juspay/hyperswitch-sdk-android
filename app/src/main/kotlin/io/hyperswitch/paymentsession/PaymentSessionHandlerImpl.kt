@@ -59,10 +59,6 @@ internal class PaymentSessionHandlerImpl(
         confirmWithCustomerPaymentToken(token, cvc, resultHandler)
     }
 
-    override fun updateSdkAuthorization(sdkAuthorization: String) {
-        attempt.sdkAuthorization = sdkAuthorization
-    }
-
     override fun confirmWithCustomerPaymentToken(
         paymentToken: String, cvc: String?, resultHandler: (PaymentResult) -> Unit
     ) {
@@ -72,24 +68,36 @@ internal class PaymentSessionHandlerImpl(
     // ── CVCWidget suspend overloads ───────────────────────────────────────────
 
     override suspend fun confirmWithCustomerLastUsedPaymentMethod(cvcWidget: View): PaymentResult {
+        if (attempt.isUpdating()) return updateInProgress()
         val method = getCustomerLastUsedPaymentMethodData()
             .getOrElse { return PaymentResult.Failed(it) }
         (cvcWidget as? CVCWidget)?.let {
             it.setSdkAuthorization(sdkAuthorization)
             return it.confirmCVCWidget(sdkAuthorization, method.paymentToken, method.billing)
         }
-        return PaymentResult.Failed(Throwable("View can't be cast as CVCWidget"))
+        return notACvcWidget()
     }
 
     override suspend fun confirmWithCustomerDefaultPaymentMethod(cvcWidget: View): PaymentResult {
+        if (attempt.isUpdating()) return updateInProgress()
         val method = getCustomerDefaultSavedPaymentMethodData()
             .getOrElse { return PaymentResult.Failed(it) }
         (cvcWidget as? CVCWidget)?.let {
             it.setSdkAuthorization(sdkAuthorization)
             return it.confirmCVCWidget(sdkAuthorization, method.paymentToken, method.billing)
         }
-        return PaymentResult.Failed(Throwable("View can't be cast as CVCWidget"))
+        return notACvcWidget()
     }
+
+    private fun notACvcWidget(): PaymentResult = PaymentResult.Failed(
+        Throwable("View can't be cast as CVCWidget").apply { initCause(Throwable("WIDGET_UNAVAILABLE")) }
+    )
+
+    private fun updateInProgress(): PaymentResult = PaymentResult.Failed(
+        Throwable("An intent update is in progress; confirm after it completes").apply {
+            initCause(Throwable("UPDATE_IN_PROGRESS"))
+        }
+    )
 
     // ── CVCWidget callback overloads (Java-friendly, no Continuation needed) ─
 
