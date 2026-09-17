@@ -48,8 +48,6 @@ interface PaymentSessionHandler {
     fun confirmWithCustomerLastUsedPaymentMethod(
         cvc: String? = null, resultHandler: (PaymentResult) -> Unit
     )
-    fun updateSdkAuthorization(sdkAuthorization : String)
-
     fun confirmWithCustomerPaymentToken(
         paymentToken: String, cvc: String? = null, resultHandler: (PaymentResult) -> Unit
     )

@@ -20,12 +20,21 @@ internal class HeadlessAttempt(
     private val onHandler: (PaymentSessionHandler) -> Unit,
     /** Builds the map handed to the JS callback; tests substitute a JVM-only map. */
     private val newMap: () -> WritableMap = { Arguments.createMap() },
+    private val updating: () -> Boolean = { false },
 ) {
 
     /** The latest confirm callback JS registered; taken, not read, by [confirm]. */
     private val jsCallback = AtomicReference<Callback?>(null)
     private val handlerDelivered = AtomicBoolean(false)
     private val pendingResult = AtomicReference<((PaymentResult) -> Unit)?>(null)
+    private val refusal = AtomicReference<PaymentResult?>(null)
+
+    internal fun isUpdating(): Boolean = updating()
+
+    internal fun refuseConfirms(result: PaymentResult) {
+        jsCallback.set(null)
+        refusal.set(result)
+    }
 
     fun onPaymentSession(
         defaultMethod: ReadableMap,
@@ -40,6 +49,11 @@ internal class HeadlessAttempt(
     }
 
     fun confirm(paymentToken: String, cvc: String?, resultHandler: (PaymentResult) -> Unit) {
+        refusal.get()?.let { resultHandler(it); return }
+        if (updating()) {
+            resultHandler(failed("An intent update is in progress; confirm after it completes", "UPDATE_IN_PROGRESS"))
+            return
+        }
         if (!pendingResult.compareAndSet(null, resultHandler)) {
             resultHandler(failed("Payment confirmation already in progress for this handler", "ALREADY_IN_PROGRESS"))
             return
@@ -48,17 +62,18 @@ internal class HeadlessAttempt(
         val callback = jsCallback.getAndSet(null)
         if (callback == null) {
             pendingResult.set(null)
-            resultHandler(failed("Not Initialised", "Not Initialised"))
+            resultHandler(failed("The saved payment methods are not ready to confirm", "NOT_INITIALISED"))
             return
         }
         try {
             callback.invoke(newMap().apply {
                 putString("paymentToken", paymentToken)
                 putString("cvc", cvc)
+                putString("sdkAuthorization", sdkAuthorization)
             })
         } catch (_: Exception) {
             pendingResult.set(null)
-            resultHandler(failed("Not Initialised", "Not Initialised"))
+            resultHandler(failed("The saved payment methods are not ready to confirm", "NOT_INITIALISED"))
         }
     }
 
@@ -66,10 +81,10 @@ internal class HeadlessAttempt(
         pendingResult.getAndSet(null)?.invoke(result)
     }
 
-    /** The surface is going away: fail whatever is still waiting on it. */
     fun cancel() {
-        jsCallback.set(null)
-        onExit(failed("The saved payment methods session was replaced or closed", "CANCELLED"))
+        val cancelled = failed("The saved payment methods session was replaced or closed", "CANCELLED")
+        refuseConfirms(cancelled)
+        onExit(cancelled)
     }
 
     private fun failed(message: String, code: String) =

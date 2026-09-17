@@ -120,21 +120,34 @@ class HyperFragment : Fragment() {
 
     /**
      * Confirms through the widget's own React root: a `widgetConfirm` marker on its props.
-     * JS answers through `exitWidgetPaymentsheet` for this root tag.
+     * [sessionConfig] is the session's current `paymentSessionConfig`; it replaces the one the
+     * widget was shown with, so a confirm after `updateIntent` pays the intent the session has
+     * now. JS answers through `exitWidgetPaymentsheet` for this root tag.
      */
-    fun confirmPayment(callback: ((PaymentResult) -> Unit)) {
+    fun confirmPayment(sessionConfig: Bundle?, callback: ((PaymentResult) -> Unit)) {
         UiThreadUtil.runOnUiThread {
             if (callbacks.containsKey(CallbackType.CONFIRM_ACTION)) {
-                callback.invoke(PaymentResult.Failed(Throwable("Payment already in progress")))
+                callback.invoke(PaymentResult.Failed(
+                    Throwable("A confirm is already in progress for this widget").apply {
+                        initCause(Throwable("ALREADY_IN_PROGRESS"))
+                    }
+                ))
                 return@runOnUiThread
             }
             callbacks[CallbackType.CONFIRM_ACTION] = HyperCallback.Payment(callback)
             confirmSequence += 1
             val attempt = confirmSequence
-            val pushed = pushProps { putBundle("widgetConfirm", Bundle().apply { putInt("attempt", attempt) }) }
+            val pushed = pushProps {
+                sessionConfig?.let { putBundle("paymentSessionConfig", it) }
+                putBundle("widgetConfirm", Bundle().apply { putInt("attempt", attempt) })
+            }
             if (!pushed) {
                 callbacks.remove(CallbackType.CONFIRM_ACTION)
-                callback.invoke(PaymentResult.Failed(Throwable("React Context not ready")))
+                callback.invoke(PaymentResult.Failed(
+                    Throwable("The payment widget has no React root.").apply {
+                        initCause(Throwable("WIDGET_UNAVAILABLE"))
+                    }
+                ))
             }
         }
     }
@@ -255,7 +268,11 @@ class HyperFragment : Fragment() {
             }
             if (!pushed) {
                 callbacks.remove(CallbackType.CONFIRM_CVC_ACTION)
-                callback.invoke(PaymentResult.Failed(Throwable("cannot find the view")))
+                callback.invoke(PaymentResult.Failed(
+                    Throwable("The CVC widget has no React root.").apply {
+                        initCause(Throwable("WIDGET_UNAVAILABLE"))
+                    }
+                ))
             }
         }
     }
