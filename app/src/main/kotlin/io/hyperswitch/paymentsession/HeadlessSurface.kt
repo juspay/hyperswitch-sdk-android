@@ -3,37 +3,57 @@ package io.hyperswitch.paymentsession
 import android.content.Context
 import android.os.Bundle
 import com.facebook.react.ReactHost
-import com.facebook.react.interfaces.fabric.ReactSurface
+import com.facebook.react.interfaces.TaskInterface
 import com.facebook.react.runtime.ReactSurfaceImpl
+import com.facebook.react.runtime.ReactSurfaceView
+import io.hyperswitch.react.SurfaceOwners
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
- * Viewless HyperHeadless surface. `prerender()` rather than `start()`: start() requires
- * an attached view; prerender runs React (effects included) without mounting.
+ * Viewless HyperHeadless surface on the shared host. It starts with a
+ * ReactSurfaceView that never joins a window: prerender() would run React too,
+ * but only a view-backed surface can be resolved by root tag, and that is how
+ * the native modules find [owner] when JS replies.
  */
-internal class HeadlessSurface(
-    private val context: Context,
-    private val reactHost: ReactHost,
+internal class HeadlessSurface private constructor(
+    private val surface: ReactSurfaceImpl,
+    private val view: ReactSurfaceView,
+    private val startTask: TaskInterface<Void>,
 ) {
 
-    private var surface: ReactSurface? = null
+    /** Allocated when the view is created, so valid before the surface has started. */
+    val rootTag: Int
+        get() = view.rootViewTag
 
-    fun start(props: Bundle) {
-        if (surface != null) return
-        val newSurface = ReactSurfaceImpl(context, MODULE_NAME, props)
-        newSurface.attach(reactHost)
-        surface = newSurface
-        newSurface.prerender()
+    /** Resolves once React is running this surface, which implies the host is up. */
+    suspend fun awaitStarted() {
+        withContext(Dispatchers.IO) { startTask.waitForCompletion() }
+        startTask.getError()?.let { throw it }
+    }
+
+    /** Re-renders the running root with new props; React updates in place, no remount. */
+    fun updateProps(props: Bundle) {
+        surface.updateInitProps(props)
     }
 
     fun stop() {
-        surface?.let { live ->
-            live.stop()
-            live.detach()
-        }
-        surface = null
+        SurfaceOwners.attach(view, null)
+        surface.stop()
+        surface.detach()
     }
 
-    private companion object {
-        const val MODULE_NAME = "HyperHeadless"
+    companion object {
+        private const val MODULE_NAME = "HyperHeadless"
+
+        /** Main thread. [owner] is what JS replies for this surface are routed to. */
+        fun start(context: Context, reactHost: ReactHost, props: Bundle, owner: Any): HeadlessSurface {
+            val surface = ReactSurfaceImpl(context, MODULE_NAME, props)
+            val view = ReactSurfaceView(context, surface)
+            SurfaceOwners.attach(view, owner)
+            surface.attachView(view)
+            surface.attach(reactHost)
+            return HeadlessSurface(surface, view, surface.start())
+        }
     }
 }

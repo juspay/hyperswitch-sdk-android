@@ -23,7 +23,7 @@ import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogCategory
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** Process-wide RN setup plus a per-session ReactHost factory. */
+/** Process-wide React Native setup and the one shared runtime. */
 object ReactNativeController {
 
     private val isInitialized = AtomicBoolean(false)
@@ -31,23 +31,15 @@ object ReactNativeController {
     @Volatile
     private var application: Application? = null
 
-    /** Host for entry points with no session: legacy flows, HyperActivity after process death. */
-    val legacyRuntime: HyperReactRuntime by lazy {
+    /**
+     * The shared runtime. One host renders every surface of every PaymentSession
+     * and widget; it is created on first use and lives for the process.
+     */
+    val runtime: HyperReactRuntime by lazy {
         HyperReactRuntime(checkNotNull(application) {
-            "ReactNativeController.initialize() must run before the legacy runtime is used"
+            "ReactNativeController.initialize() must run before the React runtime is used"
         })
     }
-
-    // One-shot handoff for HyperActivity (Intent-started); cleared on read.
-    @Volatile
-    private var pendingActivityRuntime: HyperReactRuntime? = null
-
-    fun offerActivityRuntime(runtime: HyperReactRuntime) {
-        pendingActivityRuntime = runtime
-    }
-
-    fun takeActivityRuntime(): HyperReactRuntime? =
-        pendingActivityRuntime.also { pendingActivityRuntime = null }
 
     fun getIsInitialized(): Boolean = isInitialized.get()
 
@@ -101,7 +93,17 @@ object ReactNativeController {
         }
     }
 
-    /** Same construction as DefaultReactHost.getDefaultReactHost, minus its process-wide memoization. */
+    /**
+     * Boots the shared host so the bundle is evaluated before the first session
+     * needs it. Idempotent; a running host ignores it.
+     */
+    fun warmUp() {
+        try {
+            runtime.reactHost.start()
+        } catch (_: Exception) {}
+    }
+
+    /** Same construction as DefaultReactHost.getDefaultReactHost; called once, from [runtime]. */
     @OptIn(UnstableReactNativeAPI::class)
     internal fun createReactHost(application: Application, runtime: HyperReactRuntime): ReactHost {
         initialize(application)
@@ -132,4 +134,5 @@ object ReactNativeController {
             BuildConfig.DEBUG,
         )
     }
+
 }

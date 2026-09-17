@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- View tag key: the native object that owns a React surface, stored on the surface's root view. -->
+    <item name="hs_surface_owner" type="id" />
+</resources>

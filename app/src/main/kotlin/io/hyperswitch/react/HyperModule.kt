@@ -5,23 +5,13 @@ import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import androidx.fragment.app.FragmentManager
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReadableMap
-import com.facebook.react.bridge.UiThreadUtil
 import com.facebook.react.bridge.WritableMap
-import com.facebook.react.uimanager.UIManagerHelper
-import com.facebook.react.uimanager.common.UIManagerType
 import io.hyperswitch.BuildConfig
-import io.hyperswitch.PaymentConfiguration
-import io.hyperswitch.PaymentEventSubscription
 import io.hyperswitch.payments.GooglePayCallbackManager
 import io.hyperswitch.payments.launcher.PaymentMethod
 import io.hyperswitch.payments.view.WidgetLauncher
@@ -43,6 +33,11 @@ internal fun ReadableMap.toExitResultJson(): String {
     return json.toString()
 }
 
+/**
+ * Stateless JS → native entry point for the shared host. Every call names the
+ * surface it comes from by root tag; the owner of that surface is resolved
+ * through the mounting layer and handles the call.
+ */
 class HyperModule internal constructor(
     private val rct: ReactApplicationContext,
     private val runtime: HyperReactRuntime,
@@ -88,9 +83,6 @@ class HyperModule internal constructor(
             "confirm" -> emitConfirm(payload)
             "widget" -> emitWidget(payload)
             "confirmEC" -> emitConfirmEC(payload)
-            "triggerWidgetAction" -> emitTriggerWidgetAction(payload)
-            "updateIntentInit" -> emitUpdateIntentInit(payload)
-            "updateIntentComplete" -> emitUpdateIntentComplete(payload)
             else -> Log.w("HyperModule", "emitEvent: unknown event tag $tag")
         }
     }
@@ -114,14 +106,14 @@ class HyperModule internal constructor(
      * Stores the callback; native later calls [resolveConfirmCallback] to proceed/abort.
      */
     override fun onPaymentConfirmButtonClick(rootTag: Double, payload: String, callback: Callback) {
-        findViewWithRootTag(rootTag.toInt()) {
+        withFragment(rootTag) { fragment ->
             try {
-                if(it == null){
+                if (fragment == null) {
                     callback.invoke(true)
-                }else {
-                    it.notifyConfirmButtonClicked(payload, { it: Boolean ->
-                        callback.invoke(it)
-                    })
+                } else {
+                    fragment.notifyConfirmButtonClicked(payload) { proceed: Boolean ->
+                        callback.invoke(proceed)
+                    }
                 }
             } catch (_: Exception) {
                 callback.invoke(false)
@@ -164,11 +156,29 @@ class HyperModule internal constructor(
         }
     }
 
-    // Method to exit the payment sheet
+    /**
+     * A sheet presented by a session is owned by its fragment, which holds the
+     * completion. Anything else (HyperActivity, legacy openReactView) still
+     * resolves through the one-shot PaymentSheetCallbackManager.
+     */
     override fun exitPaymentsheet(rootTag: Double, result: ReadableMap, reset: Boolean) {
         val paymentResult = result.toExitResultJson()
-        // Dismiss first: the merchant's callback may create the next session,
-        // which boots a host on the main thread.
+        SurfaceOwners.resolve(rct, rootTag.toInt()) { owner ->
+            val fragment = owner as? HyperFragment
+            if (fragment != null && fragment.hasPaymentResultCallback()) {
+                // Removal is queued behind the callback on the main looper, so the merchant
+                // sees the result first and the surface stops right after.
+                (fragment.activity as? FragmentActivity)?.supportFragmentManager
+                    ?.beginTransaction()?.remove(fragment)?.commitAllowingStateLoss()
+                fragment.notifyResult(CallbackType.PAYMENT_RESULT, paymentResult)
+            } else {
+                exitLegacyPaymentsheet(paymentResult)
+            }
+        }
+    }
+
+    private fun exitLegacyPaymentsheet(paymentResult: String) {
+        // Dismiss first: the merchant's callback may present again straight away.
         (currentActivity as? FragmentActivity)?.let {
             if (PaymentSheetCallbackManager.isFragmentPresentation()) {
                 it.supportFragmentManager.findFragmentByTag("paymentSheet")?.let { fragment ->
@@ -197,14 +207,14 @@ class HyperModule internal constructor(
     // Method to exit widget payment sheet
     override fun exitWidgetPaymentsheet(rootTag: Double, result: ReadableMap, reset: Boolean) {
         val paymentResult = result.toExitResultJson()
-        findViewWithRootTag(rootTag.toInt(), {
+        withFragment(rootTag) {
             it?.notifyResult(CallbackType.PAYMENT_RESULT, paymentResult)
-        })
+        }
     }
 
     override fun notifyWidgetPaymentResult(rootTag: Double, result: ReadableMap) {
         val paymentResult = result.toExitResultJson()
-        findViewWithRootTag(rootTag.toInt(), { fragment ->
+        withFragment(rootTag) { fragment ->
             if (fragment == null) {
                 Log.w(
                     "HyperModule",
@@ -213,25 +223,27 @@ class HyperModule internal constructor(
             } else {
                 fragment.notifyResult(CallbackType.CONFIRM_ACTION, paymentResult)
             }
-        })
+        }
     }
 
     override fun onUpdateIntentEvent(rootTag: Double, eventType: String, result: ReadableMap) {
-        if (rootTag.toInt() != HyperReactRuntime.PREFETCH_SURFACE_TAG) {
-            Log.w("HyperModule", "onUpdateIntentEvent: unexpected rootTag=$rootTag for $eventType")
-            return
+        val json = result.toExitResultJson()
+        SurfaceOwners.resolve(rct, rootTag.toInt()) { owner ->
+            when (owner) {
+                is UpdateIntentReplyTarget -> owner.onUpdateIntentReply(eventType, json)
+                else -> Log.w("HyperModule", "onUpdateIntentEvent: no prefetch owner for rootTag=$rootTag ($eventType)")
+            }
         }
-        runtime.onPrefetchUpdateIntentReply?.invoke(eventType, result.toExitResultJson())
     }
 
     override fun emitPaymentEvent(rootTag: Double, eventType: String, payload: ReadableMap) {
-        findViewWithRootTag(rootTag.toInt(), { fragment ->
+        withFragment(rootTag) { fragment ->
             if (fragment == null) {
                 Log.w("HyperModule", "emitPaymentEvent: no fragment found for rootTag=$rootTag")
             } else {
                 fragment.notifyEvent(eventType, payload)
             }
-        })
+        }
     }
 
     override fun openIframeBridge(url: String, timeoutMs: Double, callback: Callback) {
@@ -300,25 +312,6 @@ class HyperModule internal constructor(
             }
             resolvedWrapper.webView.addJavascriptInterface(ddcBridge, "HyperDDCBridge")
 
-//            resolvedWrapper.webView.webViewClient = object : WebViewClient() {
-//                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-//                    if (request.isForMainFrame) {
-//                        val url = request.url.toString()
-//                        Log.d("HyperDDC", "shouldOverride intercepted: $url")
-//                        invokeCallback("{\"next_action\":{\"type\":\"redirect_to_url\",\"url\":\"$url\"}}")
-//                        return true
-//                    }
-//                    return false
-//                }
-//
-//                @Suppress("DEPRECATION")
-//                override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-//                    Log.d("HyperDDC", "shouldOverride intercepted (legacy): $url")
-//                    invokeCallback("{\"next_action\":{\"type\":\"redirect_to_url\",\"url\":\"$url\"}}")
-//                    return true
-//                }
-//            }
-
             resolvedWrapper.apply {
                 isFocusable = false
                 isFocusableInTouchMode = false
@@ -350,20 +343,7 @@ class HyperModule internal constructor(
         }
     }
 
-    private fun findViewWithRootTag(rootTag: Int, onFound: (HyperFragment?) -> Unit) {
-        if (rootTag <= 0) {
-            onFound(null)
-            return
-        }
-        UiThreadUtil.runOnUiThread {
-            val fragment = try {
-                UIManagerHelper.getUIManager(rct, UIManagerType.FABRIC)
-                    ?.resolveView(rootTag)
-                    ?.let { view -> FragmentManager.findFragment<Fragment>(view) }
-            } catch (_: Exception) {
-                null
-            }
-            onFound(fragment as? HyperFragment)
-        }
+    private fun withFragment(rootTag: Double, block: (HyperFragment?) -> Unit) {
+        SurfaceOwners.resolve(rct, rootTag.toInt()) { owner -> block(owner as? HyperFragment) }
     }
 }

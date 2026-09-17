@@ -109,6 +109,13 @@ class Elements internal constructor(
 
     fun getPaymentSession(): PaymentSession = this.paymentSession
 
+    /** Releases every bound element and the session's surfaces on the shared host. */
+    fun close() {
+        hsElements.forEach { it.destroy() }
+        hsElements.clear()
+        paymentSession.close()
+    }
+
     fun getCustomerSavedPaymentMethods(
         configuration: SavedPaymentMethodsConfiguration? = null,
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),

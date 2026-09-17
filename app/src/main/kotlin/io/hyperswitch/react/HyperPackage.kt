@@ -7,7 +7,7 @@ import com.facebook.react.module.model.ReactModuleInfo
 import com.facebook.react.module.model.ReactModuleInfoProvider
 import com.facebook.react.uimanager.ViewManager
 
-/** One per host; binds this host's native modules to the runtime that owns it. */
+/** Binds the host's native modules to the runtime that owns the host. */
 class HyperPackage(
     private val runtime: HyperReactRuntime,
 ) : BaseReactPackage() {
@@ -15,7 +15,7 @@ class HyperPackage(
     override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? {
         return when (name) {
             io.hyperswitch.react.codegen.NativeHyperModuleSpec.NAME -> HyperModule(reactContext, runtime)
-            io.hyperswitch.react.codegen.NativeHyperHeadlessSpec.NAME -> HyperHeadlessModule(reactContext, runtime.sessionRouter)
+            io.hyperswitch.react.codegen.NativeHyperHeadlessSpec.NAME -> HyperHeadlessModule(reactContext)
             else -> null
         }
     }

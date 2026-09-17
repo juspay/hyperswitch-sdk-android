@@ -90,16 +90,16 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                         val sdkAuthorization = json.getString("sdkAuthorization")
                         val profileId       = json.optString("profileId")
 
-                        hyperswitchInstance = Hyperswitch.init(
-                            activity = this@MainActivity,
-                            config = HyperswitchConfiguration(
-                                publishableKey = publishableKey,
-                                profileId = profileId,
-                            )
-                        )
-
                         lifecycleScope.launch {
-                            paymentSession = hyperswitchInstance?.initPaymentSession(
+                            val instance = Hyperswitch.init(
+                                activity = this@MainActivity,
+                                config = HyperswitchConfiguration(
+                                    publishableKey = publishableKey,
+                                    profileId = profileId,
+                                )
+                            )
+                            hyperswitchInstance = instance
+                            paymentSession = instance.initPaymentSession(
                                 PaymentSessionConfiguration(sdkAuthorization = sdkAuthorization)
                             )
                             onSessionReady()

@@ -22,8 +22,6 @@ import io.hyperswitch.paymentsheet.PaymentRequestData
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.react.HyperFragment
-import io.hyperswitch.react.HyperFragmentManager
-import io.hyperswitch.react.HyperReactRuntime
 import io.hyperswitch.react.ReactNativeController
 
 import kotlin.math.abs
@@ -50,11 +48,6 @@ fun interface ConfirmPaymentClickListener {
 }
 
 
-/**
- * Extension function to convert PaymentSheet.Configuration to Map<String, Any>.
- * TODO: Fill in the actual mapping implementation.
- */
-
 class PaymentWidgetView : FrameLayout {
     private var widgetConfig: PaymentWidgetConfig? = null
     private lateinit var launchOptions: LaunchOptions
@@ -65,11 +58,11 @@ class PaymentWidgetView : FrameLayout {
 
     private var resultListener: PaymentResultListener? = null
 
-    /** The owning session's runtime; null when the widget was not bound through Elements. */
-    private var runtime: HyperReactRuntime? = null
+    /** Identity of the session this widget belongs to (its prefetch root tag); null when unbound. */
+    private var sessionTag: Int? = null
 
-    fun attachRuntime(runtime: HyperReactRuntime) {
-        this.runtime = runtime
+    fun setSessionTag(tag: Int?) {
+        this.sessionTag = tag
     }
 
     private var confirmPaymentClickListener: ConfirmPaymentClickListener? = null
@@ -95,9 +88,8 @@ class PaymentWidgetView : FrameLayout {
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-//        initWidget( ?: "")
-        // Auto-show widget if SDK authorization is already set
-        if (!isSdkAuthorizationEmpty()) {
+        // Session-bound widgets wait for their authorization; a CVC widget has none and shows at once.
+        if (canShow()) {
             post { showWidgetInternal() }
         }
     }
@@ -120,9 +112,18 @@ class PaymentWidgetView : FrameLayout {
 
     private var widgetType: String? = null
 
+    private val fragmentTag: String
+        get() = "HyperPaymentSheet_${this.id}"
+
+    /** The CVC widget is stateless: no session, no credentials until confirm hands them over. */
+    private val requiresSession: Boolean
+        get() = widgetType != CVC_WIDGET_TYPE
+
+    private fun canShow(): Boolean = !requiresSession || !isSdkAuthorizationEmpty()
+
     fun initWidget(config: HyperswitchBaseConfiguration) {
         this.hsConfig = config
-        this.widgetType = this.widgetType ?: "widgetPaymentSheet"
+        this.widgetType = this.widgetType ?: DEFAULT_WIDGET_TYPE
         launchOptions = LaunchOptions(mContext.applicationContext, BuildConfig.VERSION_NAME, config)
         ReactNativeController.initialize(mContext.applicationContext as Application)
     }
@@ -245,9 +246,9 @@ class PaymentWidgetView : FrameLayout {
     }
 
     fun getLaunchOptions(): Bundle {
-        return this.launchOptions.getBundle(
+        val bundle = this.launchOptions.getBundle(
             configuration = resolveConfiguration(),
-            type = widgetType,
+            type = widgetType ?: DEFAULT_WIDGET_TYPE,
             from = when (widgetConfig) {
                 is PaymentWidgetConfig.Native -> "nativeWidget"
                 is PaymentWidgetConfig.ReactNative -> "rn"
@@ -256,6 +257,10 @@ class PaymentWidgetView : FrameLayout {
             sessionConfig = if (this.sdkAuthorization.isNotEmpty()) PaymentSessionConfiguration(this.sdkAuthorization) else null,
             subscribedEvents = this.subscribedEvents,
         )
+        sessionTag?.let { tag ->
+            bundle.getBundle("props")?.getBundle("sdkParams")?.putInt("sessionTag", tag)
+        }
+        return bundle
     }
 
     fun confirmPayment(callback: (PaymentResult) -> Unit) {
@@ -277,28 +282,30 @@ class PaymentWidgetView : FrameLayout {
         // Auto-show widget if already attached to window.
         // Use post() to guarantee execution on the main thread — callers may
         // invoke this from a background thread (e.g. Java integration).
-        if (isAttachedToWindow && !isSdkAuthorizationEmpty()) {
+        if (isAttachedToWindow && canShow()) {
             post { showWidgetInternal() }
         }
     }
 
     fun showWidgetInternal() {
-        if (this.isSdkAuthorizationEmpty()) return  // callers already guard; no need to retry
+        if (!canShow()) return  // callers already guard; no need to retry
         if (widgetShown) return
         widgetShown = true
         val activity = context as? FragmentActivity ?: return
 
         if (activity.isFinishing || activity.isDestroyed) return
 
-        val tag = "HyperPaymentSheet_${this.id}"
-        HyperFragmentManager.cancelPending(tag)
-        this.setFragment(
-            HyperFragment.Builder().setComponentName("hyperSwitch")
-                .setLaunchOptions(this.getLaunchOptions()).build()
-                .also { it.runtime = runtime }
-        )
+        // A widget created outside a session (CVC) is the first thing to touch the SDK.
+        ReactNativeController.initialize(activity.application)
 
+        val tag = fragmentTag
+        val fragment = HyperFragment.Builder().setComponentName("hyperSwitch")
+            .setLaunchOptions(this.getLaunchOptions()).build()
+        this.setFragment(fragment)
+
+        // The fragment is this view's own; the FragmentManager already tracks it by tag.
         val frameLayout = FrameLayout(activity).apply {
+            id = View.generateViewId()
             layoutParams = LayoutParams(MATCH_PARENT, MATCH_PARENT)
         }
         this.addView(frameLayout, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
@@ -311,15 +318,20 @@ class PaymentWidgetView : FrameLayout {
             )
             frameLayout.layout(0, 0, frameLayout.measuredWidth, frameLayout.measuredHeight)
             setupLayout(frameLayout, containerWidth, containerHeight)
-            HyperFragmentManager.addOrReplace(
-                activity = activity,
-                container = frameLayout,
-                fragment = this.getFragment() as Fragment,
-                tag = tag,
-                addToBackStack = false
-            )
+            if (activity.isFinishing || activity.isDestroyed || !frameLayout.isAttachedToWindow) {
+                widgetShown = false
+                return@post
+            }
+            try {
+                activity.supportFragmentManager.beginTransaction()
+                    .replace(frameLayout.id, fragment as Fragment, tag)
+                    .commitNowAllowingStateLoss()
+            } catch (e: Exception) {
+                widgetShown = false
+                return@post
+            }
 
-            frameLayout.post { this.getFragment()?.view?.requestLayout() }
+            frameLayout.post { fragment.view?.requestLayout() }
         }
         this.fragment?.setOnPaymentResult(::dispatchResult)
         this.fragment?.setOnPaymentConfirmButtonClick(::dispatchConfirmTriggered)
@@ -363,8 +375,13 @@ class PaymentWidgetView : FrameLayout {
             this.cancelPendingInputEvents()
             stopLayout()
             val activity = context as? FragmentActivity ?: return
-            val tag = "HyperPaymentSheet_${this.id}"
-            HyperFragmentManager.remove(activity, tag)
+            val manager = activity.supportFragmentManager
+            manager.findFragmentByTag(fragmentTag)?.let { fragment ->
+                if (fragment.isAdded && !manager.isDestroyed) {
+                    manager.beginTransaction().remove(fragment).commitNowAllowingStateLoss()
+                }
+            }
+            this.fragment = null
             post {
                 removeAllViews()
             }
@@ -422,5 +439,10 @@ class PaymentWidgetView : FrameLayout {
             }
         }
         return super.dispatchTouchEvent(ev)
+    }
+
+    private companion object {
+        const val DEFAULT_WIDGET_TYPE = "widgetPaymentSheet"
+        const val CVC_WIDGET_TYPE = "cvcWidget"
     }
 }

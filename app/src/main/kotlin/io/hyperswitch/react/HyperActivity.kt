@@ -15,11 +15,6 @@ import org.greenrobot.eventbus.Subscribe
 /** Fallback presentation for hosts that are not a FragmentActivity. */
 class HyperActivity : ReactActivity() {
 
-    // Handed over via ReactNativeController (Intents can't carry objects); legacy host after process death.
-    private val runtime: HyperReactRuntime by lazy {
-        ReactNativeController.takeActivityRuntime() ?: ReactNativeController.legacyRuntime
-    }
-
     override fun getMainComponentName(): String = "hyperSwitch"
 
     override fun createReactActivityDelegate(): ReactActivityDelegate {
@@ -27,7 +22,7 @@ class HyperActivity : ReactActivity() {
             override fun getLaunchOptions(): Bundle =
                 intent.getBundleExtra("configuration") ?: Bundle()
 
-            override fun getReactHost(): ReactHost = runtime.reactHost
+            override fun getReactHost(): ReactHost = ReactNativeController.runtime.reactHost
         }
     }
 
@@ -45,6 +40,9 @@ class HyperActivity : ReactActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // The OS can recreate this activity after process death before the host app
+        // initialised the SDK; initialize() is idempotent.
+        ReactNativeController.initialize(application)
         super.onCreate(savedInstanceState)
         registerEventBus()
     }
