@@ -6,6 +6,7 @@ import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
@@ -31,6 +32,7 @@ import io.hyperswitch.paymentmethods.widget.CardNumberInputField
 import io.hyperswitch.sdk.HyperInterface
 import io.hyperswitch.sdk.Hyperswitch
 import io.hyperswitch.sdk.HyperswitchInstance
+import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -92,7 +94,9 @@ class PaymentMethodsActivity : AppCompatActivity(), HyperInterface {
                         val sdkAuthorization = json.getString("sdkAuthorization")
                         val profileId       = json.optString("profileId")
 
-                        runOnUiThread { initialisePaymentMethodSession(publishableKey, profileId, sdkAuthorization) }
+                        lifecycleScope.launch {
+                            initialisePaymentMethodSession(publishableKey, profileId, sdkAuthorization)
+                        }
                     } catch (e: JSONException) {
                         Log.e(TAG, "Failed to parse backend response", e)
                         setStatus("Could not connect to the server")
@@ -107,7 +111,7 @@ class PaymentMethodsActivity : AppCompatActivity(), HyperInterface {
     }
 
     // ── Initialisation ─────────────────────────────────────────────────────────────────────────
-    private fun initialisePaymentMethodSession(
+    private suspend fun initialisePaymentMethodSession(
         publishableKey: String,
         profileId: String,
         sdkAuthorization: String,

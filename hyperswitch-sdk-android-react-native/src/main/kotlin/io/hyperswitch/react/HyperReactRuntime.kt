@@ -14,8 +14,13 @@ import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
  * The process-wide React runtime: one host (one JS realm, one bundle
  * evaluation) that renders every surface of every PaymentSession and widget.
  * Surfaces are told apart by root tag; the runtime keeps no per-session state.
+ *
+ * The constructor is public so SDK extension modules (e.g.
+ * hyperswitch-sdk-android-payment-methods) can build a dedicated instance to back the
+ * TurboModule wiring of their own hosts; only [ReactNativeController]'s instance ever
+ * reads [reactHost].
  */
-class HyperReactRuntime internal constructor(application: Application) : DefaultLifecycleObserver {
+class HyperReactRuntime(application: Application) : DefaultLifecycleObserver {
 
     val eventEmitter = HyperEventEmitter()
 
