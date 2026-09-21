@@ -23,6 +23,9 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".PaymentMethodsActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
         <activity android:name=".WidgetActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             >

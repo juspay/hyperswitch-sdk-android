@@ -46,9 +46,18 @@ internal class HeadlessSurface private constructor(
     companion object {
         private const val MODULE_NAME = "HyperHeadless"
 
-        /** Main thread. [owner] is what JS replies for this surface are routed to. */
-        fun start(context: Context, reactHost: ReactHost, props: Bundle, owner: Any): HeadlessSurface {
-            val surface = ReactSurfaceImpl(context, MODULE_NAME, props)
+        /**
+         * Main thread. [owner] is what JS replies for this surface are routed to. [moduleName]
+         * is the root the bundle registered; another host's bundle registers its own.
+         */
+        fun start(
+            context: Context,
+            reactHost: ReactHost,
+            props: Bundle,
+            owner: Any,
+            moduleName: String = MODULE_NAME,
+        ): HeadlessSurface {
+            val surface = ReactSurfaceImpl(context, moduleName, props)
             val view = ReactSurfaceView(context, surface)
             SurfaceOwners.attach(view, owner)
             surface.attachView(view)

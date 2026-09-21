@@ -8,6 +8,7 @@
     <string name="btn_launch_payment_sheet">Launch Payment Sheet</string>
     <string name="btn_confirm_last_used">Confirm with Last Used PM</string>
     <string name="btn_launch_widget">Launch Widget</string>
+    <string name="btn_launch_payment_methods">Launch Payment Methods</string>
     <string name="section_payment">Payment</string>
     <string name="section_server">Server</string>
 
