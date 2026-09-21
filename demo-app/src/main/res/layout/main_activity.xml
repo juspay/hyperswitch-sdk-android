@@ -103,6 +103,12 @@
             android:layout_marginTop="24dp"
             android:text="@string/btn_launch_widget" />
 
+        <Button
+            style="@style/HsButtonOutline"
+            android:id="@+id/launchPaymentMethods"
+            android:layout_marginTop="12dp"
+            android:text="@string/btn_launch_payment_methods" />
+
     </LinearLayout>
 
 </ScrollView>

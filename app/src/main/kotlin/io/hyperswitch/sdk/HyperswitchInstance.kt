@@ -14,8 +14,8 @@ import kotlinx.coroutines.withContext
  * host; the instance itself holds no runtime state beyond the configuration.
  */
 class HyperswitchInstance internal constructor(
-    private val activity: Activity,
-    private val hsConfig: HyperswitchBaseConfiguration?,
+    internal val activity: Activity,
+    internal val hsConfig: HyperswitchBaseConfiguration?,
 ) {
 
     /** Resolves once the session's prefetch surface is running under these credentials. */
