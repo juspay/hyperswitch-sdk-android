@@ -90,16 +90,19 @@ class MainActivity : AppCompatActivity(), HyperInterface {
                         val sdkAuthorization = json.getString("sdkAuthorization")
                         val profileId       = json.optString("profileId")
 
-                        lifecycleScope.launch {
-                            val instance = Hyperswitch.init(
-                                activity = this@MainActivity,
-                                config = HyperswitchConfiguration(
-                                    publishableKey = publishableKey,
-                                    profileId = profileId,
-                                )
+                        hyperswitchInstance = Hyperswitch.init(
+                            activity = this@MainActivity,
+                            config = HyperswitchConfiguration(
+                                publishableKey = publishableKey,
+                                profileId = profileId,
                             )
-                            hyperswitchInstance = instance
-                            paymentSession = instance.initPaymentSession(
+                        )
+
+                        lifecycleScope.launch {
+                            // A reload replaces the session; the old one is closed, or its
+                            // surfaces stay on the React host for as long as this activity lives.
+                            paymentSession?.close()
+                            paymentSession = hyperswitchInstance?.initPaymentSession(
                                 PaymentSessionConfiguration(sdkAuthorization = sdkAuthorization)
                             )
                             onSessionReady()

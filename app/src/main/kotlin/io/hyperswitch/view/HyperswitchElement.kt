@@ -9,6 +9,7 @@ import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.paymentsheet.PaymentRequestData
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
+import io.hyperswitch.sdk.PaymentSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -56,10 +57,37 @@ open class HyperswitchElement @JvmOverloads constructor(
         }
     }
 
+    /** The session this element pays for; its credentials are read at every confirm. */
+    private var session: PaymentSession? = null
+
     /** Marks this element as part of a session so JS scopes session-wide events to it. */
     fun setSessionTag(tag: Int?) {
         internalView.setSessionTag(tag)
     }
+
+
+    internal fun bind(session: PaymentSession) {
+        // A widget already on screen belongs to the session it was started for: it shows that
+        // session's intent and carries its tag, by which JS scopes updateIntent to it. Bound to
+        // another session it starts over, or it would stay the old session's widget for good.
+        if (this.session != null && this.session !== session) {
+            internalView.removeWidget()
+        }
+        this.session = session
+        internalView.setSessionTag(session.sessionTag)
+    }
+
+    /** Brings the widget's credentials up to date with the session before a confirm. */
+    private fun syncCredentials() {
+        session?.let { internalView.setSdkAuthorization(it.getSdkAuthorization()) }
+    }
+
+    private fun refusal(): PaymentResult? =
+        if (session?.isUpdatingIntent == true) PaymentResult.Failed(
+            Throwable("An intent update is in progress; confirm after it completes").apply {
+                initCause(Throwable("UPDATE_IN_PROGRESS"))
+            }
+        ) else null
 
     /**
      * Initializes the widget with a full [HyperswitchBaseConfiguration].
@@ -93,6 +121,8 @@ open class HyperswitchElement @JvmOverloads constructor(
     @JvmSynthetic
     suspend fun confirmPayment(): PaymentResult =
         suspendCancellableCoroutine { continuation ->
+            refusal()?.let { continuation.resume(it); return@suspendCancellableCoroutine }
+            syncCredentials()
             internalView.confirmPayment { result ->
                 if (result is PaymentResult.Completed) {
                     internalView.removeWidget()
@@ -105,6 +135,8 @@ open class HyperswitchElement @JvmOverloads constructor(
      * Callback variant — caller is responsible for any post-result cleanup.
      */
     fun confirmPayment(callback: (PaymentResult) -> Unit) {
+        refusal()?.let { return callback(it) }
+        syncCredentials()
         internalView.confirmPayment(callback)
     }
 

@@ -32,14 +32,9 @@ class PaymentSession internal constructor(
         sessionConfig = sessionConfig
     )
 
-    private var paymentSessionHandler: PaymentSessionHandler? = null
 
-    /**
-     * Initializes the payment session with the given payment intent client secret.
-     *
-     * @param sdkAuthorization The client secret of the payment intent.
-     */
-    fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
+
+    internal fun initPaymentSession(sessionConfig: PaymentSessionConfiguration) {
         this.sessionConfig = sessionConfig
         paymentSessionLauncher.initPaymentSession(sessionConfig)
     }
@@ -68,9 +63,9 @@ class PaymentSession internal constructor(
         paymentSessionLauncher.presentPaymentSheet(configuration, subscribe, resultCallback)
     }
 
-    fun updateSdkAuthorization(sdkAuthorization: String) {
+    /** Commits the credentials a successful [updateIntent] moved to; the launcher moves the handler. */
+    private fun updateSdkAuthorization(sdkAuthorization: String) {
         this.sessionConfig = PaymentSessionConfiguration(sdkAuthorization)
-        paymentSessionHandler?.updateSdkAuthorization(sdkAuthorization)
     }
 
     /** Resolves once the session's runtime is ready to present. */
@@ -82,6 +77,10 @@ class PaymentSession internal constructor(
     /** The session's identity in JS: the root tag of its prefetch surface on the shared host. */
     internal val sessionTag: Int?
         get() = (paymentSessionLauncher as? DefaultPaymentSessionLauncher)?.sessionTag
+
+    /** True while an updateIntent is in flight; a confirm now would pay the intent being replaced. */
+    internal val isUpdatingIntent: Boolean
+        get() = (paymentSessionLauncher as? DefaultPaymentSessionLauncher)?.isUpdatingIntent ?: false
 
     /**
      * Stops this session's surfaces on the shared React host. Runs automatically when the
@@ -122,9 +121,7 @@ class PaymentSession internal constructor(
     suspend fun getCustomerSavedPaymentMethods(
         configuration: SavedPaymentMethodsConfiguration? = null,
     ): PaymentSessionHandler {
-        return paymentSessionLauncher.getCustomerSavedPaymentMethods(configuration).also {
-            paymentSessionHandler = it
-        }
+        return paymentSessionLauncher.getCustomerSavedPaymentMethods(configuration)
     }
 
     /**
@@ -137,10 +134,7 @@ class PaymentSession internal constructor(
         configuration: SavedPaymentMethodsConfiguration? = null,
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),
     ) {
-        paymentSessionLauncher.getCustomerSavedPaymentMethods(configuration) {
-            paymentSessionHandler = it
-            savedPaymentMethodCallback(it)
-        }
+        paymentSessionLauncher.getCustomerSavedPaymentMethods(configuration, savedPaymentMethodCallback)
     }
 
     fun getPublishableKey(): String {
