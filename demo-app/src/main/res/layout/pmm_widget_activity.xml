@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/surface_page"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical"
+    tools:context=".PaymentMethodsManagementActivity">
+
+    <!-- ── Title ────────────────────────────────────────────────────── -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="48dp"
+        android:text="@string/title_pmm_widget_demo"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary" />
+
+    <!-- ── Status ───────────────────────────────────────────────────── -->
+    <TextView
+        android:id="@+id/resultText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="12dp"
+        android:gravity="center"
+        android:minHeight="40dp"
+        android:textColor="@color/text_secondary"
+        android:textSize="14sp" />
+
+    <!-- ── PMM widget ───────────────────────────────────────────────── -->
+    <!-- The SDK view is created programmatically via createWidget() and
+         added to this container once the payment method session is ready. -->
+    <FrameLayout
+        android:id="@+id/pmmWidgetContainer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- ── Merchant-owned confirm button (widget mode) ──────────────── -->
+    <!-- The widget renders no confirm CTA of its own: the merchant's button
+         triggers the save via widget.tokenize() (web Vault SDK parity with
+         hyper.confirmTokenization()). -->
+    <Button
+        android:id="@+id/merchantSaveCardButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
+        android:text="@string/action_save_card" />
+
+</LinearLayout>

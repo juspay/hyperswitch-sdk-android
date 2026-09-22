@@ -22,6 +22,9 @@ import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsession.PMError
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
+import io.hyperswitch.pmm.PaymentMethodManagement
+import io.hyperswitch.pmm.PaymentMethodManagementConfiguration
+import io.hyperswitch.pmm.initPaymentMethodManagement
 import io.hyperswitch.sdk.HyperInterface
 import io.hyperswitch.sdk.Hyperswitch
 import io.hyperswitch.sdk.HyperswitchInstance
@@ -38,6 +41,7 @@ class MainActivity : AppCompatActivity(), HyperInterface {
     private var serverUrl = DEFAULT_SERVER_URL
     private var hyperswitchInstance: HyperswitchInstance? = null
     private var paymentSession: PaymentSession? = null
+    private var paymentMethodManagement: PaymentMethodManagement? = null
 
     // ── Lifecycle ──────────────────────────────────────────────────────────────────────────────
 
@@ -72,8 +76,22 @@ class MainActivity : AppCompatActivity(), HyperInterface {
         findViewById<View>(R.id.launchWidgetLayout).setOnClickListener {
             startActivity(Intent(this, WidgetActivity::class.java))
         }
+
         findViewById<View>(R.id.launchPaymentMethods).setOnClickListener {
             startActivity(Intent(this, PaymentMethodsActivity::class.java))
+        }
+
+        findViewById<View>(R.id.launchPmmSheetButton).setOnClickListener {
+            // PM-session sdkAuthorizations are short-lived (~15 min) — refetch a fresh
+            // session on every launch instead of reusing the one created at app start,
+            // otherwise `list-payment-methods` 401s and the sheet shows an error state.
+            fetchPaymentMethodSession {
+                paymentMethodManagement?.presentSheet(buildConfiguration(), ::handleResult)
+            }
+        }
+
+        findViewById<View>(R.id.launchPmmWidgetLayout).setOnClickListener {
+            startActivity(Intent(this, PaymentMethodsManagementActivity::class.java))
         }
     }
 
@@ -123,6 +141,66 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             })
 
         fetchNetceteraApiKey()
+        fetchPaymentMethodSession()
+    }
+
+    // ── Payment Method Session (PMM) ───────────────────────────────────────────
+
+    private fun fetchPaymentMethodSession(onReady: (() -> Unit)? = null) {
+        runOnUiThread { findViewById<View>(R.id.launchPmmSheetButton).isEnabled = false }
+
+        reset().post("$serverUrl/create-payment-method-session")
+            .header("Content-Type" to "application/json")
+            .body(PAYMENT_METHOD_SESSION_BODY)
+            .responseString(object : Handler<String?> {
+                override fun success(value: String?) {
+                    try {
+                        val json = value?.let { JSONObject(it) } ?: run {
+                            // Empty body — re-enable so the launch button isn't stuck.
+                            runOnUiThread { findViewById<View>(R.id.launchPmmSheetButton).isEnabled = true }
+                            return
+                        }
+                        Log.d(TAG, "PM session response: $value")
+
+                        val publishableKey   = json.getString("publishableKey")
+                        val profileId        = json.getString("profileId")
+                        val sdkAuthorization = json.getString("sdkAuthorization")
+
+                        val pmmInstance = Hyperswitch.init(
+                            activity = this@MainActivity,
+                            config = HyperswitchConfiguration(
+                                publishableKey = publishableKey,
+                                profileId = profileId,
+                                // PM sessions are created against the new gateway (see .env
+                                // PM_SESSION_BASE_URL) — point every PMM API call there.
+                                customConfig = CustomEndpointConfiguration(
+                                    commonEndpoint = PM_SESSION_COMMON_ENDPOINT
+                                ),
+                            )
+                        )
+
+                        paymentMethodManagement = pmmInstance.initPaymentMethodManagement(
+                            PaymentMethodManagementConfiguration(sdkAuthorization)
+                        )
+                        runOnUiThread {
+                            findViewById<View>(R.id.launchPmmSheetButton).isEnabled = true
+                            onReady?.invoke()
+                        }
+                    } catch (e: JSONException) {
+                        Log.e(TAG, "Failed to parse PM session response", e)
+                        setStatus("Could not create payment method session")
+                        // Non-JSON response (e.g. server down) — same as failure(): re-enable.
+                        runOnUiThread { findViewById<View>(R.id.launchPmmSheetButton).isEnabled = true }
+                    }
+                }
+
+                override fun failure(error: FuelError) {
+                    Log.e(TAG, "PM session request failed: ${error.message}")
+                    setStatus("Could not create payment method session")
+                    // Allow retrying — without this the PMM button stays disabled forever.
+                    runOnUiThread { findViewById<View>(R.id.launchPmmSheetButton).isEnabled = true }
+                }
+            })
     }
 
     private fun fetchNetceteraApiKey() {
@@ -210,5 +288,23 @@ class MainActivity : AppCompatActivity(), HyperInterface {
         private const val PREFS_NAME = "HyperswitchPrefs"
         private const val KEY_SERVER_URL = "server_url"
         private const val DEFAULT_SERVER_URL = "http://10.0.2.2:5252"
+
+        // Gateway where the mock server creates `/v1/payment-method-sessions`
+        // (matches PM_SESSION_BASE_URL in .env; the SDK appends `/api` itself).
+        internal const val PM_SESSION_COMMON_ENDPOINT = "https://app.hyperswitch.io"
+
+        // Same body the RN-web demo harness uses for `create-payment-method-session`.
+        // The customer_id is supplied by the mock server from the
+        // PM_SESSION_CUSTOMER_ID env var — keep account-specific IDs out of the repo.
+        internal const val PAYMENT_METHOD_SESSION_BODY = """
+            {
+              "storage_type": "persistent",
+              "keep_alive": true,
+              "billing": {
+                "address": { "first_name": "hellow", "last_name": "world" },
+                "email": "example@example.com"
+              }
+            }
+            """
     }
 }
