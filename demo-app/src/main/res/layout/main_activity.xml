@@ -109,6 +109,31 @@
             android:layout_marginTop="12dp"
             android:text="@string/btn_launch_payment_methods" />
 
+        <!-- ── Divider ──────────────────────────────────────────────────── -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginTop="16dp"
+            android:background="@color/divider" />
+
+        <!-- ── PMM section ─────────────────────────────────────────────── -->
+        <TextView
+            style="@style/HsSectionLabel"
+            android:text="@string/section_pmm" />
+
+        <Button
+            style="@style/HsButtonPrimary"
+            android:id="@+id/launchPmmSheetButton"
+            android:enabled="false"
+            android:text="@string/btn_launch_pmm_sheet" />
+
+        <Button
+            style="@style/HsButtonOutline"
+            android:id="@+id/launchPmmWidgetLayout"
+            android:layout_marginTop="10dp"
+            android:text="@string/btn_launch_pmm_widget" />
+
     </LinearLayout>
 
 </ScrollView>

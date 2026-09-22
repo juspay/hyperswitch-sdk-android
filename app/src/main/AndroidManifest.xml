@@ -18,6 +18,13 @@
             android:theme="@style/HyperAppCompatTransparentTheme"
             android:enableOnBackInvokedCallback="false"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".pmm.PaymentMethodManagementActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
+            android:exported="false"
+            android:theme="@style/HyperAppCompatTransparentTheme"
+            android:enableOnBackInvokedCallback="false"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>
