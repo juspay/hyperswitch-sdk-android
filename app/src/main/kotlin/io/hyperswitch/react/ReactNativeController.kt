@@ -3,7 +3,6 @@ package io.hyperswitch.react
 import android.app.Application
 import android.content.Context
 import com.facebook.react.ReactHost
-import com.facebook.react.bridge.JSBundleLoader
 import com.facebook.react.common.annotations.UnstableReactNativeAPI
 import com.facebook.react.defaults.DefaultComponentsRegistry
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint
@@ -108,12 +107,10 @@ object ReactNativeController {
     internal fun createReactHost(application: Application, runtime: HyperReactRuntime): ReactHost {
         initialize(application)
 
+        // Evaluates the react-native runtime chunk before the entry bundle and tells
+        // the JS side where on-demand chunks live (see HyperBundleLoader).
         val bundlePath = getBundleFromAirborne(application)
-        val bundleLoader = if (bundlePath.startsWith("assets://")) {
-            JSBundleLoader.createAssetLoader(application, bundlePath, true)
-        } else {
-            JSBundleLoader.createFileLoader(bundlePath)
-        }
+        val bundleLoader = HyperBundleLoader.create(application, bundlePath, loadSynchronously = true)
 
         val delegate = DefaultReactHostDelegate(
             jsMainModulePath = "index",

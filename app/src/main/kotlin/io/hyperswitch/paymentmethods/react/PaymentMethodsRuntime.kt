@@ -8,7 +8,6 @@ import android.os.Looper
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.facebook.react.ReactHost
-import com.facebook.react.bridge.JSBundleLoader
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.common.annotations.UnstableReactNativeAPI
 import com.facebook.react.defaults.DefaultComponentsRegistry
@@ -19,6 +18,7 @@ import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.facebook.react.runtime.ReactHostImpl
 import com.facebook.react.runtime.hermes.HermesInstance
 import io.hyperswitch.BuildConfig
+import io.hyperswitch.react.HyperBundleLoader
 import io.hyperswitch.react.PackageList
 import io.hyperswitch.react.ReactNativeController
 import java.lang.ref.WeakReference
@@ -118,7 +118,7 @@ internal class PaymentMethodsRuntime private constructor(application: Applicatio
 
         val delegate = DefaultReactHostDelegate(
             jsMainModulePath = ENTRY_FILE,
-            jsBundleLoader = JSBundleLoader.createAssetLoader(application, "assets://$BUNDLE_NAME", true),
+            jsBundleLoader = HyperBundleLoader.create(application, "assets://$BUNDLE_NAME", loadSynchronously = true),
             reactPackages = PackageList(application).packages.apply { add(PaymentMethodsPackage(this@PaymentMethodsRuntime)) },
             jsRuntimeFactory = HermesInstance(),
             turboModuleManagerDelegateBuilder = DefaultTurboModuleManagerDelegate.Builder(),
