@@ -124,11 +124,13 @@ object ReactNativeController {
         DefaultComponentsRegistry.register(componentFactory)
 
         return ReactHostImpl(
-            application,
-            delegate,
-            componentFactory,
-            true, /* allowPackagerServerAccess */
-            BuildConfig.DEBUG,
+            context = application,
+            reactHostDelegate = delegate,
+            componentFactory = componentFactory,
+            allowPackagerServerAccess = true,
+            useDevSupport = BuildConfig.DEBUG,
+            // A dev bundle file of its own: the hosts share one process.
+            devSupportManagerFactory = HyperDevSupportManagerFactory.forBuild(BuildConfig.DEBUG),
         )
     }
 
