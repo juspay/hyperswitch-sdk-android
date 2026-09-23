@@ -9,18 +9,10 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.facebook.react.ReactHost
 import com.facebook.react.bridge.WritableMap
-import com.facebook.react.common.annotations.UnstableReactNativeAPI
-import com.facebook.react.defaults.DefaultComponentsRegistry
-import com.facebook.react.defaults.DefaultReactHostDelegate
-import com.facebook.react.defaults.DefaultTurboModuleManagerDelegate
-import com.facebook.react.fabric.ComponentFactory
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
-import com.facebook.react.runtime.ReactHostImpl
-import com.facebook.react.runtime.hermes.HermesInstance
-import io.hyperswitch.BuildConfig
-import io.hyperswitch.react.HyperBundleLoader
-import io.hyperswitch.react.HyperDevSupportManagerFactory
+import io.hyperswitch.react.HostHealth
 import io.hyperswitch.react.PackageList
+import io.hyperswitch.react.createHyperReactHost
 import io.hyperswitch.react.ReactNativeController
 import java.lang.ref.WeakReference
 import java.util.concurrent.atomic.AtomicReference
@@ -34,6 +26,9 @@ internal class PaymentMethodsRuntime private constructor(application: Applicatio
     DefaultLifecycleObserver {
 
     private val moduleRef = AtomicReference<WeakReference<PaymentMethodsModule>?>(null)
+
+    /** Whether this host could start; see [HostHealth]. */
+    val health = HostHealth("payment methods")
 
     val reactHost: ReactHost = createReactHost(application)
 
@@ -58,7 +53,7 @@ internal class PaymentMethodsRuntime private constructor(application: Applicatio
     /** Boots the host, and with it the bundle, ahead of the first form. Idempotent. */
     fun warmUp() {
         try {
-            reactHost.start()
+            if (health.initFailure == null) reactHost.start()
         } catch (_: Exception) {
         }
     }
@@ -112,30 +107,15 @@ internal class PaymentMethodsRuntime private constructor(application: Applicatio
         override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
     }
 
-    /** Same construction as the payments host, over this SDK's entry file, bundle and package. */
-    @OptIn(UnstableReactNativeAPI::class)
+    /** Built on the shared host construction, over this host's entry file, bundle and package. */
     private fun createReactHost(application: Application): ReactHost {
         ReactNativeController.initialize(application)
-
-        val delegate = DefaultReactHostDelegate(
-            jsMainModulePath = ENTRY_FILE,
-            jsBundleLoader = HyperBundleLoader.create(application, "assets://$BUNDLE_NAME", loadSynchronously = true),
-            reactPackages = PackageList(application).packages.apply { add(PaymentMethodsPackage(this@PaymentMethodsRuntime)) },
-            jsRuntimeFactory = HermesInstance(),
-            turboModuleManagerDelegateBuilder = DefaultTurboModuleManagerDelegate.Builder(),
-        )
-
-        val componentFactory = ComponentFactory()
-        DefaultComponentsRegistry.register(componentFactory)
-
-        return ReactHostImpl(
-            context = application,
-            reactHostDelegate = delegate,
-            componentFactory = componentFactory,
-            allowPackagerServerAccess = true,
-            useDevSupport = BuildConfig.DEBUG,
-            // A dev bundle file of its own: the hosts share one process.
-            devSupportManagerFactory = HyperDevSupportManagerFactory.forBuild(BuildConfig.DEBUG),
+        return createHyperReactHost(
+            application,
+            entryFile = ENTRY_FILE,
+            bundlePath = "assets://$BUNDLE_NAME",
+            packages = PackageList(application).packages.apply { add(PaymentMethodsPackage(this@PaymentMethodsRuntime)) },
+            health = health,
         )
     }
 
