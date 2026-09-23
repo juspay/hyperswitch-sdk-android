@@ -19,6 +19,7 @@ import com.facebook.react.runtime.ReactHostImpl
 import com.facebook.react.runtime.hermes.HermesInstance
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.react.HyperBundleLoader
+import io.hyperswitch.react.HyperDevSupportManagerFactory
 import io.hyperswitch.react.PackageList
 import io.hyperswitch.react.ReactNativeController
 import java.lang.ref.WeakReference
@@ -128,11 +129,13 @@ internal class PaymentMethodsRuntime private constructor(application: Applicatio
         DefaultComponentsRegistry.register(componentFactory)
 
         return ReactHostImpl(
-            application,
-            delegate,
-            componentFactory,
-            true, /* allowPackagerServerAccess */
-            BuildConfig.DEBUG,
+            context = application,
+            reactHostDelegate = delegate,
+            componentFactory = componentFactory,
+            allowPackagerServerAccess = true,
+            useDevSupport = BuildConfig.DEBUG,
+            // A dev bundle file of its own: the hosts share one process.
+            devSupportManagerFactory = HyperDevSupportManagerFactory.forBuild(BuildConfig.DEBUG),
         )
     }
 
