@@ -39,6 +39,8 @@ rootProject.allprojects {
 }
 
 def runtimeDeps = [
+        // Re.Pack's ScriptManager: loads the SDK's on-demand JS chunks.
+        'callstack_repack',
         'react-native-inappbrowser-reborn',
         'react-native-svg',
         'sentry_react-native',
