@@ -3,14 +3,7 @@ package io.hyperswitch.react
 import android.app.Application
 import android.content.Context
 import com.facebook.react.ReactHost
-import com.facebook.react.common.annotations.UnstableReactNativeAPI
-import com.facebook.react.defaults.DefaultComponentsRegistry
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint
-import com.facebook.react.defaults.DefaultReactHostDelegate
-import com.facebook.react.defaults.DefaultTurboModuleManagerDelegate
-import com.facebook.react.fabric.ComponentFactory
-import com.facebook.react.runtime.ReactHostImpl
-import com.facebook.react.runtime.hermes.HermesInstance
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.react.uimanager.DisplayMetricsHolder
 import com.facebook.soloader.SoLoader
@@ -41,6 +34,9 @@ object ReactNativeController {
     }
 
     fun getIsInitialized(): Boolean = isInitialized.get()
+
+    /** Whether the payments host could start; see [HostHealth]. */
+    val health = HostHealth("payments")
 
     /** OTA bundle path if configured, else the bundled asset. */
     private fun getBundleFromAirborne(application: Application): String {
@@ -98,40 +94,22 @@ object ReactNativeController {
      */
     fun warmUp() {
         try {
-            runtime.reactHost.start()
+            val host = runtime.reactHost
+            if (health.initFailure == null) host.start()
         } catch (_: Exception) {}
     }
 
-    /** Same construction as DefaultReactHost.getDefaultReactHost; called once, from [runtime]. */
-    @OptIn(UnstableReactNativeAPI::class)
+    /** Built on the shared host construction; called once, from [runtime]. */
     internal fun createReactHost(application: Application, runtime: HyperReactRuntime): ReactHost {
         initialize(application)
-
-        // Evaluates the react-native runtime chunk before the entry bundle and tells
-        // the JS side where on-demand chunks live (see HyperBundleLoader).
-        val bundlePath = getBundleFromAirborne(application)
-        val bundleLoader = HyperBundleLoader.create(application, bundlePath, loadSynchronously = true)
-
-        val delegate = DefaultReactHostDelegate(
-            jsMainModulePath = "index",
-            jsBundleLoader = bundleLoader,
-            reactPackages = PackageList(application).packages.apply { add(HyperPackage(runtime)) },
-            jsRuntimeFactory = HermesInstance(),
-            turboModuleManagerDelegateBuilder = DefaultTurboModuleManagerDelegate.Builder(),
-        )
-
-        val componentFactory = ComponentFactory()
-        DefaultComponentsRegistry.register(componentFactory)
-
-        return ReactHostImpl(
-            context = application,
-            reactHostDelegate = delegate,
-            componentFactory = componentFactory,
-            allowPackagerServerAccess = true,
-            useDevSupport = BuildConfig.DEBUG,
-            // A dev bundle file of its own: the hosts share one process.
-            devSupportManagerFactory = HyperDevSupportManagerFactory.forBuild(BuildConfig.DEBUG),
+        // Evaluates the shared initial chunks before the entry bundle and tells the JS
+        // side where on-demand chunks live (see HyperBundleLoader).
+        return createHyperReactHost(
+            application,
+            entryFile = "index",
+            bundlePath = getBundleFromAirborne(application),
+            packages = PackageList(application).packages.apply { add(HyperPackage(runtime)) },
+            health = health,
         )
     }
-
 }

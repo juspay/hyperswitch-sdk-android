@@ -60,6 +60,16 @@ internal class HyperDevSupportManager(
     override val uniqueTag: String
         get() = "Bridgeless_" + (jsAppBundleName ?: "index").replace(Regex("[^A-Za-z0-9]"), "_")
 
+    /**
+     * A host that could not start (its bundle is missing) is reported by the SDK as
+     * SDK_INIT_FAILED, not on a red box over the app.
+     */
+    override fun handleException(e: Exception) {
+        val isInitFailure = generateSequence<Throwable>(e) { it.cause }
+            .any { it.message?.startsWith(HostHealth.MESSAGE_PREFIX) == true }
+        if (!isInitFailure) super.handleException(e)
+    }
+
     override fun handleReloadJS() {
         UiThreadUtil.assertOnUiThread()
         hideRedboxDialog()
