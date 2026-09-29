@@ -30,9 +30,6 @@ rootProject.allprojects {
             url "https://jitpack.io"
         }
         maven {
-            url("$rootDir/../node_modules/detox/Detox-android")
-        }
-        maven {
             url "https://maven.juspay.in/hyper-sdk/"
         }
     }

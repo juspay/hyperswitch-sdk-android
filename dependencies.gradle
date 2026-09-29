@@ -144,5 +144,4 @@ ext.testLibs = [
         ],
         leakCanaryInstrumentation : "com.squareup.leakcanary:leakcanary-android-instrumentation:${versions.leakCanary}",
         lint                 : "com.android.tools.lint:lint-tests:${versions.lint}",
-        detox                : "com.wix:detox:+",
 ]
