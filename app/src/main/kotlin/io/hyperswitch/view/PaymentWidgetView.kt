@@ -14,6 +14,7 @@ import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.BuildConfig
+import com.facebook.react.bridge.UiThreadUtil
 import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
@@ -43,6 +44,12 @@ fun interface PaymentResultListener {
     fun onPaymentResult(result: PaymentResult)
 }
 
+internal object ElementEvents {
+    const val READY = "ready"
+    const val FOCUS = "focus"
+    const val BLUR = "blur"
+}
+
 fun interface ConfirmPaymentClickListener {
     fun onConfirmPaymentCallback(data: String, onConfirmPaymentCallback: (Boolean) -> Unit)
 }
@@ -69,6 +76,30 @@ class PaymentWidgetView : FrameLayout {
     private var subscribedEvents: List<String> = emptyList()
 
     private var onEventCallback: PaymentEventListener? = null
+    private var changeListener: PaymentEventListener? = null
+    private var readyListener: Runnable? = null
+    private var focusListener: Runnable? = null
+    private var blurListener: Runnable? = null
+
+    /* `ready` can arrive before onReady is set (a CVC widget renders on attach, before bind);
+       remembered so a later onReady still runs. UI thread only. */
+    private var readyFired = false
+
+    // One fragment listener for the widget's lifetime; handlers are read when each event arrives.
+    private val eventDispatcher = PaymentEventListener { event ->
+        when (event.eventName) {
+            ElementEvents.READY -> {
+                readyFired = true
+                readyListener?.run()
+            }
+            ElementEvents.FOCUS -> focusListener?.run()
+            ElementEvents.BLUR -> blurListener?.run()
+            else -> {
+                onEventCallback?.onPaymentEvent(event)
+                changeListener?.onPaymentEvent(event)
+            }
+        }
+    }
     private var activeLayoutChangeListener: View.OnLayoutChangeListener? = null
     private var widgetShown = false
 
@@ -140,11 +171,19 @@ class PaymentWidgetView : FrameLayout {
     /** Native path - sets configuration using PaymentSheet.Configuration */
     fun setConfiguration(configuration: PaymentSheet.Configuration) {
         widgetConfig = PaymentWidgetConfig.Native(configuration)
+        pushConfigurationToLiveWidget()
     }
 
     /** RN bridge path - sets configuration using ReadableMap */
     fun setConfiguration(configuration: ReadableMap) {
         widgetConfig = PaymentWidgetConfig.ReactNative(configuration)
+        pushConfigurationToLiveWidget()
+    }
+
+    // A CVC widget renders before bind, so a configuration set later must reach the live root.
+    private fun pushConfigurationToLiveWidget() {
+        val fragment = this.fragment ?: return
+        fragment.updateConfiguration(getLaunchOptions().getBundle("props")?.getBundle("configuration"))
     }
 
     /** Resolves the configuration to a Map<String, Any>? regardless of source */
@@ -238,7 +277,27 @@ class PaymentWidgetView : FrameLayout {
 
     fun onEvent(listener: PaymentEventListener) {
         this.onEventCallback = listener
-        this.fragment?.setOnEventCallback(listener)
+    }
+
+    fun onChange(listener: PaymentEventListener) {
+        this.changeListener = listener
+    }
+
+    fun onReady(listener: Runnable) = onUiThread {
+        this.readyListener = listener
+        if (readyFired) listener.run()
+    }
+
+    private fun onUiThread(block: () -> Unit) {
+        if (UiThreadUtil.isOnUiThread()) block() else UiThreadUtil.runOnUiThread(block)
+    }
+
+    fun onFocus(listener: Runnable) {
+        this.focusListener = listener
+    }
+
+    fun onBlur(listener: Runnable) {
+        this.blurListener = listener
     }
 
     fun setSubscribedEvents(events: List<String>) {
@@ -343,7 +402,7 @@ class PaymentWidgetView : FrameLayout {
         }
         this.fragment?.setOnPaymentResult(::dispatchResult)
         this.fragment?.setOnPaymentConfirmButtonClick(::dispatchConfirmTriggered)
-        onEventCallback?.let { this.fragment?.setOnEventCallback(it) }
+        this.fragment?.setOnEventCallback(eventDispatcher)
         this.fragment?.setOnExit {
             removeWidget()
         }
@@ -390,6 +449,7 @@ class PaymentWidgetView : FrameLayout {
                 }
             }
             this.fragment = null
+            readyFired = false
             post {
                 removeAllViews()
             }

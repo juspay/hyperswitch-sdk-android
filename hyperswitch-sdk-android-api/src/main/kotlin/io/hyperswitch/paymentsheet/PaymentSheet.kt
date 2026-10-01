@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
+import io.hyperswitch.EventType
 import androidx.annotation.ColorInt
 import androidx.annotation.FontRes
 import androidx.annotation.RequiresApi
@@ -218,6 +219,12 @@ class PaymentSheet internal constructor(
 
         /** Whether to hide the card nickname input field regardless of the mandate/save-card state. */
         val hideCardNicknameField: Boolean? = null,
+
+        /**
+         * Events delivered to the element's `onChange` (or the sheet's `onChange`).
+         * Nothing is emitted for events not listed here.
+         */
+        val subscriptionEvents: List<EventType>? = null,
     ) : Parcelable {
         val bundle: Bundle
             get() {
@@ -276,6 +283,9 @@ class PaymentSheet internal constructor(
                     putBundle("paymentMethodLayout", paymentMethodLayout?.bundle)
                     if (splitCardFields != null) putBoolean("splitCardFields", splitCardFields)
                     if (hideCardNicknameField != null) putBoolean("hideCardNicknameField", hideCardNicknameField)
+                    if (!subscriptionEvents.isNullOrEmpty()) {
+                        putStringArrayList("subscribedEvents", ArrayList(subscriptionEvents.map { it.value }))
+                    }
                 }
             }
 
@@ -317,6 +327,7 @@ class PaymentSheet internal constructor(
             private var paymentMethodLayout: PaymentMethodLayout? = null
             private var splitCardFields: Boolean? = null
             private var hideCardNicknameField: Boolean? = null
+            private var subscriptionEvents: List<EventType>? = null
             fun merchantDisplayName(merchantDisplayName: String) =
                 apply { this.merchantDisplayName = merchantDisplayName }
 
@@ -428,6 +439,9 @@ class PaymentSheet internal constructor(
             fun hideCardNicknameField(hideCardNicknameField: Boolean) =
                 apply { this.hideCardNicknameField = hideCardNicknameField }
 
+            fun subscriptionEvents(subscriptionEvents: List<EventType>) =
+                apply { this.subscriptionEvents = subscriptionEvents }
+
             fun build() = Configuration(
                 merchantDisplayName,
                 customer,
@@ -462,6 +476,7 @@ class PaymentSheet internal constructor(
                 paymentMethodLayout,
                 splitCardFields,
                 hideCardNicknameField,
+                subscriptionEvents,
             )
         }
     }

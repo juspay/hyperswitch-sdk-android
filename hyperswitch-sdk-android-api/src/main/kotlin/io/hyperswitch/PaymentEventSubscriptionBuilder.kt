@@ -1,9 +1,14 @@
 package io.hyperswitch
 
 
+/**
+ * Legacy per-event subscription. Prefer listing events in the configuration's
+ * `subscriptionEvents` and handling them in the element's `onChange`.
+ */
 class PaymentEventSubscriptionBuilder {
     private val handlers = mutableMapOf<EventType, (PaymentEvent) -> Unit>()
 
+    @Deprecated("List the event in configuration subscriptionEvents and handle it in onChange")
     fun on(eventType: EventType, handler: (PaymentEvent) -> Unit) {
         handlers[eventType] = handler
     }
@@ -22,15 +27,11 @@ class PaymentEventSubscriptionBuilder {
         // Create dispatcher that routes events to appropriate handlers
         val listener = object : PaymentEventListener {
             override fun onPaymentEvent(event: PaymentEvent) {
-                dispatchMap[event.type]?.invoke(event)
+                dispatchMap[event.eventName]?.invoke(event)
             }
         }
 
         return Pair(subscription, listener)
-    }
-
-    private fun findMatchingHandler(eventTypeString: String): ((PaymentEvent) -> Unit)? {
-        return handlers.entries.find { it.key.value == eventTypeString }?.value
     }
 }
 

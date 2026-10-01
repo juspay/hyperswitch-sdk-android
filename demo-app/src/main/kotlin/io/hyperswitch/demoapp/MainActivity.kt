@@ -68,7 +68,17 @@ class MainActivity : AppCompatActivity(), HyperInterface {
 
         findViewById<View>(R.id.launchButton).setOnClickListener {
             lifecycleScope.launch {
-                val result = paymentSession?.presentPaymentSheet(buildConfiguration())
+                val result = paymentSession?.presentPaymentSheet(
+                    buildConfiguration(),
+                    onChange = { event ->
+                        when (event.eventName) {
+                            "paymentMethodChange" -> Log.d(TAG, "payment method: ${event.payload}")
+                            "cardDetailsChange" -> Log.d(TAG, "card: ${event.payload}")
+                            "formStatusChange" -> Log.d(TAG, "form status: ${event.payload}")
+                            "billingDetailsChange" -> Log.d(TAG, "billing: ${event.payload}")
+                        }
+                    },
+                )
                 result?.let { handleResult(it) }
             }
         }

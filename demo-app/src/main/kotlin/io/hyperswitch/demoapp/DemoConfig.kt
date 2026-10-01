@@ -1,6 +1,8 @@
 package io.hyperswitch.demoapp
 
 import androidx.core.graphics.toColorInt
+import io.hyperswitch.CvcWidgetEvents
+import io.hyperswitch.PaymentEvents
 import io.hyperswitch.paymentsheet.AddressDetails
 import io.hyperswitch.paymentsheet.PaymentSheet
 
@@ -196,4 +198,18 @@ fun buildDemoConfiguration(netceteraApiKey: String? = null): PaymentSheet.Config
         .paymentMethodLayout(buildPaymentMethodLayout())
         .showVersionInfo(true)
         .also { builder -> netceteraApiKey?.let { builder.netceteraSDKApiKey(it) } }
+        .subscriptionEvents(
+            listOf(
+                PaymentEvents.PaymentMethodChange,
+                PaymentEvents.CardDetailsChange,
+                PaymentEvents.FormStatusChange,
+                PaymentEvents.BillingDetailsChange,
+            )
+        )
+        .build()
+
+/** CVC widget configuration: the widget only emits `cvcStatusChange`. */
+fun buildCvcConfiguration(): PaymentSheet.Configuration =
+    PaymentSheet.Configuration.Builder("Example, Inc.")
+        .subscriptionEvents(listOf(CvcWidgetEvents.CvcStatusChange))
         .build()

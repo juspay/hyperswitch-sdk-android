@@ -1,6 +1,7 @@
 package io.hyperswitch.sdk
 
 import android.app.Activity
+import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
@@ -63,6 +64,30 @@ class PaymentSession internal constructor(
         paymentSessionLauncher.presentPaymentSheet(configuration, subscribe, resultCallback)
     }
 
+    /**
+     * Presents the sheet; events listed in [PaymentSheet.Configuration.subscriptionEvents]
+     * are delivered to [onChange]. Pass it by name: `presentPaymentSheet(config, onChange = { ... }) { result -> }`.
+     */
+    @JvmSynthetic
+    suspend fun presentPaymentSheet(
+        configuration: PaymentSheet.Configuration,
+        onChange: PaymentEventListener,
+    ): PaymentResult {
+        return suspendCancellableCoroutine { continuation ->
+            paymentSessionLauncher.presentPaymentSheet(configuration, onChange) { result ->
+                continuation.resume(result)
+            }
+        }
+    }
+
+    fun presentPaymentSheet(
+        configuration: PaymentSheet.Configuration,
+        onChange: PaymentEventListener,
+        resultCallback: (PaymentResult) -> Unit
+    ) {
+        paymentSessionLauncher.presentPaymentSheet(configuration, onChange, resultCallback)
+    }
+
     /** Commits the credentials a successful [updateIntent] moved to; the launcher moves the handler. */
     private fun updateSdkAuthorization(sdkAuthorization: String) {
         this.sessionConfig = PaymentSessionConfiguration(sdkAuthorization)
@@ -115,6 +140,15 @@ class PaymentSession internal constructor(
         resultCallback: (PaymentResult) -> Unit
     ) {
         paymentSessionLauncher.presentPaymentSheet(configurationMap, subscribe, resultCallback)
+    }
+
+    /** Map-configured sheet; `configuration.subscriptionEvents` in the map selects the events for [onChange]. */
+    fun presentPaymentSheet(
+        configurationMap: Map<String, Any?>,
+        onChange: PaymentEventListener,
+        resultCallback: (PaymentResult) -> Unit
+    ) {
+        paymentSessionLauncher.presentPaymentSheet(configurationMap, onChange, resultCallback)
     }
 
     @JvmSynthetic

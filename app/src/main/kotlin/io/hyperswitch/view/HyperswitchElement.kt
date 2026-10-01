@@ -201,11 +201,42 @@ open class HyperswitchElement @JvmOverloads constructor(
         internalView.setConfiguration(configuration)
     }
 
+    /**
+     * Receives every event listed in the configuration's `subscriptionEvents`. Can be set at any
+     * time; a payment element emits once bound, a CVC widget once attached.
+     */
+    fun onChange(listener: PaymentEventListener) {
+        internalView.onChange(listener)
+    }
+
+    /** Fires once the element has finished loading (payment methods fetched); no subscription needed. Registered after that, it is called at once. */
+    fun onReady(listener: Runnable) {
+        internalView.onReady(listener)
+    }
+
+    /** Fires when focus enters the element (moving between its fields does not re-fire); no subscription needed. */
+    fun onFocus(listener: Runnable) {
+        internalView.onFocus(listener)
+    }
+
+    /** Fires when focus leaves the element entirely (moving between its fields does not fire); no subscription needed. */
+    fun onBlur(listener: Runnable) {
+        internalView.onBlur(listener)
+    }
+
+    @Deprecated("List events in configuration subscriptionEvents")
     fun setSubscribedEvents(events: List<String>) {
         internalView.setSubscribedEvents(events)
     }
 
+    @Deprecated("Use onChange", ReplaceWith("onChange(listener)"))
     fun setOnEventCallback(listener: PaymentEventListener) {
+        internalView.onEvent(listener)
+    }
+
+    /** Backs the deprecated subscribe builder on [io.hyperswitch.sdk.Elements.bind]. */
+    internal fun setLegacySubscription(events: List<String>, listener: PaymentEventListener) {
+        internalView.setSubscribedEvents(events)
         internalView.onEvent(listener)
     }
 

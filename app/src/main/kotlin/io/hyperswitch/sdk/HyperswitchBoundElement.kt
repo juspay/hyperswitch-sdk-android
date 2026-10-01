@@ -40,8 +40,7 @@ class HyperswitchBoundElement internal constructor(
             val builder = PaymentEventSubscriptionBuilder()
             builder.subscribe()
             val (subscription, listener) = builder.build()
-            element.setSubscribedEvents(subscription.getSubscribedEventStrings())
-            element.setOnEventCallback(listener)
+            element.setLegacySubscription(subscription.getSubscribedEventStrings(), listener)
         }
         element.setSdkAuthorization(paymentSession.getSdkAuthorization())
     }
