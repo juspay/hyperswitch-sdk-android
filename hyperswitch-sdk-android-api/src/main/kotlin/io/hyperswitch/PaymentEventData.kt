@@ -41,7 +41,7 @@ sealed class PaymentEventData() {
     ) : PaymentEventData() {
 
         companion object {
-            fun fromMap(map: Map<String, Any>): CardInfo = CardInfo(
+            fun fromMap(map: Map<String, Any?>): CardInfo = CardInfo(
                 bin = map["bin"] as? String,
                 extendedBin = map["extendedBin"] as? String,
                 last4 = map["last4"] as? String,
@@ -75,7 +75,7 @@ sealed class PaymentEventData() {
     ) : PaymentEventData() {
 
         companion object {
-            fun fromMap(map: Map<String, Any>): PaymentMethodStatus = PaymentMethodStatus(
+            fun fromMap(map: Map<String, Any?>): PaymentMethodStatus = PaymentMethodStatus(
                 paymentMethod = (map["paymentMethod"] as? String).orEmpty(),
                 paymentMethodType = (map["paymentMethodType"] as? String).orEmpty(),
                 isSavedPaymentMethod = (map["isSavedPaymentMethod"] as? Boolean) ?: false,
@@ -108,7 +108,7 @@ sealed class PaymentEventData() {
     ) : PaymentEventData() {
 
         companion object {
-            fun fromMap(map: Map<String, Any>): FormStatus = FormStatus(
+            fun fromMap(map: Map<String, Any?>): FormStatus = FormStatus(
                 status = (map["status"] as? String)?.let { FormStatusValue.fromString(it) }
             )
         }
@@ -129,7 +129,7 @@ sealed class PaymentEventData() {
     ) : PaymentEventData() {
 
         companion object {
-            fun fromMap(map: Map<String, Any>): PaymentMethodInfoAddress = PaymentMethodInfoAddress(
+            fun fromMap(map: Map<String, Any?>): PaymentMethodInfoAddress = PaymentMethodInfoAddress(
                 country = (map["country"] as? String).orEmpty(),
                 state = (map["state"] as? String).orEmpty(),
                 postalCode = (map["postalCode"] as? String).orEmpty(),
@@ -140,13 +140,13 @@ sealed class PaymentEventData() {
     /**
      * CVC status event payload.
      *
-     * @property isCvcFocused   Whether the CVC field is currently focused
-     * @property isCvcBlur      Whether the CVC field has lost focus
      * @property isCvcEmpty     Whether the CVC field is empty
      * @property isCvcComplete  Whether the CVC passes length validation for the given brand
      */
     data class CvcStatus(
+        @Deprecated("No longer sent (always false); use the CVC widget's onFocus/onBlur")
         val isCvcFocused: Boolean,
+        @Deprecated("No longer sent (always false); use the CVC widget's onFocus/onBlur")
         val isCvcBlur: Boolean,
         val isCvcEmpty: Boolean,
         val isCvcComplete: Boolean,
@@ -154,8 +154,8 @@ sealed class PaymentEventData() {
 
         companion object {
             @Suppress("UNCHECKED_CAST")
-            fun fromMap(map: Map<String, Any>): CvcStatus {
-                val nested = map["cvcStatus"] as? Map<String, Any> ?: map
+            fun fromMap(map: Map<String, Any?>): CvcStatus {
+                val nested = map["cvcStatus"] as? Map<String, Any?> ?: map
                 return CvcStatus(
                     isCvcFocused = (nested["isCvcFocused"] as? Boolean) ?: false,
                     isCvcBlur = (nested["isCvcBlur"] as? Boolean) ?: false,
@@ -174,7 +174,7 @@ sealed class PaymentEventData() {
          * This is called automatically when constructing a [PaymentEvent] — consumers never
          * need to call this directly.
          */
-        fun fromEventType(eventType: String, payload: Map<String, Any>): PaymentEventData? =
+        fun fromEventType(eventType: String, payload: Map<String, Any?>): PaymentEventData? =
             when (eventType) {
                 "cardDetailsChange" -> CardInfo.fromMap(payload)
                 "paymentMethodChange" -> PaymentMethodStatus.fromMap(payload)

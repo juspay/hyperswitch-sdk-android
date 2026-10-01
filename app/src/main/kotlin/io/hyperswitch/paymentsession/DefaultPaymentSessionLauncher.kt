@@ -124,6 +124,22 @@ class DefaultPaymentSessionLauncher(
         paymentSessionReactLauncher.presentSheet(configurationMap, events, listener, resultCallback)
     }
 
+    override fun presentPaymentSheet(
+        configuration: PaymentSheet.Configuration?,
+        onChange: PaymentEventListener,
+        resultCallback: (PaymentResult) -> Unit
+    ) {
+        paymentSessionReactLauncher.presentSheet(sessionConfig, configuration, emptyList(), onChange, resultCallback)
+    }
+
+    override fun presentPaymentSheet(
+        configurationMap: Map<String, Any?>,
+        onChange: PaymentEventListener,
+        resultCallback: (PaymentResult) -> Unit
+    ) {
+        paymentSessionReactLauncher.presentSheet(configurationMap, emptyList(), onChange, resultCallback)
+    }
+
     override fun getCustomerSavedPaymentMethods(
         configuration: SavedPaymentMethodsConfiguration?,
         savedPaymentMethodCallback: ((PaymentSessionHandler) -> Unit),

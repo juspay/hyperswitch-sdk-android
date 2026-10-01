@@ -1,21 +1,26 @@
 package io.hyperswitch
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
 /**
  * Payment Event Types
  *
- * Type-safe event subscription system for the 4 canonical payment events.
- * Each event type corresponds directly to a structured payload in PaymentEventData.
+ * List the events to receive in the configuration's `subscriptionEvents`, then handle them
+ * all in one `onChange`, switching on [PaymentEvent.eventName]. Nothing is emitted for
+ * events that are not listed.
  *
  * Example usage:
  * ```
- * paymentSession.subscribe {
- *     on(PaymentEvents.CardDetailsChange) { event ->
- *         val cardInfo = event.data as PaymentEventData.CardInfo
- *         // Handle card field changes
- *     }
- *     on(PaymentEvents.PaymentMethodChange) { event ->
- *         val status = event.data as PaymentEventData.PaymentMethodStatusEvent
- *         // Handle payment method selection
+ * val configuration = PaymentSheet.Configuration.Builder("Merchant")
+ *     .subscriptionEvents(listOf(PaymentEvents.CardDetailsChange, PaymentEvents.FormStatusChange))
+ *     .build()
+ * paymentElement.setConfiguration(configuration)
+ * paymentElement.onChange { event ->
+ *     when (val data = event.data) {
+ *         is PaymentEventData.CardInfo -> { /* card field changes */ }
+ *         is PaymentEventData.FormStatus -> { /* form completion */ }
+ *         else -> {}
  *     }
  * }
  * ```
@@ -41,6 +46,7 @@ object PaymentEvents {
      * - isCardNumberValid: Boolean      Card number passes Luhn validation
      * - isExpiryValid: Boolean          Expiry date is valid
      */
+    @Parcelize
     object CardDetailsChange : EventType("cardDetailsChange")
 
     /**
@@ -54,16 +60,18 @@ object PaymentEvents {
      * - isSavedPaymentMethod: Boolean   Whether a saved payment method was selected
      * - isOneClickWallet: Boolean       Whether a one-click wallet was selected
      */
+    @Parcelize
     object PaymentMethodChange : EventType("paymentMethodChange")
 
     /**
      * Form status event - emitted when form completion status changes.
      * Event type: "formStatusChange"
-     * Payload: PaymentEventData.FormStatusEvent
+     * Payload: PaymentEventData.FormStatus
      *
      * Fields:
      * - status: String                  "EMPTY" | "FILLING" | "COMPLETE"
      */
+    @Parcelize
     object FormStatusChange : EventType("formStatusChange")
 
     /**
@@ -76,6 +84,7 @@ object PaymentEvents {
      * - state: String                   State/province
      * - postalCode: String              Postal/ZIP code
      */
+    @Parcelize
     object BillingDetailsChange : EventType("billingDetailsChange")
 }
 
@@ -83,7 +92,7 @@ object PaymentEvents {
  * Base class for all payment event types.
  * Singletons ensure reference equality works correctly.
  */
-sealed class EventType(val value: String) {
+sealed class EventType(val value: String) : Parcelable {
     override fun toString(): String = value
 }
 
