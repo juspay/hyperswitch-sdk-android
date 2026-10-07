@@ -50,6 +50,13 @@ class PaymentMethodManagement internal constructor(
         configuration: PaymentSheet.Configuration? = null,
         onResult: (PaymentResult) -> Unit,
     ) {
+        val health = PaymentMethodManagementRuntime.get(activity.application).health
+        if (health.initFailure != null) {
+            // Nothing to show: the sheet would never render.
+            val result = PaymentResult.Failed(health.resultError())
+            Handler(Looper.getMainLooper()).post { onResult(result) }
+            return
+        }
         PaymentMethodManagementResultBus.setCallback(onResult)
         activity.startActivity(
             Intent(activity, PaymentMethodManagementActivity::class.java)
