@@ -50,7 +50,8 @@ enum class EventName {
     CLOSE_HYPER_INSTANCE_RETURNED,
     WEBVIEW,
     CTP_CORRELATION_VALUE,
-    CONSOLE_LOG
+    CONSOLE_LOG,
+    RN_SDK_LIFE_CYCLE
 }
 
 data class HSLog(
