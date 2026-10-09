@@ -1349,7 +1349,7 @@ class PaymentSheet internal constructor(
         val buttonStyleLight: PayPalButtonStyle = PayPalButtonStyle.Gold,
         /** Button style used when the system is in dark mode. */
         val buttonStyleDark: PayPalButtonStyle = PayPalButtonStyle.Blue,
-        val buttonSize: PayPalButtonSize = PayPalButtonSize.Medium,
+        val buttonSize: PayPalButtonSize = PayPalButtonSize.Large,
     ) : Parcelable {
         val bundle: Bundle
             get() = Bundle().apply {
