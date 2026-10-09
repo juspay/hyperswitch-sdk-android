@@ -212,7 +212,6 @@ class MainActivity : Activity() {
             .displaySavedPaymentMethods(true)
             .displayDefaultSavedPaymentIcon(true)
             .disableBranding(true)
-            .stickyPayButton(true)
             .redirectionInfo(Visibility.Auto)
             .paymentMethodOrder(
                 listOf("apple_pay", "google_pay", "paypal", "samsung_pay", "klarna", "credit")
