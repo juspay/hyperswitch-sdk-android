@@ -182,7 +182,6 @@ fun buildDemoConfiguration(netceteraApiKey: String? = null): PaymentSheet.Config
         .displayDefaultSavedPaymentIcon(true)
         .hideCardNicknameField(false)
         .disableBranding(true)
-        .stickyPayButton(true)
         .redirectionInfo(PaymentSheet.Visibility.Auto)
         .paymentMethodOrder(
             listOf("apple_pay", "google_pay", "paypal", "samsung_pay", "credit", "klarna")

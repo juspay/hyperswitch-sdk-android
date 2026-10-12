@@ -189,9 +189,6 @@ class PaymentSheet internal constructor(
         /** Whether to display the confirm/pay button. */
         val displayPayButton: Boolean? = null,
 
-        /** Whether to keep the pay button always visible (sticky). */
-        val stickyPayButton: Boolean? = null,
-
         /** Whether to preload the card element before the sheet is opened. */
         val preloadCardElement: Boolean? = null,
 
@@ -263,7 +260,6 @@ class PaymentSheet internal constructor(
                     putBundle("walletButtonsConfiguration", wallets?.bundle)
                     putString("locale", appearance?.locale)
                     if (displayPayButton != null) putBoolean("displayPayButton", displayPayButton)
-                    if (stickyPayButton != null) putBoolean("stickyPayButton", stickyPayButton)
                     if (preloadCardElement != null) putBoolean("preloadCardElement", preloadCardElement)
                     putString("redirectionInfo", redirectionInfo?.value)
                     if (alwaysSendCustomerAcceptance != null) putBoolean("alwaysSendCustomerAcceptance", alwaysSendCustomerAcceptance)
@@ -307,7 +303,6 @@ class PaymentSheet internal constructor(
             private var showVersionInfo : Boolean = false
             private var wallets: WalletConfiguration? = null
             private var displayPayButton: Boolean? = null
-            private var stickyPayButton: Boolean? = null
             private var preloadCardElement: Boolean? = null
             private var redirectionInfo: Visibility? = null
             private var alwaysSendCustomerAcceptance: Boolean? = null
@@ -398,9 +393,6 @@ class PaymentSheet internal constructor(
             fun displayPayButton(displayPayButton: Boolean) =
                 apply { this.displayPayButton = displayPayButton }
 
-            fun stickyPayButton(stickyPayButton: Boolean) =
-                apply { this.stickyPayButton = stickyPayButton }
-
             fun preloadCardElement(preloadCardElement: Boolean) =
                 apply { this.preloadCardElement = preloadCardElement }
 
@@ -452,7 +444,6 @@ class PaymentSheet internal constructor(
                 showVersionInfo,
                 wallets,
                 displayPayButton,
-                stickyPayButton,
                 preloadCardElement,
                 redirectionInfo,
                 alwaysSendCustomerAcceptance,
