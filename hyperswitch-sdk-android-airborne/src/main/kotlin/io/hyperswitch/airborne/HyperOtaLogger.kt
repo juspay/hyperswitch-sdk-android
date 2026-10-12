@@ -1,6 +1,6 @@
 package io.hyperswitch.airborne
 
-import `in`.juspay.hyperota.TrackerCallback
+import `in`.juspay.airborne.TrackerCallback
 import io.hyperswitch.logs.EventName
 import org.json.JSONObject
 import io.hyperswitch.logs.HSLog
@@ -47,38 +47,6 @@ class HyperOtaLogger(private val sdkVersion: String) : TrackerCallback() {
             } catch (e: JSONException) {
             }
         }
-    }
-
-    /**
-     * Tracks OTA lifecycle events with primitive or string values.
-     *
-     * @param category The event category (e.g., "lifecycle")
-     * @param subCategory The event subcategory (e.g., "hyperota")
-     * @param level The log level (e.g., "info", "debug", "error")
-     * @param label A descriptive label for the event
-     * @param key The event key (e.g., "init", "end")
-     * @param value The event value to be logged
-     */
-    override fun track(
-        category: String, subCategory: String, level: String, label: String, key: String, value: Any
-    ) {
-        if (category == "lifecycle") {
-            if (subCategory == "hyperota") {
-                val eventName = when (key) {
-                    "init" -> EventName.HYPER_OTA_INIT
-                    "end" -> EventName.HYPER_OTA_FINISH
-                    else -> EventName.HYPER_OTA_EVENT
-                }
-                createAndSendLog(eventName, level, label, category, subCategory, key, value)
-            } else {
-                createAndSendLog(
-                    EventName.HYPER_OTA_EVENT, level, label, category, subCategory, key, value
-                )
-            }
-
-        }
-//        Log.i("ota-1" , "category : " + category + "\n subCategory : " + subCategory +
-//                "\n level : " + level + "\n label : " + label + "\n key : " + key + "\n value : " + value.toString())
     }
 
     /**

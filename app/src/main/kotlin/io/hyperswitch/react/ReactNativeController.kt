@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import com.facebook.react.ReactHost
 import com.facebook.react.bridge.JSBundleLoader
+import com.facebook.react.bridge.JSBundleLoaderDelegate
 import com.facebook.react.common.annotations.UnstableReactNativeAPI
 import com.facebook.react.defaults.DefaultComponentsRegistry
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint
@@ -108,11 +109,17 @@ object ReactNativeController {
     internal fun createReactHost(application: Application, runtime: HyperReactRuntime): ReactHost {
         initialize(application)
 
-        val bundlePath = getBundleFromAirborne(application)
-        val bundleLoader = if (bundlePath.startsWith("assets://")) {
-            JSBundleLoader.createAssetLoader(application, bundlePath, true)
-        } else {
-            JSBundleLoader.createFileLoader(bundlePath)
+        // Resolved on the host's background thread: Airborne blocks until the OTA bundle is ready.
+        val bundleLoader = object : JSBundleLoader() {
+            override fun loadScript(delegate: JSBundleLoaderDelegate): String {
+                val bundlePath = getBundleFromAirborne(application)
+                val loader = if (bundlePath.startsWith("assets://")) {
+                    JSBundleLoader.createAssetLoader(application, bundlePath, true)
+                } else {
+                    JSBundleLoader.createFileLoader(bundlePath)
+                }
+                return loader.loadScript(delegate)
+            }
         }
 
         val delegate = DefaultReactHostDelegate(

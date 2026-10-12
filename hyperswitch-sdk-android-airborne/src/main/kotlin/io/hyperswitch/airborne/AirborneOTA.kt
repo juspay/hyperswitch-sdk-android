@@ -2,11 +2,12 @@ package io.hyperswitch.airborne
 
 import android.content.Context
 import androidx.annotation.Keep
-import `in`.juspay.hyperota.LazyDownloadCallback
-import `in`.juspay.hyperotareact.HyperOTAReact
+import `in`.juspay.airborne.HyperOTAServices
+import `in`.juspay.airborne.ota.ApplicationManager
 @Keep
 class AirborneOTA {
-    private lateinit var hyperOTAReact : HyperOTAReact
+    private var applicationManager : ApplicationManager? = null
+    private var bundleName = "hyperswitch.bundle"
     private lateinit var tracker : HyperOtaLogger
 
     fun initAirborneOTA(context: Context,
@@ -14,26 +15,12 @@ class AirborneOTA {
                      url : String,
                      appId: String,
                      bundleName: String){
+        this.bundleName = bundleName
         try {
             this.tracker = HyperOtaLogger(sdkVersion)
-            HyperOTAReact(
-                context,
-                appId,
-                bundleName,
-                sdkVersion,
-                url,
-                mapOf(
-                    "Content-Encoding" to "br, gzip"
-                ),
-                object : LazyDownloadCallback {
-                    override fun fileInstalled(filePath: String, success: Boolean) {
-                    }
-
-                    override fun lazySplitsInstalled(success: Boolean) {
-                    }
-                },
-                tracker,
-            )
+            applicationManager = HyperOTAServices(context, appId, sdkVersion, url, tracker)
+                .createApplicationManager()
+                .apply { loadApplication(appId) }
         }catch (e: Exception){
             e.printStackTrace()
         }
@@ -82,10 +69,11 @@ class AirborneOTA {
 
     fun getBundlePath(): String {
         return try {
-            hyperOTAReact.getBundlePath().takeUnless { it.contains("ios") }
-                ?: "assets://hyperswitch.bundle"
+            // Empty until an OTA package has been downloaded.
+            applicationManager?.getIndexBundlePath()?.takeIf { it.isNotEmpty() }
+                ?: "assets://$bundleName"
         } catch (_: Exception) {
-            "assets://hyperswitch.bundle"
+            "assets://$bundleName"
         }
 
     }
