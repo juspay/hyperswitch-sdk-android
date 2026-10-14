@@ -57,7 +57,8 @@ class CardFieldView internal constructor(
         SurfaceOwners.attach(view, events)
         surface.attachView(view)
         surface.attach(form.runtime.reactHost)
-        surface.start()
+        // A host that could not start is not retried from here: the form reports it.
+        if (form.runtime.health.initFailure == null) surface.start()
         this.surface = surface
 
         /* The width is the app's to decide and the height is the field's. */

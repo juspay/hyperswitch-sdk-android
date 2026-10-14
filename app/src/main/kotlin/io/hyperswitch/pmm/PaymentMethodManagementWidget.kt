@@ -60,7 +60,8 @@ class PaymentMethodManagementWidget internal constructor(
 
         /* The width is the merchant's to decide and the height is the widget's. */
         addView(view, LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-        surface.start()
+        // A host that could not start is not retried from here: tokenize reports it.
+        if (runtime.health.initFailure == null) surface.start()
     }
 
     /**
@@ -73,6 +74,10 @@ class PaymentMethodManagementWidget internal constructor(
             onResult(
                 PaymentResult.Failed(Throwable("A tokenize is already in progress").apply { initCause(Throwable("TOKENIZE_IN_PROGRESS")) })
             )
+            return
+        }
+        if (runtime.health.initFailure != null) {
+            onResult(PaymentResult.Failed(runtime.health.resultError()))
             return
         }
         val tag = surfaceView?.rootViewTag ?: 0
