@@ -103,7 +103,7 @@ for library_dir in */; do
         # Check for .aar files (Android artifacts) in any version subdirectory, this is to remove the libraries that don't have any android artifacts
         has_android_artifacts=false
         for version_dir in "$library_dir"/*/; do
-            if [ -d "$version_dir" ] && ls "$version_dir"/*.aar >/dev/null 2>&1; then
+            if [ -d "$version_dir" ] && ( ls "$version_dir"/*.aar >/dev/null 2>&1 || ls "$version_dir"/*.jar >/dev/null 2>&1 ); then
                 has_android_artifacts=true
                 break
             fi
