@@ -50,7 +50,8 @@ enum class EventName {
     CLOSE_HYPER_INSTANCE_RETURNED,
     WEBVIEW,
     CTP_CORRELATION_VALUE,
-    CONSOLE_LOG
+    CONSOLE_LOG,
+    RN_SDK_LIFE_CYCLE
 }
 
 data class HSLog(
@@ -58,7 +59,7 @@ data class HSLog(
     val logType: LogType,
     val component: String = "MOBILE",
     val category: LogCategory,
-    val version: String,
+    var version: String,
     var codePushVersion: String,
     var clientCoreVersion: String,
     val value: String,
@@ -67,7 +68,7 @@ data class HSLog(
     val authenticationId: String,
     var merchantId: String,
     val paymentId: String,
-    val appId: String? = null,
+    var appId: String? = null,
     val platform: String = "ANDROID",
     val userAgent: String,
     val eventName: EventName,

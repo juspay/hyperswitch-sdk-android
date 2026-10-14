@@ -18,6 +18,8 @@ object HyperLogManager {
 
     private var delayInMillis: Long = DEFAULT_DELAY_IN_MILLIS
     private var hyperOtaVersion: String = ""
+    private var sdkVersion: String = ""
+    private var appId: String? = null
     private val debouncer = Debouncer(DEFAULT_DELAY_IN_MILLIS)
 
     /**
@@ -63,6 +65,32 @@ object HyperLogManager {
     }
 
     /**
+     * Sets the SDK version for log enrichment at send time.
+     * Only fills logs whose version is empty, so values already provided by
+     * log producers are preserved.
+     *
+     * @param version The SDK version string to be included in logs
+     */
+    fun setSdkVersion(version: String) {
+        synchronized(lock) {
+            sdkVersion = version
+        }
+    }
+
+    /**
+     * Sets the host app ID (package name) for log enrichment at send time.
+     * Only fills logs whose app ID is empty, so values already provided by
+     * log producers are preserved.
+     *
+     * @param appId The host application package name to be included in logs
+     */
+    fun setAppId(appId: String?) {
+        synchronized(lock) {
+            this.appId = appId
+        }
+    }
+
+    /**
      * Adds a log to the batch and triggers debounced log sending.
      *
      * @param log The log entry to be added to the batch
@@ -105,6 +133,8 @@ object HyperLogManager {
         val endpoint: String
         val merchantId: String
         val otaVersion: String
+        val version: String
+        val appId: String?
 
         synchronized(lock) {
             if (logsBatch.isEmpty()) return
@@ -116,12 +146,16 @@ object HyperLogManager {
             merchantId = publishableKey!!
             endpoint = loggingEndPoint!!
             otaVersion = hyperOtaVersion
+            version = sdkVersion
+            appId = this.appId
 
             // create safe snapshot
             logsBatch.forEach {
                 it.merchantId = merchantId
                 it.codePushVersion = otaVersion
                 it.clientCoreVersion = otaVersion
+                if (version.isNotBlank() && it.version.isBlank()) it.version = version
+                if (!appId.isNullOrBlank() && it.appId.isNullOrBlank()) it.appId = appId
             }
 
             logsToSend = logsBatch.joinToString(prefix = "[", postfix = "]") { it.toJson() }
