@@ -66,15 +66,13 @@ class LaunchOptions(
     fun getBundle(
         sessionConfig: PaymentSessionConfiguration? = null,
         configuration: PaymentSheet.Configuration? = null,
-        subscribedEvents: List<String> = emptyList()
     ): Bundle =
-        context?.let { getBundle(it, sessionConfig, configuration, subscribedEvents) } ?: Bundle()
+        context?.let { getBundle(it, sessionConfig, configuration) } ?: Bundle()
 
     fun getBundle(
         context: Context,
         sessionConfig: PaymentSessionConfiguration? = null,
         configuration: PaymentSheet.Configuration? = null,
-        subscribedEvents: List<String> = emptyList()
     ): Bundle = Bundle().apply {
         putBundle("props", Bundle().apply {
             putString("type", "payment")
@@ -82,7 +80,6 @@ class LaunchOptions(
             sessionConfig?.let { putBundle("paymentSessionConfig", it.toBundle()) }
             putString("theme", configuration?.appearance?.theme?.name)
             val configBundle = configuration?.bundle ?: Bundle()
-            configBundle.normalizeSubscribedEvents(subscribedEvents)
             putBundle("configuration", configBundle)
             putBundle("sdkParams", getSdkParams())
         })
@@ -93,7 +90,6 @@ class LaunchOptions(
         type: String? = "payment",
         from: String? = "nativeWidget",
         sessionConfig: PaymentSessionConfiguration? = null,
-        subscribedEvents: List<String> = emptyList(),
     ): Bundle = Bundle().apply {
         putBundle("props", Bundle().apply {
             putString("type", type)
@@ -104,11 +100,8 @@ class LaunchOptions(
             if (configCopy?.containsKey("hideConfirmButton") == false) {
                 configCopy.putBoolean("hideConfirmButton", true)
             }
-            // A widget bound without a configuration still needs somewhere to carry its events.
-            val configOut = configCopy ?: if (subscribedEvents.isNotEmpty()) Bundle() else null
-            configOut?.normalizeSubscribedEvents(subscribedEvents)
-            putBundle("configuration", configOut)
-            val theme = configOut?.getBundle("appearance")?.getString("theme")
+            putBundle("configuration", configCopy)
+            val theme = configCopy?.getBundle("appearance")?.getString("theme")
             putString("theme", theme)
             val backendUrl = hsConfig?.customConfig?.overrideEndpoints?.customBackendEndpoint
             val logUrl = hsConfig?.customConfig?.overrideEndpoints?.customLoggingEndpoint
@@ -118,14 +111,9 @@ class LaunchOptions(
         })
     }
 
-    fun getBundleWithHyperParams(readableMap: Map<*, *>, subscribedEvents: List<String> = emptyList()): Bundle = Bundle().apply {
+    fun getBundleWithHyperParams(readableMap: Map<*, *>): Bundle = Bundle().apply {
         putBundle("props", toBundle(readableMap).apply {
             putBundle("sdkParams", getSdkParams())
-            val configBundle = getBundle("configuration") ?: if (subscribedEvents.isNotEmpty()) Bundle() else null
-            configBundle?.let {
-                it.normalizeSubscribedEvents(subscribedEvents)
-                putBundle("configuration", it)
-            }
         })
     }
 
@@ -240,25 +228,6 @@ class LaunchOptions(
                 else -> item
             }
         })
-    }
-
-    /* The bundle reads `configuration.subscribedEvents`; `subscriptionEvents`, the legacy
-       `subscribedEvents` and the deprecated builder's [extra] all collapse into it. */
-    @Suppress("DEPRECATION")
-    private fun Bundle.normalizeSubscribedEvents(extra: List<String>) {
-        val merged = LinkedHashSet<String>()
-        for (key in listOf("subscriptionEvents", "subscribedEvents")) {
-            val names = when (val value = get(key)) {
-                is Collection<*> -> value
-                is Array<*> -> value.asList()
-                else -> emptyList()
-            }
-            names.forEach { (it as? String)?.let(merged::add) }
-        }
-        merged.addAll(extra)
-        remove("subscriptionEvents")
-        if (merged.isEmpty()) remove("subscribedEvents")
-        else putStringArrayList("subscribedEvents", ArrayList(merged))
     }
 
     fun toBundle(readableMap: Map<*, *>): Bundle {

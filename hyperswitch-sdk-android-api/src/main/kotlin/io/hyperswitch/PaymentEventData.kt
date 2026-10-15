@@ -144,10 +144,6 @@ sealed class PaymentEventData() {
      * @property isCvcComplete  Whether the CVC passes length validation for the given brand
      */
     data class CvcStatus(
-        @Deprecated("No longer sent (always false); use the CVC widget's onFocus/onBlur")
-        val isCvcFocused: Boolean,
-        @Deprecated("No longer sent (always false); use the CVC widget's onFocus/onBlur")
-        val isCvcBlur: Boolean,
         val isCvcEmpty: Boolean,
         val isCvcComplete: Boolean,
     ) : PaymentEventData() {
@@ -157,8 +153,6 @@ sealed class PaymentEventData() {
             fun fromMap(map: Map<String, Any?>): CvcStatus {
                 val nested = map["cvcStatus"] as? Map<String, Any?> ?: map
                 return CvcStatus(
-                    isCvcFocused = (nested["isCvcFocused"] as? Boolean) ?: false,
-                    isCvcBlur = (nested["isCvcBlur"] as? Boolean) ?: false,
                     isCvcEmpty = (nested["isCvcEmpty"] as? Boolean) ?: true,
                     isCvcComplete = (nested["isCvcComplete"] as? Boolean) ?: false,
                 )

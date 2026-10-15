@@ -12,8 +12,5 @@ data class PaymentEvent(
     val eventName: String,
     val payload: Map<String, Any?>,
 ) {
-    @Deprecated("Use eventName", ReplaceWith("eventName"))
-    val type: String get() = eventName
-
     val data: PaymentEventData? by lazy { PaymentEventData.fromEventType(eventName, payload) }
 }

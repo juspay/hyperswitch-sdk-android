@@ -113,7 +113,7 @@ class PaymentSessionReactLauncher(
         if (closed) return null
         val config = sessionConfig ?: return null
         val props = bottomInsetToDIPFromPixel(
-            launchOptions.getBundle(activity.applicationContext, config, null, emptyList())
+            launchOptions.getBundle(activity.applicationContext, config, null)
         )
         // getBundle hardcodes type=payment.
         props.getBundle("props")?.putString("type", "prefetch")
@@ -301,7 +301,6 @@ class PaymentSessionReactLauncher(
                 activity.applicationContext,
                 sessionConfig,
                 null,
-                emptyList(),
             )
             bundle.getBundle("props")?.apply {
                 // getBundle hardcodes type=payment.
@@ -329,30 +328,28 @@ class PaymentSessionReactLauncher(
     override fun presentSheet(
         sessionConfig: PaymentSessionConfiguration?,
         configuration: PaymentSheet.Configuration?
-    ): Boolean = presentSheet(sessionConfig, configuration, emptyList(), null, null)
+    ): Boolean = presentSheet(sessionConfig, configuration, null, null)
 
     override fun presentSheet(configurationMap: Map<String, Any?>): Boolean =
-        presentSheet(configurationMap, emptyList(), null, null)
+        presentSheet(configurationMap, null, null)
 
     override fun presentSheet(
         sessionConfig: PaymentSessionConfiguration?,
         configuration: PaymentSheet.Configuration?,
-        subscribedEvents: List<String>,
         eventListener: PaymentEventListener?,
         onResult: ((PaymentResult) -> Unit)?,
     ): Boolean {
-        val bundle = launchOptions.getBundle(sessionConfig, configuration, subscribedEvents)
+        val bundle = launchOptions.getBundle(sessionConfig, configuration)
         applyFonts(configuration, bundle)
         return presentSheet(bottomInsetToDIPFromPixel(bundle), eventListener, onResult)
     }
 
     override fun presentSheet(
         configurationMap: Map<String, Any?>,
-        subscribedEvents: List<String>,
         eventListener: PaymentEventListener?,
         onResult: ((PaymentResult) -> Unit)?,
     ): Boolean {
-        val bundle = launchOptions.getBundleWithHyperParams(configurationMap, subscribedEvents)
+        val bundle = launchOptions.getBundleWithHyperParams(configurationMap)
         return presentSheet(bottomInsetToDIPFromPixel(bundle), eventListener, onResult)
     }
 

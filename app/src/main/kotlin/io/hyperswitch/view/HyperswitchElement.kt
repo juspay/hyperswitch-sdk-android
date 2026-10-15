@@ -224,22 +224,6 @@ open class HyperswitchElement @JvmOverloads constructor(
         internalView.onBlur(listener)
     }
 
-    @Deprecated("List events in configuration subscriptionEvents")
-    fun setSubscribedEvents(events: List<String>) {
-        internalView.setSubscribedEvents(events)
-    }
-
-    @Deprecated("Use onChange", ReplaceWith("onChange(listener)"))
-    fun setOnEventCallback(listener: PaymentEventListener) {
-        internalView.onEvent(listener)
-    }
-
-    /** Backs the deprecated subscribe builder on [io.hyperswitch.sdk.Elements.bind]. */
-    internal fun setLegacySubscription(events: List<String>, listener: PaymentEventListener) {
-        internalView.setSubscribedEvents(events)
-        internalView.onEvent(listener)
-    }
-
     fun destroy() {
         internalView.removeWidget()
     }

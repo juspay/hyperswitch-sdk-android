@@ -1,7 +1,6 @@
 package io.hyperswitch.paymentsession
 
 import io.hyperswitch.PaymentEventListener
-import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
 import io.hyperswitch.paymentsheet.PaymentResult
@@ -9,21 +8,21 @@ import io.hyperswitch.paymentsheet.PaymentResult
 interface PaymentSessionLauncher {
     fun initPaymentSession(sessionConfig: PaymentSessionConfiguration)
     fun presentPaymentSheet(
-        configuration: PaymentSheet.Configuration?, subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?, resultCallback: (PaymentResult) -> Unit
+        configuration: PaymentSheet.Configuration?, resultCallback: (PaymentResult) -> Unit
     )
 
     fun presentPaymentSheet(
-        configurationMap: Map<String, Any?>, subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?, resultCallback: (PaymentResult) -> Unit
+        configurationMap: Map<String, Any?>, resultCallback: (PaymentResult) -> Unit
     )
 
     /** Sheet events listed in `subscriptionEvents` go to [onChange]; launchers without events ignore it. */
     fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration?, onChange: PaymentEventListener, resultCallback: (PaymentResult) -> Unit
-    ) = presentPaymentSheet(configuration, subscribe = null, resultCallback)
+    ) = presentPaymentSheet(configuration, resultCallback)
 
     fun presentPaymentSheet(
         configurationMap: Map<String, Any?>, onChange: PaymentEventListener, resultCallback: (PaymentResult) -> Unit
-    ) = presentPaymentSheet(configurationMap, subscribe = null, resultCallback)
+    ) = presentPaymentSheet(configurationMap, resultCallback)
 
     suspend fun getCustomerSavedPaymentMethods(
         configuration: SavedPaymentMethodsConfiguration? = null,

@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.Application
 import android.os.Bundle
 import io.hyperswitch.PaymentEventListener
-import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.logs.HyperLogManager
 import io.hyperswitch.logs.LogFileManager
 import io.hyperswitch.logs.LogUtils.getLoggingUrl
@@ -96,32 +95,18 @@ class DefaultPaymentSessionLauncher(
         application.registerActivityLifecycleCallbacks(watcher)
     }
 
-    private fun buildSubscription(
-        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?
-    ): Pair<List<String>, PaymentEventListener?> {
-        subscribe ?: return emptyList<String>() to null
-        val builder = PaymentEventSubscriptionBuilder()
-        builder.subscribe()
-        val (subscription, listener) = builder.build()
-        return subscription.getSubscribedEventStrings() to listener
-    }
-
     override fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration?,
-        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?,
         resultCallback: (PaymentResult) -> Unit
     ) {
-        val (events, listener) = buildSubscription(subscribe)
-        paymentSessionReactLauncher.presentSheet(sessionConfig, configuration, events, listener, resultCallback)
+        paymentSessionReactLauncher.presentSheet(sessionConfig, configuration, null, resultCallback)
     }
 
     override fun presentPaymentSheet(
         configurationMap: Map<String, Any?>,
-        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?,
         resultCallback: (PaymentResult) -> Unit
     ) {
-        val (events, listener) = buildSubscription(subscribe)
-        paymentSessionReactLauncher.presentSheet(configurationMap, events, listener, resultCallback)
+        paymentSessionReactLauncher.presentSheet(configurationMap, null, resultCallback)
     }
 
     override fun presentPaymentSheet(
@@ -129,7 +114,7 @@ class DefaultPaymentSessionLauncher(
         onChange: PaymentEventListener,
         resultCallback: (PaymentResult) -> Unit
     ) {
-        paymentSessionReactLauncher.presentSheet(sessionConfig, configuration, emptyList(), onChange, resultCallback)
+        paymentSessionReactLauncher.presentSheet(sessionConfig, configuration, onChange, resultCallback)
     }
 
     override fun presentPaymentSheet(
@@ -137,7 +122,7 @@ class DefaultPaymentSessionLauncher(
         onChange: PaymentEventListener,
         resultCallback: (PaymentResult) -> Unit
     ) {
-        paymentSessionReactLauncher.presentSheet(configurationMap, emptyList(), onChange, resultCallback)
+        paymentSessionReactLauncher.presentSheet(configurationMap, onChange, resultCallback)
     }
 
     override fun getCustomerSavedPaymentMethods(

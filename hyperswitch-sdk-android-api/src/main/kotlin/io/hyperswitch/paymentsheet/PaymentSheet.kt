@@ -284,7 +284,7 @@ class PaymentSheet internal constructor(
                     if (splitCardFields != null) putBoolean("splitCardFields", splitCardFields)
                     if (hideCardNicknameField != null) putBoolean("hideCardNicknameField", hideCardNicknameField)
                     if (!subscriptionEvents.isNullOrEmpty()) {
-                        putStringArrayList("subscribedEvents", ArrayList(subscriptionEvents.map { it.value }))
+                        putStringArrayList("subscriptionEvents", ArrayList(subscriptionEvents.map { it.value }))
                     }
                 }
             }

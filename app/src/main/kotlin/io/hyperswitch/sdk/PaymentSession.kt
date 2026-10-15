@@ -2,7 +2,6 @@ package io.hyperswitch.sdk
 
 import android.app.Activity
 import io.hyperswitch.PaymentEventListener
-import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsession.DefaultPaymentSessionLauncher
@@ -43,25 +42,23 @@ class PaymentSession internal constructor(
     @JvmSynthetic
     suspend fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration,
-        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null
     ): PaymentResult {
         return suspendCancellableCoroutine { continuation ->
-            paymentSessionLauncher.presentPaymentSheet(configuration, subscribe) { result ->
+            paymentSessionLauncher.presentPaymentSheet(configuration) { result ->
                 continuation.resume(result)
             }
         }
     }
 
-    fun presentPaymentSheet(subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null, resultCallback: (PaymentResult) -> Unit) {
-        paymentSessionLauncher.presentPaymentSheet(configuration = null, subscribe, resultCallback)
+    fun presentPaymentSheet(resultCallback: (PaymentResult) -> Unit) {
+        paymentSessionLauncher.presentPaymentSheet(configuration = null, resultCallback)
     }
 
     fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration,
-        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null,
         resultCallback: (PaymentResult) -> Unit
     ) {
-        paymentSessionLauncher.presentPaymentSheet(configuration, subscribe, resultCallback)
+        paymentSessionLauncher.presentPaymentSheet(configuration, resultCallback)
     }
 
     /**
@@ -136,10 +133,9 @@ class PaymentSession internal constructor(
 
     fun presentPaymentSheet(
         configurationMap: Map<String, Any?>,
-        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null,
         resultCallback: (PaymentResult) -> Unit
     ) {
-        paymentSessionLauncher.presentPaymentSheet(configurationMap, subscribe, resultCallback)
+        paymentSessionLauncher.presentPaymentSheet(configurationMap, resultCallback)
     }
 
     /** Map-configured sheet; `configuration.subscriptionEvents` in the map selects the events for [onChange]. */

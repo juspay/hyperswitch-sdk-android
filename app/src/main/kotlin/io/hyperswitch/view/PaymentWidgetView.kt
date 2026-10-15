@@ -73,9 +73,7 @@ class PaymentWidgetView : FrameLayout {
     }
 
     private var confirmPaymentClickListener: ConfirmPaymentClickListener? = null
-    private var subscribedEvents: List<String> = emptyList()
 
-    private var onEventCallback: PaymentEventListener? = null
     private var changeListener: PaymentEventListener? = null
     private var readyListener: Runnable? = null
     private var focusListener: Runnable? = null
@@ -95,7 +93,6 @@ class PaymentWidgetView : FrameLayout {
             ElementEvents.FOCUS -> focusListener?.run()
             ElementEvents.BLUR -> blurListener?.run()
             else -> {
-                onEventCallback?.onPaymentEvent(event)
                 changeListener?.onPaymentEvent(event)
             }
         }
@@ -275,10 +272,6 @@ class PaymentWidgetView : FrameLayout {
         }
     }
 
-    fun onEvent(listener: PaymentEventListener) {
-        this.onEventCallback = listener
-    }
-
     fun onChange(listener: PaymentEventListener) {
         this.changeListener = listener
     }
@@ -300,10 +293,6 @@ class PaymentWidgetView : FrameLayout {
         this.blurListener = listener
     }
 
-    fun setSubscribedEvents(events: List<String>) {
-        this.subscribedEvents = events
-    }
-
     fun getLaunchOptions(): Bundle {
         val bundle = this.launchOptions.getBundle(
             configuration = resolveConfiguration(),
@@ -314,7 +303,6 @@ class PaymentWidgetView : FrameLayout {
                 null -> "nativeWidget"
             },
             sessionConfig = if (this.sdkAuthorization.isNotEmpty()) PaymentSessionConfiguration(this.sdkAuthorization) else null,
-            subscribedEvents = this.subscribedEvents,
         )
         sessionTag?.let { tag ->
             bundle.getBundle("props")?.getBundle("sdkParams")?.putInt("sessionTag", tag)
