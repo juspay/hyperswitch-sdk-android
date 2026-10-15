@@ -1,16 +1,18 @@
 package io.hyperswitch
 
+import kotlinx.parcelize.Parcelize
+
 object CvcWidgetEvents {
 
     /**
-     * CVC status event - emitted when CVC field state changes.
+     * CVC status event - emitted when the CVC turns empty/filled or complete/incomplete.
      * Event type: "cvcStatusChange"
-     * Payload: PaymentEventData.CvcStatus
+     * Payload: PaymentEventData.CvcStatus, nested as `cvcStatus`
      *
      * Fields:
-     * - isCvcFocused: Boolean           Whether the CVC field is focused
-     * - isCvcBlur: Boolean              Whether the CVC field has lost focus
      * - isCvcEmpty: Boolean             Whether the CVC field is empty
+     * - isCvcComplete: Boolean          Whether the CVC passes length validation
      */
+    @Parcelize
     object CvcStatusChange : EventType("cvcStatusChange")
 }
