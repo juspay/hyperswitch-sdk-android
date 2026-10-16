@@ -6,6 +6,7 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.module.model.ReactModuleInfo
 import com.facebook.react.module.model.ReactModuleInfoProvider
 import com.facebook.react.uimanager.ViewManager
+import io.hyperswitch.paymentmethods.react.HyperVaultRelayModule
 
 /** Binds the host's native modules to the runtime that owns the host. */
 class HyperPackage(
@@ -16,6 +17,7 @@ class HyperPackage(
         return when (name) {
             io.hyperswitch.react.codegen.NativeHyperModuleSpec.NAME -> HyperModule(reactContext, runtime)
             io.hyperswitch.react.codegen.NativeHyperHeadlessSpec.NAME -> HyperHeadlessModule(reactContext)
+            io.hyperswitch.react.codegen.NativeHyperVaultRelaySpec.NAME -> HyperVaultRelayModule(reactContext)
             else -> null
         }
     }
@@ -38,6 +40,14 @@ class HyperPackage(
                 io.hyperswitch.react.codegen.NativeHyperHeadlessSpec.NAME to ReactModuleInfo(
                     io.hyperswitch.react.codegen.NativeHyperHeadlessSpec.NAME,
                     io.hyperswitch.react.codegen.NativeHyperHeadlessSpec.NAME,
+                    canOverrideExistingModule = false,
+                    needsEagerInit = false,
+                    isCxxModule = false,
+                    isTurboModule = true,
+                ),
+                io.hyperswitch.react.codegen.NativeHyperVaultRelaySpec.NAME to ReactModuleInfo(
+                    io.hyperswitch.react.codegen.NativeHyperVaultRelaySpec.NAME,
+                    io.hyperswitch.react.codegen.NativeHyperVaultRelaySpec.NAME,
                     canOverrideExistingModule = false,
                     needsEagerInit = false,
                     isCxxModule = false,
