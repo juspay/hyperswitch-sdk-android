@@ -81,6 +81,10 @@ class MainActivity : AppCompatActivity(), HyperInterface {
             startActivity(Intent(this, PaymentMethodsActivity::class.java))
         }
 
+        findViewById<View>(R.id.launchCardFormPayment).setOnClickListener {
+            startActivity(Intent(this, PaymentMethodsActivity::class.java).putExtra(PaymentMethodsActivity.EXTRA_PAYS, true))
+        }
+
         findViewById<View>(R.id.launchPmmSheetButton).setOnClickListener {
             // PM-session sdkAuthorizations are short-lived (~15 min) — refetch a fresh
             // session on every launch instead of reusing the one created at app start,
