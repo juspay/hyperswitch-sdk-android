@@ -14,26 +14,40 @@ import io.hyperswitch.paymentmethods.react.PaymentMethodsEventTarget
 import io.hyperswitch.paymentmethods.react.PaymentMethodsProtocol
 import io.hyperswitch.paymentmethods.react.PaymentMethodsRuntime
 import io.hyperswitch.paymentsession.HeadlessSurface
+import io.hyperswitch.paymentsheet.PaymentResult
+import io.hyperswitch.sdk.PaymentSession
 import java.lang.ref.WeakReference
 import java.util.UUID
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
+import org.json.JSONObject
 
 /**
  * One card form. It hands out its fields as views to place anywhere; they are one form
  * because this object made them, with nothing to link or register. The card lives until
  * [close], which the Activity's destruction calls for you. Use from the main thread.
+ *
+ * A form from a payment method session saves the card with [tokenize]; a form from
+ * [io.hyperswitch.sdk.Elements.createCardForm] pays with it, with [confirmPayment].
  */
 class CardForm internal constructor(
     private val activity: Activity,
     hyperswitchConfiguration: HyperswitchBaseConfiguration,
-    sessionConfiguration: PaymentMethodSessionConfiguration,
+    private val purpose: Purpose,
     configuration: Configuration,
 ) {
 
     data class Configuration(val locale: String? = null)
 
-    /** The fields can take input and [tokenize] can run. */
+    internal sealed interface Purpose {
+        /** Saves a card: the form opens on the payment method session. */
+        data class Save(val session: PaymentMethodSessionConfiguration) : Purpose
+
+        /** Pays: the payment's CardWidget opens the form with the payment's vault. */
+        class Pay(val session: PaymentSession) : Purpose
+    }
+
+    /** The fields can take input; [tokenize] or [confirmPayment] can run. */
     var onReady: (() -> Unit)? = null
     var onChange: ((CardFormState) -> Unit)? = null
 
@@ -56,14 +70,24 @@ class CardForm internal constructor(
     }
 
     private var phase: Phase = Phase.Opening
+    private var closed = false
 
     /** Commands reach the bundle only once it listens, which the form's first word proves. */
     private val whenSettled = mutableListOf<() -> Unit>()
-    private var pendingTokenize: Pair<String, (TokenizeResult) -> Unit>? = null
+    private var pendingTokenize: PendingTokenize? = null
+
+    private class PendingTokenize(
+        val commandId: String,
+        val onRefused: (Pair<String, String>) -> Unit,
+        val onResult: (Map<String, Any?>) -> Unit,
+    )
 
     /** Its own fields, so that [close] can end their screens too. Not a lookup of any kind. */
     private val fields = mutableListOf<WeakReference<CardFieldView>>()
-    private var surface: HeadlessSurface?
+    private var surface: HeadlessSurface? = null
+
+    /** The payments side of a form that pays; null for a form that saves. */
+    private var widget: CardWidget? = null
 
     /** What the bundle says about this form lands here. Held by the form, so it lasts as long. */
     private val events = PaymentMethodsEventTarget(::onEvent)
@@ -71,23 +95,24 @@ class CardForm internal constructor(
     init {
         runtime.follow(activity)
 
-        val props = Bundle().apply {
-            putString("type", PaymentMethodsProtocol.FORM_TYPE)
-            putInt("protocolVersion", PaymentMethodsProtocol.VERSION)
-            putString("formId", formId)
-            putBundle("hyper", hyperswitchConfiguration.toBundle())
-            putString("sdkAuthorization", sessionConfiguration.sdkAuthorization)
-            configuration.locale?.let { putString("locale", it) }
-        }
+        when (purpose) {
+            is Purpose.Save -> surface = startForm(
+                Bundle().apply {
+                    putString("type", PaymentMethodsProtocol.FORM_TYPE)
+                    putInt("protocolVersion", PaymentMethodsProtocol.VERSION)
+                    putString("formId", formId)
+                    putBundle("hyper", hyperswitchConfiguration.toBundle())
+                    putString("sdkAuthorization", purpose.session.sdkAuthorization)
+                    configuration.locale?.let { putString("locale", it) }
+                }
+            )
 
-        /* A root that never joins a window. Stopping it is what ends the form in the bundle. */
-        surface = HeadlessSurface.start(
-            activity.applicationContext,
-            runtime.reactHost,
-            Bundle().apply { putBundle("props", props) },
-            owner = events,
-            moduleName = PaymentMethodsProtocol.FORM_COMPONENT,
-        )
+            /* The form opens once the widget knows the payment's vault (openForm). */
+            is Purpose.Pay -> {
+                runtime.warmUp()
+                widget = CardWidget(activity, this, hyperswitchConfiguration, purpose.session, configuration.locale)
+            }
+        }
 
         closeWith(activity)
     }
@@ -121,34 +146,58 @@ class CardForm internal constructor(
     }
 
     fun tokenize(callback: (TokenizeResult) -> Unit) = onMain {
-        whenFormSettles {
-            val failed = phase as? Phase.Failed
-            when {
-                failed != null ->
-                    callback(TokenizeResult.Failure(TokenizeError.local("form_unavailable", failed.message)))
+        if (purpose is Purpose.Pay) {
+            callback(
+                TokenizeResult.Failure(
+                    TokenizeError.local(
+                        "unsupported_on_surface",
+                        "tokenize() is not available on the payments surface — use confirmPayment()",
+                    )
+                )
+            )
+            return@onMain
+        }
+        command(
+            onRefused = { (code, message) -> callback(TokenizeResult.Failure(TokenizeError.local(code, message))) },
+            onResult = { payload -> callback(tokenizeResultOf(payload)) },
+        )
+    }
 
-                pendingTokenize != null ->
-                    callback(TokenizeResult.Failure(TokenizeError.local("tokenize_in_progress", "This form is already tokenizing.")))
+    // Confirm
 
-                else -> {
-                    val commandId = UUID.randomUUID().toString()
-                    pendingTokenize = commandId to callback
-                    send(commandId, "tokenize", null)
-                }
-            }
+    /**
+     * Pays with the card: the vault tokenizes it, the payment is confirmed with the token and
+     * 3DS runs if the payment needs it. Never throws: a payment that does not complete is a
+     * [PaymentResult.Failed] whose cause names its code.
+     */
+    @JvmSynthetic
+    suspend fun confirmPayment(): PaymentResult = suspendCancellableCoroutine { continuation ->
+        confirmPayment { if (continuation.isActive) continuation.resume(it) }
+    }
+
+    fun confirmPayment(callback: (PaymentResult) -> Unit) = onMain {
+        val widget = widget
+        when {
+            purpose !is Purpose.Pay -> callback(
+                failed("unsupported_on_surface", "confirmPayment() is not available on the vault surface — use tokenize()")
+            )
+
+            widget == null -> callback(failed("form_unavailable", "The card form was closed."))
+            else -> widget.confirm(callback)
         }
     }
 
     /** Ends the form and clears the card. Its fields go blank. Safe to call more than once. */
     fun close() = onMain {
+        closed = true
+        widget?.stop()
+        widget = null
         surface?.stop()
         surface = null
         fields.forEach { it.get()?.stop() }
         fields.clear()
         settle(Phase.Failed("The card form was closed."))
-        pendingTokenize?.second?.invoke(
-            TokenizeResult.Failure(TokenizeError.local("form_unavailable", "The card form was closed."))
-        )
+        pendingTokenize?.onRefused?.invoke("form_unavailable" to "The card form was closed.")
         pendingTokenize = null
     }
 
@@ -157,6 +206,54 @@ class CardForm internal constructor(
     internal fun send(fieldCommand: String, elementType: CardElementType) = onMain {
         whenFormSettles {
             if (phase is Phase.Ready) send(UUID.randomUUID().toString(), fieldCommand, elementType)
+        }
+    }
+
+    /** The widget has the payment's vault: open the form with it, or replace the form. */
+    internal fun openForm(descriptor: Bundle) = onMain {
+        if (closed) return@onMain
+        surface?.stop()
+        phase = Phase.Opening
+        surface = startForm(descriptor)
+    }
+
+    /** The widget's tokenize: [reply] gets the bundle's PM_COMMAND_RESULT payload as JSON, unread. */
+    internal fun tokenizeForWidget(reply: (String) -> Unit) = onMain {
+        command(
+            onRefused = { (_, message) -> reply(JSONObject(mapOf("ok" to false, "message" to message)).toString()) },
+            onResult = { payload -> reply(JSONObject(payload).toString()) },
+        )
+    }
+
+    /** The widget cannot pay with this form; the form says why. */
+    internal fun onWidgetError(message: String) {
+        settle(Phase.Failed(message))
+        onError?.invoke(CardFormError(message))
+    }
+
+    private fun startForm(props: Bundle): HeadlessSurface =
+        /* A root that never joins a window. Stopping it is what ends the form in the bundle. */
+        HeadlessSurface.start(
+            activity.applicationContext,
+            runtime.reactHost,
+            Bundle().apply { putBundle("props", props) },
+            owner = events,
+            moduleName = PaymentMethodsProtocol.FORM_COMPONENT,
+        )
+
+    /** Runs the form's `tokenize` command once the form has settled; one at a time. */
+    private fun command(onRefused: (Pair<String, String>) -> Unit, onResult: (Map<String, Any?>) -> Unit) {
+        whenFormSettles {
+            val failed = phase as? Phase.Failed
+            when {
+                failed != null -> onRefused("form_unavailable" to failed.message)
+                pendingTokenize != null -> onRefused("tokenize_in_progress" to "This form is already tokenizing.")
+                else -> {
+                    val commandId = UUID.randomUUID().toString()
+                    pendingTokenize = PendingTokenize(commandId, onRefused, onResult)
+                    send(commandId, "tokenize", null)
+                }
+            }
         }
     }
 
@@ -207,12 +304,15 @@ class CardForm internal constructor(
 
             PaymentMethodsProtocol.COMMAND_RESULT -> {
                 val pending = pendingTokenize ?: return
-                if (pending.first != payload["commandId"]) return
+                if (pending.commandId != payload["commandId"]) return
                 pendingTokenize = null
-                pending.second(tokenizeResultOf(payload))
+                pending.onResult(payload)
             }
         }
     }
+
+    private fun failed(code: String, message: String) =
+        PaymentResult.Failed(Throwable(message).apply { initCause(Throwable(code)) })
 
     /**
      * A view has no moment at which it is known to be gone for good, and nothing else would

@@ -15,6 +15,7 @@ import io.hyperswitch.BuildConfig
 import io.hyperswitch.payments.GooglePayCallbackManager
 import io.hyperswitch.payments.launcher.PaymentMethod
 import io.hyperswitch.payments.view.WidgetLauncher
+import io.hyperswitch.paymentmethods.CardWidget
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
 import io.hyperswitch.webview.utils.Callback as HSCallback
@@ -214,14 +215,14 @@ class HyperModule internal constructor(
 
     override fun notifyWidgetPaymentResult(rootTag: Double, result: ReadableMap) {
         val paymentResult = result.toExitResultJson()
-        withFragment(rootTag) { fragment ->
-            if (fragment == null) {
-                Log.w(
+        SurfaceOwners.resolve(rct, rootTag.toInt()) { owner ->
+            when (owner) {
+                is HyperFragment -> owner.notifyResult(CallbackType.CONFIRM_ACTION, paymentResult)
+                is CardWidget -> owner.onResult(paymentResult)
+                else -> Log.w(
                     "HyperModule",
                     "notifyWidgetPaymentResult: no fragment found for rootTag=$rootTag"
                 )
-            } else {
-                fragment.notifyResult(CallbackType.CONFIRM_ACTION, paymentResult)
             }
         }
     }
@@ -237,11 +238,11 @@ class HyperModule internal constructor(
     }
 
     override fun emitPaymentEvent(rootTag: Double, eventType: String, payload: ReadableMap) {
-        withFragment(rootTag) { fragment ->
-            if (fragment == null) {
-                Log.w("HyperModule", "emitPaymentEvent: no fragment found for rootTag=$rootTag")
-            } else {
-                fragment.notifyEvent(eventType, payload)
+        SurfaceOwners.resolve(rct, rootTag.toInt()) { owner ->
+            when (owner) {
+                is HyperFragment -> owner.notifyEvent(eventType, payload)
+                is CardWidget -> owner.onEvent(eventType, payload)
+                else -> Log.w("HyperModule", "emitPaymentEvent: no fragment found for rootTag=$rootTag")
             }
         }
     }
