@@ -7,7 +7,7 @@ object CvcWidgetEvents {
     /**
      * CVC status event - emitted when the CVC turns empty/filled or complete/incomplete.
      * Event type: "cvcStatusChange"
-     * Payload: PaymentEventData.CvcStatus, nested as `cvcStatus`
+     * Payload: PaymentEventData.CvcStatusChange, nested as `cvcStatus`
      *
      * Fields:
      * - isCvcEmpty: Boolean             Whether the CVC field is empty

@@ -15,6 +15,8 @@ import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.BuildConfig
 import com.facebook.react.bridge.UiThreadUtil
+import io.hyperswitch.EventType
+import io.hyperswitch.PaymentEvent
 import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
@@ -84,8 +86,8 @@ class PaymentWidgetView : FrameLayout {
     private var readyFired = false
 
     // One fragment listener for the widget's lifetime; handlers are read when each event arrives.
-    private val eventDispatcher = PaymentEventListener { event ->
-        when (event.eventName) {
+    private val eventDispatcher: (String, Map<String, Any?>) -> Unit = { name, payload ->
+        when (name) {
             ElementEvents.READY -> {
                 readyFired = true
                 readyListener?.run()
@@ -93,7 +95,11 @@ class PaymentWidgetView : FrameLayout {
             ElementEvents.FOCUS -> focusListener?.run()
             ElementEvents.BLUR -> blurListener?.run()
             else -> {
-                changeListener?.onPaymentEvent(event)
+                EventType.fromValue(name)?.let { type ->
+                    PaymentEvent.fromMap(type, payload)?.let { event ->
+                        changeListener?.onPaymentEvent(event)
+                    }
+                }
             }
         }
     }

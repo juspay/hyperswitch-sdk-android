@@ -17,8 +17,6 @@ import com.facebook.react.views.scroll.ReactHorizontalScrollView
 import com.facebook.react.views.scroll.ReactScrollView
 import com.proyecto26.inappbrowser.ChromeTabsDismissedEvent
 import com.proyecto26.inappbrowser.ChromeTabsManagerActivity
-import io.hyperswitch.PaymentEvent
-import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.redirect.RedirectEvent
 import org.greenrobot.eventbus.EventBus
@@ -77,7 +75,7 @@ class HyperFragment : Fragment() {
     }
 
     /** Listener for this surface's events; set by the launcher or the bound element. */
-    private var paymentEventListener: PaymentEventListener? = null
+    private var paymentEventListener: ((String, Map<String, Any?>) -> Unit)? = null
 
     private var onExit: (() -> Unit)? = null
 
@@ -97,7 +95,7 @@ class HyperFragment : Fragment() {
         )
     }
 
-    fun setOnEventCallback(listener: PaymentEventListener) {
+    internal fun setOnEventCallback(listener: (String, Map<String, Any?>) -> Unit) {
         this.paymentEventListener = listener
     }
 
@@ -237,7 +235,7 @@ class HyperFragment : Fragment() {
         try {
             val listener = paymentEventListener ?: return
             // toHashMap keeps null fields, e.g. `bin: null` before a card is typed.
-            listener.onPaymentEvent(PaymentEvent(eventName = eventType, payload = result.toHashMap()))
+            listener(eventType, result.toHashMap())
         } catch (e: Exception) {
             Log.e("HyperFragment", "Error in notifyEvent", e)
         }

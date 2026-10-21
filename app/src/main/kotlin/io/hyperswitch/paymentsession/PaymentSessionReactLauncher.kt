@@ -13,6 +13,8 @@ import com.facebook.react.common.assets.ReactFontManager
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.facebook.react.uimanager.PixelUtil
 import io.hyperswitch.BuildConfig
+import io.hyperswitch.EventType
+import io.hyperswitch.PaymentEvent
 import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
@@ -368,7 +370,13 @@ class PaymentSessionReactLauncher(
                 .setFabricEnabled(true)
                 .build()
             onResult?.let { fragment.setOnPaymentResult(it) }
-            eventListener?.let { fragment.setOnEventCallback(it) }
+            eventListener?.let { listener ->
+                fragment.setOnEventCallback { name, payload ->
+                    EventType.fromValue(name)?.let { type ->
+                        PaymentEvent.fromMap(type, payload)?.let(listener::onPaymentEvent)
+                    }
+                }
+            }
 
             // Scoped to the fragment, so the callback leaves with it.
             activity.onBackPressedDispatcher.addCallback(fragment) {

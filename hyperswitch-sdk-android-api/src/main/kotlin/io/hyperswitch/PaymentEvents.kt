@@ -7,7 +7,7 @@ import kotlinx.parcelize.Parcelize
  * Payment Event Types
  *
  * List the events to receive in the configuration's `subscriptionEvents`, then handle them
- * all in one `onChange`, switching on [PaymentEvent.eventName]. Nothing is emitted for
+ * all in one `onChange`, matching on [PaymentEvent.payload]. Nothing is emitted for
  * events that are not listed.
  *
  * Example usage:
@@ -17,9 +17,9 @@ import kotlinx.parcelize.Parcelize
  *     .build()
  * paymentElement.setConfiguration(configuration)
  * paymentElement.onChange { event ->
- *     when (val data = event.data) {
- *         is PaymentEventData.CardInfo -> { /* card field changes */ }
- *         is PaymentEventData.FormStatus -> { /* form completion */ }
+ *     when (val data = event.payload) {
+ *         is PaymentEventData.CardDetailsChange -> { /* card field changes */ }
+ *         is PaymentEventData.FormStatusChange -> { /* form completion */ }
  *         else -> {}
  *     }
  * }
@@ -30,7 +30,7 @@ object PaymentEvents {
     /**
      * Card information event - emitted when card field values change.
      * Event type: "cardDetailsChange"
-     * Payload: PaymentEventData.CardInfo
+     * Payload: PaymentEventData.CardDetailsChange
      *
      * Fields:
      * - bin?: String                    First 6 digits of card number
@@ -52,7 +52,7 @@ object PaymentEvents {
     /**
      * Payment method status event - emitted when user selects a payment method.
      * Event type: "paymentMethodChange"
-     * Payload: PaymentEventData.PaymentMethodStatus
+     * Payload: PaymentEventData.PaymentMethodChange
      *
      * Fields:
      * - paymentMethod: String           Payment method category (card, wallet, bank_redirect)
@@ -66,10 +66,10 @@ object PaymentEvents {
     /**
      * Form status event - emitted when form completion status changes.
      * Event type: "formStatusChange"
-     * Payload: PaymentEventData.FormStatus
+     * Payload: PaymentEventData.FormStatusChange
      *
      * Fields:
-     * - status: String                  "EMPTY" | "FILLING" | "COMPLETE"
+     * - status: FormStatusValue         EMPTY | FILLING | COMPLETE
      */
     @Parcelize
     object FormStatusChange : EventType("formStatusChange")
@@ -77,7 +77,7 @@ object PaymentEvents {
     /**
      * Address information event - emitted when billing address fields change.
      * Event type: "billingDetailsChange"
-     * Payload: PaymentEventData.PaymentMethodInfoAddress
+     * Payload: PaymentEventData.BillingDetailsChange
      *
      * Fields:
      * - country: String                 Country code
@@ -94,5 +94,16 @@ object PaymentEvents {
  */
 sealed class EventType(val value: String) : Parcelable {
     override fun toString(): String = value
+
+    companion object {
+        fun fromValue(value: String): EventType? = when (value) {
+            PaymentEvents.CardDetailsChange.value -> PaymentEvents.CardDetailsChange
+            PaymentEvents.PaymentMethodChange.value -> PaymentEvents.PaymentMethodChange
+            PaymentEvents.FormStatusChange.value -> PaymentEvents.FormStatusChange
+            PaymentEvents.BillingDetailsChange.value -> PaymentEvents.BillingDetailsChange
+            CvcWidgetEvents.CvcStatusChange.value -> CvcWidgetEvents.CvcStatusChange
+            else -> null
+        }
+    }
 }
 

@@ -5,12 +5,22 @@ fun interface PaymentEventListener {
 }
 
 /**
- * An event delivered to an `onChange` handler. [eventName] is one of the names listed in
- * `subscriptionEvents` (e.g. "cardDetailsChange"); [data] is the typed view of [payload].
+ * An event delivered to `onChange`. Match on [payload] for typed fields; [eventName]
+ * uses the same identifiers as `subscriptionEvents` and is derived from the payload.
  */
 data class PaymentEvent(
-    val eventName: String,
-    val payload: Map<String, Any?>,
+    val payload: PaymentEventData,
 ) {
-    val data: PaymentEventData? by lazy { PaymentEventData.fromEventType(eventName, payload) }
+    val eventName: EventType get() = when (payload) {
+        is PaymentEventData.CardDetailsChange -> PaymentEvents.CardDetailsChange
+        is PaymentEventData.PaymentMethodChange -> PaymentEvents.PaymentMethodChange
+        is PaymentEventData.FormStatusChange -> PaymentEvents.FormStatusChange
+        is PaymentEventData.BillingDetailsChange -> PaymentEvents.BillingDetailsChange
+        is PaymentEventData.CvcStatusChange -> CvcWidgetEvents.CvcStatusChange
+    }
+
+    companion object {
+        fun fromMap(eventName: EventType, payload: Map<String, Any?>): PaymentEvent? =
+            PaymentEventData.fromEventType(eventName, payload)?.let(::PaymentEvent)
+    }
 }

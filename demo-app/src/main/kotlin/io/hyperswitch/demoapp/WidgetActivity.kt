@@ -9,6 +9,7 @@ import androidx.lifecycle.lifecycleScope
 import com.github.kittinunf.fuel.Fuel.reset
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Handler
+import io.hyperswitch.PaymentEventData
 import io.hyperswitch.model.CustomEndpointConfiguration
 import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchConfiguration
@@ -139,12 +140,13 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             paymentElementBound = elements?.bind(paymentElement, buildConfiguration())
             // Events live on the view; the payment element emits once bind gives it a session.
             paymentElement.onChange { event ->
-                // One handler for every subscribed event; branch on its name.
-                when (event.eventName) {
-                    "paymentMethodChange" -> Log.d(TAG, "payment method: ${event.payload}")
-                    "cardDetailsChange" -> Log.d(TAG, "card: ${event.payload}")
-                    "formStatusChange" -> Log.d(TAG, "form status: ${event.payload}")
-                    "billingDetailsChange" -> Log.d(TAG, "billing: ${event.payload}")
+                // One handler for every subscribed event; match its typed payload.
+                when (val payload = event.payload) {
+                    is PaymentEventData.PaymentMethodChange -> Log.d(TAG, "payment method: ${payload.paymentMethod}, saved: ${payload.isSavedPaymentMethod}")
+                    is PaymentEventData.CardDetailsChange -> Log.d(TAG, "card brand: ${payload.brand}")
+                    is PaymentEventData.FormStatusChange -> Log.d(TAG, "form status: ${payload.status}")
+                    is PaymentEventData.BillingDetailsChange -> Log.d(TAG, "billing country: ${payload.country}")
+                    is PaymentEventData.CvcStatusChange -> Log.d(TAG, "cvc complete: ${payload.cvcStatus.isCvcComplete}")
                 }
             }
             // Lifecycle events need no subscription and never reach onChange.
@@ -161,7 +163,10 @@ class WidgetActivity : AppCompatActivity(), HyperInterface {
             }
             cvcWidgetBound = elements?.bind(cvcWidget, buildCvcConfiguration())
             cvcWidget.onChange { event ->
-                if (event.eventName == "cvcStatusChange") Log.d(TAG, "cvc: ${event.payload}")
+                when (val payload = event.payload) {
+                    is PaymentEventData.CvcStatusChange -> Log.d(TAG, "cvc complete: ${payload.cvcStatus.isCvcComplete}")
+                    else -> Unit
+                }
             }
             cvcWidget.onReady { Log.d(TAG, "cvc widget ready") }
             cvcWidget.onFocus { Log.d(TAG, "cvc widget focus") }
