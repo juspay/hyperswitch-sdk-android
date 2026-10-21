@@ -2,7 +2,6 @@ package io.hyperswitch.lite
 
 import android.app.Activity
 import android.util.Log
-import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.paymentsession.BasePaymentSessionLauncher
 import io.hyperswitch.paymentsession.PaymentSessionHandler
@@ -20,7 +19,6 @@ open class DefaultPaymentSessionLauncherLite(
 
     override fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration?,
-        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?,
         resultCallback: (PaymentResult) -> Unit
     ) {
         PaymentSheetCallbackManager.setCallback(resultCallback)
@@ -29,7 +27,6 @@ open class DefaultPaymentSessionLauncherLite(
 
     override fun presentPaymentSheet(
         configurationMap: Map<String, Any?>,
-        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?,
         resultCallback: (PaymentResult) -> Unit
     ) {
         PaymentSheetCallbackManager.setCallback(resultCallback)

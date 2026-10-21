@@ -13,6 +13,8 @@ import com.facebook.react.common.assets.ReactFontManager
 import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.facebook.react.uimanager.PixelUtil
 import io.hyperswitch.BuildConfig
+import io.hyperswitch.EventType
+import io.hyperswitch.PaymentEvent
 import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
@@ -113,7 +115,7 @@ class PaymentSessionReactLauncher(
         if (closed) return null
         val config = sessionConfig ?: return null
         val props = bottomInsetToDIPFromPixel(
-            launchOptions.getBundle(activity.applicationContext, config, null, emptyList())
+            launchOptions.getBundle(activity.applicationContext, config, null)
         )
         // getBundle hardcodes type=payment.
         props.getBundle("props")?.putString("type", "prefetch")
@@ -301,7 +303,6 @@ class PaymentSessionReactLauncher(
                 activity.applicationContext,
                 sessionConfig,
                 null,
-                emptyList(),
             )
             bundle.getBundle("props")?.apply {
                 // getBundle hardcodes type=payment.
@@ -329,30 +330,28 @@ class PaymentSessionReactLauncher(
     override fun presentSheet(
         sessionConfig: PaymentSessionConfiguration?,
         configuration: PaymentSheet.Configuration?
-    ): Boolean = presentSheet(sessionConfig, configuration, emptyList(), null, null)
+    ): Boolean = presentSheet(sessionConfig, configuration, null, null)
 
     override fun presentSheet(configurationMap: Map<String, Any?>): Boolean =
-        presentSheet(configurationMap, emptyList(), null, null)
+        presentSheet(configurationMap, null, null)
 
     override fun presentSheet(
         sessionConfig: PaymentSessionConfiguration?,
         configuration: PaymentSheet.Configuration?,
-        subscribedEvents: List<String>,
         eventListener: PaymentEventListener?,
         onResult: ((PaymentResult) -> Unit)?,
     ): Boolean {
-        val bundle = launchOptions.getBundle(sessionConfig, configuration, subscribedEvents)
+        val bundle = launchOptions.getBundle(sessionConfig, configuration)
         applyFonts(configuration, bundle)
         return presentSheet(bottomInsetToDIPFromPixel(bundle), eventListener, onResult)
     }
 
     override fun presentSheet(
         configurationMap: Map<String, Any?>,
-        subscribedEvents: List<String>,
         eventListener: PaymentEventListener?,
         onResult: ((PaymentResult) -> Unit)?,
     ): Boolean {
-        val bundle = launchOptions.getBundleWithHyperParams(configurationMap, subscribedEvents)
+        val bundle = launchOptions.getBundleWithHyperParams(configurationMap)
         return presentSheet(bottomInsetToDIPFromPixel(bundle), eventListener, onResult)
     }
 
@@ -371,7 +370,13 @@ class PaymentSessionReactLauncher(
                 .setFabricEnabled(true)
                 .build()
             onResult?.let { fragment.setOnPaymentResult(it) }
-            eventListener?.let { fragment.setOnEventCallback(it) }
+            eventListener?.let { listener ->
+                fragment.setOnEventCallback { name, payload ->
+                    EventType.fromValue(name)?.let { type ->
+                        PaymentEvent.fromMap(type, payload)?.let(listener::onPaymentEvent)
+                    }
+                }
+            }
 
             // Scoped to the fragment, so the callback leaves with it.
             activity.onBackPressedDispatcher.addCallback(fragment) {
