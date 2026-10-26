@@ -390,8 +390,6 @@ public class HSWebView extends WebView {
         Context reactContext = getThemedReactContext();
 //        int reactTag = HSWebViewWrapper.getReactTagFromWebView(webView);
 //        UIManagerHelper.getEventDispatcherForReactTag(reactContext, reactTag).dispatchEvent(event);
-        System.out.println(event.toHashMap());
-
         callback.invoke(event.toHashMap());
     }
 

@@ -196,72 +196,14 @@ public class HSWebChromeClient extends WebChromeClient /*implements LifecycleEve
 
     @Override
     public void onPermissionRequest(final PermissionRequest request) {
-
-        grantedPermissions = new ArrayList<>();
-
-        ArrayList<String> requestedAndroidPermissions = new ArrayList<>();
-        for (String requestedResource : request.getResources()) {
-            String androidPermission = null;
-
-            if (requestedResource.equals(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) {
-                androidPermission = Manifest.permission.RECORD_AUDIO;
-            } else if (requestedResource.equals(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) {
-                androidPermission = Manifest.permission.CAMERA;
-            } else if(requestedResource.equals(PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID)) {
-                if (mAllowsProtectedMedia) {
-                    grantedPermissions.add(requestedResource);
-                } else {
-                    /**
-                     * Legacy handling (Kept in case it was working under some conditions (given Android version or something))
-                     *
-                     * Try to ask user to grant permission using Activity.requestPermissions
-                     *
-                     * Find more details here: https://github.com/react-native-webview/react-native-webview/pull/2732
-                     */
-                    androidPermission = PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID;
-                }            }
-            // TODO: RESOURCE_MIDI_SYSEX, RESOURCE_PROTECTED_MEDIA_ID.
-            if (androidPermission != null) {
-                if (ContextCompat.checkSelfPermission(this.mWebView.getThemedReactContext(), androidPermission) == PackageManager.PERMISSION_GRANTED) {
-                    grantedPermissions.add(requestedResource);
-                } else {
-                    requestedAndroidPermissions.add(androidPermission);
-                }
-            }
-        }
-
-        // If all the permissions are already granted, send the response to the WebView synchronously
-        if (requestedAndroidPermissions.isEmpty()) {
-            request.grant(grantedPermissions.toArray(new String[0]));
-            grantedPermissions = null;
-            return;
-        }
-
-        // Otherwise, ask to Android System for native permissions asynchronously
-
-        this.permissionRequest = request;
-
-        requestPermissions(requestedAndroidPermissions);
+        /* Host Android permissions do not authorize payment web content to use these resources. */
+        request.deny();
     }
 
 
     @Override
     public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
-
-        if (ContextCompat.checkSelfPermission(this.mWebView.getThemedReactContext(), Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-
-            /*
-             * Keep the trace of callback and origin for the async permission request
-             */
-            geolocationPermissionCallback = callback;
-            geolocationPermissionOrigin = origin;
-
-            requestPermissions(Collections.singletonList(Manifest.permission.ACCESS_FINE_LOCATION));
-
-        } else {
-            callback.invoke(origin, true, false);
-        }
+        callback.invoke(origin, false, false);
     }
 
 //    private PermissionAwareActivity getPermissionAwareActivity() {

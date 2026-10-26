@@ -76,6 +76,7 @@ class HSWebViewManagerImpl(
         settings.setSupportMultipleWindows(true)
         settings.allowFileAccess = false
         settings.allowContentAccess = false
+        settings.setGeolocationEnabled(false)
         settings.allowFileAccessFromFileURLs = false
         settings.allowUniversalAccessFromFileURLs = false
         settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
