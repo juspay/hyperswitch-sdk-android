@@ -1,72 +1,15 @@
 package io.hyperswitch.airborne
 
 import android.content.Context
-import android.util.Base64
-import android.util.Log
 import androidx.annotation.Keep
 import `in`.juspay.airborne.HyperOTAServices
 import `in`.juspay.airborne.LazyDownloadCallback
 import `in`.juspay.airborne.ota.ApplicationManager
-import java.io.File
-import java.security.KeyFactory
-import java.security.PublicKey
-import java.security.Signature
-import java.security.spec.X509EncodedKeySpec
 
 @Keep
 class AirborneOTA {
     private var applicationManager: ApplicationManager? = null
     private lateinit var tracker: HyperOtaLogger
-
-    companion object {
-        private const val TAG = "AirborneOTA"
-
-        // Embedded EC P-256 public key (X.509 Base64) for asymmetric cryptographic signature verification
-        private const val EMBEDDED_PUBLIC_KEY =
-            "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEH/ef22HPK/pxZtyLCgrex0UkB3qdc+kUlZxELErdsjsJxzlPMEozsdmLqGbi1mqVPMymO/N9CkER9yV5Z4Qi0Q=="
-
-        val publicKey: PublicKey? by lazy {
-            try {
-                val keyBytes = Base64.decode(EMBEDDED_PUBLIC_KEY, Base64.DEFAULT)
-                val keySpec = X509EncodedKeySpec(keyBytes)
-                KeyFactory.getInstance("EC").generatePublic(keySpec)
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to decode embedded public key", e)
-                null
-            }
-        }
-
-        fun verifyBundleSignature(bundleFile: File): Boolean {
-            val key = publicKey ?: return false
-            val sigFile = File("${bundleFile.absolutePath}.sig")
-            if (!sigFile.exists() || sigFile.length() == 0L) {
-                Log.w(TAG, "Signature file not found for bundle: ${bundleFile.absolutePath}")
-                return false
-            }
-            return try {
-                val sigBytes = sigFile.readBytes()
-                val verifier = Signature.getInstance("SHA256withECDSA")
-                verifier.initVerify(key)
-                bundleFile.inputStream().use { input ->
-                    val buffer = ByteArray(8192)
-                    var bytesRead: Int
-                    while (input.read(buffer).also { bytesRead = it } != -1) {
-                        verifier.update(buffer, 0, bytesRead)
-                    }
-                }
-                val valid = verifier.verify(sigBytes)
-                if (valid) {
-                    Log.i(TAG, "OTA bundle signature verified successfully.")
-                } else {
-                    Log.e(TAG, "OTA bundle signature verification FAILED!")
-                }
-                valid
-            } catch (e: Exception) {
-                Log.e(TAG, "Error during bundle signature verification", e)
-                false
-            }
-        }
-    }
 
     fun initAirborneOTA(
         context: Context,
@@ -157,18 +100,7 @@ class AirborneOTA {
         return try {
             val path = applicationManager?.getIndexBundlePath()
             if (!path.isNullOrEmpty() && !path.contains("ios")) {
-                val bundleFile = File(path)
-                val sigFile = File("${path}.sig")
-                if (sigFile.exists()) {
-                    if (verifyBundleSignature(bundleFile)) {
-                        path
-                    } else {
-                        Log.e(TAG, "Bundle signature invalid! Reverting to bundled assets.")
-                        "assets://hyperswitch.bundle"
-                    }
-                } else {
-                    path
-                }
+                path
             } else {
                 "assets://hyperswitch.bundle"
             }
