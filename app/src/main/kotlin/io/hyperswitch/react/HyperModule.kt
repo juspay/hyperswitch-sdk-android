@@ -6,6 +6,7 @@ import android.text.TextUtils
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -284,21 +285,25 @@ class HyperModule internal constructor(
         var webViewWrapper: HSWebViewWrapper? = null
         var timeoutRunnable: Runnable? = null
 
+        fun cleanupWebView(rendererGone: Boolean = false) {
+            val wrapper = webViewWrapper ?: return
+            webViewWrapper = null
+            try {
+                try {
+                    (wrapper.parent as? ViewGroup)?.removeView(wrapper)
+                    if (!rendererGone) wrapper.webView.stopLoading()
+                } finally {
+                    wrapper.webView.destroy()
+                }
+            } catch (e: Exception) {
+                Log.e("HyperDDC", "cleanup error: ${e.message}")
+            }
+        }
+
         val invokeCallback = { redirectUrl: String ->
             if (callbackInvoked.compareAndSet(false, true)) {
                 timeoutRunnable?.let { mainHandler.removeCallbacks(it) }
-                mainHandler.post {
-                    webViewWrapper?.let { wrapper ->
-                        try {
-                            (wrapper.parent as? ViewGroup)?.removeView(wrapper)
-                            wrapper.webView.stopLoading()
-                            wrapper.webView.destroy()
-                        } catch (e: Exception) {
-                            Log.e("HyperDDC", "cleanup error: ${e.message}")
-                        }
-                    }
-                    webViewWrapper = null
-                }
+                mainHandler.post { cleanupWebView() }
                 callback.invoke(redirectUrl)
             }
         }
@@ -332,6 +337,13 @@ class HyperModule internal constructor(
 
             manager.setJavaScriptEnabled(resolvedWrapper, true)
             resolvedWrapper.webView.webViewClient = object : WebViewClient() {
+                override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                    // A dead renderer's WebView must be destroyed without calling stopLoading().
+                    cleanupWebView(rendererGone = true)
+                    invokeCallback("")
+                    return true
+                }
+
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
                     request.isForMainFrame
 
