@@ -134,11 +134,21 @@ class AirborneOTA {
         if (baseUrl.isEmpty()) {
             throw Exception("BaseURL shouldn't be empty")
         }
+        val url = if (baseUrl.endsWith(".json") || baseUrl.contains("/release/")) {
+            baseUrl
+        } else {
+            "$baseUrl/mobile-ota/android/${sdkVersion}/config.json"
+        }
+        val appId = if (baseUrl.contains("/release/")) {
+            baseUrl.trimEnd('/').substringAfterLast('/')
+        } else {
+            "hyperswitch"
+        }
         this.initAirborneOTA(
             context,
             sdkVersion,
-            "$baseUrl/mobile-ota/android/${sdkVersion}/config.json",
-            "hyperswitch",
+            url,
+            appId,
             "hyperswitch.bundle"
         )
     }
