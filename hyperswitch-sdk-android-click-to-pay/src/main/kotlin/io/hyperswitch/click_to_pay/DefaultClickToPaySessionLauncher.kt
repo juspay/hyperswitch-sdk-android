@@ -2,6 +2,7 @@ package io.hyperswitch.click_to_pay
 
 import android.app.Activity
 import io.hyperswitch.click_to_pay.models.*
+import io.hyperswitch.click_to_pay.utils.ClickToPayJs
 import io.hyperswitch.click_to_pay.utils.ClickToPayModelParser.Companion.getOptJSONObject
 import io.hyperswitch.click_to_pay.utils.ClickToPayModelParser.Companion.parseJSONObject
 import io.hyperswitch.click_to_pay.webview.DCTPWebview
@@ -175,7 +176,7 @@ class DefaultClickToPaySessionLauncher(
         }
         val requestId = UUID.randomUUID().toString()
         val jsCode =
-            "(async function(){ try {let authenticationSession=window.hyperInstance.initAuthenticationSession({clientSecret:'$clientSecret',profileId:'$profileId',authenticationId:'$authenticationId',merchantId:'$merchantId'}); window.ClickToPaySession = await authenticationSession?.getActiveClickToPaySession();const data=window.ClickToPaySession.error?window.ClickToPaySession:{success:true};window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:data}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'getActiveClickToPaySessionError',message:error.message}}}))}})();"
+            "(async function(){ try {let authenticationSession=window.hyperInstance.initAuthenticationSession(${ClickToPayJs.obj("clientSecret" to clientSecret, "profileId" to profileId, "authenticationId" to authenticationId, "merchantId" to merchantId)}); window.ClickToPaySession = await authenticationSession?.getActiveClickToPaySession();const data=window.ClickToPaySession.error?window.ClickToPaySession:{success:true};window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:data}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'getActiveClickToPaySessionError',message:error.message}}}))}})();"
 
         val responseJson = uctpWebview.evaluateJavascriptOnMainThread(requestId, jsCode)
 

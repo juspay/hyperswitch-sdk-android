@@ -11,6 +11,7 @@ import io.hyperswitch.click_to_pay.utils.ClickToPayModelParser.Companion.parseMa
 import io.hyperswitch.click_to_pay.utils.ClickToPayModelParser.Companion.parseRecognizedCard
 import io.hyperswitch.click_to_pay.utils.ClickToPayModelParser.Companion.parseSupportedValidationChannelsData
 import io.hyperswitch.click_to_pay.utils.ClickToPayModelParser.Companion.setLogger as setParserLogger
+import io.hyperswitch.click_to_pay.utils.ClickToPayJs
 import io.hyperswitch.click_to_pay.utils.ClickToPayWebViewManager
 import io.hyperswitch.click_to_pay.utils.HyperLoaderUtils
 import io.hyperswitch.logs.EventName
@@ -72,7 +73,7 @@ class UCTPWebview(
             LogCategory.USER_EVENT
         )
         val baseHtml =
-            "<!DOCTYPE html><html><head><script>function handleScriptError(){console.error('ClickToPay','Failed to load HyperLoader.js');window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'ScriptLoadError',message:'Failed to load HyperLoader.js'}}}));}async function initHyper(){try{if(typeof Hyper==='undefined'){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperUndefinedError',message:'Hyper is not defined'}}}));return;}window.hyperInstance=Hyper.init('$publishableKey',{${customBackendUrl?.let { "customBackendUrl:'$customBackendUrl'," } ?: ""}${customLogUrl?.let { "customLogUrl:'$customLogUrl'," } ?: ""}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{sdkInitialised:true}}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperInitializationError',message:error.message}}}))}}</script><script src='${hyperLoaderUrl}' onload='initHyper()' onerror='handleScriptError()' async></script></head><body></body></html>"
+            "<!DOCTYPE html><html><head><script>function handleScriptError(){console.error('ClickToPay','Failed to load HyperLoader.js');window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'ScriptLoadError',message:'Failed to load HyperLoader.js'}}}));}async function initHyper(){try{if(typeof Hyper==='undefined'){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperUndefinedError',message:'Hyper is not defined'}}}));return;}window.hyperInstance=Hyper.init(${ClickToPayJs.string(publishableKey)},${ClickToPayJs.obj("customBackendUrl" to customBackendUrl, "customLogUrl" to customLogUrl)});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{sdkInitialised:true}}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperInitializationError',message:error.message}}}))}}</script><script src='${hyperLoaderUrl}' onload='initHyper()' onerror='handleScriptError()' async></script></head><body></body></html>"
         val responseJson = manager.loadSource(baseHtml, baseUrl, requestId)
         withContext(Dispatchers.Default) {
             val jsonObject = parseJSONObject(responseJson, EventName.SCRIPT_LOAD_RETURNED)
@@ -116,7 +117,7 @@ class UCTPWebview(
         )
         ensureReady()
         val requestId = UUID.randomUUID().toString()
-        val jsCode = "(async function(){try{const authenticationSession=window.hyperInstance.initAuthenticationSession({clientSecret:'$clientSecret',profileId:'$profileId',authenticationId:'$authenticationId',merchantId:'$merchantId'});window.ClickToPaySession=await authenticationSession.initClickToPaySession({request3DSAuthentication:$request3DSAuthentication});const data = window.ClickToPaySession.error ? window.ClickToPaySession : { success: true, token: window.ClickToPaySession.token } ; window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:data}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'InitClickToPaySessionError',message:error.message}}}))}})();"
+        val jsCode = "(async function(){try{const authenticationSession=window.hyperInstance.initAuthenticationSession(${ClickToPayJs.obj("clientSecret" to clientSecret, "profileId" to profileId, "authenticationId" to authenticationId, "merchantId" to merchantId)});window.ClickToPaySession=await authenticationSession.initClickToPaySession({request3DSAuthentication:$request3DSAuthentication});const data = window.ClickToPaySession.error ? window.ClickToPaySession : { success: true, token: window.ClickToPaySession.token } ; window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:data}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'InitClickToPaySessionError',message:error.message}}}))}})();"
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
         return withContext(Dispatchers.Default) {
             val jsonObject =
@@ -266,7 +267,7 @@ class UCTPWebview(
         ensureReady()
         val requestId = UUID.randomUUID().toString()
         val jsCode =
-            "(async function(){try{const cards=await window.ClickToPaySession.validateCustomerAuthentication({value:'$otpValue'});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:cards}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:error.type||'ERROR',message:error.message}}}))}})();"
+            "(async function(){try{const cards=await window.ClickToPaySession.validateCustomerAuthentication(${ClickToPayJs.obj("value" to otpValue)});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:cards}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:error.type||'ERROR',message:error.message}}}))}})();"
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
         return withContext(Dispatchers.Default) {
             val jsonObject =
@@ -321,7 +322,7 @@ class UCTPWebview(
             LogType.DEBUG, EventName.CREATE_NEW_WEBVIEW_INIT, "", LogCategory.USER_EVENT
         )
         val jsCode =
-            "(async function(){try{const checkoutResponse=await window.ClickToPaySession.checkoutWithCard({srcDigitalCardId:'${request.srcDigitalCardId}',rememberMe:${request.rememberMe}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:checkoutResponse}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'CheckoutWithCardError',message:error.message}}}))}})();"
+            "(async function(){try{const checkoutResponse=await window.ClickToPaySession.checkoutWithCard(${ClickToPayJs.obj("srcDigitalCardId" to request.srcDigitalCardId, "rememberMe" to request.rememberMe)});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:checkoutResponse}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'CheckoutWithCardError',message:error.message}}}))}})();"
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
         logger?.invoke(
             LogType.DEBUG,
