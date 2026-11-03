@@ -21,6 +21,8 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.WritableMap
 import io.hyperswitch.BuildConfig
+import io.hyperswitch.PaymentEvent
+import io.hyperswitch.utils.ConversionUtils
 import io.hyperswitch.payments.GooglePayCallbackManager
 import io.hyperswitch.payments.launcher.PaymentMethod
 import io.hyperswitch.payments.view.WidgetLauncher
@@ -249,11 +251,11 @@ class HyperModule internal constructor(
     }
 
     override fun emitPaymentEvent(rootTag: Double, eventType: String, payload: ReadableMap) {
-        withFragment(rootTag) { fragment ->
-            if (fragment == null) {
-                Log.w("HyperModule", "emitPaymentEvent: no fragment found for rootTag=$rootTag")
-            } else {
-                fragment.notifyEvent(eventType, payload)
+        SurfaceOwners.resolve(rct, rootTag.toInt()) { owner ->
+            when (owner) {
+                is HyperFragment -> owner.notifyEvent(eventType, payload)
+                is HyperActivity -> owner.notifyEvent(PaymentEvent(eventType, ConversionUtils.readableMapToMap(payload)))
+                else -> Log.w("HyperModule", "emitPaymentEvent: no owner found for rootTag=$rootTag")
             }
         }
     }

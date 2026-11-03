@@ -2,6 +2,7 @@ package io.hyperswitch.paymentsession
 
 import io.hyperswitch.paymentsheet.PaymentResult
 import org.json.JSONObject
+import io.hyperswitch.PaymentEventListener
 import java.util.concurrent.atomic.AtomicReference
 
 typealias Callback = (PaymentResult) -> Unit
@@ -9,6 +10,10 @@ typealias Callback = (PaymentResult) -> Unit
 object PaymentSheetCallbackManager {
     private val callback = AtomicReference<Callback?>(null)
     private var isFragment: Boolean = true
+
+    /* Event listener of the Activity-fallback sheet, which has no fragment to hold one. */
+    @Volatile
+    var eventListener: PaymentEventListener? = null
 
     fun setCallback(newCallback: Callback, newIsFragment: Boolean = true) {
         callback.set(newCallback)
@@ -35,6 +40,7 @@ object PaymentSheetCallbackManager {
             else -> PaymentResult.Completed(status)
         }
 
+        eventListener = null
         // Atomically get and clear callback to prevent double-invocation
         val currentCallback = callback.getAndSet(null)
         currentCallback?.invoke(result) ?: println("No callback set")

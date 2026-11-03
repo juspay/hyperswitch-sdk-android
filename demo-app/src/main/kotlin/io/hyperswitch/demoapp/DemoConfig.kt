@@ -1,5 +1,7 @@
 package io.hyperswitch.demoapp
 
+import io.hyperswitch.paymentsheet.PaymentSheet.MessageElement
+import android.util.Log
 import androidx.core.graphics.toColorInt
 import io.hyperswitch.paymentsheet.AddressDetails
 import io.hyperswitch.paymentsheet.PaymentSheet
@@ -186,13 +188,32 @@ fun buildDemoConfiguration(netceteraApiKey: String? = null): PaymentSheet.Config
         .paymentMethodOrder(
             listOf("apple_pay", "google_pay", "paypal", "samsung_pay", "credit", "klarna")
         )
-        .paymentMethodsConfig(
-            listOf(
-                PaymentSheet.PaymentMethodConfig(paymentMethod = "card",   message = ""),
-                PaymentSheet.PaymentMethodConfig(paymentMethod = "wallet", message = ""),
-            )
-        )
+        .paymentMethodsConfig(buildDemoPaymentMethodMessages())
         .paymentMethodLayout(buildPaymentMethodLayout())
         .showVersionInfo(true)
         .also { builder -> netceteraApiKey?.let { builder.netceteraSDKApiKey(it) } }
         .build()
+
+fun buildDemoPaymentMethodMessages(): List<PaymentSheet.PaymentMethodConfig> {
+    val terms = MessageElement.action(
+        label = "Terms & Conditions",
+        style = PaymentSheet.MessageElementStyle(textDecoration = PaymentSheet.TextDecoration.UNDERLINE),
+        onClick = { Log.d("HyperswitchDemo", "Terms & Conditions tapped") },
+    )
+    val privacy = MessageElement.action(
+        label = "Privacy Policy",
+        style = PaymentSheet.MessageElementStyle(
+            color = "#0570DE".toColorInt(),
+            textDecoration = PaymentSheet.TextDecoration.UNDERLINE,
+        ),
+        onClick = { Log.d("HyperswitchDemo", "Privacy Policy tapped") },
+    )
+    val message = PaymentSheet.PaymentMethodMessage(
+        value = { "Please review the ${include(terms)} and ${include(privacy)}.\nPlease review before paying." },
+    )
+    return listOf(
+        PaymentSheet.PaymentMethodConfig(paymentMethod = PaymentSheet.PaymentMethod.CARD, message = message),
+        PaymentSheet.PaymentMethodConfig(paymentMethod = PaymentSheet.PaymentMethod.WALLET, message = message),
+        PaymentSheet.PaymentMethodConfig(paymentMethod = PaymentSheet.PaymentMethod.BANK_DEBIT, message = message),
+    )
+}

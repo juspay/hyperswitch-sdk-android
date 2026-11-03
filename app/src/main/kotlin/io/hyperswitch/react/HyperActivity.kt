@@ -9,11 +9,17 @@ import com.facebook.react.defaults.DefaultReactActivityDelegate
 import com.proyecto26.inappbrowser.ChromeTabsDismissedEvent
 import com.proyecto26.inappbrowser.ChromeTabsManagerActivity
 import io.hyperswitch.redirect.RedirectEvent
+import io.hyperswitch.PaymentEvent
+import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 
 /** Fallback presentation for hosts that are not a FragmentActivity. */
 class HyperActivity : ReactActivity() {
+    /* The callback manager holds this sheet's listener and clears it with the result. */
+    internal fun notifyEvent(event: PaymentEvent) {
+        PaymentSheetCallbackManager.eventListener?.onPaymentEvent(event)
+    }
 
     override fun getMainComponentName(): String = "hyperSwitch"
 
@@ -23,6 +29,11 @@ class HyperActivity : ReactActivity() {
                 intent.getBundleExtra("configuration") ?: Bundle()
 
             override fun getReactHost(): ReactHost = ReactNativeController.runtime.reactHost
+
+            override fun loadApp(appKey: String?) {
+                super.loadApp(appKey)
+                reactDelegate?.reactRootView?.let { SurfaceOwners.attach(it, this@HyperActivity) }
+            }
         }
     }
 

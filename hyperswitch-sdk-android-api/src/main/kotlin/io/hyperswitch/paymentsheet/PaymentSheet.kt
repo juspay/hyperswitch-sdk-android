@@ -10,6 +10,7 @@ import android.os.Parcelable
 import androidx.annotation.ColorInt
 import androidx.annotation.FontRes
 import androidx.annotation.RequiresApi
+import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 /**
@@ -1401,20 +1402,284 @@ class PaymentSheet internal constructor(
         Soft,
     }
 
+    /** Hyperswitch `payment_method` values. */
+    enum class PaymentMethod(val value: String) {
+        CARD("card"),
+        CARD_REDIRECT("card_redirect"),
+        PAY_LATER("pay_later"),
+        WALLET("wallet"),
+        BANK_REDIRECT("bank_redirect"),
+        BANK_TRANSFER("bank_transfer"),
+        CRYPTO("crypto"),
+        BANK_DEBIT("bank_debit"),
+        REWARD("reward"),
+        REAL_TIME_PAYMENT("real_time_payment"),
+        UPI("upi"),
+        VOUCHER("voucher"),
+        GIFT_CARD("gift_card"),
+        OPEN_BANKING("open_banking"),
+        MOBILE_PAYMENT("mobile_payment"),
+        NETWORK_TOKEN("network_token"),
+    }
+
+    /** Hyperswitch `payment_method_type` values. */
+    enum class PaymentMethodType(val value: String) {
+        ACH("ach"),
+        AFFIRM("affirm"),
+        AFTERPAY_CLEARPAY("afterpay_clearpay"),
+        ALFAMART("alfamart"),
+        ALI_PAY("ali_pay"),
+        ALI_PAY_HK("ali_pay_hk"),
+        ALMA("alma"),
+        AMAZON_PAY("amazon_pay"),
+        PAYSERA("paysera"),
+        APPLE_PAY("apple_pay"),
+        ATOME("atome"),
+        BACS("bacs"),
+        BANCONTACT_CARD("bancontact_card"),
+        BECS("becs"),
+        BENEFIT("benefit"),
+        BIZUM("bizum"),
+        BLIK("blik"),
+        BLUECODE("bluecode"),
+        BOLETO("boleto"),
+        BCA_BANK_TRANSFER("bca_bank_transfer"),
+        BNI_VA("bni_va"),
+        BREADPAY("breadpay"),
+        BRI_VA("bri_va"),
+        BHN_CARD_NETWORK("bhn_card_network"),
+        CARD_REDIRECT("card_redirect"),
+        CIMB_VA("cimb_va"),
+        CLASSIC("classic"),
+        CREDIT("credit"),
+        CRYPTO_CURRENCY("crypto_currency"),
+        CASHAPP("cashapp"),
+        DANA("dana"),
+        DANAMON_VA("danamon_va"),
+        DEBIT("debit"),
+        DUIT_NOW("duit_now"),
+        EFECTY("efecty"),
+        EFT("eft"),
+        EFT_DEBIT_ORDER("eft_debit_order"),
+        EPS("eps"),
+        FLEXITI("flexiti"),
+        FPS("fps"),
+        EVOUCHER("evoucher"),
+        GIROPAY("giropay"),
+        GIVEX("givex"),
+        GOOGLE_PAY("google_pay"),
+        GO_PAY("go_pay"),
+        GCASH("gcash"),
+        IDEAL("ideal"),
+        INTERAC("interac"),
+        INDOMARET("indomaret"),
+        KLARNA("klarna"),
+        KAKAO_PAY("kakao_pay"),
+        LOCAL_BANK_REDIRECT("local_bank_redirect"),
+        MANDIRI_VA("mandiri_va"),
+        KNET("knet"),
+        MB_WAY("mb_way"),
+        MOBILE_PAY("mobile_pay"),
+        MOMO("momo"),
+        MOMO_ATM("momo_atm"),
+        MULTIBANCO("multibanco"),
+        NETELLER("neteller"),
+        ONLINE_BANKING_THAILAND("online_banking_thailand"),
+        ONLINE_BANKING_CZECH_REPUBLIC("online_banking_czech_republic"),
+        ONLINE_BANKING_FINLAND("online_banking_finland"),
+        ONLINE_BANKING_FPX("online_banking_fpx"),
+        ONLINE_BANKING_POLAND("online_banking_poland"),
+        ONLINE_BANKING_SLOVAKIA("online_banking_slovakia"),
+        OXXO("oxxo"),
+        PAGO_EFECTIVO("pago_efectivo"),
+        PERMATA_BANK_TRANSFER("permata_bank_transfer"),
+        OPEN_BANKING_UK("open_banking_uk"),
+        PAY_BRIGHT("pay_bright"),
+        PAYJUSTNOW("payjustnow"),
+        PAYPAL("paypal"),
+        PAZE("paze"),
+        PIX("pix"),
+        PIX_KEY("pix_key"),
+        PIX_EMV("pix_emv"),
+        PIX_QR("pix_qr"),
+        PIX_AUTOMATICO_QR("pix_automatico_qr"),
+        PIX_AUTOMATICO_PUSH("pix_automatico_push"),
+        PAY_SAFE_CARD("pay_safe_card"),
+        PRZELEWY24("przelewy24"),
+        PROMPT_PAY("prompt_pay"),
+        PSE("pse"),
+        QRIS("qris"),
+        RED_COMPRA("red_compra"),
+        RED_PAGOS("red_pagos"),
+        SAMSUNG_PAY("samsung_pay"),
+        SEPA("sepa"),
+        SEPA_BANK_TRANSFER("sepa_bank_transfer"),
+        SEPA_GUARENTEED_DEBIT("sepa_guarenteed_debit"),
+        SKRILL("skrill"),
+        SOFORT("sofort"),
+        SWISH("swish"),
+        TOUCH_N_GO("touch_n_go"),
+        TRUSTLY("trustly"),
+        TWINT("twint"),
+        UPI_COLLECT("upi_collect"),
+        UPI_INTENT("upi_intent"),
+        UPI_QR("upi_qr"),
+        VIPPS("vipps"),
+        VIET_QR("viet_qr"),
+        VENMO("venmo"),
+        WALLEY("walley"),
+        WERO("wero"),
+        WE_CHAT_PAY("we_chat_pay"),
+        SEVEN_ELEVEN("seven_eleven"),
+        LAWSON("lawson"),
+        MINI_STOP("mini_stop"),
+        FAMILY_MART("family_mart"),
+        SEICOMART("seicomart"),
+        PAY_EASY("pay_easy"),
+        LOCAL_BANK_TRANSFER("local_bank_transfer"),
+        MIFINITY("mifinity"),
+        OPEN_BANKING_PIS("open_banking_pis"),
+        DIRECT_CARRIER_BILLING("direct_carrier_billing"),
+        INSTANT_BANK_TRANSFER("instant_bank_transfer"),
+        INSTANT_BANK_TRANSFER_FINLAND("instant_bank_transfer_finland"),
+        INSTANT_BANK_TRANSFER_POLAND("instant_bank_transfer_poland"),
+        REVOLUT_PAY("revolut_pay"),
+        INDONESIAN_BANK_TRANSFER("indonesian_bank_transfer"),
+        OPEN_BANKING("open_banking"),
+        NETWORK_TOKEN("network_token"),
+        PAYSHAP("payshap"),
+        PAYSHAP_PROXY("payshap_proxy"),
+        TED("ted"),
+    }
+
+    enum class MessageDisplayMode(val value: String) {
+        CUSTOM_MESSAGE("custom_message"),
+        DEFAULT_SDK_MESSAGE("default_sdk_message"),
+        HIDDEN("hidden"),
+    }
+    enum class FontWeight(val value: String) { REGULAR("400"), MEDIUM("500"), SEMIBOLD("600"), BOLD("700") }
+    enum class FontStyle(val value: String) { NORMAL("normal"), ITALIC("italic") }
+    enum class TextDecoration(val value: String) { NONE("none"), UNDERLINE("underline") }
+
+    data class MessageElementStyle(
+        @ColorInt val color: Int? = null,
+        /** Size in sp, before the SDK typography scale is applied. */
+        val fontSize: Float? = null,
+        val fontWeight: FontWeight? = null,
+        val fontStyle: FontStyle? = null,
+        val textDecoration: TextDecoration? = null,
+    )
+
+    data class MessageElementStyles(
+        val action: MessageElementStyle? = null,
+    )
+
+    /** Immutable action definition. Its callback stays native with the message's checkout owner. */
+    class MessageElement private constructor(
+        internal val label: String,
+        internal val style: MessageElementStyle?,
+        internal val onClick: () -> Unit,
+    ) {
+        internal val key = "element_" + java.util.UUID.randomUUID().toString().replace("-", "")
+
+        /** The label, so a mistaken `"$element"` shows plain text. Use [MessageBuilder.include]. */
+        override fun toString(): String = label
+
+        companion object {
+            @JvmStatic
+            @JvmOverloads
+            fun action(
+                label: String,
+                style: MessageElementStyle? = null,
+                onClick: () -> Unit,
+            ): MessageElement = MessageElement(label, style, onClick)
+        }
+    }
+
+    /** Receiver of a [PaymentMethodMessage] value block; collects the actions placed in its text. */
+    class MessageBuilder internal constructor() {
+        internal val elements = mutableListOf<MessageElement>()
+
+        /** Places [element] in the message text. */
+        fun include(element: MessageElement): String {
+            if (element !in elements) elements.add(element)
+            return "{{${element.key}}}"
+        }
+    }
+
+    /** Each message owns its actions; the checkout owner reads them from its active configuration. */
+    class PaymentMethodMessage private constructor(
+        internal val text: String?,
+        internal val elements: List<MessageElement>,
+        val displayMode: MessageDisplayMode,
+        val elementStyles: MessageElementStyles?,
+    ) {
+        /** Text with actions: `PaymentMethodMessage(value = { "Read the ${include(terms)}." })`. */
+        @JvmOverloads
+        constructor(
+            value: MessageBuilder.() -> String,
+            displayMode: MessageDisplayMode = MessageDisplayMode.CUSTOM_MESSAGE,
+            elementStyles: MessageElementStyles? = null,
+        ) : this(MessageBuilder(), value, displayMode, elementStyles)
+
+        /** Plain text without actions. */
+        @JvmOverloads
+        constructor(
+            value: String,
+            displayMode: MessageDisplayMode = MessageDisplayMode.CUSTOM_MESSAGE,
+            elementStyles: MessageElementStyles? = null,
+        ) : this(value, emptyList(), displayMode, elementStyles)
+
+        /** No custom text, for [MessageDisplayMode.HIDDEN] or [MessageDisplayMode.DEFAULT_SDK_MESSAGE]. */
+        constructor(displayMode: MessageDisplayMode) : this(null, emptyList(), displayMode, null)
+
+        private constructor(
+            builder: MessageBuilder,
+            value: MessageBuilder.() -> String,
+            displayMode: MessageDisplayMode,
+            elementStyles: MessageElementStyles?,
+        ) : this(builder.value(), builder.elements.toList(), displayMode, elementStyles)
+
+        internal val bundle: Bundle get() = PaymentMessageWire.message(this)
+    }
+
+    /** Message for one payment method type; it wins over its payment method's message. */
+    @Parcelize
+    data class PaymentMethodTypeConfig @JvmOverloads constructor(
+        val paymentMethodType: PaymentMethodType,
+        /** Holds callbacks, so it is not parcelled. */
+        @IgnoredOnParcel val message: PaymentMethodMessage? = null,
+    ) : Parcelable {
+        val bundle: Bundle
+            get() = Bundle().apply {
+                putString("paymentMethodType", paymentMethodType.value)
+                message?.let { putBundle("message", it.bundle) }
+            }
+    }
+
     /**
      * Configuration for a specific payment method message override.
      */
     @Parcelize
-    data class PaymentMethodConfig(
-        /** The payment method identifier, e.g. "card", "wallet". */
-        val paymentMethod: String,
-        /** Optional custom message to display for this payment method. */
-        val message: String? = null
+    data class PaymentMethodConfig @JvmOverloads constructor(
+        /** The payment method identifier, e.g. CARD, WALLET. */
+        val paymentMethod: PaymentMethod,
+        /** Message for this payment method. Holds callbacks, so it is not parcelled. */
+        @IgnoredOnParcel val message: PaymentMethodMessage? = null,
+        /** Per-type messages. Not supported for [PaymentMethod.CARD]. */
+        val paymentMethodTypes: List<PaymentMethodTypeConfig>? = null,
     ) : Parcelable {
+        /** Every action in this payment method's message and its type messages. */
+        internal val elements: List<MessageElement>
+            get() = (listOf(message) + paymentMethodTypes.orEmpty().map { it.message }).flatMap { it?.elements.orEmpty() }
+
         val bundle: Bundle
             get() = Bundle().apply {
-                putString("paymentMethod", paymentMethod)
-                putString("message", message)
+                putString("paymentMethod", paymentMethod.value)
+                message?.let { putBundle("message", it.bundle) }
+                paymentMethodTypes?.let { types ->
+                    putParcelableArrayList("paymentMethodTypes", ArrayList(types.map { it.bundle }))
+                }
             }
     }
 
