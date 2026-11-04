@@ -365,10 +365,13 @@ class HyperModule internal constructor(
                         message.type != WebMessageCompat.TYPE_STRING) return@addWebMessageListener
                     val data = message.data ?: return@addWebMessageListener
                     val json = try { JSONObject(data) } catch (_: Exception) { return@addWebMessageListener }
-                    val action = json.optJSONObject("next_action") ?: return@addWebMessageListener
-                    if (action.opt("type") != "redirect_to_url") return@addWebMessageListener
-                    val redirect = action.opt("url") as? String ?: return@addWebMessageListener
-                    if (redirect.isNotEmpty()) invokeCallback(json.toString())
+                    // As on web: any message carrying next_action settles DDC, failing unless it is an http(s) redirect.
+                    if (!json.has("next_action")) return@addWebMessageListener
+                    val action = json.optJSONObject("next_action")
+                    val redirect = action?.opt("url") as? String
+                    val isValidRedirect = action?.opt("type") == "redirect_to_url" &&
+                        redirect != null && webOrigin(redirect) != null
+                    invokeCallback(if (isValidRedirect) json.toString() else "")
                 }
             } catch (_: Exception) {
                 invokeCallback("")
