@@ -2,7 +2,6 @@ package io.hyperswitch.paymentsheet
 
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import java.util.Locale
 
 internal object PaymentMessageWire {
@@ -11,10 +10,7 @@ internal object PaymentMessageWire {
             val rgb = String.format(Locale.ROOT, "#%02X%02X%02X", Color.red(color), Color.green(color), Color.blue(color))
             putString("color", rgb + if (Color.alpha(color) < 255) String.format(Locale.ROOT, "%02X", Color.alpha(color)) else "")
         }
-        style.fontSize?.let {
-            if (it.isFinite() && it >= 0f) putDouble("fontSize", it.toDouble())
-            else Log.w("Hyperswitch", "Message fontSize must be finite and nonnegative; ignoring it.")
-        }
+        style.fontSize?.takeIf { it.isFinite() && it >= 0f }?.let { putDouble("fontSize", it.toDouble()) }
         style.fontWeight?.let { putString("fontWeight", it.value) }
         style.fontStyle?.let { putString("fontStyle", it.value) }
         style.textDecoration?.let { putString("textDecoration", it.value) }
@@ -28,9 +24,9 @@ internal object PaymentMessageWire {
                 defaults.action?.let { putBundle("action", style(it)) }
             })
         }
-        val actions = ArrayList(message.elements.map { element ->
+        val actions = ArrayList(message.elements.mapIndexed { index, element ->
             Bundle().apply {
-                putString("key", element.key)
+                putString("key", "${message.id}_$index")
                 putString("label", element.label)
                 element.style?.let { putBundle("style", style(it)) }
             }

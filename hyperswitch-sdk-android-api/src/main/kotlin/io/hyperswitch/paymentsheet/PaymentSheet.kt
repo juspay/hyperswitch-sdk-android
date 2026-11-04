@@ -1557,7 +1557,10 @@ class PaymentSheet internal constructor(
         DEFAULT_SDK_MESSAGE("default_sdk_message"),
         HIDDEN("hidden"),
     }
-    enum class FontWeight(val value: String) { REGULAR("400"), MEDIUM("500"), SEMIBOLD("600"), BOLD("700") }
+    enum class FontWeight(val value: String) {
+        THIN("100"), EXTRA_LIGHT("200"), LIGHT("300"), REGULAR("400"), MEDIUM("500"),
+        SEMIBOLD("600"), BOLD("700"), EXTRA_BOLD("800"), BLACK("900"),
+    }
     enum class FontStyle(val value: String) { NORMAL("normal"), ITALIC("italic") }
     enum class TextDecoration(val value: String) { NONE("none"), UNDERLINE("underline") }
 
@@ -1580,8 +1583,6 @@ class PaymentSheet internal constructor(
         internal val style: MessageElementStyle?,
         internal val onClick: () -> Unit,
     ) {
-        internal val key = "element_" + java.util.UUID.randomUUID().toString().replace("-", "")
-
         /** The label, so a mistaken `"$element"` shows plain text. Use [MessageBuilder.include]. */
         override fun toString(): String = label
 
@@ -1598,18 +1599,21 @@ class PaymentSheet internal constructor(
 
     /** Receiver of a [PaymentMethodMessage] value block; collects the actions placed in its text. */
     class MessageBuilder internal constructor() {
+        /** Random, so interpolated text cannot guess an action key (`id_index`). */
+        internal val id = (1..8).map { "abcdefghijklmnopqrstuvwxyz0123456789".random() }.joinToString("")
         internal val elements = mutableListOf<MessageElement>()
 
         /** Places [element] in the message text. */
         fun include(element: MessageElement): String {
             if (element !in elements) elements.add(element)
-            return "{{${element.key}}}"
+            return "{{${id}_${elements.indexOf(element)}}}"
         }
     }
 
     /** Each message owns its actions; the checkout owner reads them from its active configuration. */
     class PaymentMethodMessage private constructor(
         internal val text: String?,
+        internal val id: String,
         internal val elements: List<MessageElement>,
         val displayMode: MessageDisplayMode,
         val elementStyles: MessageElementStyles?,
@@ -1628,17 +1632,17 @@ class PaymentSheet internal constructor(
             value: String,
             displayMode: MessageDisplayMode = MessageDisplayMode.CUSTOM_MESSAGE,
             elementStyles: MessageElementStyles? = null,
-        ) : this(value, emptyList(), displayMode, elementStyles)
+        ) : this(value, "", emptyList(), displayMode, elementStyles)
 
         /** No custom text, for [MessageDisplayMode.HIDDEN] or [MessageDisplayMode.DEFAULT_SDK_MESSAGE]. */
-        constructor(displayMode: MessageDisplayMode) : this(null, emptyList(), displayMode, null)
+        constructor(displayMode: MessageDisplayMode) : this(null, "", emptyList(), displayMode, null)
 
         private constructor(
             builder: MessageBuilder,
             value: MessageBuilder.() -> String,
             displayMode: MessageDisplayMode,
             elementStyles: MessageElementStyles?,
-        ) : this(builder.value(), builder.elements.toList(), displayMode, elementStyles)
+        ) : this(builder.value(), builder.id, builder.elements.toList(), displayMode, elementStyles)
 
         internal val bundle: Bundle get() = PaymentMessageWire.message(this)
     }
@@ -1669,10 +1673,6 @@ class PaymentSheet internal constructor(
         /** Per-type messages. Not supported for [PaymentMethod.CARD]. */
         val paymentMethodTypes: List<PaymentMethodTypeConfig>? = null,
     ) : Parcelable {
-        /** Every action in this payment method's message and its type messages. */
-        internal val elements: List<MessageElement>
-            get() = (listOf(message) + paymentMethodTypes.orEmpty().map { it.message }).flatMap { it?.elements.orEmpty() }
-
         val bundle: Bundle
             get() = Bundle().apply {
                 putString("paymentMethod", paymentMethod.value)
