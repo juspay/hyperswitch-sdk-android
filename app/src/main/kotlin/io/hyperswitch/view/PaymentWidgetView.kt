@@ -15,7 +15,6 @@ import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReadableMap
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.PaymentEventListener
-import io.hyperswitch.PaymentEvent
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsession.LaunchOptions
@@ -71,14 +70,6 @@ class PaymentWidgetView : FrameLayout {
     private var subscribedEvents: List<String> = emptyList()
 
     private var onEventCallback: PaymentEventListener? = null
-    private val eventDispatcher = object : PaymentEventListener {
-        override fun onPaymentEvent(event: PaymentEvent) {
-            val native = widgetConfig as? PaymentWidgetConfig.Native
-            val consumed = native != null &&
-                PaymentMessageActions.dispatch(native.configuration, event.type, event.payload)
-            if (!consumed) onEventCallback?.onPaymentEvent(event)
-        }
-    }
     private var activeLayoutChangeListener: View.OnLayoutChangeListener? = null
     private var widgetShown = false
 
@@ -248,7 +239,7 @@ class PaymentWidgetView : FrameLayout {
 
     fun onEvent(listener: PaymentEventListener) {
         this.onEventCallback = listener
-        this.fragment?.setOnEventCallback(eventDispatcher)
+        this.fragment?.setOnEventCallback(listener)
     }
 
     fun setSubscribedEvents(events: List<String>) {
@@ -265,11 +256,7 @@ class PaymentWidgetView : FrameLayout {
                 null -> "nativeWidget"
             },
             sessionConfig = if (this.sdkAuthorization.isNotEmpty()) PaymentSessionConfiguration(this.sdkAuthorization) else null,
-            subscribedEvents = if (widgetConfig is PaymentWidgetConfig.Native) {
-                this.subscribedEvents + PaymentMessageActions.EVENT_NAME
-            } else {
-                this.subscribedEvents
-            },
+            subscribedEvents = this.subscribedEvents,
         )
         sessionTag?.let { tag ->
             bundle.getBundle("props")?.getBundle("sdkParams")?.putInt("sessionTag", tag)
@@ -357,7 +344,10 @@ class PaymentWidgetView : FrameLayout {
         }
         this.fragment?.setOnPaymentResult(::dispatchResult)
         this.fragment?.setOnPaymentConfirmButtonClick(::dispatchConfirmTriggered)
-        this.fragment?.setOnEventCallback(eventDispatcher)
+        onEventCallback?.let { this.fragment?.setOnEventCallback(it) }
+        this.fragment?.setOnMessageAction { index ->
+            (widgetConfig as? PaymentWidgetConfig.Native)?.let { PaymentMessageActions.run(it.configuration, index) }
+        }
         this.fragment?.setOnExit {
             removeWidget()
         }

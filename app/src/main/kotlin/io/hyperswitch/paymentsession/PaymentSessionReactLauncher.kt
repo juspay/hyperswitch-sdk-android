@@ -14,7 +14,6 @@ import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.facebook.react.uimanager.PixelUtil
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.PaymentEventListener
-import io.hyperswitch.PaymentEvent
 import io.hyperswitch.paymentsheet.PaymentMessageActions
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
@@ -343,16 +342,11 @@ class PaymentSessionReactLauncher(
         eventListener: PaymentEventListener?,
         onResult: ((PaymentResult) -> Unit)?,
     ): Boolean {
-        val bundle = launchOptions.getBundle(sessionConfig, configuration, subscribedEvents + PaymentMessageActions.EVENT_NAME)
+        val bundle = launchOptions.getBundle(sessionConfig, configuration, subscribedEvents)
         applyFonts(configuration, bundle)
-        val listener = object : PaymentEventListener {
-            override fun onPaymentEvent(event: PaymentEvent) {
-                if (!PaymentMessageActions.dispatch(configuration, event.type, event.payload)) {
-                    eventListener?.onPaymentEvent(event)
-                }
-            }
+        return presentSheet(bottomInsetToDIPFromPixel(bundle), eventListener, onResult) { index ->
+            PaymentMessageActions.run(configuration, index)
         }
-        return presentSheet(bottomInsetToDIPFromPixel(bundle), listener, onResult)
     }
 
     override fun presentSheet(
@@ -369,6 +363,7 @@ class PaymentSessionReactLauncher(
         bundle: Bundle,
         eventListener: PaymentEventListener?,
         onResult: ((PaymentResult) -> Unit)?,
+        messageAction: ((Int) -> Unit)? = null,
     ): Boolean {
         stampSessionTag(bundle)
         if (activity is DefaultHardwareBackBtnHandler && activity is FragmentActivity) {
@@ -381,6 +376,7 @@ class PaymentSessionReactLauncher(
                 .build()
             onResult?.let { fragment.setOnPaymentResult(it) }
             eventListener?.let { fragment.setOnEventCallback(it) }
+            messageAction?.let { fragment.setOnMessageAction(it) }
 
             // Scoped to the fragment, so the callback leaves with it.
             activity.onBackPressedDispatcher.addCallback(fragment) {
@@ -396,7 +392,7 @@ class PaymentSessionReactLauncher(
             // An Intent cannot carry the completion; HyperActivity resolves through the
             // one-shot manager instead of an owner.
             onResult?.let { PaymentSheetCallbackManager.setCallback(it, false) }
-            PaymentSheetCallbackManager.eventListener = eventListener
+            PaymentSheetCallbackManager.messageAction = messageAction
             activity.startActivity(
                 Intent(
                     activity.applicationContext,
