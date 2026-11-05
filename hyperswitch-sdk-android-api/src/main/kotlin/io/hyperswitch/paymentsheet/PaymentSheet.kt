@@ -1599,50 +1599,69 @@ class PaymentSheet internal constructor(
 
     /** Receiver of a [PaymentMethodMessage] value block; collects the actions placed in its text. */
     class MessageBuilder internal constructor() {
-        /** Random, so interpolated text cannot guess an action key (`id_index`). */
-        internal val id = (1..8).map { "abcdefghijklmnopqrstuvwxyz0123456789".random() }.joinToString("")
-        internal val elements = mutableListOf<MessageElement>()
+        private val included = mutableListOf<MessageElement>()
 
         /** Places [element] in the message text. */
         fun include(element: MessageElement): String {
-            if (element !in elements) elements.add(element)
-            return "{{${id}_${elements.indexOf(element)}}}"
+            included.add(element)
+            return "$MARKER${included.size - 1}$MARKER_END"
+        }
+
+        /* Lists the actions in text order, whatever order `include` was called in, and leaves one
+           MARKER per action for the wire to split on. */
+        internal fun place(text: String): Pair<String, List<MessageElement>> {
+            val elements = mutableListOf<MessageElement>()
+            val placed = text.replace(PLACED) { match ->
+                match.groupValues[1].toIntOrNull()?.let(included::getOrNull)?.let { elements.add(it); MARKER }.orEmpty()
+            }
+            return placed to elements
+        }
+
+        internal companion object {
+            /* Private-use characters mark where each included action sits. */
+            const val MARKER = "\uE000"
+            private const val MARKER_END = "\uE001"
+            private val PLACED = Regex("$MARKER(\\d+)$MARKER_END")
         }
     }
 
-    /** Each message owns its actions; the checkout owner reads them from its active configuration. */
+    /**
+     * Each message owns its actions; the checkout owner reads them from its active configuration.
+     * Unset fields of a payment method type's message come from its payment method's message.
+     */
     class PaymentMethodMessage private constructor(
-        internal val text: String?,
-        internal val id: String,
-        internal val elements: List<MessageElement>,
-        val displayMode: MessageDisplayMode,
+        content: Pair<String?, List<MessageElement>>,
+        val displayMode: MessageDisplayMode?,
         val elementStyles: MessageElementStyles?,
     ) {
+        internal val text = content.first
+        internal val elements = content.second
+
         /** Text with actions: `PaymentMethodMessage(value = { "Read the ${include(terms)}." })`. */
         @JvmOverloads
         constructor(
             value: MessageBuilder.() -> String,
-            displayMode: MessageDisplayMode = MessageDisplayMode.CUSTOM_MESSAGE,
+            displayMode: MessageDisplayMode? = null,
             elementStyles: MessageElementStyles? = null,
-        ) : this(MessageBuilder(), value, displayMode, elementStyles)
+        ) : this(MessageBuilder().run { place(value()) }, displayMode, elementStyles)
 
         /** Plain text without actions. */
         @JvmOverloads
         constructor(
             value: String,
-            displayMode: MessageDisplayMode = MessageDisplayMode.CUSTOM_MESSAGE,
+            displayMode: MessageDisplayMode? = null,
             elementStyles: MessageElementStyles? = null,
-        ) : this(value, "", emptyList(), displayMode, elementStyles)
+        ) : this(value to emptyList(), displayMode, elementStyles)
 
-        /** No custom text, for [MessageDisplayMode.HIDDEN] or [MessageDisplayMode.DEFAULT_SDK_MESSAGE]. */
-        constructor(displayMode: MessageDisplayMode) : this(null, "", emptyList(), displayMode, null)
-
-        private constructor(
-            builder: MessageBuilder,
-            value: MessageBuilder.() -> String,
-            displayMode: MessageDisplayMode,
-            elementStyles: MessageElementStyles?,
-        ) : this(builder.value(), builder.id, builder.elements.toList(), displayMode, elementStyles)
+        /**
+         * No text of its own: [MessageDisplayMode.HIDDEN], [MessageDisplayMode.DEFAULT_SDK_MESSAGE],
+         * or a payment method type's styles over its payment method's text.
+         */
+        @JvmOverloads
+        constructor(
+            displayMode: MessageDisplayMode? = null,
+            elementStyles: MessageElementStyles? = null,
+        ) : this(null to emptyList(), displayMode, elementStyles)
 
         internal val bundle: Bundle get() = PaymentMessageWire.message(this)
     }

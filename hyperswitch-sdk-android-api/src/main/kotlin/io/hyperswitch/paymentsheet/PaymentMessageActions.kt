@@ -10,14 +10,12 @@ object PaymentMessageActions {
     /** Consumes internal events even after the owner releases its configuration. */
     fun dispatch(configuration: PaymentSheet.Configuration?, type: String, payload: Map<String, Any?>): Boolean {
         if (type != EVENT_NAME) return false
-        /* The key is `id_index`: the message's random id, then the action's index in it. */
-        val parts = (payload["key"] as? String)?.split("_")
-        val index = parts?.getOrNull(1)?.toIntOrNull()
-        if (payload["type"] != "action" || parts?.size != 2 || index == null) return true
-        val message = configuration?.paymentMethodsConfig.orEmpty()
-            .flatMap { config -> listOf(config.message) + config.paymentMethodTypes.orEmpty().map { it.message } }
-            .find { it?.id == parts[0] }
-        message?.elements?.getOrNull(index)?.onClick?.invoke()
+        /* `index` counts actions across all messages in this order, the order they were written. */
+        val elements = configuration?.paymentMethodsConfig.orEmpty()
+            .flatMap { listOf(it.message) + it.paymentMethodTypes.orEmpty().map { type -> type.message } }
+            .flatMap { it?.elements.orEmpty() }
+        val index = (payload["index"] as? Number)?.toInt() ?: return true
+        elements.getOrNull(index)?.onClick?.invoke()
         return true
     }
 }

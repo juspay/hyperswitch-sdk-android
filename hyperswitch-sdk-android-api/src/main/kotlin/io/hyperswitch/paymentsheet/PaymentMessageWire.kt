@@ -17,22 +17,26 @@ internal object PaymentMessageWire {
     }
 
     fun message(message: PaymentSheet.PaymentMethodMessage): Bundle = Bundle().apply {
-        putString("displayMode", message.displayMode.value)
-        message.text?.let { putString("value", it) }
+        message.displayMode?.let { putString("displayMode", it.value) }
+        message.text?.let { putParcelableArrayList("value", segments(it, message.elements)) }
         message.elementStyles?.let { defaults ->
             putBundle("elementStyles", Bundle().apply {
                 defaults.action?.let { putBundle("action", style(it)) }
             })
         }
-        val actions = ArrayList(message.elements.mapIndexed { index, element ->
-            Bundle().apply {
-                putString("key", "${message.id}_$index")
-                putString("label", element.label)
-                element.style?.let { putBundle("style", style(it)) }
+    }
+
+    /* Text pieces alternate with the actions that `include` marked, in order. */
+    private fun segments(text: String, elements: List<PaymentSheet.MessageElement>) = ArrayList<Bundle>().apply {
+        text.split(PaymentSheet.MessageBuilder.MARKER).forEachIndexed { index, piece ->
+            if (piece.isNotEmpty()) add(Bundle().apply { putString("text", piece) })
+            elements.getOrNull(index)?.let { element ->
+                add(Bundle().apply {
+                    putString("text", element.label)
+                    putBoolean("tappable", true)
+                    element.style?.let { putBundle("style", style(it)) }
+                })
             }
-        })
-        if (actions.isNotEmpty()) putBundle("elements", Bundle().apply {
-            putParcelableArrayList("action", actions)
-        })
+        }
     }
 }
