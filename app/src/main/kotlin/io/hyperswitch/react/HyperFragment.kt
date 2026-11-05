@@ -103,14 +103,14 @@ class HyperFragment : Fragment() {
     }
 
     /** A tapped payment method message action; its owner runs the merchant callback. */
-    private var messageAction: ((Int) -> Unit)? = null
+    private var messageAction: ((paymentMethod: String, paymentMethodType: String, index: Int, text: String) -> Unit)? = null
 
-    fun setOnMessageAction(handler: (Int) -> Unit) {
+    fun setOnMessageAction(handler: (paymentMethod: String, paymentMethodType: String, index: Int, text: String) -> Unit) {
         this.messageAction = handler
     }
 
-    internal fun onMessageAction(index: Int) {
-        messageAction?.invoke(index)
+    internal fun onMessageAction(paymentMethod: String, paymentMethodType: String, index: Int, text: String) {
+        messageAction?.invoke(paymentMethod, paymentMethodType, index, text)
     }
 
     private var confirmSequence = 0

@@ -344,8 +344,8 @@ class PaymentSessionReactLauncher(
     ): Boolean {
         val bundle = launchOptions.getBundle(sessionConfig, configuration, subscribedEvents)
         applyFonts(configuration, bundle)
-        return presentSheet(bottomInsetToDIPFromPixel(bundle), eventListener, onResult) { index ->
-            PaymentMessageActions.run(configuration, index)
+        return presentSheet(bottomInsetToDIPFromPixel(bundle), eventListener, onResult) { method, type, index, text ->
+            PaymentMessageActions.run(configuration, method, type, index, text)
         }
     }
 
@@ -363,7 +363,7 @@ class PaymentSessionReactLauncher(
         bundle: Bundle,
         eventListener: PaymentEventListener?,
         onResult: ((PaymentResult) -> Unit)?,
-        messageAction: ((Int) -> Unit)? = null,
+        messageAction: ((paymentMethod: String, paymentMethodType: String, index: Int, text: String) -> Unit)? = null,
     ): Boolean {
         stampSessionTag(bundle)
         if (activity is DefaultHardwareBackBtnHandler && activity is FragmentActivity) {

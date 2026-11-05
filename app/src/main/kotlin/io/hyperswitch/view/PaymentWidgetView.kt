@@ -345,8 +345,8 @@ class PaymentWidgetView : FrameLayout {
         this.fragment?.setOnPaymentResult(::dispatchResult)
         this.fragment?.setOnPaymentConfirmButtonClick(::dispatchConfirmTriggered)
         onEventCallback?.let { this.fragment?.setOnEventCallback(it) }
-        this.fragment?.setOnMessageAction { index ->
-            (widgetConfig as? PaymentWidgetConfig.Native)?.let { PaymentMessageActions.run(it.configuration, index) }
+        this.fragment?.setOnMessageAction { method, type, index, text ->
+            (widgetConfig as? PaymentWidgetConfig.Native)?.let { PaymentMessageActions.run(it.configuration, method, type, index, text) }
         }
         this.fragment?.setOnExit {
             removeWidget()
