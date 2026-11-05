@@ -258,6 +258,16 @@ class HyperModule internal constructor(
         }
     }
 
+    override fun emitMessageAction(
+        rootTag: Double, paymentMethod: String, paymentMethodType: String, index: Double, text: String
+    ) {
+        withFragment(rootTag) { fragment ->
+            /* The Activity-fallback sheet is not hosted in a fragment. */
+            fragment?.onMessageAction(paymentMethod, paymentMethodType, index.toInt(), text)
+                ?: PaymentSheetCallbackManager.messageAction?.invoke(paymentMethod, paymentMethodType, index.toInt(), text)
+        }
+    }
+
     override fun openIframeBridge(url: String, timeoutMs: Double, callback: Callback) {
         fun webOrigin(value: String): String? {
             return try {

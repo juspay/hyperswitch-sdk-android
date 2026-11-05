@@ -102,6 +102,17 @@ class HyperFragment : Fragment() {
         this.paymentEventListener = listener
     }
 
+    /** A tapped payment method message action; its owner runs the merchant callback. */
+    private var messageAction: ((paymentMethod: String, paymentMethodType: String, index: Int, text: String) -> Unit)? = null
+
+    fun setOnMessageAction(handler: (paymentMethod: String, paymentMethodType: String, index: Int, text: String) -> Unit) {
+        this.messageAction = handler
+    }
+
+    internal fun onMessageAction(paymentMethod: String, paymentMethodType: String, index: Int, text: String) {
+        messageAction?.invoke(paymentMethod, paymentMethodType, index, text)
+    }
+
     private var confirmSequence = 0
 
     /**
@@ -348,6 +359,7 @@ class HyperFragment : Fragment() {
             callbacks.clear()
             onExit = null
             paymentEventListener = null
+            messageAction = null
         } catch (_: Exception) {
         }
     }
@@ -359,6 +371,7 @@ class HyperFragment : Fragment() {
             callbacks.clear()
             onExit = null
             paymentEventListener = null
+            messageAction = null
         } catch (_: Exception) {
         }
     }

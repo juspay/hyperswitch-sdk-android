@@ -14,6 +14,7 @@ import com.facebook.react.modules.core.DefaultHardwareBackBtnHandler
 import com.facebook.react.uimanager.PixelUtil
 import io.hyperswitch.BuildConfig
 import io.hyperswitch.PaymentEventListener
+import io.hyperswitch.paymentsheet.PaymentMessageActions
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsheet.PaymentResult
@@ -343,7 +344,9 @@ class PaymentSessionReactLauncher(
     ): Boolean {
         val bundle = launchOptions.getBundle(sessionConfig, configuration, subscribedEvents)
         applyFonts(configuration, bundle)
-        return presentSheet(bottomInsetToDIPFromPixel(bundle), eventListener, onResult)
+        return presentSheet(bottomInsetToDIPFromPixel(bundle), eventListener, onResult) { method, type, index, text ->
+            PaymentMessageActions.run(configuration, method, type, index, text)
+        }
     }
 
     override fun presentSheet(
@@ -360,6 +363,7 @@ class PaymentSessionReactLauncher(
         bundle: Bundle,
         eventListener: PaymentEventListener?,
         onResult: ((PaymentResult) -> Unit)?,
+        messageAction: ((paymentMethod: String, paymentMethodType: String, index: Int, text: String) -> Unit)? = null,
     ): Boolean {
         stampSessionTag(bundle)
         if (activity is DefaultHardwareBackBtnHandler && activity is FragmentActivity) {
@@ -372,6 +376,7 @@ class PaymentSessionReactLauncher(
                 .build()
             onResult?.let { fragment.setOnPaymentResult(it) }
             eventListener?.let { fragment.setOnEventCallback(it) }
+            messageAction?.let { fragment.setOnMessageAction(it) }
 
             // Scoped to the fragment, so the callback leaves with it.
             activity.onBackPressedDispatcher.addCallback(fragment) {
@@ -387,6 +392,7 @@ class PaymentSessionReactLauncher(
             // An Intent cannot carry the completion; HyperActivity resolves through the
             // one-shot manager instead of an owner.
             onResult?.let { PaymentSheetCallbackManager.setCallback(it, false) }
+            PaymentSheetCallbackManager.messageAction = messageAction
             activity.startActivity(
                 Intent(
                     activity.applicationContext,

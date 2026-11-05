@@ -21,6 +21,7 @@ import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsheet.PaymentRequestData
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
+import io.hyperswitch.paymentsheet.PaymentMessageActions
 import io.hyperswitch.react.HyperFragment
 import io.hyperswitch.react.ReactNativeController
 
@@ -344,6 +345,9 @@ class PaymentWidgetView : FrameLayout {
         this.fragment?.setOnPaymentResult(::dispatchResult)
         this.fragment?.setOnPaymentConfirmButtonClick(::dispatchConfirmTriggered)
         onEventCallback?.let { this.fragment?.setOnEventCallback(it) }
+        this.fragment?.setOnMessageAction { method, type, index, text ->
+            (widgetConfig as? PaymentWidgetConfig.Native)?.let { PaymentMessageActions.run(it.configuration, method, type, index, text) }
+        }
         this.fragment?.setOnExit {
             removeWidget()
         }
