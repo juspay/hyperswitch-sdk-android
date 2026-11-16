@@ -197,7 +197,10 @@ fun buildDemoConfiguration(netceteraApiKey: String? = null): PaymentSheet.Config
 fun buildDemoPaymentMethodMessages(): List<PaymentSheet.PaymentMethodConfig> {
     val terms = MessageElement.action(
         label = "Terms & Conditions",
-        style = PaymentSheet.MessageElementStyle(textDecoration = PaymentSheet.TextDecoration.UNDERLINE),
+        style = PaymentSheet.MessageElementStyle(
+            fontWeight = 600,
+            textDecoration = PaymentSheet.TextDecoration.UNDERLINE,
+        ),
         onClick = { Log.d("HyperswitchDemo", "Terms & Conditions tapped") },
     )
     val privacy = MessageElement.action(

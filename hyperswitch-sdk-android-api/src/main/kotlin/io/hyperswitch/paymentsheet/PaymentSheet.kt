@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.Parcelable
 import androidx.annotation.ColorInt
 import androidx.annotation.FontRes
+import androidx.annotation.IntRange
 import androidx.annotation.RequiresApi
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
@@ -1557,10 +1558,6 @@ class PaymentSheet internal constructor(
         DEFAULT_SDK_MESSAGE("default_sdk_message"),
         HIDDEN("hidden"),
     }
-    enum class FontWeight(val value: String) {
-        THIN("100"), EXTRA_LIGHT("200"), LIGHT("300"), REGULAR("400"), MEDIUM("500"),
-        SEMIBOLD("600"), BOLD("700"), EXTRA_BOLD("800"), BLACK("900"),
-    }
     enum class FontStyle(val value: String) { NORMAL("normal"), ITALIC("italic") }
     enum class TextDecoration(val value: String) { NONE("none"), UNDERLINE("underline") }
 
@@ -1568,7 +1565,12 @@ class PaymentSheet internal constructor(
         @ColorInt val color: Int? = null,
         /** Size in sp, before the SDK typography scale is applied. */
         val fontSize: Float? = null,
-        val fontWeight: FontWeight? = null,
+        /**
+         * Weight from 1 to 1000, as in `Typeface`, rounded to the nearest of 100, 200, … 900
+         * (650 → 700). Null or out-of-range values inherit the weight.
+         */
+        @IntRange(from = 1, to = 1000)
+        val fontWeight: Int? = null,
         val fontStyle: FontStyle? = null,
         val textDecoration: TextDecoration? = null,
     )

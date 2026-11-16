@@ -11,7 +11,10 @@ internal object PaymentMessageWire {
             putString("color", rgb + if (Color.alpha(color) < 255) String.format(Locale.ROOT, "%02X", Color.alpha(color)) else "")
         }
         style.fontSize?.takeIf { it.isFinite() && it >= 0f }?.let { putDouble("fontSize", it.toDouble()) }
-        style.fontWeight?.let { putString("fontWeight", it.value) }
+        // Typeface's 1..1000 range, rounded to the nearest weight the bundle supports, as iOS does.
+        style.fontWeight?.takeIf { it in 1..1000 }?.let {
+            putString("fontWeight", ((it + 50) / 100 * 100).coerceIn(100, 900).toString())
+        }
         style.fontStyle?.let { putString("fontStyle", it.value) }
         style.textDecoration?.let { putString("textDecoration", it.value) }
     }
