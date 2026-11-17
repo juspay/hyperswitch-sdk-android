@@ -61,12 +61,28 @@ class HSWebViewManagerImpl(
 
     fun createHSWebViewInstance(): HSWebView = HSWebView(activity, onMessage)
 
-    fun createViewInstance(): HSWebViewWrapper {
-        val webView = createHSWebViewInstance()
-        return createViewInstance(webView)
+    fun createViewInstance(): HSWebViewWrapper = createViewInstance(createHSWebViewInstance())
+
+    /** Installs [client] instead of the default client, so callers never replace it afterwards. */
+    fun createViewInstance(client: HSWebViewClient): HSWebViewWrapper =
+        createViewInstance(createHSWebViewInstance(), client)
+
+    fun createViewInstance(webView: HSWebView): HSWebViewWrapper = createViewInstance(webView, defaultWebViewClient())
+
+    private fun defaultWebViewClient(): HSWebViewClient = object : HSWebViewClient() {
+        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+            // Load all URLs in the same WebView, don't open externally
+            view.loadUrl(request.url.toString())
+            return true
+        }
+
+        override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+            view.loadUrl(url)
+            return true
+        }
     }
 
-    fun createViewInstance(webView: HSWebView): HSWebViewWrapper {
+    fun createViewInstance(webView: HSWebView, client: HSWebViewClient): HSWebViewWrapper {
         setupWebChromeClient(webView)
         mWebViewConfig.configWebView(webView)
         val settings = webView.settings
@@ -87,18 +103,7 @@ class HSWebViewManagerImpl(
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
 
-        webView.webViewClient = object : HSWebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                // Load all URLs in the same WebView, don't open externally
-                view.loadUrl(request.url.toString())
-                return true
-            }
-
-            override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-                view.loadUrl(url)
-                return true
-            }
-        }
+        webView.webViewClient = client
 
         if (BuildConfig.DEBUG) {
             WebView.setWebContentsDebuggingEnabled(true)
