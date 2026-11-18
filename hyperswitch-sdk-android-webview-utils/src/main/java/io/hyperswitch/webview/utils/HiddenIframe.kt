@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicReference
  * frame; any redirect is returned to the caller, which opens it visibly. Settling destroys the
  * WebView, so callers only need [close] to stop a run early.
  */
-class HiddenIframe(private val activityProvider: () -> Activity?) {
+class HiddenIframe(private val activity: Activity) {
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val opened = AtomicBoolean(false)
@@ -42,7 +42,7 @@ class HiddenIframe(private val activityProvider: () -> Activity?) {
     private var webViewWrapper: HSWebViewWrapper? = null
 
     /**
-     * Opens the iframe. [activityProvider] is read on the main thread; [onResult] is called exactly once.
+     * Opens the iframe. [onResult] is called exactly once.
      * An instance runs once: a second call settles with `""` at once.
      */
     fun open(url: String, timeoutMs: Double, onResult: (String) -> Unit) {
@@ -95,7 +95,6 @@ class HiddenIframe(private val activityProvider: () -> Activity?) {
 
     private fun load(url: String, timeoutMs: Double, iframeOrigin: String) {
         if (settled.get()) return
-        val activity = activityProvider() ?: return settle("")
         if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) return settle("")
 
         val manager = HSWebViewManagerImpl(activity, Callback { _ -> })

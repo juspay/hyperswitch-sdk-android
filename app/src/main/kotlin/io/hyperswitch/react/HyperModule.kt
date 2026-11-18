@@ -240,7 +240,8 @@ class HyperModule internal constructor(
     }
 
     override fun openIframeBridge(url: String, timeoutMs: Double, callback: Callback) {
-        HiddenIframe { currentActivity }.open(url, timeoutMs) { callback.invoke(it) }
+        val activity = currentActivity ?: return callback.invoke("")
+        HiddenIframe(activity).open(url, timeoutMs) { callback.invoke(it) }
     }
 
     private fun withFragment(rootTag: Double, block: (HyperFragment?) -> Unit) {
