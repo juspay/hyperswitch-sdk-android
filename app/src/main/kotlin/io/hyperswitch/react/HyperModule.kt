@@ -13,7 +13,7 @@ import io.hyperswitch.payments.launcher.PaymentMethod
 import io.hyperswitch.payments.view.WidgetLauncher
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
-import io.hyperswitch.webview.utils.DeviceDataCollector
+import io.hyperswitch.webview.utils.HiddenIframe
 import org.json.JSONObject
 
 internal fun ReadableMap.toExitResultJson(): String {
@@ -240,7 +240,7 @@ class HyperModule internal constructor(
     }
 
     override fun openIframeBridge(url: String, timeoutMs: Double, callback: Callback) {
-        DeviceDataCollector.open({ currentActivity }, url, timeoutMs) { callback.invoke(it) }
+        HiddenIframe { currentActivity }.open(url, timeoutMs) { callback.invoke(it) }
     }
 
     private fun withFragment(rootTag: Double, block: (HyperFragment?) -> Unit) {
