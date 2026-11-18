@@ -218,8 +218,8 @@ class MainActivity : Activity() {
             )
             .paymentMethodsConfig(
                 listOf(
-                    PaymentSheet.PaymentMethodConfig(paymentMethod = "card",   message = ""),
-                    PaymentSheet.PaymentMethodConfig(paymentMethod = "wallet", message = ""),
+                    PaymentSheet.PaymentMethodConfig(paymentMethod = PaymentSheet.PaymentMethod.CARD),
+                    PaymentSheet.PaymentMethodConfig(paymentMethod = PaymentSheet.PaymentMethod.WALLET),
                 )
             )
             .showVersionInfo(true)
