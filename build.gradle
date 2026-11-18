@@ -41,10 +41,7 @@ def runtimeDeps = [
         'sentry_react-native',
 ]
 
-def runtimeDepsExcluded = [
-        'demo-app',
-        'demo-app-lite'
-]
+def runtimeDepsExcluded = []
 
 def runtimeDepsOptional = [
         'react-native-hyperswitch-kount',
@@ -106,7 +103,7 @@ gradle.projectsEvaluated {
                 if (!runtimeDepsExcluded.contains(project.name)) {
                     "$project.name"(MavenPublication) {
                         groupId = project.group
-                        artifactId = project.name == 'app' ? 'hyperswitch-sdk-android' : project.name
+                        artifactId = project.name
                         version = runtimeDeps.contains(project.name) || runtimeDepsOptional.contains(project.name) ? rnlibVersion : project.version
                         artifact "$buildDir/outputs/aar/$project.name-release.aar"
                         artifact androidSourcesJar
