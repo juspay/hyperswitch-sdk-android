@@ -120,7 +120,7 @@ class HiddenIframe(private val activityProvider: () -> Activity?) {
                     message.type != WebMessageCompat.TYPE_STRING) return@addWebMessageListener
                 val data = message.data ?: return@addWebMessageListener
                 val json = try { JSONObject(data) } catch (_: Exception) { return@addWebMessageListener }
-                // As on web: any message carrying next_action settles the run, failing unless it is an http(s) redirect.
+                // Any message carrying next_action settles the run, failing unless it is an https redirect (web also allows http).
                 if (!json.has("next_action")) return@addWebMessageListener
                 val action = json.optJSONObject("next_action")
                 val redirect = action?.opt("url") as? String
@@ -168,16 +168,15 @@ class HiddenIframe(private val activityProvider: () -> Activity?) {
     private companion object {
         const val BRIDGE_NAME = "HyperIframeBridge"
 
-        /** Normalised `scheme://host[:port]` for http(s) URLs without user info; null for anything else. */
+        /** Normalised `scheme://host[:port]` for https URLs without user info; null for anything else. */
         fun webOrigin(value: String): String? {
             return try {
                 val uri = URI(value)
                 val host = uri.host?.lowercase(Locale.ROOT) ?: return null
                 val scheme = uri.scheme?.lowercase(Locale.ROOT)
-                if ((scheme != "https" && scheme != "http") || uri.rawUserInfo != null ||
+                if (scheme != "https" || uri.rawUserInfo != null ||
                     (uri.port != -1 && uri.port !in 1..65535)) return null
-                val defaultPort = if (scheme == "https") 443 else 80
-                val port = if (uri.port == -1 || uri.port == defaultPort) "" else ":${uri.port}"
+                val port = if (uri.port == -1 || uri.port == 443) "" else ":${uri.port}"
                 "$scheme://$host$port"
             } catch (_: Exception) {
                 null
