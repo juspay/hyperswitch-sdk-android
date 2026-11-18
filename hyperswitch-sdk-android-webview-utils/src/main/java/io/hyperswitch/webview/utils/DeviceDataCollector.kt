@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * or `""` on failure, timeout or renderer death. The WebView never navigates its main frame; any
  * redirect is returned to the caller, which opens it visibly.
  */
-object DeviceDataCollectionWebView {
+object DeviceDataCollector {
 
     private const val BRIDGE_NAME = "HyperDDCBridge"
 
