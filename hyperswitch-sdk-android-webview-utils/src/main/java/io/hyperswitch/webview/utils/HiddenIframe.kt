@@ -18,6 +18,7 @@ import java.io.ByteArrayInputStream
 import java.net.URI
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Loads a URL in a hidden iframe inside a hidden WebView and returns the frame's result, shared by
@@ -33,8 +34,8 @@ class HiddenIframe(private val activityProvider: () -> Activity?) {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val opened = AtomicBoolean(false)
     private val settled = AtomicBoolean(false)
-    // close() may come from any thread.
-    @Volatile private var onResult: ((String) -> Unit)? = null
+    // Taken once with getAndSet(null) by whichever of settle() and open() comes last, since close() may run on any thread.
+    private val onResult = AtomicReference<((String) -> Unit)?>(null)
     @Volatile private var timeoutRunnable: Runnable? = null
 
     // Main thread only.
@@ -49,7 +50,12 @@ class HiddenIframe(private val activityProvider: () -> Activity?) {
             onResult("")
             return
         }
-        this.onResult = onResult
+        this.onResult.set(onResult)
+        // close() may have run before or during open(): deliver its "" now.
+        if (settled.get()) {
+            this.onResult.getAndSet(null)?.invoke("")
+            return
+        }
         val iframeOrigin = webOrigin(url)
         if (!timeoutMs.isFinite() || timeoutMs <= 0 || iframeOrigin == null) {
             settle("")
@@ -58,7 +64,10 @@ class HiddenIframe(private val activityProvider: () -> Activity?) {
         mainHandler.post { load(url, timeoutMs, iframeOrigin) }
     }
 
-    /** Stops the run and destroys the WebView; if it has not settled yet, `onResult` gets `""`. */
+    /**
+     * Stops the run and destroys the WebView; if it has not settled yet, `onResult` gets `""`
+     * (also when called before [open]).
+     */
     fun close() {
         settle("")
     }
@@ -67,8 +76,7 @@ class HiddenIframe(private val activityProvider: () -> Activity?) {
         if (!settled.compareAndSet(false, true)) return
         timeoutRunnable?.let { mainHandler.removeCallbacks(it) }
         mainHandler.post { destroyWebView() }
-        onResult?.invoke(result)
-        onResult = null
+        onResult.getAndSet(null)?.invoke(result)
     }
 
     private fun destroyWebView(rendererGone: Boolean = false) {
