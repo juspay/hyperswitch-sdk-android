@@ -21,7 +21,10 @@ internal object HSWebViewUtils {
         }
     }
 
-    /** Whether [value] is an https URL [httpsOrigin] accepts; null is simply false. */
+    /**
+     * Whether [value] passes this module's URL rule; null is simply false. The rule itself lives in
+     * [httpsOrigin], so a new check added there applies to both.
+     */
     @JvmStatic
-    fun isHttpsUrl(value: String?): Boolean = httpsOrigin(value) != null
+    fun validateHttpsUrl(value: String?): Boolean = httpsOrigin(value) != null
 }

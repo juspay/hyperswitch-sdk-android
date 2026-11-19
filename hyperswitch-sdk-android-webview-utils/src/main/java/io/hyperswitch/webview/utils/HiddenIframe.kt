@@ -133,7 +133,7 @@ class HiddenIframe(private val activity: Activity) {
                 val action = json.optJSONObject("next_action")
                 val redirect = action?.opt("url") as? String
                 val isValidRedirect = action?.opt("type") == "redirect_to_url" &&
-                    HSWebViewUtils.isHttpsUrl(redirect)
+                    HSWebViewUtils.validateHttpsUrl(redirect)
                 if (isValidRedirect) settle(json.toString()) else fail()
             }
         } catch (_: Exception) {
