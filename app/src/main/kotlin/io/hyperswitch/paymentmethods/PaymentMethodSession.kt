@@ -25,7 +25,7 @@ class PaymentMethodSession internal constructor(
     }
 
     fun createCardForm(configuration: CardForm.Configuration = CardForm.Configuration()): CardForm =
-        CardForm(activity, hyperswitchConfiguration, this.configuration, configuration)
+        CardForm(activity, hyperswitchConfiguration, CardForm.Purpose.Save(this.configuration), configuration)
 }
 
 /** An instance made without a configuration has no key; the form then says so itself. */

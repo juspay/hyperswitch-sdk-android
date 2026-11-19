@@ -4,7 +4,9 @@ import android.app.Activity
 import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.model.ElementsUpdateResult
 import io.hyperswitch.model.HyperswitchBaseConfiguration
+import io.hyperswitch.model.HyperswitchConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
+import io.hyperswitch.paymentmethods.CardForm
 import io.hyperswitch.paymentsession.PaymentSessionHandler
 import io.hyperswitch.paymentsession.SavedPaymentMethodsConfiguration
 import io.hyperswitch.paymentsheet.PaymentSheet
@@ -19,8 +21,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 
 class Elements internal constructor(
-    activity: Activity,
-    config: HyperswitchBaseConfiguration?,
+    private val activity: Activity,
+    private val config: HyperswitchBaseConfiguration?,
     sessionConfiguration: PaymentSessionConfiguration
 ) {
 
@@ -58,6 +60,14 @@ class Elements internal constructor(
     fun unbind(boundElement: HyperswitchBoundElement) {
         hsElements.remove(boundElement)
     }
+
+    /**
+     * A card form that pays for this session's payment: place its fields anywhere, then call
+     * [CardForm.confirmPayment]. It is the card form a payment method session makes, which
+     * saves a card instead.
+     */
+    fun createCardForm(configuration: CardForm.Configuration = CardForm.Configuration()): CardForm =
+        CardForm(activity, config ?: HyperswitchConfiguration(), CardForm.Purpose.Pay(paymentSession), configuration)
 
     private val updateIntentInProgress = AtomicBoolean(false)
 
