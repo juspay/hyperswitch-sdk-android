@@ -12,6 +12,7 @@ import io.hyperswitch.logs.LogCategory
 import io.hyperswitch.logs.LogType
 import io.hyperswitch.webview.utils.Arguments
 import io.hyperswitch.webview.utils.Callback
+import io.hyperswitch.webview.utils.HSWebView
 import io.hyperswitch.webview.utils.HSWebViewManagerImpl
 import io.hyperswitch.webview.utils.HSWebViewWrapper
 import kotlinx.coroutines.CancellableContinuation
@@ -285,6 +286,16 @@ class ClickToPayWebViewManager(
                         LogCategory.USER_ERROR
                     )
                     throw IllegalStateException("WebView provider unavailable")
+                }
+                // Without the bridge no reply from the page ever arrives and loadSource would hang.
+                if (!HSWebView.isMessagingSupported()) {
+                    logger?.invoke(
+                        LogType.ERROR,
+                        EventName.CREATE_WEBVIEW_RETURNED,
+                        "WebView does not support WEB_MESSAGE_LISTENER",
+                        LogCategory.USER_ERROR
+                    )
+                    throw IllegalStateException("WebView does not support WEB_MESSAGE_LISTENER")
                 }
                 // Retry WebView creation once (important for Android 15/16 bug)
                 repeat(2) { attempt ->

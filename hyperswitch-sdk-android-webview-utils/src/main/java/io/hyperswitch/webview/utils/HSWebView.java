@@ -238,7 +238,7 @@ public class HSWebView extends WebView {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             throw new IllegalStateException("HSWebView.addTrustedOrigin must be called on the main thread");
         }
-        String origin = WebViewUtils.httpsOrigin(url);
+        String origin = HSWebViewUtils.httpsOrigin(url);
         if (origin != null && trustedOrigins.add(origin) && messagingEnabled) {
             registerBridge();
         }
@@ -246,8 +246,16 @@ public class HSWebView extends WebView {
 
     @MainThread
     public boolean isTrustedOrigin(@Nullable String url) {
-        String origin = WebViewUtils.httpsOrigin(url);
+        String origin = HSWebViewUtils.httpsOrigin(url);
         return origin != null && trustedOrigins.contains(origin);
+    }
+
+    /**
+     * Whether this device's WebView can carry the JS bridge. Flows that depend on messages from
+     * the page must check this first and fail, since without it they would wait forever.
+     */
+    public static boolean isMessagingSupported() {
+        return WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER);
     }
 
     /*
@@ -256,7 +264,7 @@ public class HSWebView extends WebView {
      * WebViews without WEB_MESSAGE_LISTENER get no bridge (as HiddenIframe).
      */
     private void registerBridge() {
-        if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+        if (!isMessagingSupported()) {
             Log.w("HSWebView", "WEB_MESSAGE_LISTENER is not supported by this WebView; messaging stays disabled.");
             return;
         }

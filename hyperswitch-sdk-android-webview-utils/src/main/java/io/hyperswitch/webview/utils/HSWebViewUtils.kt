@@ -3,7 +3,7 @@ package io.hyperswitch.webview.utils
 import java.net.URI
 import java.util.Locale
 
-internal object WebViewUtils {
+internal object HSWebViewUtils {
     /** Normalised `scheme://host[:port]` for https URLs without user info; null for anything else. */
     @JvmStatic
     fun httpsOrigin(value: String?): String? {

@@ -154,7 +154,6 @@ open class WebViewFragment : Fragment() {
 
     val onMessage = object: Callback {
         override fun invoke(args: Map<String, Any?>) {
-            println(args)
             (args["data"] as? String)?.let {
                 val jsonObject = JSONObject(it)
 

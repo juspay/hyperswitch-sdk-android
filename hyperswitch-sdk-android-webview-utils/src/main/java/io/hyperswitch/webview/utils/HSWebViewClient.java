@@ -155,12 +155,13 @@ public class HSWebViewClient extends WebViewClient {
     public void onReceivedHttpAuthRequest(WebView view, HttpAuthHandler handler, String host, String realm) {
         /*
          * Credentials go only to hosts the host app loaded (the callback gives a bare host, hence
-         * the https:// prefix), and only while the page is https: mixed content is blocked, so an
-         * http challenge can only come from an http top-level page.
+         * the https:// prefix), and only while the top-level page is https. The callback carries
+         * no scheme or port, so with mixed content allowed (Click to Pay uses "compatibility") an
+         * http subresource on a trusted host can still be challenged; nothing sets basic auth today.
          */
         if (basicAuthCredential != null
                 && ((HSWebView) view).isTrustedOrigin("https://" + host)
-                && WebViewUtils.httpsOrigin(view.getUrl()) != null) {
+                && HSWebViewUtils.httpsOrigin(view.getUrl()) != null) {
             handler.proceed(basicAuthCredential.username, basicAuthCredential.password);
             return;
         }

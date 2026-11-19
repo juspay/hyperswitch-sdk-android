@@ -54,7 +54,7 @@ class HiddenIframe(private val activity: Activity) {
             this.onResult.getAndSet(null)?.invoke("")
             return
         }
-        val iframeOrigin = WebViewUtils.httpsOrigin(url)
+        val iframeOrigin = HSWebViewUtils.httpsOrigin(url)
         if (!timeoutMs.isFinite() || timeoutMs <= 0 || iframeOrigin == null) {
             settle("")
             return
@@ -121,7 +121,7 @@ class HiddenIframe(private val activity: Activity) {
             WebViewCompat.addWebMessageListener(
                 resolvedWrapper.webView, BRIDGE_NAME, setOf(iframeOrigin),
             ) { _, message, sourceOrigin, isMainFrame, _ ->
-                if (!isMainFrame || WebViewUtils.httpsOrigin(sourceOrigin.toString()) != iframeOrigin ||
+                if (!isMainFrame || HSWebViewUtils.httpsOrigin(sourceOrigin.toString()) != iframeOrigin ||
                     message.type != WebMessageCompat.TYPE_STRING) return@addWebMessageListener
                 val data = message.data ?: return@addWebMessageListener
                 val json = try { JSONObject(data) } catch (_: Exception) { return@addWebMessageListener }
@@ -130,7 +130,7 @@ class HiddenIframe(private val activity: Activity) {
                 val action = json.optJSONObject("next_action")
                 val redirect = action?.opt("url") as? String
                 val isValidRedirect = action?.opt("type") == "redirect_to_url" &&
-                    redirect != null && WebViewUtils.httpsOrigin(redirect) != null
+                    redirect != null && HSWebViewUtils.httpsOrigin(redirect) != null
                 settle(if (isValidRedirect) json.toString() else "")
             }
         } catch (_: Exception) {
