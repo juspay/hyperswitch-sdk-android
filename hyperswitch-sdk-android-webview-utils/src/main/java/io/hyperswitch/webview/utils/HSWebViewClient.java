@@ -73,6 +73,7 @@ public class HSWebViewClient extends WebViewClient {
         mLastLoadFailed = false;
 
         HSWebView reactWebView = (HSWebView) webView;
+        reactWebView.updateFallbackBridgeForTopLevelUrl(url);
         reactWebView.callInjectedJavaScriptBeforeContentLoaded();
     }
 
@@ -153,11 +154,19 @@ public class HSWebViewClient extends WebViewClient {
 
     @Override
     public void onReceivedHttpAuthRequest(WebView view, HttpAuthHandler handler, String host, String realm) {
-        if (basicAuthCredential != null) {
+        /*
+         * Credentials go only to hosts the host app loaded (the callback gives a bare host, hence
+         * the https:// prefix), and only while the top-level page is https. The callback carries
+         * no scheme or port, so with mixed content allowed (Click to Pay uses "compatibility") an
+         * http subresource on a trusted host can still be challenged; nothing sets basic auth today.
+         */
+        if (basicAuthCredential != null
+                && ((HSWebView) view).isTrustedOrigin("https://" + host)
+                && HSWebViewUtils.validateHttpsUrl(view.getUrl())) {
             handler.proceed(basicAuthCredential.username, basicAuthCredential.password);
             return;
         }
-        super.onReceivedHttpAuthRequest(view, handler, host, realm);
+        handler.cancel();
     }
 
     @Override
