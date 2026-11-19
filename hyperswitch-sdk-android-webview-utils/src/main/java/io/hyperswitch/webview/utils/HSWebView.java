@@ -2,7 +2,6 @@ package io.hyperswitch.webview.utils;
 
 import android.content.Context;
 import android.graphics.Rect;
-import android.net.Uri;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
@@ -249,15 +248,6 @@ public class HSWebView extends WebView {
     public boolean isTrustedOrigin(@Nullable String url) {
         String origin = WebViewUtils.httpsOrigin(url);
         return origin != null && trustedOrigins.contains(origin);
-    }
-
-    @MainThread
-    public boolean isTrustedHost(@Nullable String host) {
-        if (host == null) return false;
-        for (String origin : trustedOrigins) {
-            if (host.equalsIgnoreCase(Uri.parse(origin).getHost())) return true;
-        }
-        return false;
     }
 
     /*

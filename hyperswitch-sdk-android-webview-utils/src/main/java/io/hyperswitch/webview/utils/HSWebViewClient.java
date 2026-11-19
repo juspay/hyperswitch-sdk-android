@@ -154,10 +154,12 @@ public class HSWebViewClient extends WebViewClient {
     @Override
     public void onReceivedHttpAuthRequest(WebView view, HttpAuthHandler handler, String host, String realm) {
         /*
-         * Credentials go only to hosts the host app loaded, and only while the page is https:
-         * mixed content is blocked, so an http challenge can only come from an http top-level page.
+         * Credentials go only to hosts the host app loaded (the callback gives a bare host, hence
+         * the https:// prefix), and only while the page is https: mixed content is blocked, so an
+         * http challenge can only come from an http top-level page.
          */
-        if (basicAuthCredential != null && ((HSWebView) view).isTrustedHost(host)
+        if (basicAuthCredential != null && host != null
+                && ((HSWebView) view).isTrustedOrigin("https://" + host)
                 && WebViewUtils.httpsOrigin(view.getUrl()) != null) {
             handler.proceed(basicAuthCredential.username, basicAuthCredential.password);
             return;
