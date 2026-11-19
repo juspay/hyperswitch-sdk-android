@@ -162,7 +162,7 @@ public class HSWebViewClient extends WebViewClient {
          */
         if (basicAuthCredential != null
                 && ((HSWebView) view).isTrustedOrigin("https://" + host)
-                && HSWebViewUtils.httpsOrigin(view.getUrl()) != null) {
+                && HSWebViewUtils.isHttpsUrl(view.getUrl())) {
             handler.proceed(basicAuthCredential.username, basicAuthCredential.password);
             return;
         }

@@ -20,4 +20,8 @@ internal object HSWebViewUtils {
             null
         }
     }
+
+    /** Whether [value] is an https URL [httpsOrigin] accepts; null is simply false. */
+    @JvmStatic
+    fun isHttpsUrl(value: String?): Boolean = httpsOrigin(value) != null
 }

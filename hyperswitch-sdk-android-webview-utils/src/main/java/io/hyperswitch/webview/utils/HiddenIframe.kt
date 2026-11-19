@@ -45,18 +45,18 @@ class HiddenIframe(private val activity: Activity) {
      */
     fun open(url: String, timeoutMs: Double, onResult: (String) -> Unit) {
         if (!opened.compareAndSet(false, true)) {
-            onResult("")
+            onResult(FAILURE_RESULT)
             return
         }
         this.onResult.set(onResult)
         // close() may have run before or during open(): deliver its "" now.
         if (settled.get()) {
-            this.onResult.getAndSet(null)?.invoke("")
+            this.onResult.getAndSet(null)?.invoke(FAILURE_RESULT)
             return
         }
         val iframeOrigin = HSWebViewUtils.httpsOrigin(url)
         if (!timeoutMs.isFinite() || timeoutMs <= 0 || iframeOrigin == null) {
-            settle("")
+            fail()
             return
         }
         mainHandler.post { load(url, timeoutMs, iframeOrigin) }
@@ -67,8 +67,11 @@ class HiddenIframe(private val activity: Activity) {
      * (also when called before [open]).
      */
     fun close() {
-        settle("")
+        fail()
     }
+
+    // Every failure goes through here, so what the caller receives on failure is decided in one place.
+    private fun fail() = settle(FAILURE_RESULT)
 
     private fun settle(result: String) {
         if (!settled.compareAndSet(false, true)) return
@@ -93,12 +96,12 @@ class HiddenIframe(private val activity: Activity) {
 
     private fun load(url: String, timeoutMs: Double, iframeOrigin: String) {
         if (settled.get()) return
-        if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) return settle("")
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) return fail()
 
         val manager = HSWebViewManagerImpl(activity, Callback { _ -> })
         val client = HiddenIframeClient {
             destroyWebView(rendererGone = true)
-            settle("")
+            fail()
         }
 
         var wrapper: HSWebViewWrapper? = null
@@ -110,7 +113,7 @@ class HiddenIframe(private val activity: Activity) {
                 if (attempt == 0) Thread.sleep(200)
             }
         }
-        val resolvedWrapper = wrapper ?: return settle("")
+        val resolvedWrapper = wrapper ?: return fail()
         webViewWrapper = resolvedWrapper
 
         manager.setJavaScriptEnabled(resolvedWrapper, true)
@@ -130,11 +133,11 @@ class HiddenIframe(private val activity: Activity) {
                 val action = json.optJSONObject("next_action")
                 val redirect = action?.opt("url") as? String
                 val isValidRedirect = action?.opt("type") == "redirect_to_url" &&
-                    redirect != null && HSWebViewUtils.httpsOrigin(redirect) != null
-                settle(if (isValidRedirect) json.toString() else "")
+                    HSWebViewUtils.isHttpsUrl(redirect)
+                if (isValidRedirect) settle(json.toString()) else fail()
             }
         } catch (_: Exception) {
-            return settle("")
+            return fail()
         }
 
         resolvedWrapper.apply {
@@ -165,13 +168,16 @@ class HiddenIframe(private val activity: Activity) {
         """.trimIndent()
         resolvedWrapper.webView.loadDataWithBaseURL(url, wrapperHtml, "text/html", "UTF-8", null)
 
-        timeoutRunnable = Runnable { settle("") }.also {
+        timeoutRunnable = Runnable { fail() }.also {
             mainHandler.postDelayed(it, timeoutMs.toLong())
         }
     }
 
     private companion object {
         const val BRIDGE_NAME = "HyperIframeBridge"
+
+        // Client-core (both bundle paths) maps "" to ddc_failure; change it here once it accepts a reason.
+        const val FAILURE_RESULT = ""
     }
 
     /**
