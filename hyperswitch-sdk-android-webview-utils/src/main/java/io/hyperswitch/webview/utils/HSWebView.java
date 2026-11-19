@@ -20,7 +20,7 @@ import androidx.webkit.WebViewCompat;
 import androidx.webkit.WebViewFeature;
 import org.json.JSONException;
 import org.json.JSONObject;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -229,7 +229,7 @@ public class HSWebView extends WebView {
      * Main thread only, like the WebView itself; not a concurrent set on purpose, since adding
      * also re-registers the bridge, which WebView only allows on its own thread.
      */
-    private final Set<String> trustedOrigins = new LinkedHashSet<>();
+    private final Set<String> trustedOrigins = new HashSet<>();
 
     /** Trusts the origin of {@code url}; ignored unless it is an https URL. */
     @MainThread
@@ -265,12 +265,12 @@ public class HSWebView extends WebView {
             return;
         }
         bridgeListener = (view, message, sourceOrigin, isMainFrame, replyProxy) -> {
-            if (!isTrustedOrigin(sourceOrigin.toString()) || message.getType() != WebMessageCompat.TYPE_STRING) {
-                return;
+            String origin = sourceOrigin.toString();
+            if (isTrustedOrigin(origin) && message.getType() == WebMessageCompat.TYPE_STRING) {
+                onMessage(message.getData(), origin);
             }
-            HSWebView.this.onMessage(message.getData(), sourceOrigin.toString());
         };
-        WebViewCompat.addWebMessageListener(this, JAVASCRIPT_INTERFACE, new LinkedHashSet<>(trustedOrigins), bridgeListener);
+        WebViewCompat.addWebMessageListener(this, JAVASCRIPT_INTERFACE, trustedOrigins, bridgeListener);
         injectJavascriptObject();
     }
 
