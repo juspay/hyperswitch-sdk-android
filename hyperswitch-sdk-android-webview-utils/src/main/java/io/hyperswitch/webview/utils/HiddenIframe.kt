@@ -15,8 +15,6 @@ import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
-import java.net.URI
-import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
@@ -56,7 +54,7 @@ class HiddenIframe(private val activity: Activity) {
             this.onResult.getAndSet(null)?.invoke("")
             return
         }
-        val iframeOrigin = webOrigin(url)
+        val iframeOrigin = WebViewUtils.httpsOrigin(url)
         if (!timeoutMs.isFinite() || timeoutMs <= 0 || iframeOrigin == null) {
             settle("")
             return
@@ -123,7 +121,7 @@ class HiddenIframe(private val activity: Activity) {
             WebViewCompat.addWebMessageListener(
                 resolvedWrapper.webView, BRIDGE_NAME, setOf(iframeOrigin),
             ) { _, message, sourceOrigin, isMainFrame, _ ->
-                if (!isMainFrame || webOrigin(sourceOrigin.toString()) != iframeOrigin ||
+                if (!isMainFrame || WebViewUtils.httpsOrigin(sourceOrigin.toString()) != iframeOrigin ||
                     message.type != WebMessageCompat.TYPE_STRING) return@addWebMessageListener
                 val data = message.data ?: return@addWebMessageListener
                 val json = try { JSONObject(data) } catch (_: Exception) { return@addWebMessageListener }
@@ -132,7 +130,7 @@ class HiddenIframe(private val activity: Activity) {
                 val action = json.optJSONObject("next_action")
                 val redirect = action?.opt("url") as? String
                 val isValidRedirect = action?.opt("type") == "redirect_to_url" &&
-                    redirect != null && webOrigin(redirect) != null
+                    redirect != null && WebViewUtils.httpsOrigin(redirect) != null
                 settle(if (isValidRedirect) json.toString() else "")
             }
         } catch (_: Exception) {
@@ -174,21 +172,6 @@ class HiddenIframe(private val activity: Activity) {
 
     private companion object {
         const val BRIDGE_NAME = "HyperIframeBridge"
-
-        /** Normalised `scheme://host[:port]` for https URLs without user info; null for anything else. */
-        fun webOrigin(value: String): String? {
-            return try {
-                val uri = URI(value)
-                val host = uri.host?.lowercase(Locale.ROOT) ?: return null
-                val scheme = uri.scheme?.lowercase(Locale.ROOT)
-                if (scheme != "https" || uri.rawUserInfo != null ||
-                    (uri.port != -1 && uri.port !in 1..65535)) return null
-                val port = if (uri.port == -1 || uri.port == 443) "" else ":${uri.port}"
-                "$scheme://$host$port"
-            } catch (_: Exception) {
-                null
-            }
-        }
     }
 
     /**

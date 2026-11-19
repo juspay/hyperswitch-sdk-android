@@ -432,10 +432,15 @@ class HSWebViewManagerImpl(
         source: ReadableMap?,
     ) {
         val view = viewWrapper.webView
+        /*
+         * What the host app loads here is trusted (bridge, permissions, basic auth). Each branch
+         * trusts the URL it loads, before loading, so the page gets the bridge from its first line.
+         */
         if (source != null) {
             if (source.hasKey("html")) {
                 val html = source.getString("html")
                 val baseUrl = if (source.hasKey("baseUrl")) source.getString("baseUrl") else ""
+                view.addTrustedOrigin(baseUrl)
                 view.loadDataWithBaseURL(
                     baseUrl,
                     html!!,
@@ -451,6 +456,7 @@ class HSWebViewManagerImpl(
                 if (previousUrl != null && previousUrl == url) {
                     return
                 }
+                view.addTrustedOrigin(url)
                 if (source.hasKey("method")) {
                     val method = source.getString("method")
                     if (method.equals(HTTP_METHOD_POST, ignoreCase = true)) {
