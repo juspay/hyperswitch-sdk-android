@@ -1,15 +1,17 @@
 package io.hyperswitch.webview.utils;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.pm.PackageInfo;
 import android.graphics.Rect;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.ActionMode;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -239,9 +241,14 @@ public class HSWebView extends WebView {
             throw new IllegalStateException("HSWebView.addTrustedOrigin must be called on the main thread");
         }
         String origin = HSWebViewUtils.httpsOrigin(url);
-        if (origin != null && trustedOrigins.add(origin) && messagingEnabled) {
+        if (origin == null) {
+            return;
+        }
+        if (trustedOrigins.add(origin) && messagingEnabled) {
             registerBridge();
         }
+        // The host app is about to load url: the fallback bridge must be in place before that load.
+        updateFallbackBridgeForTopLevelUrl(url);
     }
 
     @MainThread
@@ -251,25 +258,34 @@ public class HSWebView extends WebView {
     }
 
     /**
-     * Whether this device's WebView can carry the JS bridge. Flows that depend on messages from
-     * the page must check this first and fail, since without it they would wait forever.
+     * Whether messaging uses the origin-restricted WebMessageListener. When false, a WebView with
+     * messaging enabled uses the addJavascriptInterface fallback bridge; consumers report that
+     * through their own logger, together with {@link #webViewProvider}.
      */
-    public static boolean isMessagingSupported() {
+    public static boolean isWebMessageListenerSupported() {
         return WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER);
     }
 
+    /** The current WebView provider as "package version", or "unknown". */
+    public static String webViewProvider(Context context) {
+        PackageInfo provider = WebViewCompat.getCurrentWebViewPackage(context);
+        return provider == null ? "unknown" : provider.packageName + " " + provider.versionName;
+    }
+
     /*
-     * The bridge is a WebMessageListener restricted to trustedOrigins. There is deliberately no
-     * addJavascriptInterface fallback: it would be injected into every frame of every origin.
-     * WebViews without WEB_MESSAGE_LISTENER get no bridge (as HiddenIframe).
+     * Preferred bridge: a WebMessageListener restricted to trustedOrigins; the engine reports the
+     * real caller origin. WebViews without WEB_MESSAGE_LISTENER use the addJavascriptInterface
+     * fallback instead, which is attached only while the main frame is on a trusted origin and
+     * checks getUrl() per message. Residual risk on that path: a cross-origin iframe inside a
+     * trusted page can still call it, since getUrl() is the top-level URL.
      */
     private void registerBridge() {
-        if (!isMessagingSupported()) {
-            Log.w("HSWebView", "WEB_MESSAGE_LISTENER is not supported by this WebView; messaging stays disabled.");
-            return;
-        }
         unregisterBridge();
         if (trustedOrigins.isEmpty()) {
+            return;
+        }
+        if (!isWebMessageListenerSupported()) {
+            updateFallbackBridgeForTopLevelUrl(getUrl());
             return;
         }
         bridgeListener = (view, message, sourceOrigin, isMainFrame, replyProxy) -> {
@@ -286,6 +302,53 @@ public class HSWebView extends WebView {
         if (bridgeListener != null) {
             WebViewCompat.removeWebMessageListener(this, JAVASCRIPT_INTERFACE);
             bridgeListener = null;
+        }
+        setFallbackBridgeAttached(false);
+    }
+
+    /*
+     * Fallback path only: attaches the interface when the top-level page's url (not an iframe's)
+     * is trusted, removes it otherwise; a no-op with WEB_MESSAGE_LISTENER or messaging off. Android applies
+     * add/removeJavascriptInterface from the next page load, so this runs before each load
+     * (addTrustedOrigin, HSWebViewClient.onPageStarted); the per-message getUrl() check in
+     * HSWebViewBridge covers the window until the change takes effect.
+     */
+    @MainThread
+    void updateFallbackBridgeForTopLevelUrl(@Nullable String url) {
+        if (!messagingEnabled || isWebMessageListenerSupported()) {
+            return;
+        }
+        setFallbackBridgeAttached(isTrustedOrigin(url));
+    }
+
+    @SuppressLint({"AddJavascriptInterface", "JavascriptInterface"})
+    private void setFallbackBridgeAttached(boolean attached) {
+        if (attached == fallbackBridgeAttached) {
+            return;
+        }
+        fallbackBridgeAttached = attached;
+        if (attached) {
+            addJavascriptInterface(fallbackBridge, JAVASCRIPT_INTERFACE);
+        } else {
+            removeJavascriptInterface(JAVASCRIPT_INTERFACE);
+        }
+    }
+
+    // One instance: a loaded page keeps the object it got, so re-attaching must not replace it.
+    private final HSWebViewBridge fallbackBridge = new HSWebViewBridge();
+    private boolean fallbackBridgeAttached = false;
+
+    private class HSWebViewBridge {
+        /** Called by page JavaScript as window.HSAndroidInterface.postMessage, on a JavaBridge thread. */
+        @JavascriptInterface
+        public void postMessage(String message) {
+            // getUrl() and the trust set are main-thread only.
+            post(() -> {
+                String url = getUrl();
+                if (fallbackBridgeAttached && isTrustedOrigin(url)) {
+                    onMessage(message, url);
+                }
+            });
         }
     }
 

@@ -441,12 +441,19 @@ class HSWebViewManagerImpl(
                 val html = source.getString("html")
                 val baseUrl = if (source.hasKey("baseUrl")) source.getString("baseUrl") else ""
                 view.addTrustedOrigin(baseUrl)
+                /*
+                 * Fallback bridge only: with a null historyUrl, getUrl() and onPageStarted report
+                 * about:blank, so the fallback would treat this trusted page as untrusted and drop
+                 * its messages. Report baseUrl there instead; the listener path stays unchanged.
+                 */
+                val historyUrl =
+                    if (!HSWebView.isWebMessageListenerSupported() && view.isTrustedOrigin(baseUrl)) baseUrl else null
                 view.loadDataWithBaseURL(
                     baseUrl,
                     html!!,
                     HTML_MIME_TYPE,
                     HTML_ENCODING,
-                    null,
+                    historyUrl,
                 )
                 return
             }

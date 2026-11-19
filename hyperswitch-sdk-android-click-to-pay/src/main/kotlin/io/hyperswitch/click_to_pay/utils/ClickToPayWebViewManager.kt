@@ -71,6 +71,15 @@ class ClickToPayWebViewManager(
 
         hSWebViewManagerImpl.setJavaScriptEnabled(hSWebViewWrapper, true)
         hSWebViewManagerImpl.setMessagingEnabled(hSWebViewWrapper, true)
+        // Tracks how many devices still rely on the less safe addJavascriptInterface fallback.
+        if (!HSWebView.isWebMessageListenerSupported()) {
+            logger?.invoke(
+                LogType.WARNING,
+                EventName.WEBVIEW,
+                "Using fallback JS bridge (no WEB_MESSAGE_LISTENER). WebView provider: ${HSWebView.webViewProvider(activity)}",
+                LogCategory.USER_EVENT
+            )
+        }
         hSWebViewManagerImpl.setJavaScriptCanOpenWindowsAutomatically(hSWebViewWrapper, true)
         hSWebViewManagerImpl.setScalesPageToFit(hSWebViewWrapper, true)
         hSWebViewManagerImpl.setMixedContentMode(hSWebViewWrapper, "compatibility")
@@ -286,16 +295,6 @@ class ClickToPayWebViewManager(
                         LogCategory.USER_ERROR
                     )
                     throw IllegalStateException("WebView provider unavailable")
-                }
-                // Without the bridge no reply from the page ever arrives and loadSource would hang.
-                if (!HSWebView.isMessagingSupported()) {
-                    logger?.invoke(
-                        LogType.ERROR,
-                        EventName.CREATE_WEBVIEW_RETURNED,
-                        "WebView does not support WEB_MESSAGE_LISTENER",
-                        LogCategory.USER_ERROR
-                    )
-                    throw IllegalStateException("WebView does not support WEB_MESSAGE_LISTENER")
                 }
                 // Retry WebView creation once (important for Android 15/16 bug)
                 repeat(2) { attempt ->

@@ -73,6 +73,7 @@ public class HSWebViewClient extends WebViewClient {
         mLastLoadFailed = false;
 
         HSWebView reactWebView = (HSWebView) webView;
+        reactWebView.updateFallbackBridgeForTopLevelUrl(url);
         reactWebView.callInjectedJavaScriptBeforeContentLoaded();
     }
 
