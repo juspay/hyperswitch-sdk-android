@@ -170,6 +170,7 @@ class PaymentSheet internal constructor(
         val savedPaymentSheetHeaderLabel: String? = null,
         val displayDefaultSavedPaymentIcon: Boolean? = null,
         val displaySavedPaymentMethodsCheckbox: Boolean? = null,
+        val hideCardNicknameField: Boolean? = null,
         val displaySavedPaymentMethods: Boolean? = null,
         val placeHolder: PlaceHolder? = null,
         val hideConfirmButton: Boolean? = null,
@@ -242,6 +243,9 @@ class PaymentSheet internal constructor(
                             displaySavedPaymentMethodsCheckbox
                         )
                     }
+                    if (hideCardNicknameField != null) {
+                        putBoolean("hideCardNicknameField", hideCardNicknameField)
+                    }
                     if (displaySavedPaymentMethods != null) {
                         putBoolean("displaySavedPaymentMethods", displaySavedPaymentMethods)
                     }
@@ -290,6 +294,7 @@ class PaymentSheet internal constructor(
             private var allowsPaymentMethodsRequiringShippingAddress: Boolean = false
             private var appearance: Appearance? = null
             private var displaySavedPaymentMethodsCheckbox: Boolean = true
+            private var hideCardNicknameField: Boolean = false
             private var displaySavedPaymentMethods: Boolean = true
             private var placeHolder: PlaceHolder? = null
             private var hideConfirmButton : Boolean? = null
@@ -354,6 +359,9 @@ class PaymentSheet internal constructor(
                 apply {
                     this.displaySavedPaymentMethodsCheckbox = displaySavedPaymentMethodsCheckbox
                 }
+
+            fun hideCardNicknameField(hideCardNicknameField: Boolean) =
+                apply { this.hideCardNicknameField = hideCardNicknameField }
 
             fun displaySavedPaymentMethods(displaySavedPaymentMethods: Boolean) =
                 apply { this.displaySavedPaymentMethods = displaySavedPaymentMethods }
@@ -435,6 +443,7 @@ class PaymentSheet internal constructor(
                 savedPaymentSheetHeaderLabel,
                 displayDefaultSavedPaymentIcon,
                 displaySavedPaymentMethodsCheckbox,
+                hideCardNicknameField,
                 displaySavedPaymentMethods,
                 placeHolder,
                 hideConfirmButton,
