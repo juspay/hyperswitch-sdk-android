@@ -1,6 +1,5 @@
 package io.hyperswitch.sdk
 
-import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.paymentsheet.PaymentRequestData
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.paymentsheet.PaymentSheet
@@ -14,7 +13,6 @@ class HyperswitchBoundElement internal constructor(
     private val paymentSession: PaymentSession,
     private val element: HyperswitchElement,
     configuration: PaymentSheet.Configuration? = null,
-    subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null
 ) {
 
     /** Secondary constructor accepting a raw configurationMap (mirrors the presentPaymentSheet overload). */
@@ -22,8 +20,7 @@ class HyperswitchBoundElement internal constructor(
         paymentSession: PaymentSession,
         element: HyperswitchElement,
         configurationMap: Map<String, Any?>,
-        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)? = null
-    ) : this(paymentSession, element, null, subscribe) {
+    ) : this(paymentSession, element, null) {
         element.setConfiguration(ConversionUtils.convertMapToReadableMap(configurationMap))
     }
 
@@ -35,13 +32,6 @@ class HyperswitchBoundElement internal constructor(
         }
         if (configuration != null) {
             element.setConfiguration(configuration)
-        }
-        if (subscribe != null) {
-            val builder = PaymentEventSubscriptionBuilder()
-            builder.subscribe()
-            val (subscription, listener) = builder.build()
-            element.setSubscribedEvents(subscription.getSubscribedEventStrings())
-            element.setOnEventCallback(listener)
         }
         element.setSdkAuthorization(paymentSession.getSdkAuthorization())
     }

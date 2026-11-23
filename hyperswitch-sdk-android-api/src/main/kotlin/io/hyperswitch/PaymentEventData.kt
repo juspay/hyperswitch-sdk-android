@@ -8,6 +8,9 @@ package io.hyperswitch
  */
 sealed class PaymentEventData() {
 
+    /** JSON representation used by wrapper bridges. */
+    abstract fun toMap(): Map<String, Any?>
+
     /**
      * Card information event payload.
      * Matches the canonical cardDetailsChange structure exactly.
@@ -25,7 +28,7 @@ sealed class PaymentEventData() {
      * @property isCardNumberValid    Whether the card number passes Luhn validation
      * @property isExpiryValid        Whether the expiry date is valid
      */
-    data class CardInfo(
+    data class CardDetailsChange(
         val bin: String?,
         val extendedBin: String?,
         val last4: String?,
@@ -41,21 +44,39 @@ sealed class PaymentEventData() {
     ) : PaymentEventData() {
 
         companion object {
-            fun fromMap(map: Map<String, Any>): CardInfo = CardInfo(
-                bin = map["bin"] as? String,
-                extendedBin = map["extendedBin"] as? String,
-                last4 = map["last4"] as? String,
-                brand = map["brand"] as? String,
-                expiryMonth = map["expiryMonth"] as? String,
-                expiryYear = map["expiryYear"] as? String,
-                formattedExpiry = map["formattedExpiry"] as? String,
-                isCardNumberComplete = (map["isCardNumberComplete"] as? Boolean) ?: false,
-                isCvcComplete = (map["isCvcComplete"] as? Boolean) ?: false,
-                isExpiryComplete = (map["isExpiryComplete"] as? Boolean) ?: false,
-                isCardNumberValid = (map["isCardNumberValid"] as? Boolean) ?: false,
-                isExpiryValid = (map["isExpiryValid"] as? Boolean) ?: false,
-            )
+            fun fromMap(map: Map<String, Any?>): CardDetailsChange {
+                val reader = PayloadReader(map)
+                return CardDetailsChange(
+                    bin = reader.nullableString("bin"),
+                    extendedBin = reader.nullableString("extendedBin"),
+                    last4 = reader.nullableString("last4"),
+                    brand = reader.nullableString("brand"),
+                    expiryMonth = reader.nullableString("expiryMonth"),
+                    expiryYear = reader.nullableString("expiryYear"),
+                    formattedExpiry = reader.nullableString("formattedExpiry"),
+                    isCardNumberComplete = reader.boolean("isCardNumberComplete"),
+                    isCvcComplete = reader.boolean("isCvcComplete"),
+                    isExpiryComplete = reader.boolean("isExpiryComplete"),
+                    isCardNumberValid = reader.boolean("isCardNumberValid"),
+                    isExpiryValid = reader.boolean("isExpiryValid"),
+                )
+            }
         }
+
+        override fun toMap(): Map<String, Any?> = mapOf(
+            "bin" to bin,
+            "extendedBin" to extendedBin,
+            "last4" to last4,
+            "brand" to brand,
+            "expiryMonth" to expiryMonth,
+            "expiryYear" to expiryYear,
+            "formattedExpiry" to formattedExpiry,
+            "isCardNumberComplete" to isCardNumberComplete,
+            "isCardNumberValid" to isCardNumberValid,
+            "isExpiryComplete" to isExpiryComplete,
+            "isExpiryValid" to isExpiryValid,
+            "isCvcComplete" to isCvcComplete,
+        )
     }
 
     /**
@@ -67,7 +88,7 @@ sealed class PaymentEventData() {
      * @property isSavedPaymentMethod Whether a saved payment method was selected
      * @property isOneClickWallet     Whether a one-click wallet was selected
      */
-    data class PaymentMethodStatus(
+    data class PaymentMethodChange(
         val paymentMethod: String,
         val paymentMethodType: String,
         val isSavedPaymentMethod: Boolean,
@@ -75,13 +96,23 @@ sealed class PaymentEventData() {
     ) : PaymentEventData() {
 
         companion object {
-            fun fromMap(map: Map<String, Any>): PaymentMethodStatus = PaymentMethodStatus(
-                paymentMethod = (map["paymentMethod"] as? String).orEmpty(),
-                paymentMethodType = (map["paymentMethodType"] as? String).orEmpty(),
-                isSavedPaymentMethod = (map["isSavedPaymentMethod"] as? Boolean) ?: false,
-                isOneClickWallet = (map["isOneClickWallet"] as? Boolean) ?: false,
-            )
+            fun fromMap(map: Map<String, Any?>): PaymentMethodChange {
+                val reader = PayloadReader(map)
+                return PaymentMethodChange(
+                    paymentMethod = reader.string("paymentMethod"),
+                    paymentMethodType = reader.string("paymentMethodType"),
+                    isSavedPaymentMethod = reader.boolean("isSavedPaymentMethod"),
+                    isOneClickWallet = reader.boolean("isOneClickWallet"),
+                )
+            }
         }
+
+        override fun toMap(): Map<String, Any?> = mapOf(
+            "paymentMethod" to paymentMethod,
+            "paymentMethodType" to paymentMethodType,
+            "isSavedPaymentMethod" to isSavedPaymentMethod,
+            "isOneClickWallet" to isOneClickWallet,
+        )
     }
 
     /**
@@ -101,17 +132,24 @@ sealed class PaymentEventData() {
     /**
      * Form status event payload.
      *
-     * @property status Form status, or null for unknown values
+     * @property status Form completion status
      */
-    data class FormStatus(
-        val status: FormStatusValue?,
+    data class FormStatusChange(
+        val status: FormStatusValue,
     ) : PaymentEventData() {
 
         companion object {
-            fun fromMap(map: Map<String, Any>): FormStatus = FormStatus(
-                status = (map["status"] as? String)?.let { FormStatusValue.fromString(it) }
-            )
+            fun fromMap(map: Map<String, Any?>): FormStatusChange {
+                val reader = PayloadReader(map)
+                return FormStatusChange(
+                    status = requireNotNull(FormStatusValue.fromString(reader.string("status"))),
+                )
+            }
         }
+
+        override fun toMap(): Map<String, Any?> = mapOf(
+            "status" to status.name,
+        )
     }
 
     /**
@@ -122,66 +160,88 @@ sealed class PaymentEventData() {
      * @property state      State/province
      * @property postalCode Postal/ZIP code
      */
-    data class PaymentMethodInfoAddress(
-        val country: String,
-        val state: String,
-        val postalCode: String,
+    data class BillingDetailsChange(
+        val country: String?,
+        val state: String?,
+        val postalCode: String?,
     ) : PaymentEventData() {
 
         companion object {
-            fun fromMap(map: Map<String, Any>): PaymentMethodInfoAddress = PaymentMethodInfoAddress(
-                country = (map["country"] as? String).orEmpty(),
-                state = (map["state"] as? String).orEmpty(),
-                postalCode = (map["postalCode"] as? String).orEmpty(),
-            )
+            fun fromMap(map: Map<String, Any?>): BillingDetailsChange {
+                val reader = PayloadReader(map)
+                return BillingDetailsChange(
+                    country = reader.nullableString("country"),
+                    state = reader.nullableString("state"),
+                    postalCode = reader.nullableString("postalCode"),
+                )
+            }
         }
+
+        override fun toMap(): Map<String, Any?> = mapOf(
+            "country" to country,
+            "state" to state,
+            "postalCode" to postalCode,
+        )
     }
 
     /**
      * CVC status event payload.
      *
-     * @property isCvcFocused   Whether the CVC field is currently focused
-     * @property isCvcBlur      Whether the CVC field has lost focus
-     * @property isCvcEmpty     Whether the CVC field is empty
-     * @property isCvcComplete  Whether the CVC passes length validation for the given brand
+     * @property cvcStatus Empty/complete flags, nested as in the emitted payload
      */
-    data class CvcStatus(
-        val isCvcFocused: Boolean,
-        val isCvcBlur: Boolean,
-        val isCvcEmpty: Boolean,
-        val isCvcComplete: Boolean,
+    data class CvcStatusChange(
+        val cvcStatus: CvcStatusDetails,
     ) : PaymentEventData() {
 
         companion object {
-            @Suppress("UNCHECKED_CAST")
-            fun fromMap(map: Map<String, Any>): CvcStatus {
-                val nested = map["cvcStatus"] as? Map<String, Any> ?: map
-                return CvcStatus(
-                    isCvcFocused = (nested["isCvcFocused"] as? Boolean) ?: false,
-                    isCvcBlur = (nested["isCvcBlur"] as? Boolean) ?: false,
-                    isCvcEmpty = (nested["isCvcEmpty"] as? Boolean) ?: true,
-                    isCvcComplete = (nested["isCvcComplete"] as? Boolean) ?: false,
+            fun fromMap(map: Map<String, Any?>): CvcStatusChange {
+                val reader = PayloadReader(map)
+                return CvcStatusChange(
+                    cvcStatus = reader.cvcStatus(),
                 )
             }
         }
+
+        override fun toMap(): Map<String, Any?> = mapOf(
+            "cvcStatus" to mapOf("isCvcEmpty" to cvcStatus.isCvcEmpty, "isCvcComplete" to cvcStatus.isCvcComplete),
+        )
     }
 
+    data class CvcStatusDetails(val isCvcEmpty: Boolean, val isCvcComplete: Boolean)
+
     companion object {
-        /**
-         * Parse a [PaymentEventData] subclass from a raw event-type string and payload map.
-         * Returns null for unrecognised event types (forward-compatibility).
-         *
-         * This is called automatically when constructing a [PaymentEvent] — consumers never
-         * need to call this directly.
-         */
-        fun fromEventType(eventType: String, payload: Map<String, Any>): PaymentEventData? =
-            when (eventType) {
-                "cardDetailsChange" -> CardInfo.fromMap(payload)
-                "paymentMethodChange" -> PaymentMethodStatus.fromMap(payload)
-                "formStatusChange" -> FormStatus.fromMap(payload)
-                "billingDetailsChange" -> PaymentMethodInfoAddress.fromMap(payload)
-                "cvcStatusChange" -> CvcStatus.fromMap(payload)
-                else -> null
+        /** Decode the payload for its event name; malformed payloads never reach onChange. */
+        fun fromEventType(eventType: EventType, payload: Map<String, Any?>): PaymentEventData? =
+            try {
+                when (eventType) {
+                    PaymentEvents.CardDetailsChange -> CardDetailsChange.fromMap(payload)
+                    PaymentEvents.PaymentMethodChange -> PaymentMethodChange.fromMap(payload)
+                    PaymentEvents.FormStatusChange -> FormStatusChange.fromMap(payload)
+                    PaymentEvents.BillingDetailsChange -> BillingDetailsChange.fromMap(payload)
+                    CvcWidgetEvents.CvcStatusChange -> CvcStatusChange.fromMap(payload)
+                }
+            } catch (_: IllegalArgumentException) {
+                null
             }
+    }
+}
+
+private class PayloadReader(private val values: Map<String, Any?>) {
+    fun nullableString(key: String): String? {
+        require(values.containsKey(key))
+        val value = values[key]
+        require(value == null || value is String)
+        return value as String?
+    }
+
+    fun string(key: String): String = requireNotNull(values[key] as? String)
+    fun boolean(key: String): Boolean = requireNotNull(values[key] as? Boolean)
+
+    fun cvcStatus(): PaymentEventData.CvcStatusDetails {
+        val status = requireNotNull(values["cvcStatus"] as? Map<*, *>)
+        return PaymentEventData.CvcStatusDetails(
+            isCvcEmpty = requireNotNull(status["isCvcEmpty"] as? Boolean),
+            isCvcComplete = requireNotNull(status["isCvcComplete"] as? Boolean),
+        )
     }
 }

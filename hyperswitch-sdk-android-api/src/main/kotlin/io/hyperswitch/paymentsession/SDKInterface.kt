@@ -22,7 +22,6 @@ interface PresentationInterface {
     fun presentSheet(
         sessionConfig: PaymentSessionConfiguration?,
         configuration: PaymentSheet.Configuration?,
-        subscribedEvents: List<String>,
         eventListener: PaymentEventListener?,
         onResult: ((PaymentResult) -> Unit)?,
     ): Boolean {
@@ -33,7 +32,6 @@ interface PresentationInterface {
 
     fun presentSheet(
         configurationMap: Map<String, Any?>,
-        subscribedEvents: List<String>,
         eventListener: PaymentEventListener?,
         onResult: ((PaymentResult) -> Unit)?,
     ): Boolean {

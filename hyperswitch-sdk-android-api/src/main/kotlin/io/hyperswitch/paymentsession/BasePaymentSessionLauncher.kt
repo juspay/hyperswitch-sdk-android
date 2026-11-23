@@ -2,7 +2,6 @@ package io.hyperswitch.paymentsession
 
 import android.app.Activity
 import io.hyperswitch.PaymentConfiguration
-import io.hyperswitch.PaymentEventSubscriptionBuilder
 import io.hyperswitch.model.HyperswitchBaseConfiguration
 import io.hyperswitch.model.PaymentSessionConfiguration
 import io.hyperswitch.paymentsheet.PaymentResult
@@ -32,13 +31,11 @@ abstract class BasePaymentSessionLauncher(
 
     abstract override fun presentPaymentSheet(
         configuration: PaymentSheet.Configuration?,
-        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?,
         resultCallback: (PaymentResult) -> Unit
     )
 
     abstract override fun presentPaymentSheet(
         configurationMap: Map<String, Any?>,
-        subscribe: (PaymentEventSubscriptionBuilder.() -> Unit)?,
         resultCallback: (PaymentResult) -> Unit
     )
 

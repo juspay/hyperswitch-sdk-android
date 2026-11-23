@@ -17,11 +17,8 @@ import com.facebook.react.views.scroll.ReactHorizontalScrollView
 import com.facebook.react.views.scroll.ReactScrollView
 import com.proyecto26.inappbrowser.ChromeTabsDismissedEvent
 import com.proyecto26.inappbrowser.ChromeTabsManagerActivity
-import io.hyperswitch.PaymentEvent
-import io.hyperswitch.PaymentEventListener
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.redirect.RedirectEvent
-import io.hyperswitch.utils.ConversionUtils
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import java.util.concurrent.ConcurrentHashMap
@@ -78,7 +75,7 @@ class HyperFragment : Fragment() {
     }
 
     /** Listener for this surface's events; set by the launcher or the bound element. */
-    private var paymentEventListener: PaymentEventListener? = null
+    private var paymentEventListener: ((String, Map<String, Any?>) -> Unit)? = null
 
     private var onExit: (() -> Unit)? = null
 
@@ -98,7 +95,7 @@ class HyperFragment : Fragment() {
         )
     }
 
-    fun setOnEventCallback(listener: PaymentEventListener) {
+    internal fun setOnEventCallback(listener: (String, Map<String, Any?>) -> Unit) {
         this.paymentEventListener = listener
     }
 
@@ -116,6 +113,18 @@ class HyperFragment : Fragment() {
         props.update()
         surface.updateInitProps(launchOptions)
         return true
+    }
+
+    /**
+     * Replaces the configuration of a root that is already rendering (a CVC widget renders before
+     * bind). Stored in the arguments too, for a surface created or recreated later.
+     */
+    fun updateConfiguration(configuration: Bundle?) {
+        UiThreadUtil.runOnUiThread {
+            arguments?.getBundle("arg_launch_options")?.getBundle("props")
+                ?.putBundle("configuration", configuration)
+            pushProps { putBundle("configuration", configuration) }
+        }
     }
 
     /**
@@ -225,8 +234,8 @@ class HyperFragment : Fragment() {
     fun notifyEvent(eventType: String, result: ReadableMap) {
         try {
             val listener = paymentEventListener ?: return
-            val payload = ConversionUtils.readableMapToMap(result)
-            listener.onPaymentEvent(PaymentEvent(type = eventType, payload = payload))
+            // toHashMap keeps null fields, e.g. `bin: null` before a card is typed.
+            listener(eventType, result.toHashMap())
         } catch (e: Exception) {
             Log.e("HyperFragment", "Error in notifyEvent", e)
         }
