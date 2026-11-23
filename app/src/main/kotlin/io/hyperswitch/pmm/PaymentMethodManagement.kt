@@ -81,7 +81,7 @@ class PaymentMethodManagement internal constructor(
     }
 
     private fun applyFonts(configuration: PaymentSheet.Configuration?, bundle: Bundle) {
-        configuration?.appearance?.typography?.fontResId?.let {
+        configuration?.appearance?.font?.fontResId?.let {
             ReactFontManager.getInstance().addCustomFont(
                 activity,
                 activity.resources.getResourceName(it).toString().split("/")[1],

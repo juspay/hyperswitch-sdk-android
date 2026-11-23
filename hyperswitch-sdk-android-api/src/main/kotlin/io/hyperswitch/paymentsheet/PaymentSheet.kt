@@ -465,7 +465,8 @@ class PaymentSheet internal constructor(
         val colorsLight: Colors? = null,
 
         /**
-         * Describes the colors used while the system is in dark mode.
+         * Describes the colors used while the system is in dark mode. Falls back to
+         * [colorsLight] when not set.
          */
         val colorsDark: Colors? = null,
 
@@ -477,7 +478,7 @@ class PaymentSheet internal constructor(
         /**
          * Describes the typography used for text.
          */
-        val typography: Typography? = null,
+        val font: Typography? = null,
 
         /**
          * Describes the appearance of the primary button (e.g., the "Pay" button).
@@ -493,10 +494,10 @@ class PaymentSheet internal constructor(
                 return Bundle().apply {
                     putBundle("colors", Bundle().apply {
                         putBundle("light", colorsLight?.bundle)
-                        putBundle("dark", colorsDark?.bundle)
+                        putBundle("dark", (colorsDark ?: colorsLight)?.bundle)
                     })
                     putBundle("shapes", shapes?.bundle)
-                    putBundle("font", typography?.bundle)
+                    putBundle("font", font?.bundle)
                     putBundle("primaryButton", primaryButton?.bundle)
                     putString("theme", theme?.name)
                 }
@@ -506,7 +507,7 @@ class PaymentSheet internal constructor(
             private var colorsLight: Colors? = null
             private var colorsDark: Colors? = null
             private var shapes: Shapes? = null
-            private var typography: Typography? = null
+            private var font: Typography? = null
             private var primaryButton: PrimaryButton? = null
             private var theme: Theme? = null
             private var locale: String? = null
@@ -514,7 +515,7 @@ class PaymentSheet internal constructor(
             fun colorsLight(colors: Colors) = apply { this.colorsLight = colors }
             fun colorsDark(colors: Colors) = apply { this.colorsDark = colors }
             fun shapes(shapes: Shapes) = apply { this.shapes = shapes }
-            fun typography(typography: Typography) = apply { this.typography = typography }
+            fun font(font: Typography) = apply { this.font = font }
             fun primaryButton(primaryButton: PrimaryButton) =
                 apply { this.primaryButton = primaryButton }
 
@@ -535,13 +536,13 @@ class PaymentSheet internal constructor(
          * The color used for the surfaces (backgrounds) of PaymentSheet.
          */
         @ColorInt
-        val surface: Int? = null,
+        val background: Int? = null,
 
         /**
          * The color used for the background of inputs, tabs, and other components.
          */
         @ColorInt
-        val component: Int? = null,
+        val componentBackground: Int? = null,
 
         /**
          * The color used for borders of inputs, tabs, and other components.
@@ -559,20 +560,20 @@ class PaymentSheet internal constructor(
          * The default color used for text and on other elements that live on components.
          */
         @ColorInt
-        val onComponent: Int? = null,
+        val componentText: Int? = null,
 
         /**
          * The color used for items appearing over the background in Payment Sheet.
          */
         @ColorInt
-        val onSurface: Int? = null,
+        val primaryText: Int? = null,
 
         /**
          * The color used for text of secondary importance.
          * For example, this color is used for the label above input fields.
          */
         @ColorInt
-        val subtitle: Int? = null,
+        val secondaryText: Int? = null,
 
         /**
          * The color used for input placeholder text.
@@ -584,7 +585,7 @@ class PaymentSheet internal constructor(
          * The color used for icons in PaymentSheet, such as the close or back icons.
          */
         @ColorInt
-        val appBarIcon: Int? = null,
+        val icon: Int? = null,
 
         /**
          * A color used to indicate errors or destructive actions in PaymentSheet.
@@ -643,15 +644,15 @@ class PaymentSheet internal constructor(
             get() {
                 return Bundle().apply {
                     putString("primary", toHexColorString(primary))
-                    putString("background", toHexColorString(surface))
-                    putString("componentBackground", toHexColorString(component))
+                    putString("background", toHexColorString(background))
+                    putString("componentBackground", toHexColorString(componentBackground))
                     putString("componentBorder", toHexColorString(componentBorder))
                     putString("componentDivider", toHexColorString(componentDivider))
-                    putString("componentText", toHexColorString(onComponent))
-                    putString("primaryText", toHexColorString(onSurface))
-                    putString("secondaryText", toHexColorString(subtitle))
+                    putString("componentText", toHexColorString(componentText))
+                    putString("primaryText", toHexColorString(primaryText))
+                    putString("secondaryText", toHexColorString(secondaryText))
                     putString("placeholderText", toHexColorString(placeholderText))
-                    putString("icon", toHexColorString(appBarIcon))
+                    putString("icon", toHexColorString(icon))
                     putString("error", toHexColorString(error))
                     putString("loaderBackground", toHexColorString(loaderBackground))
                     putString("loaderForeground", toHexColorString(loaderForeground))
@@ -675,29 +676,29 @@ class PaymentSheet internal constructor(
         @RequiresApi(Build.VERSION_CODES.O)
         constructor(
             primary: Color? = null,
-            surface: Color? = null,
-            component: Color? = null,
+            background: Color? = null,
+            componentBackground: Color? = null,
             componentBorder: Color? = null,
             componentDivider: Color? = null,
-            onComponent: Color? = null,
-            subtitle: Color? = null,
+            componentText: Color? = null,
+            secondaryText: Color? = null,
             placeholderText: Color? = null,
-            onSurface: Color? = null,
-            appBarIcon: Color? = null,
+            primaryText: Color? = null,
+            icon: Color? = null,
             error: Color? = null,
             loaderBackground: Color? = null,
             loaderForeground: Color? = null,
         ) : this(
             primary = primary?.toArgb(),
-            surface = surface?.toArgb(),
-            component = component?.toArgb(),
+            background = background?.toArgb(),
+            componentBackground = componentBackground?.toArgb(),
             componentBorder = componentBorder?.toArgb(),
             componentDivider = componentDivider?.toArgb(),
-            onComponent = onComponent?.toArgb(),
-            subtitle = subtitle?.toArgb(),
+            componentText = componentText?.toArgb(),
+            secondaryText = secondaryText?.toArgb(),
             placeholderText = placeholderText?.toArgb(),
-            onSurface = onSurface?.toArgb(),
-            appBarIcon = appBarIcon?.toArgb(),
+            primaryText = primaryText?.toArgb(),
+            icon = icon?.toArgb(),
             error = error?.toArgb(),
             loaderBackground = loaderBackground?.toArgb(),
             loaderForeground = loaderForeground?.toArgb(),
@@ -747,12 +748,12 @@ class PaymentSheet internal constructor(
         /**
          * The corner radius used for tabs, inputs, buttons, and other components in PaymentSheet.
          */
-        val cornerRadiusDp: Float?,
+        val borderRadius: Float?,
 
         /**
          * The border used for inputs, tabs, and other components in PaymentSheet.
          */
-        val borderStrokeWidthDp: Float?,
+        val borderWidth: Float?,
 
         /**
          * The shadow used for inputs, tabs, and other components in PaymentSheet.
@@ -772,11 +773,11 @@ class PaymentSheet internal constructor(
         val bundle: Bundle
             get() {
                 return Bundle().apply {
-                    if (cornerRadiusDp != null) {
-                        putFloat("borderRadius", cornerRadiusDp)
+                    if (borderRadius != null) {
+                        putFloat("borderRadius", borderRadius)
                     }
-                    if (borderStrokeWidthDp != null) {
-                        putFloat("borderWidth", borderStrokeWidthDp)
+                    if (borderWidth != null) {
+                        putFloat("borderWidth", borderWidth)
                     }
                     putBundle("shadow", shadow?.bundle)
                     if (inputHeight != null) putFloat("inputHeight", inputHeight)
@@ -791,7 +792,7 @@ class PaymentSheet internal constructor(
          * The scale factor for all fonts in PaymentSheet, the default value is 1.0.
          * When this value increases fonts will increase in size and decrease when this value is lowered.
          */
-        val sizeScaleFactor: Float? = null,
+        val scale: Float? = null,
 
         /**
          * The font used in text. This should be a resource ID value.
@@ -802,19 +803,19 @@ class PaymentSheet internal constructor(
         /**
          * The font used for lite SDK.
          */
-        val fontFamily: String? = null
+        val family: String? = null
     ) : Parcelable {
         val bundle: Bundle
             get() {
                 return Bundle().apply {
-                    if (sizeScaleFactor != null) {
-                        putFloat("scale", sizeScaleFactor)
+                    if (scale != null) {
+                        putFloat("scale", scale)
                     }
                     if (fontResId != null) {
                         putInt("fontResId", fontResId)
                     }
-                    if (fontFamily != null) {
-                        putString("family", fontFamily)
+                    if (family != null) {
+                        putString("family", family)
                     }
                 }
             }
@@ -827,13 +828,14 @@ class PaymentSheet internal constructor(
          */
         val colorsLight: PrimaryButtonColors? = null,
         /**
-         * Describes the colors used while the system is in dark mode.
+         * Describes the colors used while the system is in dark mode. Falls back to
+         * [colorsLight] when not set.
          */
         val colorsDark: PrimaryButtonColors? = null,
         /**
          * Describes the shape of the primary button.
          */
-        val shape: PrimaryButtonShape? = null,
+        val shapes: PrimaryButtonShape? = null,
         /**
          * Describes the typography of the primary button.
          */
@@ -841,18 +843,18 @@ class PaymentSheet internal constructor(
         /**
          * The height of the primary button in dp.
          */
-        val heightDp: Float? = null
+        val height: Float? = null
     ) : Parcelable {
         val bundle: Bundle
             get() {
                 return Bundle().apply {
                     putBundle("colors", Bundle().apply {
                         putBundle("light", colorsLight?.bundle)
-                        putBundle("dark", colorsDark?.bundle)
+                        putBundle("dark", (colorsDark ?: colorsLight)?.bundle)
                     })
-                    putBundle("shapes", shape?.bundle)
+                    putBundle("shapes", shapes?.bundle)
                     putBundle("typography", typography?.bundle)
-                    if (heightDp != null) putFloat("height", heightDp)
+                    if (height != null) putFloat("height", height)
                 }
             }
     }
@@ -869,7 +871,7 @@ class PaymentSheet internal constructor(
          * The color of the text and icon in the primary button.
          */
         @ColorInt
-        val onBackground: Int?,
+        val text: Int?,
         /**
          * The border color of the primary button.
          */
@@ -880,7 +882,7 @@ class PaymentSheet internal constructor(
             get() {
                 return Bundle().apply {
                     putString("background", toHexColorString(background))
-                    putString("text", toHexColorString(onBackground))
+                    putString("text", toHexColorString(text))
                     putString("border", toHexColorString(border))
                 }
             }
@@ -894,11 +896,11 @@ class PaymentSheet internal constructor(
         @RequiresApi(Build.VERSION_CODES.O)
         constructor(
             background: Color?,
-            onBackground: Color?,
+            text: Color?,
             border: Color?
         ) : this(
             background = background?.toArgb(),
-            onBackground = onBackground?.toArgb(),
+            text = text?.toArgb(),
             border = border?.toArgb()
         )
     }
@@ -907,28 +909,28 @@ class PaymentSheet internal constructor(
     data class PrimaryButtonShape(
         /**
          * The corner radius of the primary button.
-         * Note: If 'null', {@link Shapes#cornerRadiusDp} is used.
+         * Note: If 'null', {@link Shapes#borderRadius} is used.
          */
-        val cornerRadiusDp: Float? = null,
+        val borderRadius: Float? = null,
         /**
          * The border width of the primary button.
-         * Note: If 'null', {@link Shapes#borderStrokeWidthDp} is used.
+         * Note: If 'null', {@link Shapes#borderWidth} is used.
          */
-        val borderStrokeWidthDp: Float? = null,
+        val borderWidth: Float? = null,
         /**
          * The shadow of the primary button.
-         * Note: If 'null', {@link Shapes#borderStrokeWidthDp} is used.
+         * Note: If 'null', {@link Shapes#shadow} is used.
          */
         val shadow: Shadow? = null
     ) : Parcelable {
         val bundle: Bundle
             get() {
                 return Bundle().apply {
-                    if (cornerRadiusDp != null) {
-                        putFloat("borderRadius", cornerRadiusDp)
+                    if (borderRadius != null) {
+                        putFloat("borderRadius", borderRadius)
                     }
-                    if (borderStrokeWidthDp != null) {
-                        putFloat("borderWidth", borderStrokeWidthDp)
+                    if (borderWidth != null) {
+                        putFloat("borderWidth", borderWidth)
                     }
                     putBundle("shadow", shadow?.bundle)
                 }
@@ -939,14 +941,14 @@ class PaymentSheet internal constructor(
     data class PrimaryButtonTypography(
         /**
          * The font used in the primary button.
-         * Note: If 'null', Appearance.Typography.fontResId is used.
+         * Note: If 'null', Appearance.font.fontResId is used.
          */
         @FontRes
         val fontResId: Int? = null,
 
         /**
          * The font size in the primary button.
-         * Note: If 'null', {@link Typography#sizeScaleFactor} is used.
+         * Note: If 'null', {@link Typography#scale} is used.
          */
         val fontSizeSp: Float? = null
     ) : Parcelable {
