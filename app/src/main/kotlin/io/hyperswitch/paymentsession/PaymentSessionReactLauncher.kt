@@ -22,7 +22,9 @@ import io.hyperswitch.react.HyperActivity
 import io.hyperswitch.react.HyperFragment
 import io.hyperswitch.react.HyperReactRuntime
 import io.hyperswitch.react.ReactNativeController
+import io.hyperswitch.react.SDK_INIT_FAILED
 import io.hyperswitch.react.UpdateIntentReplyTarget
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -60,6 +62,10 @@ class PaymentSessionReactLauncher(
 
     private val runtime: HyperReactRuntime
         get() = ReactNativeController.runtime
+
+    /** Whether the payments host could start; nothing is shown or awaited once it could not. */
+    private val health
+        get() = ReactNativeController.health
 
     /** Root tag of the prefetch surface: the session's identity in JS. Null until prefetched. */
     override val sessionTag: Int?
@@ -110,7 +116,7 @@ class PaymentSessionReactLauncher(
      */
     private fun ensurePrefetch(): HeadlessSurface? {
         prefetch?.let { return it.surface }
-        if (closed) return null
+        if (closed || health.initFailure != null) return null
         val config = sessionConfig ?: return null
         val props = bottomInsetToDIPFromPixel(
             launchOptions.getBundle(activity.applicationContext, config, null, emptyList())
@@ -140,10 +146,20 @@ class PaymentSessionReactLauncher(
         }
     }
 
-    /** Resolves once the prefetch surface is running, which is when its data is on its way. */
+    /**
+     * Resolves once the prefetch surface is running, which is when its data is on its way.
+     * Never throws: a host that cannot start fails [health] instead, and the session then
+     * answers every call with SDK_INIT_FAILED.
+     */
     override suspend fun awaitReady() {
         val surface = withContext(Dispatchers.Main.immediate) { ensurePrefetch() } ?: return
-        surface.awaitStarted()
+        try {
+            surface.awaitStarted()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            health.fail("the payment session could not start", e)
+        }
     }
 
     // ── Update intent ─────────────────────────────────────────────────────────
@@ -165,9 +181,12 @@ class PaymentSessionReactLauncher(
                 return@post
             }
             if (ensurePrefetch() == null) {
-                val (code, message) =
-                    if (closed) "SESSION_CLOSED" to "The payment session was closed"
-                    else "NOT_INITIALISED" to "initPaymentSession has not been called"
+                val initFailure = health.initFailure
+                val (code, message) = when {
+                    closed -> "SESSION_CLOSED" to "The payment session was closed"
+                    initFailure != null -> SDK_INIT_FAILED to initFailure.message.orEmpty()
+                    else -> "NOT_INITIALISED" to "initPaymentSession has not been called"
+                }
                 onResult(Result.failure(failure(code, message)))
                 return@post
             }
@@ -285,14 +304,17 @@ class PaymentSessionReactLauncher(
         onHandler: (PaymentSessionHandler) -> Unit,
     ) {
         runOnMain {
-            if (closed) {
-                val reason = "The payment session was closed"
+            val initFailure = health.initFailure
+            if (closed || initFailure != null) {
+                val (code, reason) =
+                    if (closed) "SESSION_CLOSED" to "The payment session was closed"
+                    else SDK_INIT_FAILED to initFailure?.message.orEmpty()
                 val failure = Arguments.createMap().apply {
-                    putString("code", "SESSION_CLOSED")
+                    putString("code", code)
                     putString("message", reason)
                 }
                 val refused = HeadlessAttempt("", onHandler).apply {
-                    refuseConfirms(PaymentResult.Failed(Throwable(reason).apply { initCause(Throwable("SESSION_CLOSED")) }))
+                    refuseConfirms(PaymentResult.Failed(Throwable(reason).apply { initCause(Throwable(code)) }))
                 }
                 onHandler(PaymentSessionHandlerImpl(refused, failure, failure, Arguments.createArray()))
                 return@runOnMain
@@ -361,6 +383,12 @@ class PaymentSessionReactLauncher(
         eventListener: PaymentEventListener?,
         onResult: ((PaymentResult) -> Unit)?,
     ): Boolean {
+        if (health.initFailure != null) {
+            // Nothing to show: the sheet would never render.
+            val result = PaymentResult.Failed(health.resultError())
+            runOnMain { onResult?.invoke(result) }
+            return false
+        }
         stampSessionTag(bundle)
         if (activity is DefaultHardwareBackBtnHandler && activity is FragmentActivity) {
             // The fragment owns this presentation: its root view carries it, so the JS exit

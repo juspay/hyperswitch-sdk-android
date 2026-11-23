@@ -65,6 +65,9 @@ class CardForm internal constructor(
     private val fields = mutableListOf<WeakReference<CardFieldView>>()
     private var surface: HeadlessSurface?
 
+    /** Removes the host-failure listener; see init. */
+    private var stopWatchingHost: () -> Unit = {}
+
     /** What the bundle says about this form lands here. Held by the form, so it lasts as long. */
     private val events = PaymentMethodsEventTarget(::onEvent)
 
@@ -80,14 +83,19 @@ class CardForm internal constructor(
             configuration.locale?.let { putString("locale", it) }
         }
 
-        /* A root that never joins a window. Stopping it is what ends the form in the bundle. */
-        surface = HeadlessSurface.start(
+        /* A root that never joins a window. Stopping it is what ends the form in the bundle.
+           None when the host could not start: the form then fails through onError, posted
+           so a listener set right after construction still hears it. */
+        surface = if (runtime.health.initFailure != null) null else HeadlessSurface.start(
             activity.applicationContext,
             runtime.reactHost,
             Bundle().apply { putBundle("props", props) },
             owner = events,
             moduleName = PaymentMethodsProtocol.FORM_COMPONENT,
         )
+        stopWatchingHost = runtime.health.onFailure { error ->
+            failWith(error.message ?: "The Payment Methods SDK failed to initialise.")
+        }
 
         closeWith(activity)
     }
@@ -141,6 +149,7 @@ class CardForm internal constructor(
 
     /** Ends the form and clears the card. Its fields go blank. Safe to call more than once. */
     fun close() = onMain {
+        stopWatchingHost()
         surface?.stop()
         surface = null
         fields.forEach { it.get()?.stop() }
@@ -173,6 +182,13 @@ class CardForm internal constructor(
         )
     }
 
+    /** The form cannot work: settles it failed and tells [onError], once. */
+    private fun failWith(message: String) {
+        if (phase !is Phase.Opening) return
+        settle(Phase.Failed(message))
+        onError?.invoke(CardFormError(message))
+    }
+
     private fun whenFormSettles(work: () -> Unit) {
         if (phase is Phase.Opening) whenSettled.add(work) else work()
     }
@@ -199,11 +215,8 @@ class CardForm internal constructor(
                 onChange?.invoke(next)
             }
 
-            PaymentMethodsProtocol.FORM_ERROR -> {
-                val message = payload["message"] as? String ?: "The card form could not be shown."
-                settle(Phase.Failed(message))
-                onError?.invoke(CardFormError(message))
-            }
+            PaymentMethodsProtocol.FORM_ERROR ->
+                failWith(payload["message"] as? String ?: "The card form could not be shown.")
 
             PaymentMethodsProtocol.COMMAND_RESULT -> {
                 val pending = pendingTokenize ?: return
