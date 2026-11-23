@@ -7,6 +7,7 @@ import io.hyperswitch.click_to_pay.models.CustomerPresenceResponse
 import io.hyperswitch.click_to_pay.utils.ClickToPayModelParser.Companion.getOptJSONObject
 import io.hyperswitch.click_to_pay.utils.ClickToPayModelParser.Companion.parseJSONObject
 import io.hyperswitch.click_to_pay.utils.ClickToPayModelParser.Companion.setLogger as setParserLogger
+import io.hyperswitch.click_to_pay.utils.ClickToPayJs
 import io.hyperswitch.click_to_pay.utils.ClickToPayWebViewManager
 import io.hyperswitch.click_to_pay.utils.HyperLoaderUtils
 import io.hyperswitch.logs.EventName
@@ -64,7 +65,7 @@ class DCTPWebview(
         val mastercardDirectURL = HyperLoaderUtils.Companion.getMasterCardDirectUrl(publishableKey)
         val visaDirectURL = HyperLoaderUtils.Companion.getVisaDirectUrl(publishableKey)
         val baseHtml =
-            "<!DOCTYPE html><html><body><script>function handleScriptError(){console.error('ClickToPay','Failed to load HyperLoader.js');window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'ScriptLoadError',message:'Failed to load HyperLoader.js'}}}));}async function initHyper(){try{if(typeof Hyper==='undefined'){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperUndefinedError',message:'Hyper is not defined'}}}));return;}window.hyperInstance=Hyper.init('$publishableKey',{${customBackendUrl?.let { "customBackendUrl:'$customBackendUrl'," } ?: ""}${customLogUrl?.let { "customLogUrl:'$customLogUrl'," } ?: ""}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{sdkInitialised:true}}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperInitializationError',message:error.message}}}))}}</script><script src='$visaDirectURL'></script><script src='$mastercardDirectURL'></script><script src='${hyperLoaderUrl}' onload='initHyper()' onerror='handleScriptError()' async></script></body></html>"
+            "<!DOCTYPE html><html><body><script>function handleScriptError(){console.error('ClickToPay','Failed to load HyperLoader.js');window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'ScriptLoadError',message:'Failed to load HyperLoader.js'}}}));}async function initHyper(){try{if(typeof Hyper==='undefined'){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperUndefinedError',message:'Hyper is not defined'}}}));return;}window.hyperInstance=Hyper.init(${ClickToPayJs.string(publishableKey)},${ClickToPayJs.obj("customBackendUrl" to customBackendUrl, "customLogUrl" to customLogUrl)});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{sdkInitialised:true}}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'HyperInitializationError',message:error.message}}}))}}</script><script src='$visaDirectURL'></script><script src='$mastercardDirectURL'></script><script src='${hyperLoaderUrl}' onload='initHyper()' onerror='handleScriptError()' async></script></body></html>"
 
         val responseJson = manager.loadSource(baseHtml, baseUrl, requestId)
         withContext(Dispatchers.Default) {
@@ -113,7 +114,7 @@ class DCTPWebview(
         ensureReady()
         val requestId = UUID.randomUUID().toString()
         val jsCode =
-            "(async function(){try{const authenticationSession=window.hyperInstance.initAuthenticationSession({clientSecret:'$clientSecret',profileId:'$profileId',authenticationId:'$authenticationId',merchantId:'$merchantId'});window.ClickToPaySession=await authenticationSession.initClickToPayDCTPSession({token:$token});const data=window.ClickToPaySession.error?window.ClickToPaySession:{success:true};window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:data}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'InitClickToPayDCTPSessionError',message:error.message}}}))}})();"
+            "(async function(){try{const authenticationSession=window.hyperInstance.initAuthenticationSession(${ClickToPayJs.obj("clientSecret" to clientSecret, "profileId" to profileId, "authenticationId" to authenticationId, "merchantId" to merchantId)});window.ClickToPaySession=await authenticationSession.initClickToPayDCTPSession({token:${ClickToPayJs.jsonValue(token)}});const data=window.ClickToPaySession.error?window.ClickToPaySession:{success:true};window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:data}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'InitClickToPayDCTPSessionError',message:error.message}}}))}})();"
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
 
         withContext(Dispatchers.Default) {
@@ -157,7 +158,7 @@ class DCTPWebview(
         ensureReady()
         val requestId = UUID.randomUUID().toString()
         val jsCode =
-            "(async function(){try{const isCustomerPresent=await window.ClickToPaySession.isCustomerPresent({${request.email?.let { "email:'${request.email}'" } ?: ""}});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:isCustomerPresent}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'IsCustomerPresentError',message:error.message}}}))}})();"
+            "(async function(){try{const isCustomerPresent=await window.ClickToPaySession.isCustomerPresent(${ClickToPayJs.obj("email" to request.email)});window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:isCustomerPresent}));}catch(error){window.HSAndroidInterface.postMessage(JSON.stringify({requestId:'$requestId',data:{error:{type:'IsCustomerPresentError',message:error.message}}}))}})();"
 
         val responseJson = evaluateJavascriptOnMainThread(requestId, jsCode)
 
