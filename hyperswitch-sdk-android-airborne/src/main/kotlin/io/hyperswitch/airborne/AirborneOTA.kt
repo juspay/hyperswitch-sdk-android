@@ -2,39 +2,42 @@ package io.hyperswitch.airborne
 
 import android.content.Context
 import androidx.annotation.Keep
-import `in`.juspay.hyperota.LazyDownloadCallback
-import `in`.juspay.hyperotareact.HyperOTAReact
+import `in`.juspay.airborne.HyperOTAServices
+import `in`.juspay.airborne.LazyDownloadCallback
+import `in`.juspay.airborne.ota.ApplicationManager
+
 @Keep
 class AirborneOTA {
-    private lateinit var hyperOTAReact : HyperOTAReact
-    private lateinit var tracker : HyperOtaLogger
+    private var applicationManager: ApplicationManager? = null
+    private lateinit var tracker: HyperOtaLogger
 
-    fun initAirborneOTA(context: Context,
-                     sdkVersion: String,
-                     url : String,
-                     appId: String,
-                     bundleName: String){
+    fun initAirborneOTA(
+        context: Context,
+        sdkVersion: String,
+        url: String,
+        appId: String,
+        bundleName: String
+    ) {
         try {
             this.tracker = HyperOtaLogger(sdkVersion)
-            HyperOTAReact(
-                context,
-                appId,
-                bundleName,
-                sdkVersion,
-                url,
-                mapOf(
-                    "Content-Encoding" to "br, gzip"
-                ),
-                object : LazyDownloadCallback {
-                    override fun fileInstalled(filePath: String, success: Boolean) {
-                    }
-
-                    override fun lazySplitsInstalled(success: Boolean) {
-                    }
-                },
-                tracker,
+            val hyperOTAServices = HyperOTAServices(
+                context = context,
+                workSpacePath = appId,
+                appVersion = sdkVersion,
+                releaseConfigTemplateUrl = url,
+                trackerCallback = tracker
             )
-        }catch (e: Exception){
+            val manager = hyperOTAServices.createApplicationManager()
+            this.applicationManager = manager
+            manager.loadApplication(
+                unSanitizedClientId = appId,
+                lazyDownloadCallback = object : LazyDownloadCallback {
+                    override fun fileInstalled(filePath: String, success: Boolean) {}
+
+                    override fun lazySplitsInstalled(success: Boolean) {}
+                }
+            )
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
@@ -48,13 +51,14 @@ class AirborneOTA {
      * @param appId The application identifier for OTA updates
      * @param bundleName The name of the bundle to be downloaded and installed
      */
-    constructor(context: Context,
-                sdkVersion: String,
-                configUrl : String,
-                appId: String,
-                bundleName: String
-        ){
-        this.initAirborneOTA(context,sdkVersion,configUrl,appId,bundleName)
+    constructor(
+        context: Context,
+        sdkVersion: String,
+        configUrl: String,
+        appId: String,
+        bundleName: String
+    ) {
+        this.initAirborneOTA(context, sdkVersion, configUrl, appId, bundleName)
     }
 
     /**
@@ -65,28 +69,43 @@ class AirborneOTA {
      * @param sdkVersion The version of the SDK being used
      * @param baseUrl The base URL for the OTA service (config URL will be constructed as: baseUrl/mobile-ota/android/sdkVersion/config.json)
      */
-    constructor(context: Context,
-                sdkVersion: String,
-                baseUrl : String){
-        if(baseUrl == "") {
+    constructor(
+        context: Context,
+        sdkVersion: String,
+        baseUrl: String
+    ) {
+        if (baseUrl.isEmpty()) {
             throw Exception("BaseURL shouldn't be empty")
+        }
+        val url = if (baseUrl.endsWith(".json") || baseUrl.contains("/release/")) {
+            baseUrl
+        } else {
+            "$baseUrl/mobile-ota/android/${sdkVersion}/config.json"
+        }
+        val appId = if (baseUrl.contains("/release/")) {
+            baseUrl.trimEnd('/').substringAfterLast('/')
+        } else {
+            "hyperswitch"
         }
         this.initAirborneOTA(
             context,
             sdkVersion,
-            "$baseUrl/mobile-ota/android/${sdkVersion}/config.json",
-            "hyperswitch",
+            url,
+            appId,
             "hyperswitch.bundle"
         )
     }
 
     fun getBundlePath(): String {
         return try {
-            hyperOTAReact.getBundlePath().takeUnless { it.contains("ios") }
-                ?: "assets://hyperswitch.bundle"
+            val path = applicationManager?.getIndexBundlePath()
+            if (!path.isNullOrEmpty() && !path.contains("ios")) {
+                path
+            } else {
+                "assets://hyperswitch.bundle"
+            }
         } catch (_: Exception) {
             "assets://hyperswitch.bundle"
         }
-
     }
 }

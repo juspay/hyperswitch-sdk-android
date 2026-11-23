@@ -1,1 +1,2 @@
 -keep class io.hyperswitch.airborne.AirborneOTA { *; }
+-keep class in.juspay.airborne.** { *; }

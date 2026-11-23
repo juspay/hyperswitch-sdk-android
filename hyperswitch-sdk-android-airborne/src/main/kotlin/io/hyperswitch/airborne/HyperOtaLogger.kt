@@ -1,6 +1,6 @@
 package io.hyperswitch.airborne
 
-import `in`.juspay.hyperota.TrackerCallback
+import `in`.juspay.airborne.TrackerCallback
 import io.hyperswitch.logs.EventName
 import org.json.JSONObject
 import io.hyperswitch.logs.HSLog
@@ -13,8 +13,6 @@ import org.json.JSONException
  * Extends TrackerCallback to capture OTA-related events and send them to the logging endpoint.
  *
  * @param sdkVersion The version of the SDK being used
- * @param customLogUrl Optional custom URL for the logging endpoint
- * @param publishableKey Optional merchant's publishable key for log authentication
  */
 class HyperOtaLogger(private val sdkVersion: String) : TrackerCallback() {
 
@@ -51,15 +49,8 @@ class HyperOtaLogger(private val sdkVersion: String) : TrackerCallback() {
 
     /**
      * Tracks OTA lifecycle events with primitive or string values.
-     *
-     * @param category The event category (e.g., "lifecycle")
-     * @param subCategory The event subcategory (e.g., "hyperota")
-     * @param level The log level (e.g., "info", "debug", "error")
-     * @param label A descriptive label for the event
-     * @param key The event key (e.g., "init", "end")
-     * @param value The event value to be logged
      */
-    override fun track(
+    fun track(
         category: String, subCategory: String, level: String, label: String, key: String, value: Any
     ) {
         if (category == "lifecycle") {
@@ -75,10 +66,7 @@ class HyperOtaLogger(private val sdkVersion: String) : TrackerCallback() {
                     EventName.HYPER_OTA_EVENT, level, label, category, subCategory, key, value
                 )
             }
-
         }
-//        Log.i("ota-1" , "category : " + category + "\n subCategory : " + subCategory +
-//                "\n level : " + level + "\n label : " + label + "\n key : " + key + "\n value : " + value.toString())
     }
 
     /**
@@ -120,8 +108,6 @@ class HyperOtaLogger(private val sdkVersion: String) : TrackerCallback() {
                 )
             }
         }
-//        Log.i("ota-2" , "category : " + category + "\n subCategory : " + subCategory +
-//                "\n level : " + level + "\n label : " + label + "\n key : " + key + "\n value : " + value.toString())
     }
 
     /**
@@ -154,7 +140,5 @@ class HyperOtaLogger(private val sdkVersion: String) : TrackerCallback() {
             } catch (e: JSONException) {
             }
         }
-//        Log.i("ota-3" , "category : " + category + "\n subCategory : " + subCategory +
-//                "\n level : " + "error" + "\n label : " + label + "\n description : " + description + "\n value : " + e.toString())
     }
 }
