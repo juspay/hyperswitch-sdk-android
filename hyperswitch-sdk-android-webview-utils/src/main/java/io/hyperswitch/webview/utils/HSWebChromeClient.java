@@ -196,6 +196,11 @@ public class HSWebChromeClient extends WebChromeClient /*implements LifecycleEve
 
     @Override
     public void onPermissionRequest(final PermissionRequest request) {
+        // Only the origin the host app loaded may use camera/mic; this also denies everything in HiddenIframe.
+        if (!mWebView.isTrustedOrigin(String.valueOf(request.getOrigin()))) {
+            request.deny();
+            return;
+        }
 
         grantedPermissions = new ArrayList<>();
 
@@ -247,6 +252,10 @@ public class HSWebChromeClient extends WebChromeClient /*implements LifecycleEve
 
     @Override
     public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
+        if (!mWebView.isTrustedOrigin(origin)) {
+            callback.invoke(origin, false, false);
+            return;
+        }
 
         if (ContextCompat.checkSelfPermission(this.mWebView.getThemedReactContext(), Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {

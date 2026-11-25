@@ -1,16 +1,6 @@
 package io.hyperswitch.react
 
-import android.os.Handler
-import android.os.Looper
-import android.text.TextUtils
 import android.util.Log
-import android.view.View
-import android.view.ViewGroup
-import android.webkit.RenderProcessGoneDetail
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.fragment.app.FragmentActivity
 import androidx.webkit.WebMessageCompat
 import androidx.webkit.WebViewCompat
@@ -26,13 +16,7 @@ import io.hyperswitch.payments.launcher.PaymentMethod
 import io.hyperswitch.payments.view.WidgetLauncher
 import io.hyperswitch.paymentsession.LaunchOptions
 import io.hyperswitch.paymentsession.PaymentSheetCallbackManager
-import io.hyperswitch.webview.utils.Callback as HSCallback
-import io.hyperswitch.webview.utils.HSWebViewManagerImpl
-import io.hyperswitch.webview.utils.HSWebViewWrapper
-import java.io.ByteArrayInputStream
-import java.net.URI
-import java.util.Locale
-import java.util.concurrent.atomic.AtomicBoolean
+import io.hyperswitch.webview.utils.HiddenIframe
 import org.json.JSONObject
 
 internal fun ReadableMap.toExitResultJson(): String {
@@ -269,154 +253,8 @@ class HyperModule internal constructor(
     }
 
     override fun openIframeBridge(url: String, timeoutMs: Double, callback: Callback) {
-        fun webOrigin(value: String): String? {
-            return try {
-                val uri = URI(value)
-                val host = uri.host?.lowercase(Locale.ROOT) ?: return null
-                val scheme = uri.scheme?.lowercase(Locale.ROOT)
-                if ((scheme != "https" && scheme != "http") || uri.rawUserInfo != null ||
-                    (uri.port != -1 && uri.port !in 1..65535)) return null
-                val defaultPort = if (scheme == "https") 443 else 80
-                val port = if (uri.port == -1 || uri.port == defaultPort) "" else ":${uri.port}"
-                "$scheme://$host$port"
-            } catch (_: Exception) {
-                null
-            }
-        }
-
-        val iframeOrigin = webOrigin(url)
-        if (!timeoutMs.isFinite() || timeoutMs <= 0 || iframeOrigin == null) {
-            callback.invoke("")
-            return
-        }
-
-        val mainHandler = Handler(Looper.getMainLooper())
-        val callbackInvoked = AtomicBoolean(false)
-        var webViewWrapper: HSWebViewWrapper? = null
-        var timeoutRunnable: Runnable? = null
-
-        fun cleanupWebView(rendererGone: Boolean = false) {
-            val wrapper = webViewWrapper ?: return
-            webViewWrapper = null
-            try {
-                try {
-                    (wrapper.parent as? ViewGroup)?.removeView(wrapper)
-                    if (!rendererGone) wrapper.webView.stopLoading()
-                } finally {
-                    wrapper.webView.destroy()
-                }
-            } catch (e: Exception) {
-                Log.e("HyperDDC", "cleanup error: ${e.message}")
-            }
-        }
-
-        val invokeCallback = { redirectUrl: String ->
-            if (callbackInvoked.compareAndSet(false, true)) {
-                timeoutRunnable?.let { mainHandler.removeCallbacks(it) }
-                mainHandler.post { cleanupWebView() }
-                callback.invoke(redirectUrl)
-            }
-        }
-
-        mainHandler.post {
-            val activity = currentActivity ?: run {
-                invokeCallback("")
-                return@post
-            }
-
-            val manager = HSWebViewManagerImpl(activity, HSCallback { _ -> })
-
-            var wrapper: HSWebViewWrapper? = null
-            repeat(2) { attempt ->
-                if (wrapper != null) return@repeat
-                try {
-                    if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
-                        invokeCallback("")
-                        return@post
-                    }
-                    wrapper = manager.createViewInstance()
-                } catch (e: Exception) {
-                    if (attempt == 0) Thread.sleep(200)
-                }
-            }
-            val resolvedWrapper = wrapper ?: run {
-                invokeCallback("")
-                return@post
-            }
-            webViewWrapper = resolvedWrapper
-
-            manager.setJavaScriptEnabled(resolvedWrapper, true)
-            resolvedWrapper.webView.webViewClient = object : WebViewClient() {
-                override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
-                    // A dead renderer's WebView must be destroyed without calling stopLoading().
-                    cleanupWebView(rendererGone = true)
-                    invokeCallback("")
-                    return true
-                }
-
-                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
-                    request.isForMainFrame
-
-                @Deprecated("Deprecated in Java")
-                override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean = true
-
-                override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
-                    if (request.isForMainFrame) {
-                        WebResourceResponse("text/plain", "UTF-8", ByteArrayInputStream(ByteArray(0)))
-                    } else {
-                        null
-                    }
-            }
-            try {
-                WebViewCompat.addWebMessageListener(
-                    resolvedWrapper.webView, "HyperDDCBridge", setOf(iframeOrigin),
-                ) { _, message, sourceOrigin, isMainFrame, _ ->
-                    if (!isMainFrame || webOrigin(sourceOrigin.toString()) != iframeOrigin ||
-                        message.type != WebMessageCompat.TYPE_STRING) return@addWebMessageListener
-                    val data = message.data ?: return@addWebMessageListener
-                    val json = try { JSONObject(data) } catch (_: Exception) { return@addWebMessageListener }
-                    val action = json.optJSONObject("next_action") ?: return@addWebMessageListener
-                    if (action.opt("type") != "redirect_to_url") return@addWebMessageListener
-                    val redirect = action.opt("url") as? String ?: return@addWebMessageListener
-                    if (redirect.isNotEmpty()) invokeCallback(json.toString())
-                }
-            } catch (_: Exception) {
-                invokeCallback("")
-                return@post
-            }
-
-            resolvedWrapper.apply {
-                isFocusable = false
-                isFocusableInTouchMode = false
-                layoutParams = ViewGroup.LayoutParams(1, 1)
-                translationX = -9999f
-                translationY = -9999f
-                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
-            }
-
-            activity.findViewById<ViewGroup>(android.R.id.content).addView(resolvedWrapper)
-
-            val wrapperHtml = """
-                <html><body>
-                <iframe id="ddc-frame" src="${TextUtils.htmlEncode(url)}" style="display:none;width:1px;height:1px;"></iframe>
-                <script>
-                window.addEventListener('message', function(event) {
-                  if (event.source !== document.getElementById('ddc-frame').contentWindow ||
-                      event.origin !== ${JSONObject.quote(iframeOrigin)}) return;
-                  try {
-                    var str = typeof event.data === 'string' ? event.data : JSON.stringify(event.data);
-                    if (typeof str === 'string') HyperDDCBridge.postMessage(str);
-                  } catch(e) {}
-                });
-                </script>
-                </body></html>
-            """.trimIndent()
-            resolvedWrapper.webView.loadDataWithBaseURL(url, wrapperHtml, "text/html", "UTF-8", null)
-
-            timeoutRunnable = Runnable { invokeCallback("") }.also {
-                mainHandler.postDelayed(it, timeoutMs.toLong())
-            }
-        }
+        val activity = currentActivity ?: return callback.invoke("")
+        HiddenIframe(activity).open(url, timeoutMs) { callback.invoke(it) }
     }
 
     private fun withFragment(rootTag: Double, block: (HyperFragment?) -> Unit) {

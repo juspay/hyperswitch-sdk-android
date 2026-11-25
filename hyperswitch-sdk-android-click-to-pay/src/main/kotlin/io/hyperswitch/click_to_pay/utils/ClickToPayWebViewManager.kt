@@ -12,6 +12,7 @@ import io.hyperswitch.logs.LogCategory
 import io.hyperswitch.logs.LogType
 import io.hyperswitch.webview.utils.Arguments
 import io.hyperswitch.webview.utils.Callback
+import io.hyperswitch.webview.utils.HSWebView
 import io.hyperswitch.webview.utils.HSWebViewManagerImpl
 import io.hyperswitch.webview.utils.HSWebViewWrapper
 import kotlinx.coroutines.CancellableContinuation
@@ -70,6 +71,15 @@ class ClickToPayWebViewManager(
 
         hSWebViewManagerImpl.setJavaScriptEnabled(hSWebViewWrapper, true)
         hSWebViewManagerImpl.setMessagingEnabled(hSWebViewWrapper, true)
+        // Tracks how many devices still rely on the less safe addJavascriptInterface fallback.
+        if (!HSWebView.isWebMessageListenerSupported()) {
+            logger?.invoke(
+                LogType.WARNING,
+                EventName.WEBVIEW,
+                "Using fallback JS bridge (no WEB_MESSAGE_LISTENER). WebView provider: ${HSWebView.webViewProvider(activity)}",
+                LogCategory.USER_EVENT
+            )
+        }
         hSWebViewManagerImpl.setJavaScriptCanOpenWindowsAutomatically(hSWebViewWrapper, true)
         hSWebViewManagerImpl.setScalesPageToFit(hSWebViewWrapper, true)
         hSWebViewManagerImpl.setMixedContentMode(hSWebViewWrapper, "compatibility")

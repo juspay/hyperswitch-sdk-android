@@ -61,12 +61,28 @@ class HSWebViewManagerImpl(
 
     fun createHSWebViewInstance(): HSWebView = HSWebView(activity, onMessage)
 
-    fun createViewInstance(): HSWebViewWrapper {
-        val webView = createHSWebViewInstance()
-        return createViewInstance(webView)
+    fun createViewInstance(): HSWebViewWrapper = createViewInstance(createHSWebViewInstance())
+
+    /** Installs [client] instead of the default client, so callers never replace it afterwards. */
+    fun createViewInstance(client: HSWebViewClient): HSWebViewWrapper =
+        createViewInstance(createHSWebViewInstance(), client)
+
+    fun createViewInstance(webView: HSWebView): HSWebViewWrapper = createViewInstance(webView, defaultWebViewClient())
+
+    private fun defaultWebViewClient(): HSWebViewClient = object : HSWebViewClient() {
+        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+            // Load all URLs in the same WebView, don't open externally
+            view.loadUrl(request.url.toString())
+            return true
+        }
+
+        override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+            view.loadUrl(url)
+            return true
+        }
     }
 
-    fun createViewInstance(webView: HSWebView): HSWebViewWrapper {
+    fun createViewInstance(webView: HSWebView, client: HSWebViewClient): HSWebViewWrapper {
         setupWebChromeClient(webView)
         mWebViewConfig.configWebView(webView)
         val settings = webView.settings
@@ -87,18 +103,7 @@ class HSWebViewManagerImpl(
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
 
-        webView.webViewClient = object : HSWebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                // Load all URLs in the same WebView, don't open externally
-                view.loadUrl(request.url.toString())
-                return true
-            }
-
-            override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-                view.loadUrl(url)
-                return true
-            }
-        }
+        webView.webViewClient = client
 
         if (BuildConfig.DEBUG) {
             WebView.setWebContentsDebuggingEnabled(true)
@@ -427,16 +432,28 @@ class HSWebViewManagerImpl(
         source: ReadableMap?,
     ) {
         val view = viewWrapper.webView
+        /*
+         * What the host app loads here is trusted (bridge, permissions, basic auth). Each branch
+         * trusts the URL it loads, before loading, so the page gets the bridge from its first line.
+         */
         if (source != null) {
             if (source.hasKey("html")) {
                 val html = source.getString("html")
                 val baseUrl = if (source.hasKey("baseUrl")) source.getString("baseUrl") else ""
+                view.addTrustedOrigin(baseUrl)
+                /*
+                 * Fallback bridge only: with a null historyUrl, getUrl() and onPageStarted report
+                 * about:blank, so the fallback would treat this trusted page as untrusted and drop
+                 * its messages. Report baseUrl there instead; the listener path stays unchanged.
+                 */
+                val historyUrl =
+                    if (!HSWebView.isWebMessageListenerSupported() && view.isTrustedOrigin(baseUrl)) baseUrl else null
                 view.loadDataWithBaseURL(
                     baseUrl,
                     html!!,
                     HTML_MIME_TYPE,
                     HTML_ENCODING,
-                    null,
+                    historyUrl,
                 )
                 return
             }
@@ -446,6 +463,7 @@ class HSWebViewManagerImpl(
                 if (previousUrl != null && previousUrl == url) {
                     return
                 }
+                view.addTrustedOrigin(url)
                 if (source.hasKey("method")) {
                     val method = source.getString("method")
                     if (method.equals(HTTP_METHOD_POST, ignoreCase = true)) {
