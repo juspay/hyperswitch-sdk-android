@@ -1,15 +1,10 @@
 package io.hyperswitch.paymentsheet
 
-import android.graphics.Color
 import android.os.Bundle
-import java.util.Locale
 
 internal object PaymentMessageWire {
     fun style(style: PaymentSheet.MessageElementStyle): Bundle = Bundle().apply {
-        style.color?.let { color ->
-            val rgb = String.format(Locale.ROOT, "#%02X%02X%02X", Color.red(color), Color.green(color), Color.blue(color))
-            putString("color", rgb + if (Color.alpha(color) < 255) String.format(Locale.ROOT, "%02X", Color.alpha(color)) else "")
-        }
+        toHexColorString(style.color)?.let { putString("color", it) }
         style.fontSize?.takeIf { it.isFinite() && it >= 0f }?.let { putDouble("fontSize", it.toDouble()) }
         // Typeface's 1..1000 range, rounded to the nearest weight the bundle supports, as iOS does.
         style.fontWeight?.takeIf { it in 1..1000 }?.let {

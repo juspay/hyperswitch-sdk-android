@@ -668,12 +668,6 @@ class PaymentSheet internal constructor(
                 }
             }
 
-        private fun toHexColorString(color: Int?): String? {
-            if (color == null) return null
-            val s = String.format("#%08X", (color))
-            return "#" + s.substring(3) + s.substring(1, 3)
-        }
-
         @RequiresApi(Build.VERSION_CODES.O)
         constructor(
             primary: Color? = null,
@@ -727,12 +721,6 @@ class PaymentSheet internal constructor(
                     }
                 }
             }
-
-        private fun toHexColorString(color: Int?): String? {
-            if (color == null) return null
-            val s = String.format("#%08X", (color))
-            return "#" + s.substring(3) + s.substring(1, 3)
-        }
 
         @RequiresApi(Build.VERSION_CODES.O)
         constructor(
@@ -886,12 +874,6 @@ class PaymentSheet internal constructor(
                     putString("border", toHexColorString(border))
                 }
             }
-
-        private fun toHexColorString(color: Int?): String? {
-            if (color == null) return null
-            val s = String.format("#%08X", (color))
-            return "#" + s.substring(3) + s.substring(1, 3)
-        }
 
         @RequiresApi(Build.VERSION_CODES.O)
         constructor(
@@ -1900,4 +1882,11 @@ class PaymentSheet internal constructor(
             }
         }
     }
+}
+
+/** `#RRGGBBAA`, the form every configuration color is sent to the bundle in. */
+internal fun toHexColorString(@ColorInt color: Int?): String? {
+    if (color == null) return null
+    val s = String.format("#%08X", (color))
+    return "#" + s.substring(3) + s.substring(1, 3)
 }
