@@ -1,5 +1,6 @@
 package io.hyperswitch.paymentsession
 
+import androidx.annotation.RestrictTo
 import io.hyperswitch.paymentsheet.PaymentResult
 import org.json.JSONObject
 import java.util.concurrent.atomic.AtomicReference
@@ -11,8 +12,10 @@ object PaymentSheetCallbackManager {
     private var isFragment: Boolean = true
 
     /* Message action of the Activity-fallback sheet, which has no fragment to hold one. */
+    @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @set:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     @Volatile
-    var messageAction: ((paymentMethod: String, paymentMethodType: String, index: Int, text: String) -> Unit)? = null
+    var messageAction: MessageActionHandler? = null
 
     fun setCallback(newCallback: Callback, newIsFragment: Boolean = true) {
         callback.set(newCallback)

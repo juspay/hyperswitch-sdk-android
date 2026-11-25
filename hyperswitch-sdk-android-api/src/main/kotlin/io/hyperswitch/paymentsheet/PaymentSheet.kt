@@ -1579,8 +1579,13 @@ class PaymentSheet internal constructor(
     class MessageElement private constructor(
         internal val label: String,
         internal val style: MessageElementStyle?,
-        internal val onClick: () -> Unit,
+        internal val clickCallback: ClickCallback,
     ) {
+        /** Runs on the main thread when the action is tapped. */
+        fun interface ClickCallback {
+            fun onClick()
+        }
+
         /** The label, so a mistaken `"$element"` shows plain text. Use [MessageBuilder.include]. */
         override fun toString(): String = label
 
@@ -1590,7 +1595,7 @@ class PaymentSheet internal constructor(
             fun action(
                 label: String,
                 style: MessageElementStyle? = null,
-                onClick: () -> Unit,
+                onClick: ClickCallback,
             ): MessageElement = MessageElement(label, style, onClick)
         }
     }
@@ -1688,7 +1693,7 @@ class PaymentSheet internal constructor(
         /** Holds callbacks, so it is not parcelled. */
         @IgnoredOnParcel val message: PaymentMethodMessage? = null,
     ) : Parcelable {
-        val bundle: Bundle
+        internal val bundle: Bundle
             get() = Bundle().apply {
                 putString("paymentMethodType", paymentMethodType.value)
                 message?.let { putBundle("message", it.bundle) }

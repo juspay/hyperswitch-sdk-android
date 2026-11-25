@@ -363,7 +363,7 @@ class PaymentSessionReactLauncher(
         bundle: Bundle,
         eventListener: PaymentEventListener?,
         onResult: ((PaymentResult) -> Unit)?,
-        messageAction: ((paymentMethod: String, paymentMethodType: String, index: Int, text: String) -> Unit)? = null,
+        messageAction: MessageActionHandler? = null,
     ): Boolean {
         stampSessionTag(bundle)
         if (activity is DefaultHardwareBackBtnHandler && activity is FragmentActivity) {

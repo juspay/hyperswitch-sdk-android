@@ -2,9 +2,6 @@ package io.hyperswitch.react
 
 import android.util.Log
 import androidx.fragment.app.FragmentActivity
-import androidx.webkit.WebMessageCompat
-import androidx.webkit.WebViewCompat
-import androidx.webkit.WebViewFeature
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.ReactApplicationContext

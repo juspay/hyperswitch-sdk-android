@@ -18,6 +18,6 @@ object PaymentMessageActions {
             config.paymentMethodTypes?.find { it.paymentMethodType.value == paymentMethodType }?.message
         } ?: return
         val (label, element) = message.segments?.getOrNull(index) ?: return
-        if (label == text) element?.onClick?.invoke()
+        if (label == text) element?.clickCallback?.onClick()
     }
 }
