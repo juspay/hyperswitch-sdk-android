@@ -1546,7 +1546,7 @@ class PaymentSheet internal constructor(
     data class MessageElementStyle(
         @ColorInt val color: Int? = null,
         /** Size in sp, before the SDK typography scale is applied. */
-        val fontSize: Float? = null,
+        val fontSizeSp: Float? = null,
         /**
          * Weight from 1 to 1000, as in `Typeface`, rounded to the nearest of 100, 200, … 900
          * (650 → 700). Null or out-of-range values inherit the weight.
@@ -1555,11 +1555,25 @@ class PaymentSheet internal constructor(
         val fontWeight: Int? = null,
         val fontStyle: FontStyle? = null,
         val textDecoration: TextDecoration? = null,
-    )
+    ) {
+        internal val bundle: Bundle
+            get() = Bundle().apply {
+                toHexColorString(color)?.let { putString("color", it) }
+                fontSizeSp?.let { putFloat("fontSize", it) }
+                fontWeight?.takeIf { it in 1..1000 }?.let {
+                    putString("fontWeight", ((it + 50) / 100 * 100).coerceIn(100, 900).toString())
+                }
+                fontStyle?.let { putString("fontStyle", it.value) }
+                textDecoration?.let { putString("textDecoration", it.value) }
+            }
+    }
 
     data class MessageElementStyles(
         val action: MessageElementStyle? = null,
-    )
+    ) {
+        internal val bundle: Bundle
+            get() = Bundle().apply { action?.let { putBundle("action", it.bundle) } }
+    }
 
     /** Immutable action definition. Its callback stays native with the message's checkout owner. */
     class MessageElement private constructor(
@@ -1591,21 +1605,24 @@ class PaymentSheet internal constructor(
             return "$MARKER${included.size - 1}$MARKER_END"
         }
 
-        /* Lists the actions in text order, whatever order `include` was called in, and leaves one
-           MARKER per action for the wire to split on. */
-        internal fun place(text: String): Pair<String, List<MessageElement>> {
-            val elements = mutableListOf<MessageElement>()
-            val placed = text.replace(PLACED) { match ->
-                match.groupValues[1].toIntOrNull()?.let(included::getOrNull)?.let { elements.add(it); MARKER }.orEmpty()
+        /* Splits [text] into the message's segments at the markers `include` returned, so the
+           actions come in text order whatever order `include` ran in. Only whole markers are
+           read: other text, private-use characters included, stays text. */
+        internal fun segments(text: String): List<Pair<String, MessageElement?>> = buildList {
+            var start = 0
+            for (match in PLACED.findAll(text)) {
+                text.substring(start, match.range.first).takeIf { it.isNotEmpty() }?.let { add(it to null) }
+                match.groupValues[1].toIntOrNull()?.let(included::getOrNull)?.let { add(it.label to it) }
+                start = match.range.last + 1
             }
-            return placed to elements
+            text.substring(start).takeIf { it.isNotEmpty() }?.let { add(it to null) }
         }
 
-        internal companion object {
+        private companion object {
             /* Private-use characters mark where each included action sits. */
             const val MARKER = "\uE000"
-            private const val MARKER_END = "\uE001"
-            private val PLACED = Regex("$MARKER(\\d+)$MARKER_END")
+            const val MARKER_END = "\uE001"
+            val PLACED = Regex("$MARKER(\\d+)$MARKER_END")
         }
     }
 
@@ -1614,20 +1631,19 @@ class PaymentSheet internal constructor(
      * Unset fields of a payment method type's message come from its payment method's message.
      */
     class PaymentMethodMessage private constructor(
-        content: Pair<String?, List<MessageElement>>,
+        /* The `value` as sent, in display order: text, or an action's label and the action. Null
+           when the message has no text of its own. A tap names a position in this list. */
+        internal val segments: List<Pair<String, MessageElement?>>?,
         val displayMode: MessageDisplayMode?,
         val elementStyles: MessageElementStyles?,
     ) {
-        internal val text = content.first
-        internal val elements = content.second
-
         /** Text with actions: `PaymentMethodMessage(value = { "Read the ${include(terms)}." })`. */
         @JvmOverloads
         constructor(
             value: MessageBuilder.() -> String,
             displayMode: MessageDisplayMode? = null,
             elementStyles: MessageElementStyles? = null,
-        ) : this(MessageBuilder().run { place(value()) }, displayMode, elementStyles)
+        ) : this(MessageBuilder().run { segments(value()) }, displayMode, elementStyles)
 
         /** Plain text without actions. */
         @JvmOverloads
@@ -1635,7 +1651,7 @@ class PaymentSheet internal constructor(
             value: String,
             displayMode: MessageDisplayMode? = null,
             elementStyles: MessageElementStyles? = null,
-        ) : this(value to emptyList(), displayMode, elementStyles)
+        ) : this(if (value.isEmpty()) emptyList() else listOf(value to null), displayMode, elementStyles)
 
         /**
          * No text of its own: [MessageDisplayMode.HIDDEN], [MessageDisplayMode.DEFAULT_SDK_MESSAGE],
@@ -1645,9 +1661,24 @@ class PaymentSheet internal constructor(
         constructor(
             displayMode: MessageDisplayMode? = null,
             elementStyles: MessageElementStyles? = null,
-        ) : this(null to emptyList(), displayMode, elementStyles)
+        ) : this(null, displayMode, elementStyles)
 
-        internal val bundle: Bundle get() = PaymentMessageWire.message(this)
+        internal val bundle: Bundle
+            get() = Bundle().apply {
+                displayMode?.let { putString("displayMode", it.value) }
+                segments?.let { value ->
+                    putParcelableArrayList("value", ArrayList(value.map { (text, element) ->
+                        Bundle().apply {
+                            putString("text", text)
+                            if (element != null) {
+                                putBoolean("tappable", true)
+                                element.style?.let { putBundle("style", it.bundle) }
+                            }
+                        }
+                    }))
+                }
+                elementStyles?.let { putBundle("elementStyles", it.bundle) }
+            }
     }
 
     /** Message for one payment method type; it wins over its payment method's message. */
@@ -1885,7 +1916,7 @@ class PaymentSheet internal constructor(
 }
 
 /** `#RRGGBBAA`, the form every configuration color is sent to the bundle in. */
-internal fun toHexColorString(@ColorInt color: Int?): String? {
+private fun toHexColorString(@ColorInt color: Int?): String? {
     if (color == null) return null
     val s = String.format("#%08X", (color))
     return "#" + s.substring(3) + s.substring(1, 3)

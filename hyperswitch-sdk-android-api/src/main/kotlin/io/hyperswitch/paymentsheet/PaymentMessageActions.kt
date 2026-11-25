@@ -17,7 +17,7 @@ object PaymentMessageActions {
         } else {
             config.paymentMethodTypes?.find { it.paymentMethodType.value == paymentMethodType }?.message
         } ?: return
-        val (label, element) = PaymentMessageWire.segments(message).getOrNull(index) ?: return
+        val (label, element) = message.segments?.getOrNull(index) ?: return
         if (label == text) element?.onClick?.invoke()
     }
 }
