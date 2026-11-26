@@ -1543,6 +1543,7 @@ class PaymentSheet internal constructor(
     enum class FontStyle(val value: String) { NORMAL("normal"), ITALIC("italic") }
     enum class TextDecoration(val value: String) { NONE("none"), UNDERLINE("underline") }
 
+    @Parcelize
     data class MessageElementStyle(
         @ColorInt val color: Int? = null,
         /** Size in sp, before the SDK typography scale is applied. */
@@ -1555,7 +1556,7 @@ class PaymentSheet internal constructor(
         val fontWeight: Int? = null,
         val fontStyle: FontStyle? = null,
         val textDecoration: TextDecoration? = null,
-    ) {
+    ) : Parcelable {
         internal val bundle: Bundle
             get() = Bundle().apply {
                 toHexColorString(color)?.let { putString("color", it) }
@@ -1568,9 +1569,10 @@ class PaymentSheet internal constructor(
             }
     }
 
+    @Parcelize
     data class MessageElementStyles(
         val action: MessageElementStyle? = null,
-    ) {
+    ) : Parcelable {
         internal val bundle: Bundle
             get() = Bundle().apply { action?.let { putBundle("action", it.bundle) } }
     }
@@ -1613,14 +1615,14 @@ class PaymentSheet internal constructor(
         /* Splits [text] into the message's segments at the markers `include` returned, so the
            actions come in text order whatever order `include` ran in. Only whole markers are
            read: other text, private-use characters included, stays text. */
-        internal fun segments(text: String): List<Pair<String, MessageElement?>> = buildList {
+        internal fun segments(text: String): List<PaymentMethodMessage.Segment> = buildList {
             var start = 0
             for (match in PLACED.findAll(text)) {
-                text.substring(start, match.range.first).takeIf { it.isNotEmpty() }?.let { add(it to null) }
-                match.groupValues[1].toIntOrNull()?.let(included::getOrNull)?.let { add(it.label to it) }
+                text.substring(start, match.range.first).takeIf { it.isNotEmpty() }?.let { add(PaymentMethodMessage.Segment(it)) }
+                match.groupValues[1].toIntOrNull()?.let(included::getOrNull)?.let { add(PaymentMethodMessage.Segment(it.label, it)) }
                 start = match.range.last + 1
             }
-            text.substring(start).takeIf { it.isNotEmpty() }?.let { add(it to null) }
+            text.substring(start).takeIf { it.isNotEmpty() }?.let { add(PaymentMethodMessage.Segment(it)) }
         }
 
         private companion object {
@@ -1635,13 +1637,22 @@ class PaymentSheet internal constructor(
      * Each message owns its actions; the checkout owner reads them from its active configuration.
      * Unset fields of a payment method type's message come from its payment method's message.
      */
+    @Parcelize
     class PaymentMethodMessage private constructor(
         /* The `value` as sent, in display order: text, or an action's label and the action. Null
            when the message has no text of its own. A tap names a position in this list. */
-        internal val segments: List<Pair<String, MessageElement?>>?,
+        internal val segments: List<Segment>?,
         val displayMode: MessageDisplayMode?,
         val elementStyles: MessageElementStyles?,
-    ) {
+    ) : Parcelable {
+        /** One piece of the message's text: plain text, or an action's label and the action. */
+        @Parcelize
+        internal data class Segment(
+            val text: String,
+            /** Callbacks can't be parcelled: after a round trip the segment is plain text. */
+            @IgnoredOnParcel val action: MessageElement? = null,
+        ) : Parcelable
+
         /** Text with actions: `PaymentMethodMessage(value = { "Read the ${include(terms)}." })`. */
         @JvmOverloads
         constructor(
@@ -1656,7 +1667,7 @@ class PaymentSheet internal constructor(
             value: String,
             displayMode: MessageDisplayMode? = null,
             elementStyles: MessageElementStyles? = null,
-        ) : this(if (value.isEmpty()) emptyList() else listOf(value to null), displayMode, elementStyles)
+        ) : this(if (value.isEmpty()) emptyList() else listOf(Segment(value)), displayMode, elementStyles)
 
         /**
          * No text of its own: [MessageDisplayMode.HIDDEN], [MessageDisplayMode.DEFAULT_SDK_MESSAGE],
@@ -1690,8 +1701,8 @@ class PaymentSheet internal constructor(
     @Parcelize
     data class PaymentMethodTypeConfig @JvmOverloads constructor(
         val paymentMethodType: PaymentMethodType,
-        /** Holds callbacks, so it is not parcelled. */
-        @IgnoredOnParcel val message: PaymentMethodMessage? = null,
+        /** Parcelled without its callbacks: after a round trip, its actions show as plain text. */
+        val message: PaymentMethodMessage? = null,
     ) : Parcelable {
         internal val bundle: Bundle
             get() = Bundle().apply {
@@ -1707,8 +1718,8 @@ class PaymentSheet internal constructor(
     data class PaymentMethodConfig @JvmOverloads constructor(
         /** The payment method identifier, e.g. CARD, WALLET. */
         val paymentMethod: PaymentMethod,
-        /** Message for this payment method. Holds callbacks, so it is not parcelled. */
-        @IgnoredOnParcel val message: PaymentMethodMessage? = null,
+        /** Message for this payment method. Parcelled without its callbacks: after a round trip, its actions show as plain text. */
+        val message: PaymentMethodMessage? = null,
         /** Per-type messages. Not supported for [PaymentMethod.CARD]. */
         val paymentMethodTypes: List<PaymentMethodTypeConfig>? = null,
     ) : Parcelable {
