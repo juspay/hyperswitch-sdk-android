@@ -19,6 +19,7 @@ import com.proyecto26.inappbrowser.ChromeTabsDismissedEvent
 import com.proyecto26.inappbrowser.ChromeTabsManagerActivity
 import io.hyperswitch.PaymentEvent
 import io.hyperswitch.PaymentEventListener
+import io.hyperswitch.paymentsession.MessageActionHandler
 import io.hyperswitch.paymentsheet.PaymentResult
 import io.hyperswitch.redirect.RedirectEvent
 import io.hyperswitch.utils.ConversionUtils
@@ -100,6 +101,17 @@ class HyperFragment : Fragment() {
 
     fun setOnEventCallback(listener: PaymentEventListener) {
         this.paymentEventListener = listener
+    }
+
+    /** A tapped payment method message action; its owner runs the merchant callback. */
+    private var messageAction: MessageActionHandler? = null
+
+    fun setOnMessageAction(handler: MessageActionHandler) {
+        this.messageAction = handler
+    }
+
+    internal fun onMessageAction(paymentMethod: String, paymentMethodType: String, index: Int, text: String) {
+        messageAction?.invoke(paymentMethod, paymentMethodType, index, text)
     }
 
     private var confirmSequence = 0
@@ -348,6 +360,7 @@ class HyperFragment : Fragment() {
             callbacks.clear()
             onExit = null
             paymentEventListener = null
+            messageAction = null
         } catch (_: Exception) {
         }
     }
@@ -359,6 +372,7 @@ class HyperFragment : Fragment() {
             callbacks.clear()
             onExit = null
             paymentEventListener = null
+            messageAction = null
         } catch (_: Exception) {
         }
     }
